@@ -73,6 +73,13 @@
 - <strong>3 小时</strong>:全文精读 + Day 2 <strong>dotMemory 抓内存泄漏(事件订阅泄漏)</strong> + Day 3 Channel 限流 + Day 4 长跑策略
 - 🎯 <strong>面试高频</strong>:<strong>BenchmarkDotNet 报告怎么读</strong> / <strong>dotnet counters vs dotnet dump</strong> / <strong>4 种内存泄漏(event/Cached delegate/Static/Timer)</strong> / Channel 限流背压 DropOldest
 - 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B25 PerformanceCounter / B26 IDisposable 完整模式</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M9.5 用到的,陌生请查 <a href="CSharp语法速查_前端视角.md">C# 语法速查 — 前端视角</a>)
+- <code>[MemoryDiagnoser]</code> / <code>[Benchmark]</code> / <code>[Params(100, 1000)]</code> — BenchmarkDotNet 特性
+- <code>Span&lt;byte&gt;</code> / <code>ReadOnlySpan&lt;T&gt;</code> — 零拷贝切片(性能核心,速查官方文档)
+- <code>GC.Collect()</code> / <code>GC.GetTotalMemory(forceFullCollection: true)</code> — 强制 GC
+- <code>Interlocked.Increment(ref _count)</code> — 原子计数,速查 §14
+- <code>Channel&lt;T&gt;</code> 限流背压 — 速查 §14
+- <code>WeakReference&lt;T&gt;</code> — 弱引用(检测对象是否被 GC)</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>让上位机 <strong>7×24 稳跑</strong>：① 用 BenchmarkDotNet 量化关键路径性能（CRC / 解析 / Span vs byte[]）；② 用 <code>dotnet counters</code> 实时看 GC/堆/线程 + 自定义业务 EventCounter；③ 用 dotMemory 抓快照找"只增不减"的内存泄漏（4 种典型）；④ 长跑稳定性策略——限流 / 降级 / 熔断 / 心跳 / 自愈。<strong>做完这套，你的程序才算"工业级"</strong>。</p>

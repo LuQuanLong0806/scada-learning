@@ -76,6 +76,13 @@
 - <strong>3 小时</strong>:全文精读 + Day 2 <strong>RegionManager 模块化</strong> + Day 3 <strong>EventAggregator 跨 VM 通信</strong> + Day 4 DialogService
 - 🎯 <strong>面试高频</strong>:<strong>RegionManager(动态注入 View)</strong> / <strong>EventAggregator(pub/sub 解耦)</strong> / ViewModelLocator 命名约定 / Prism vs CommunityToolkit.Mvvm 选型
 - 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B17 EventAggregator 简化版 / B18 ViewModelLocator</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M8.5 用到的,陌生请查 <a href="CSharp语法速查_前端视角.md">C# 语法速查 — 前端视角</a>)
+- <code>abstract class PrismBootstrapper</code> — 抽象类继承,速查 §12
+- <code>RegisterTypes(IContainerRegistry c)</code> — 方法重写(<code>override</code>)
+- <code>interface IEventAggregator</code> — DI 注入的发布订阅总线,速查 §7/§12
+- <code>pub.Publish(new DeviceConnectedEvent(...))</code> / <code>sub.GetEvent&lt;T&gt;().Subscribe(handler)</code> — Prism EventAggregator
+- <code>IDialogService dialog</code> — 服务注入,速查 §12
+- <code>class ViewA : UserControl</code> / <code>class ViewAViewModel : BindableBase</code> — MVVM 双层,速查 §4</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>学完这份你能:

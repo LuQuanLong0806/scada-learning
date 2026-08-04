@@ -76,6 +76,12 @@
 - <strong>3 小时</strong>:全文精读 + Day 2 SQL Server/MySQL 切换 + Day 3 Dapper 对比
 - 🎯 <strong>面试高频</strong>:<strong>量程标定公式(0-4095 → 0-100℃)</strong> / 字节序 ABCD vs CDAB / EF Core 切数据库"改连接串+加包"
 - 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B24 EngineeringConverter 量程标定</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C10 字节序搞反</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M12 用到的,陌生请查 <a href="CSharp语法速查_前端视角.md">C# 语法速查 — 前端视角</a>)
+- <code>static double Map(double raw, double inMin, double inMax, double outMin, double outMax)</code> — 静态方法
+- <code>BitConverter.ToDouble(bytes, 0)</code> — 字节序转换(大端/小端)
+- <code>static class EngineeringConverter { public static double Convert(...) }</code> — 静态工具类
+- <code>services.AddDbContext&lt;SqliteContext&gt;(opt =&gt; opt.UseSqlite(connStr))</code> — DI 切换数据库,速查 §12
+- <code>interface IPointRepository { ... }</code> — 多数据库统一接口,速查 §12</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>给 <code>SensorPoint</code> 加 <code>EngValue</code>；写出 <code>EngineeringConverter</code> 做量程标定；把 M4 的仓储接口指向 SQL Server / MySQL（改连接串 + 加包，<strong>业务代码零改</strong>）。</p>

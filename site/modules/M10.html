@@ -26,26 +26,28 @@
 <div class="layout">
   <aside class="toc"><p class="tt">本页目录</p><ul>
 <li class="l2"><a href="#sec-2-1">Day 1 — 历史聚合查询（LINQ GroupBy）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 历史聚合查询（LINQ GroupBy）</a><ul>
 <li class="l3"><a href="#sec-3-1">⭐ 重点 &amp; 🔥 坑</a></li>
 <li class="l3"><a href="#sec-3-2">✏️ 练习</a></li>
 <li class="l3"><a href="#sec-3-3">✅ 答案</a></li>
 <li class="l3"><a href="#sec-3-4">🏗️ 项目任务</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-2">Day 2 — 报表可视化（表格 + 历史趋势）</a><ul>
+<li class="l2"><a href="#sec-2-3">Day 2 — 报表可视化（表格 + 历史趋势）</a><ul>
 <li class="l3"><a href="#sec-3-5">⭐ 重点 &amp; 🔥 坑</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-3">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</a><ul>
+<li class="l2"><a href="#sec-2-4">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</a><ul>
 <li class="l3"><a href="#sec-3-6">⭐ 重点 &amp; 🔥 坑</a></li>
 <li class="l3"><a href="#sec-3-7">✏️ 练习</a></li>
 <li class="l3"><a href="#sec-3-8">🏗️ 项目任务</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+<li class="l2"><a href="#sec-2-5">📌 温故知新（跨模块联动）</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-5">📄 本模块应产出的文档</a><ul>
+<li class="l2"><a href="#sec-2-6">📄 本模块应产出的文档</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-6">打卡</a><ul>
+<li class="l2"><a href="#sec-2-7">打卡</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-7">📚 延伸阅读（卡点时点开）</a><ul>
+<li class="l2"><a href="#sec-2-8">📚 延伸阅读（卡点时点开）</a><ul>
 </ul></li>
 </ul></aside>
   <main class="content">
@@ -68,8 +70,15 @@
 - <strong>3 小时</strong>:全文精读 + Day 2 ClosedXML 导 Excel + Day 3 报表模板
 - 🎯 <strong>面试高频</strong>:报表维度设计(班次/小时/天)/ <strong>ClosedXML vs EPPlus 选型(License)</strong> / 聚合 SQL vs 内存计算
 - 🔁 <strong>配套复习</strong>:<a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M10 用到的,陌生请查 <a href="CSharp语法速查_前端视角.md">C# 语法速查 — 前端视角</a>)
+- <code>_points.Where(p =&gt; p.Time &gt;= t0 &amp;&amp; p.Time &lt; t1).GroupBy(p =&gt; p.Tag).Select(g =&gt; new { Tag = g.Key, Max = g.Max(p =&gt; p.Value) })</code> — LINQ 多级聚合,速查 §15
+- <code>var report = new { Date = today, Lines = new List&lt;ReportLine&gt;() }</code> — 匿名对象
+- <code>class ReportLine { public string Tag { get; init; } public double Max { get; init; } public double Avg { get; init; } }</code> — init-only 属性,速查 §4
+- <code>using var wb = new XLWorkbook()</code> — ClosedXML 资源释放,速查 §13
+- <code>await db.SensorPoints.Where(...).GroupBy(...).Select(...).ToListAsync()</code> — EF Core 异步聚合,速查 §8/§15</p>
 </blockquote>
 <h2 id="sec-2-1">Day 1 — 历史聚合查询（LINQ GroupBy）</h2>
+<h2 id="sec-2-2">Day 1 — 历史聚合查询（LINQ GroupBy）</h2>
 <p>企业报表的本质：<strong>把海量原始记录，按"维度+时间窗"聚合成少量统计行</strong>。</p>
 <table>
 <thead>
@@ -160,7 +169,7 @@ alarms.GroupBy(a =&gt; a.PointId)
 <h3 id="sec-3-4">🏗️ 项目任务</h3>
 <p>把 <code>ReportService</code> 接入 DAQ Monitor：在 <code>Bootstrapper</code> 注册，主界面"导出报表"时先用它对 <code>PointStore.GetAll()</code> 聚合。</p>
 <hr />
-<h2 id="sec-2-2">Day 2 — 报表可视化（表格 + 历史趋势）</h2>
+<h2 id="sec-2-3">Day 2 — 报表可视化（表格 + 历史趋势）</h2>
 <p>报表不是只导出 Excel，界面里也要能看。复用 M5 的图表库。</p>
 <table>
 <thead>
@@ -218,7 +227,7 @@ alarms.GroupBy(a =&gt; a.PointId)
 </tbody>
 </table>
 <hr />
-<h2 id="sec-2-3">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</h2>
+<h2 id="sec-2-4">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</h2>
 <p>企业最终要的是<strong>文件</strong>：班报发邮件、日报交主管、月报归档。</p>
 <table>
 <thead>
@@ -296,25 +305,25 @@ public static void ExportToExcel(IEnumerable&lt;PointStat&gt; stats, string path
 <h3 id="sec-3-8">🏗️ 项目任务</h3>
 <p>DAQ Monitor 现已具备：启动采集 → 实时表+报警 → 选时间窗 → 一键导出 Excel 报表。<strong>这就是一个完整可交付的企业上位机雏形</strong>。把这句写进你的简历项目描述。</p>
 <hr />
-<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<h2 id="sec-2-5">📌 温故知新（跨模块联动）</h2>
 <ul>
 <li><strong>本模块 = M4(存储) + M5(可视化) + M6(报警) 的收口</strong>：没有前面三块，报表就是无米之炊。</li>
 <li><strong>聚合逻辑放 Core（M9 工程素养）</strong>：所以它能单测、能被 UI 和测试共用——这正是 M9 讲"分层+DI"的意义。</li>
 <li><strong>导出是 IO 边界（M0 Day7 并发）</strong>：文件写入放 UI 命令里、用 <code>SaveFileDialog</code> 拿到路径，不阻塞采集线程。</li>
 </ul>
-<h2 id="sec-2-5">📄 本模块应产出的文档</h2>
+<h2 id="sec-2-6">📄 本模块应产出的文档</h2>
 <ul>
 <li><strong>报表设计文档</strong>：指标定义（点位/维度/时间窗）、字段含义、导出格式（xlsx 列结构）。</li>
 <li><strong>操作说明</strong>：用户如何选时间窗、点导出、文件存哪。</li>
 </ul>
-<h2 id="sec-2-6">打卡</h2>
+<h2 id="sec-2-7">打卡</h2>
 <ul>
 <li>[ ] Day 1 历史聚合查询（LINQ GroupBy）</li>
 <li>[ ] Day 2 报表可视化（表格 + 历史趋势）</li>
 <li>[ ] Day 3 导出 Excel（ClosedXML）/ PDF（QuestPDF）</li>
 <li>[ ] 🏗️ DAQ Monitor 导出报表跑通</li>
 </ul>
-<h2 id="sec-2-7">📚 延伸阅读（卡点时点开）</h2>
+<h2 id="sec-2-8">📚 延伸阅读（卡点时点开）</h2>
 <ul>
 <li>LINQ GroupBy 官方：https://learn.microsoft.com/dotnet/csharp/linq/ —— 聚合查询</li>
 <li>ClosedXML（Excel）：https://github.com/ClosedXML/ClosedXML · QuestPDF（PDF）：https://github.com/QuestPDF/QuestPDF</li>
