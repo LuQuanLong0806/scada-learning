@@ -121,6 +121,9 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>M18 配方管理 VM(MainWindow 用它创建 RecipeManagementView)。</summary>
     public RecipeManagementViewModel? Recipes { get; private set; }
 
+    /// <summary>M19 运动控制 VM(MainWindow 用它创建 MotionControlView)。</summary>
+    public MotionControlViewModel? Motion { get; private set; }
+
     private static SolidColorBrush RoleBrush(UserRole? role) => role switch
     {
         UserRole.Admin => Freeze(new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C))),    // 红
@@ -150,6 +153,10 @@ public class MainViewModel : INotifyPropertyChanged
         Recipes = new RecipeManagementViewModel(
             services.GetRequiredService<RecipeService>(),
             _current);
+
+        // M19 运动控制 VM:从 DI 拿所有 IAxisController(IEnumerable<IAxisController> 自动解析多实例)
+        Motion = new MotionControlViewModel(
+            services.GetServices<Core.Motion.IAxisController>());
 
         _pipeline.BatchReady += OnBatchReady;
         _alarms.AlarmTriggered += OnAlarmTriggered;

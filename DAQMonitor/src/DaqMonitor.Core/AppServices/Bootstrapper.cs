@@ -5,6 +5,7 @@ using DaqMonitor.Core.Cloud;
 using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Diagnostics;
 using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Motion;
 using DaqMonitor.Core.Recipes;
 using DaqMonitor.Core.Store;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,24 @@ public static class Bootstrapper
 
         // —— M18 配方管理:工艺参数包 + 历史快照 + 导入导出 ——
         services.AddSingleton<RecipeService>();
+
+        // —— M19 运动控制:模拟 X/Y 两轴(真实工程接固高/雷赛/正运动卡,换实现即可) ——
+        // 用工厂 + key 注册,UI 用 IEnumerable<IAxisController> 拿到全部轴
+        services.AddSingleton<IAxisController>(_ => new SimulatedAxisController(new AxisConfiguration
+        {
+            AxisId = 0, Name = "X", MinPosition = -200, MaxPosition = 200,
+            MaxVelocity = 200, HomeVelocity = 20, DefaultVelocity = 100
+        }));
+        services.AddSingleton<IAxisController>(_ => new SimulatedAxisController(new AxisConfiguration
+        {
+            AxisId = 1, Name = "Y", MinPosition = -150, MaxPosition = 150,
+            MaxVelocity = 150, HomeVelocity = 15, DefaultVelocity = 80
+        }));
+
+        // —— M19 真实固高卡集成示例(零硬件验证后切换):
+        //   services.AddSingleton<IAxisController>(_ => new GoogoAxisController(cardIndex: 0, axis: 0, "X"));
+        //   services.AddSingleton<IAxisController>(_ => new GoogoAxisController(cardIndex: 0, axis: 1, "Y"));
+        //   GoogoAxisController 内部:GT_Open / GT_AxisOn / GT_PrfTrap / GT_SetPos / GT_Update
 
         // 管道：定时 200ms 批量出队（见 AcquisitionPipeline，统一采集架构）
         services.AddSingleton<AcquisitionPipeline>(_ => new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));

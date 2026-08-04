@@ -45,6 +45,11 @@ public partial class MainWindow : Window
             {
                 RecipeTab.Content = new RecipeManagementView(vm.Recipes);
             }
+            // M19:运动控制 Tab —— 同上模式
+            if (MotionTab is not null && vm.Motion is not null)
+            {
+                MotionTab.Content = new MotionControlView(vm.Motion);
+            }
         }
     }
 }
