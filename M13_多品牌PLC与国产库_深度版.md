@@ -15,6 +15,13 @@
 > - 🎯 **面试高频**:Hsl vs S7.Net + NModbus(一个全能 vs 多个专精)/ Hsl 试用期授权 / 国产库选型理由
 > - 🔁 **配套复习**:[间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M13 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `class MitsubishiPlcDevice : IDevice` / `class OmronPlcDevice : IDevice` — 多实现,速查 §12
+> - `abstract class PlcDeviceBase : IDevice` — 抽象基类(模板方法)
+> - `OperateResult result = plc.Read("D100")` — Hsl 库返回类型(成功/失败合一)
+> - `switch (brand) { case "Mitsubishi": ... case "Omron": ... }` — 多品牌分支
+> - `event EventHandler<DataReceivedEventArgs>? DataReceived` — 统一事件契约
+
 ## 模块目标
 用 `HslCommunication` 封装一个 `PlcDevice : IDevice`，支持西门子/三菱/欧姆龙统一读点；理解"为什么国内爱 Hsl"，并能讲清多品牌地址差异这一最大坑。
 

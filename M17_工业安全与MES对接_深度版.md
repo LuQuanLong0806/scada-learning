@@ -13,6 +13,14 @@
 > - 🎯 **面试高频**:**HttpClientFactory 为什么不能直接 new HttpClient(socket 耗尽)** / Polly retry+circuit-breaker / IT/OT 物理隔离 / IEC 62443 思想
 > - 🔁 **配套复习**:[代码肌肉 B21 白名单 / B22 AuditLogger](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M17 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `_client.PostAsJsonAsync("/api/mes/report", payload, ct)` — HttpClient + JSON,速查 §8
+> - `services.AddHttpClient<MesClient>(c => c.BaseAddress = new Uri(url))` — HttpClientFactory + DI
+> - `record MesReport(string OrderId, double Qty, DateTime Time)` — 不可变 DTO,速查 §12
+> - `class MesClient : IMesClient` — 接口抽象(便于 Mock 测试)
+> - `try { ... } catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.ServiceUnavailable)` — 异常过滤,速查 §9
+> - `await Policy.Handle<HttpRequestException>().WaitAndRetryAsync(3, i => TimeSpan.FromSeconds(Math.Pow(2, i))).ExecuteAsync(...)` — Polly 重试
+
 ## 模块目标
 让上位机：① 用 `HttpClient` 通过 HttpClientFactory + DI 对接 MES/ERP REST API（含 JSON 序列化、JWT、重试、熔断）；② 满足基本的**工业网络安全**要求（IT/OT 双网卡、白名单、审计日志、凭证管理）；③ 知道 IT/OT 边界在哪儿——为什么工厂要把生产网和办公网物理隔离，为什么不能直接 `http://` 走公网。
 

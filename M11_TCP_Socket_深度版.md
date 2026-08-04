@@ -15,6 +15,14 @@
 > - 🎯 **面试高频**:**粘包/拆包(状态机拼帧)** / 帧头为什么 AA55 / 长度前缀 vs 分隔符 / 心跳保活 + 静默超时
 > - 🔁 **配套复习**:[速记卡 Q11 粘包半包](面试高频知识点_速记卡.md) · [代码肌肉 B16 TcpDevice 粘包状态机 15min 白板](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M11 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `byte[] buf = new byte[1024]` / `ArraySegment<byte>` — 字节缓冲,速查 §2
+> - `Memory<byte>` / `ReadOnlySpan<byte>` — 高性能零拷贝
+> - `async Task<int> ReceiveAsync(byte[] buf, int offset, int count, ct)` — 异步 IO,速查 §8
+> - `event EventHandler<byte[]>? FrameReceived` — 帧到达事件,速查 §7
+> - `enum ParseState { WaitHeader, ReadLength, ReadBody, CheckCrc }` — 状态机枚举,速查 §12
+> - `class FrameParser` 内部 `private int _state;` 字段 + 方法 — 完整 class 设计
+
 ## 模块目标
 写出一个 `TcpDevice` 实现 `IDevice`：连接 TCP → 收字节流 → 按自定义帧解析（处理**粘包/拆包**）→ 通过 `DataReceived` 事件抛业务数据 → 进 DAQ Monitor。证明"换通信介质不改采集层"。
 

@@ -15,6 +15,14 @@
 > - 🎯 **面试高频**:CAN 报文 ID 优先级仲裁 / 标准帧 11bit vs 扩展帧 29bit / **HID Report 长度固定 64B**
 > - 🔁 **配套复习**:[间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M16 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `interface ICanChannel : IDisposable` — 自研抽象,速查 §12/§13
+> - `class CanDevice : IDevice` — 多接口实现
+> - `struct CanFrame { public int Id; public byte[] Data; }` — 值类型帧(性能),速查 §12
+> - `event EventHandler<CanFrame>? FrameReceived` — 帧到达事件,速查 §7
+> - `[Flags] enum HidReportType { Input = 1, Output = 2, Feature = 4 }` — 位标志枚举
+> - `byte reportId = 0x01; byte[] buf = new byte[64]` — HID 固定 64 字节 Report
+
 ## 模块目标
 1. 搞懂 CAN 总线：它和 Modbus 有什么不同、帧结构、为什么汽车/设备爱用。
 2. 用 `IDevice` 接口写一个 `CanDevice`（先给可测的 `SimulatedCanChannel`，再给真实 API 形态）。

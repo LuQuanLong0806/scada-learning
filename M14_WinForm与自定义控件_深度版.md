@@ -20,6 +20,14 @@
 > - 🎯 **面试高频**:WPF 数据驱动 vs WinForm 事件驱动 / **GDI+ 自绘圆弧仪表** / 双缓冲防闪烁
 > - 🔁 **配套复习**:[速记卡 Q2 WPF vs WinForms](面试高频知识点_速记卡.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M14 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `public class GaugeControl : Control` — 继承 WPF Control
+> - `public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(...)` — 依赖属性(WPF 特有)
+> - `public double Value { get => (double)GetValue(ValueProperty); set => SetValue(ValueProperty, value); }` — 依赖属性完整 get/set
+> - `protected override void OnRender(DrawingContext dc)` — GDI+/WPF 自绘
+> - `dc.DrawArc(pen, rect, startAngle, sweepAngle)` — 画圆弧(仪表盘指针)
+> - `class WinFormsForm : Form` — WinForm 窗体继承(对比 WPF Window)
+
 ## 模块目标
 写出一个 WinForm 小窗体（按钮 + 文本框 + 后台线程刷新）+ 讲透自绘仪表盘控件（开发 / 复用 / 扩展 / 调试四场景）。
 

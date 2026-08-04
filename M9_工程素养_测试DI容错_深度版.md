@@ -14,6 +14,15 @@
 > - 🎯 **面试高频**:**Channel<T> 生产消费者(为什么不用 ConcurrentQueue)** / DI 生命周期(单例/作用域/瞬态)/ **Retry 指数退避 + 熔断**
 > - 🔁 **配套复习**:[代码肌肉 B2 Channel 生产消费 10min 白板](代码肌肉训练手册_30天刷题版.md) · [Debug C3 多线程竞态 / C4 event 没退订](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M9 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `[Fact]` / `[Theory]` / `[InlineData(1, 2, 3)]` — xUnit 测试特性
+> - `Assert.Equal(expected, actual)` / `Assert.Throws<T>(...)` — 断言
+> - `Mock<IDevice>` / `.Setup(x => x.ConnectAsync()).ReturnsAsync(true)` — Moq
+> - `Channel<T>.CreateUnbounded()` / `await channel.Reader.ReadAsync(ct)` — 生产消费,速查 §14
+> - `services.AddSingleton<IAlarmEngine, AlarmEngine>()` — DI 注册,速查 §12
+> - `Interlocked.Increment(ref _retryCount)` — 原子计数(重试),速查 §14
+> - `async Task ExecuteWithRetry(Func<Task> action, ct)` — 异步委托参数,速查 §7/§8
+
 ## 模块目标
 ① **单元测试**（xUnit + Moq）：核心逻辑可验证，改代码不怕回归；② **DI 容器**：服务一处注册、随处可取，便于替换与测试；③ **统一采集架构**（`Channel<T>` + `Timer` 批量）：修正 M5③/M7② 的"逐点刷新/逐点发布"坑；④ **生产级容错与重试**：通信断了自动退避重试，而不是裸 `try/catch` 抛给用户。
 

@@ -15,6 +15,14 @@
 > - 🎯 **面试高频**:**IsConnected 不可信要靠 Read 验证** / DB 块地址(DBX 位/DBB 字节/DBD 双字)/ 优化块访问 / S7.Net vs Modbus 选型
 > - 🔁 **配套复习**:[速记卡 Q12-Q13](面试高频知识点_速记卡.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M3 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `class Device : IDevice` — 类继承接口,速查 §12
+> - `async Task<bool>` / `await` — 异步,速查 §8
+> - `event EventHandler<T>?` — 事件发布订阅,速查 §7
+> - `using var plc = new Plc(...)` — 资源释放,速查 §13
+> - `Interlocked.Exchange(ref _isConnected, value)` — 原子操作,速查 §14
+> - `CancellationToken` — 取消令牌,速查 §8
+
 ## 模块目标
 用 S7.Net 连接一台西门子 S7-1200 / 1500 PLC，读取 DB 块里的温度 / 压力点位，写入 DAQ Monitor。学完你能讲清：**为什么 `IsConnected` 不可信、错误码怎么判、连不上怎么一步步排查**——这三点是现场和面试的生死线。
 

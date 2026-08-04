@@ -12,6 +12,14 @@
 > - 🎯 **面试高频**:**全程 async 不能 .Result(UI 死锁)** / MQTT QoS 0/1/2 / 持久会话 CleanSession=false / MQTTnet 4.x v4 API
 > - 🔁 **配套复习**:[代码肌肉 B13 MQTT Publish+Subscribe 双向](代码肌肉训练手册_30天刷题版.md) · [Debug C1 async void 吞异常](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
 
+> 📚 **前置语法**(M7 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
+> - `async Task` — 全程异步(MQTT/OPC UA 都是 IO 密集),速查 §8
+> - `event Func<Task>?` — 异步事件(罕见但 M7 用),速查 §7/§8
+> - `CancellationToken ct` — 取消令牌,速查 §8
+> - `await Task.Delay(TimeSpan.FromSeconds(30), ct)` — 异步延迟
+> - `class MqttClient : IDisposable` / `using var client = ...` — 必须 Dispose,速查 §13
+> - `Interlocked.Exchange(ref _retryCount, 0)` — 原子重试计数,速查 §14
+
 ## 模块目标
 把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。
 
