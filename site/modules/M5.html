@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M5 · 实时可视化 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M5">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 动态曲线 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：为什么用 Channel&lt;T&gt; 而不是直接 ObservableCollection.Add</a></li>
+<li class="l3"><a href="#sec-3-5">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 仪表盘 + 性能 🟡</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-11">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-12">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-13">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-14">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🧩 多场景应用：实时可视化还能怎么用</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🧩 完整代码组装（ChartVm + 批量刷新，可直接抄）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">模块交付清单（M5）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M5 — 实时可视化（LiveCharts2）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 实时可视化（简历演示杀手锏）
+<strong>技术来源</strong>：🟧 第三方 NuGet <code>LiveChartsCore.SkiaSharpView.WPF</code>（<code>dotnet add package LiveChartsCore.SkiaSharpView.WPF</code>）。
+<strong>给简历加的能力</strong>：动态曲线 / 仪表盘 —— 上位机的"面子"，让数据一眼可见。
+<strong>前置</strong>：M0（WPF / 绑定 / 并发）、M1–M3（有点数据）。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>用 LiveCharts2 在 WPF 里画实时曲线（温度随时间）和仪表盘（当前值），数据来自 <code>DataReceived</code> 事件。</p>
+<h2 id="sec-2-2">Day 1 — 动态曲线 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>LiveCharts2 把"一串点"绑到图表上，数据变了图表自动重绘；实时场景就是不断往集合里 <code>Add</code> 新点、丢掉旧点。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>LiveCharts2</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ObservablePoint</code></td>
+<td><code>{x, y}</code> 数据点</td>
+</tr>
+<tr>
+<td><code>CartesianChart</code> + <code>LineSeries</code></td>
+<td>ECharts <code>line</code> series</td>
+</tr>
+<tr>
+<td><code>ObservableCollection</code> 绑定</td>
+<td>Vue <code>data</code> 响应式</td>
+</tr>
+<tr>
+<td><code>XAxes/YAxes</code></td>
+<td>坐标轴配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① ViewModel 准备数据</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.WPF;
+
+public class ChartVm
+{
+    public ISeries[] Series { get; } =
+    {
+        new LineSeries&lt;ObservablePoint&gt;
+        {
+            Values = new ObservableCollection&lt;ObservablePoint&gt;(),
+            Fill = null,        // 不填充，只画线
+        }
+    };
+}
+</code></pre>
+<p><strong>② XAML 绑定</strong>（🟩 WPF）</p>
+<pre><code class="language-xml">&lt;lvc:CartesianChart Series=&quot;{Binding Series}&quot; /&gt;
+</code></pre>
+<p><strong>③ 实时追加（事件→入队→定时批量）</strong>（呼应 M0 Day 7 跨线程 + M5② 批量刷新）</p>
+<blockquote>
+<p>🔥 <strong>修正说明</strong>：早期版本在 <code>DataReceived</code> 里用 <code>Dispatcher.Invoke</code> 逐点刷新 UI —— 100Hz×多设备时直接卡死。正确做法是：事件<strong>只负责入队</strong>，UI 用定时器<strong>批量</strong>刷新。</p>
+</blockquote>
+<pre><code class="language-csharp">// 1) 事件只做“入队”这件极轻的事（线程安全，不阻塞采集线程）
+var ch = System.Threading.Channels.Channel.CreateUnbounded&lt;SensorPoint&gt;();
+device.DataReceived += (s, e) =&gt;
+    ch.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = DateTime.Now });
+
+// 2) UI 线程用 DispatcherTimer 每 500ms 定时“批量拉取”一批，一次性画曲线
+var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+timer.Tick += (_, _) =&gt;
+{
+    var batch = new List&lt;SensorPoint&gt;();
+    while (ch.Reader.TryRead(out var p)) batch.Add(p);   // 取出这一批
+    if (batch.Count == 0) return;
+    var series = (LineSeries&lt;ObservablePoint&gt;)vm.Series[0];
+    foreach (var p in batch)                              // 批量追加，不是逐点
+        series.Values.Add(new ObservablePoint(p.Timestamp.Second, p.Value));
+    while (series.Values.Count &gt; 200) series.Values.RemoveAt(0); // 限长防内存涨
+};
+timer.Start();
+</code></pre>
+<blockquote>
+<p>📌 更完整的企业级封装见 <strong>M9 统一采集架构（AcquisitionPipeline）</strong>：用 <code>Channel&lt;T&gt;</code> + <code>Timer</code> 把“可视化 / 报警 / 上云”统一成「事件→入队→定时批量」一条流水线，避免每个模块各写一套逐点刷新。</p>
+</blockquote>
+<h3 id="sec-3-4">🔬 掰开揉碎：为什么用 <code>Channel&lt;T&gt;</code> 而不是直接 <code>ObservableCollection.Add</code></h3>
+<p>直觉上「收到点就 <code>series.Values.Add</code> 不行吗？」在低频(1Hz)下可以，但工业是 100Hz×多设备：
+- <strong><code>ObservableCollection.Add</code> 会立刻通知 UI 重绘</strong>：每加 1 个点，WPF 就重画一次曲线。100Hz = 每秒重绘 100 次，UI 线程直接被打满 → 卡死/掉帧。
+- <strong><code>Channel&lt;T&gt;</code> 是无锁队列缓冲</strong>：<code>Writer.TryWrite</code> 是 O(1)、线程安全、几乎零开销，<strong>只把点存进去，不碰 UI</strong>。然后 <code>DispatcherTimer</code> 每 500ms 一次性「取出这一批 → 批量 Add」，重绘频率从 100 次/秒降到 2 次/秒。
+- <strong>一句话</strong>：Channel 把「高频生产」和「低频消费」解耦，这正是 M9 统一采集管道的核心思想（可视化/报警/上云全从 <code>BatchReady</code> 批量取）。</p>
+<h3 id="sec-3-5">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件里只入队</td>
+<td><code>DataReceived</code> 是高频率后台回调，里面只做极轻操作，重活交给定时器</td>
+</tr>
+<tr>
+<td>⭐ 跨线程改 UI 要回 UI 线程</td>
+<td><code>DispatcherTimer</code> 的 Tick 自动在 UI 线程；若订阅后台线程事件（如 M9 的 <code>BatchReady</code>）要用 <code>Dispatcher.Invoke</code></td>
+</tr>
+<tr>
+<td>⭐ 限制点数</td>
+<td>曲线无限增长 = 内存泄漏 + 卡顿，固定窗口(如 200 点)</td>
+</tr>
+<tr>
+<td>🔥 绑定没生效</td>
+<td>Series 要 <code>public</code> 属性 + 实现通知，或用 <code>ObservableCollection</code></td>
+</tr>
+<tr>
+<td>🔥 高频刷新卡</td>
+<td>别每毫秒刷新，定时(100~500ms)批量更新</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🟢 基础题</h3>
+<p>建一个 <code>ChartVm</code>，用 <code>DispatcherTimer</code> 每 500ms 往曲线加一个随机数点，限制 100 点。</p>
+<h3 id="sec-3-7">🟡 进阶题</h3>
+<p>把曲线改成"双序列"（温度+压力两条线），用不同颜色，各限制 200 点。</p>
+<h3 id="sec-3-8">🔴 挑战题</h3>
+<p>用 <code>Channel&lt;T&gt;</code> 做缓冲（仿 M9 统一管道）：后台 <code>Task.Run</code> 每 50ms 产一个点 <code>TryWrite</code> 入队，UI 定时器每 500ms 批量取 10 个画曲线——体会"高频生产 / 低频消费"解耦。</p>
+<p><strong>✅ 答案（基础题核心）</strong></p>
+<pre><code class="language-csharp">var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+timer.Tick += (_,_) =&gt;
+{
+    var s = (LineSeries&lt;ObservablePoint&gt;)vm.Series[0];
+    s.Values!.Add(new ObservablePoint(DateTime.Now.Second, Random.Shared.NextDouble()*100));
+    if (s.Values.Count &gt; 100) s.Values.RemoveAt(0);
+};
+timer.Start();
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 DAQ Monitor 的 <code>MainWindow</code> 加曲线图，绑定 <code>ChartVm</code>；<code>DataReceived</code> 把点画上去。实时可视化第一步达标。</p>
+<p><strong>🎓 工控导师说</strong>：现场最大的可视化坑不是"画不出"，是"画太勤"——有人每收到一个点就 <code>Invalidate</code> 重绘，100Hz 下 UI 直接雪崩。铁律：<strong>事件里只入队，定时器批量画</strong>。这条原则你用到退休。</p>
+<p><strong>💼 职业建议</strong>：面试演示时，一段"实时滚动曲线 + 报警变红"比说一万句"我会 WPF"都管用。把 DAQ Monitor 跑起来给面试官看，是 13-15K 的杀手锏。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M5',1)"> 打卡</label></strong></p>
+<h2 id="sec-2-3">Day 2 — 仪表盘 + 性能 🟡</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>仪表盘（Gauge）用一个"指针"显示当前值，适合监控单点(如总压)；配合曲线组成监控大屏。</p>
+<h3 id="sec-3-10">分点精讲</h3>
+<p><strong>① 仪表盘</strong>（🟧）</p>
+<pre><code class="language-csharp">public ISeries[] Gauge =&gt; new ISeries[]
+{
+    new PieSeries&lt;double&gt; { Values = new double[]{ Current }, InnerRadius = 60, MaxValue = 200 }
+};
+private double _current;
+public double Current { get =&gt; _current; set { _current = value; OnPropertyChanged(); } }
+</code></pre>
+<p><strong>② 性能要点</strong>（🟦 架构）
+- 用 <code>DispatcherTimer</code> 而不是每个事件都刷新
+- 数据层用 <code>Channel&lt;T&gt;</code> / <code>ConcurrentQueue</code> 缓冲，UI 定时批量取
+- 关闭 <code>Animation</code> 高频场景可提速：<code>new LineSeries&lt;ObservablePoint&gt;{ AnimationsSpeed = TimeSpan.Zero }</code></p>
+<h3 id="sec-3-11">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 单一数据源</td>
+<td>Current 用属性通知，仪表盘/曲线共用，别各算各的</td>
+</tr>
+<tr>
+<td>⭐ 批量刷新</td>
+<td>100Hz 数据别逐点刷 UI，攒 100ms 一批</td>
+</tr>
+<tr>
+<td>🔥 内存</td>
+<td>所有集合都要限长</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-12">🟢 基础题</h3>
+<p>给仪表盘加一个 <code>MaxValue=200</code>，并用 <code>Current</code> 属性通知驱动指针。</p>
+<h3 id="sec-3-13">🟡 进阶题</h3>
+<p>做两个仪表盘（总压 / 温度），各绑定不同点位，超限时指针变红（接 M6 报警级别）。</p>
+<h3 id="sec-3-14">🔴 挑战题</h3>
+<p>把"曲线 + 仪表盘 + 实时数值列表"三件套拼成一个监控页，数据全部来自同一个 <code>Channel&lt;T&gt;</code> 批量出口（M9 的 <code>BatchReady</code>），验证"一个数据源，多个消费者"的架构价值。</p>
+<p><strong>✅ 答案（基础题核心）</strong></p>
+<pre><code class="language-csharp">public ISeries[] Gauge =&gt; new ISeries[]
+{
+    new PieSeries&lt;double&gt; { Values = new double[]{ Current }, InnerRadius = 60, MaxValue = 200 }
+};
+private double _current;
+public double Current { get =&gt; _current; set { _current = value; OnPropertyChanged(); } }
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加仪表盘显示"当前总压"；把"曲线 + 仪表盘 + 数值列表"组合成监控页。至此"实时可视化"达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M5',2)"> 打卡</label></strong></p>
+<h2 id="sec-2-4">🧩 多场景应用：实时可视化还能怎么用</h2>
+<p>同一个 LiveCharts2，<strong>换个数据源/配置就是不同场景，图表代码不用重写</strong>：
+- <strong>实时曲线</strong>（本模块）：<code>DispatcherTimer</code> 批量追加，限长窗口。
+- <strong>历史回放</strong>：读 M4 数据库按时间窗查点，一次性画整段曲线——把"实时入队"换成"查库出列"。
+- <strong>多通道叠加</strong>：多个 <code>LineSeries</code> 绑不同点位，同图对比（如 3 个温区）。
+- <strong>报警带 / 阈值线</strong>：在曲线上画红色 <code>VisualElements</code> 或辅助 <code>LineSeries</code>，联动 M6 阈值，超限区高亮。
+- <strong>导出图片</strong>：图表截图存盘，进 M10 报表。
+- <strong>车间大屏看板</strong>：多个 <code>Gauge</code> + 曲线 + <code>StatusDot</code> 拼一屏，对接 LED 墙。</p>
+<blockquote>
+<p>💡 核心套路：<strong>"数据从哪来"和"怎么画"分离</strong>——换数据源（实时/历史/多设备）只改 ViewModel，图表代码不变。这正是 M9 统一管道「一个 <code>BatchReady</code>，多个消费者(可视化/报警/上云)」的思想。</p>
+</blockquote>
+<h2 id="sec-2-5">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 后台线程 → 这里 <code>Dispatcher</code>/<code>Channel</code></strong>：后台收数不能直接改 UI，要么 <code>Dispatcher.Invoke</code>(M0)，要么入队批量(M9)，本质都是「别在采集线程碰界面」。</li>
+<li><strong>M1–M3 点数据 → 这里画出来</strong>：可视化是采集链的「输出端」，没前面的设备接入就没东西画。</li>
+<li><strong>M9 统一管道 → 这里是其第一个消费者</strong>：<code>BatchReady</code> 批量取点画曲线，比本模块手搓 Channel 更彻底（报警 M6、上云 M7 共用同一批）。</li>
+</ul>
+<h2 id="sec-2-6">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>LiveCharts2 官方文档：https://livecharts.dev/</li>
+<li><code>System.Threading.Channels</code> 参考（统一缓冲原理）：https://learn.microsoft.com/dotnet/api/system.threading.channels</li>
+<li>WPF 数据绑定总览：https://learn.microsoft.com/dotnet/desktop/wpf/data/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-7">🧩 完整代码组装（ChartVm + 批量刷新，可直接抄）</h2>
+<pre><code class="language-csharp">// ViewModels/ChartVm.cs
+public class ChartVm
+{
+    public ISeries[] Series { get; } =
+    {
+        new LineSeries&lt;ObservablePoint&gt; { Values = new ObservableCollection&lt;ObservablePoint&gt;(), Fill = null }
+    };
+}
+// MainWindow.xaml.cs —— 事件只入队，定时器批量画
+var ch = Channel.CreateUnbounded&lt;SensorPoint&gt;();
+device.DataReceived += (s, e) =&gt; ch.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = DateTime.Now });
+var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+timer.Tick += (_, _) =&gt;
+{
+    var batch = new List&lt;SensorPoint&gt;();
+    while (ch.Reader.TryRead(out var p)) batch.Add(p);
+    var s = (LineSeries&lt;ObservablePoint&gt;)vm.Series[0];
+    foreach (var p in batch) s.Values.Add(new ObservablePoint(p.Timestamp.Second, p.Value));
+    while (s.Values.Count &gt; 200) s.Values.RemoveAt(0);
+};
+timer.Start();
+</code></pre>
+<h2 id="sec-2-8">🔗 明日预告</h2>
+<p><strong>M6 报警引擎 + 日志</strong>：数据画出来了，但"温度超 100 谁来喊？"——用回滞避免报警风暴，用 Serilog 当黑匣子。这是工业软件的"哨兵"。</p>
+<h2 id="sec-2-9">模块交付清单（M5）</h2>
+<ul>
+<li>[ ] LiveCharts2 动态曲线（限长）</li>
+<li>[ ] 仪表盘 Gauge</li>
+<li>[ ] 跨线程安全刷新（Dispatcher）</li>
+<li>[ ] 批量刷新架构（Timer 拉取缓冲）</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M4.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M4 · 数据持久化</div></a>
+  <a class="next" href="M6.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M6 · 报警引擎 + 日志</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

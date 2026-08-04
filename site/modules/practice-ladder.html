@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>练习阶梯 · 从简单到企业级 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="practice-ladder">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">怎么用这份阶梯</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">总验收（学完所有模块要达到）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">M0 · 脚手架与 C# 核心（地基）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">M1 · 串口通信</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">M2 · Modbus RTU/TCP</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">M3 · PLC 通信（西门子 S7）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">M4 · 数据持久化（EF Core + SQLite）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">M5 · 实时可视化（LiveCharts）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">M6 · 报警引擎 + 规则 + 日志</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">M7 · OPC UA / MQTT 上云</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-11">M8 · 工程化收尾（MVVM + 安装包 + 简历）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-12">M9 · 工程素养（测试 / DI / 统一采集 / 容错）★ 串联所有模块</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-13">✏️ 通用小练习（每天打卡前做）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">练习阶梯 · 从"简单操作"到"能跑的企业级项目"</h1>
+<blockquote>
+<p>你提的要求我们记住了：<strong>练习从最简单的做起</strong>（命名、建工程、跑命令），<strong>最后一定要汇成一个能正常跑起来的企业级项目</strong>。
+所以每个模块都分三级，难度递增；所有模块的终点，是同一个能 <code>dotnet run</code> 起来的 DAQ Monitor。</p>
+</blockquote>
+<h2 id="sec-2-1">怎么用这份阶梯</h2>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>含义</th>
+<th>类比前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>L1 操作练习</strong></td>
+<td>只动手指：命名、建文件、跑命令、改配置</td>
+<td>学会 <code>npm init</code>、建目录</td>
+</tr>
+<tr>
+<td><strong>L2 代码练习</strong></td>
+<td>写小块代码，配 ✅ 答案，照着改会</td>
+<td>写一个组件 / 一个函数</td>
+</tr>
+<tr>
+<td><strong>L3 项目任务</strong></td>
+<td>把能力<strong>集成进 DAQMonitor</strong>，让它多一层企业级本事</td>
+<td>把组件塞进真实项目并跑通</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>铁律：<strong>L1 不会就不碰 L2，L2 没做对就不做 L3。</strong> 企业项目不是背出来的，是一步一步"跑绿"跑出来的。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">总验收（学完所有模块要达到）</h2>
+<p>打开 <code>DAQMonitor/</code>，依次执行，<strong>全部必须过</strong>：</p>
+<pre><code class="language-bash">dotnet build      # ✅ 0 错误 0 警告
+dotnet test       # ✅ 28 测试全绿（含无界面集成冒烟测试 + CAN/USB/心跳监测）
+dotnet run --project src/DaqMonitor.UI
+                  # ✅ 弹出窗口，点&quot;启动采集&quot;→ 点位表跳动、偶发报警进日志
+</code></pre>
+<p>能同时做到这三条，说明你手里是一个<strong>真实能跑的企业级上位机项目</strong>，不是 demo 截图。</p>
+<hr />
+<h2 id="sec-2-3">M0 · 脚手架与 C# 核心（地基）</h2>
+<ul>
+<li><strong>L1</strong>：用 <code>实操入门</code> 第 2 节命令从零建出 <code>Core/UI/Tests</code> 三层；跑通 <code>dotnet build</code>。</li>
+<li><strong>L2</strong>：在 Core 写一个 <code>struct SensorPoint { int Id; double Value; }</code>，用 <code>record</code> 改写并对比（✅ <code>record</code> 自带相等比较与不可变）。</li>
+<li><strong>L3</strong>：把 <code>DaqMonitor.Core</code> 的 <code>Models/SensorPoint.cs</code> 跑通（已就绪），<code>dotnet test</code> 中 <code>PointStoreTests</code> 绿。</li>
+</ul>
+<h2 id="sec-2-4">M1 · 串口通信</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet add package System.IO.Ports</code> 装官方串口库；在 <code>appsettings</code> 里写一个串口号配置（<code>COM3</code>, 9600）。</li>
+<li><strong>L2</strong>：写一个 <code>FrameParser</code>（半包/粘包处理），跑 <code>FrameParserTests</code> 绿。</li>
+<li><strong>L3</strong>：新增 <code>SerialDevice : DeviceBase</code>，把 <code>RaiseData</code> 接到串口收到的一帧上，注册进 <code>Bootstrapper</code> 替换 <code>SimulatedDevice</code>。</li>
+</ul>
+<h2 id="sec-2-5">M2 · Modbus RTU/TCP</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet add package NModbus</code>；新建 <code>DaqMonitor.Modbus</code> 类库并 <code>dotnet sln add</code> + <code>reference Core</code>。</li>
+<li><strong>L2</strong>：用 NModbus 读一个保持寄存器，断言返回值类型正确。</li>
+<li><strong>L3</strong>：<code>ModbusDevice : DeviceBase</code> 实现 <code>Read/Write</code>，接管道；Bootstrapper 里按配置二选一。</li>
+</ul>
+<h2 id="sec-2-6">M3 · PLC 通信（西门子 S7）</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet add package S7.Net</code>；新建 <code>DaqMonitor.Plc</code> 类库。</li>
+<li><strong>L2</strong>：连接 PLC 读 DB 块一个浮点，断言非空。</li>
+<li><strong>L3</strong>：<code>PlcDevice : DeviceBase</code> 接入管道，与串口/Modbus 并存的"多设备采集"达标。</li>
+</ul>
+<h2 id="sec-2-7">M4 · 数据持久化（EF Core + SQLite）</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet add package Microsoft.EntityFrameworkCore.Sqlite</code>；新建 <code>DaqMonitor.Persistence</code> 类库。</li>
+<li><strong>L2</strong>：建 <code>PointRecord</code> 实体 + <code>DbContext</code>，<code>EnsureCreated</code> 后 <code>Add</code> 一条并 <code>SaveChanges</code>，再查回来。</li>
+<li><strong>L3</strong>：订阅 <code>AcquisitionPipeline.BatchReady</code>，把每批落库；加"历史查询/导出 CSV"按钮到 UI。</li>
+</ul>
+<h2 id="sec-2-8">M5 · 实时可视化（LiveCharts）</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet add package LiveChartsCore.SkiaSharpView.WPF</code>；XAML 放一个 <code>CartesianChart</code>。</li>
+<li><strong>L2</strong>：用 <code>ObservableCollection&lt;ObservablePoint&gt;</code> 画一条会动的曲线（限长 200 点防内存涨）。</li>
+<li><strong>L3</strong>：把 MainWindow 的 <code>DataGrid</code> 旁加一张实时曲线；<strong>必须用 M9 的统一批量刷新</strong>，禁止逐点 <code>Dispatcher.Invoke</code>。</li>
+</ul>
+<h2 id="sec-2-9">M6 · 报警引擎 + 规则 + 日志</h2>
+<ul>
+<li><strong>L1</strong>：在 <code>AlarmRule</code> 加一条配置；<code>dotnet test</code> 跑 <code>AlarmEngineTests</code> 绿（边沿触发 + 回滞）。</li>
+<li><strong>L2</strong>：用 <code>Serilog</code> 把报警写文件（<code>dotnet add package Serilog.Sinks.File</code>）。</li>
+<li><strong>L3</strong>：UI 报警日志同时进文件；做"确认报警/静音"交互。</li>
+</ul>
+<h2 id="sec-2-10">M7 · OPC UA / MQTT 上云</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet add package MQTTnet</code>；新建 <code>DaqMonitor.Cloud</code> 类库。</li>
+<li><strong>L2</strong>：连本地/公共 MQTT Broker，发布一条 JSON 点位。</li>
+<li><strong>L3</strong>：订阅 <code>BatchReady</code> <strong>批量</strong>发布到 <code>factory/line1/points</code> 主题（同 M9 架构，禁止逐点 <code>PublishAsync</code>）；断线自动重连。</li>
+</ul>
+<h2 id="sec-2-11">M8 · 工程化收尾（MVVM + 安装包 + 简历）</h2>
+<ul>
+<li><strong>L1</strong>：装 <code>CommunityToolkit.Mvvm</code>，把 <code>MainViewModel</code> 的 <code>OnPropertyChanged</code> 手工代码换成 <code>[ObservableProperty]</code>/<code>[RelayCommand]</code>。</li>
+<li><strong>L2</strong>：抽 <code>IAlarmService</code> 接口，用 Moq 在测试里替换，证明界面与实现解耦。</li>
+<li><strong>L3</strong>：<code>dotnet publish -c Release</code> 出安装包/单文件；写 <code>README.md</code> + 简历描述（能讲清"为什么这么分层、为什么用管道+批量"）。</li>
+</ul>
+<h2 id="sec-2-12">M9 · 工程素养（测试 / DI / 统一采集 / 容错）★ 串联所有模块</h2>
+<ul>
+<li><strong>L1</strong>：<code>dotnet test</code> 看 <code>DaqMonitor.Tests</code> 里 28 个测试分别在测什么；运行 <code>CompositionSmokeTests</code> 理解"无界面也能证明项目能跑"。</li>
+<li><strong>L2</strong>：读 <code>Core/AppServices/Bootstrapper.cs</code>，画出"设备→管道→存储/报警→UI"的依赖图；给 <code>Retry</code> 写一个指数退避的单测。</li>
+<li><strong>L3</strong>：给 M1–M7 每加一个真实设备/能力，都<strong>补一个对应单元测试</strong>，让总测试数持续增长——这就是"企业项目越做越稳"的真功夫。</li>
+</ul>
+<hr />
+<h2 id="sec-2-13">✏️ 通用小练习（每天打卡前做）</h2>
+<ol>
+<li><strong>命名自检</strong>：新加的类/工程是不是 <code>DaqMonitor.职责</code>？测试是不是 <code>.Tests</code>？</li>
+<li><strong>命令自检</strong>：今天改完能不能 <code>dotnet build</code> 0 错误？<code>dotnet test</code> 全绿？</li>
+<li><strong>架构自检</strong>：我新写的代码有没有"穿透分层"（UI 直接 new 了 Core 的实现类）？有就改成从 <code>Bootstrapper</code> 取。</li>
+</ol>
+<p>🏗️ <strong>终极项目任务</strong>：学完 M0–M9，你的 <code>DAQMonitor</code> 应当同时具备——
+多设备接入（串口/Modbus/PLC 至少两种）· 并发采集无卡顿 · 实时曲线 · 历史库+导出 · 报警+日志 · 上云 · 分层+DI+MVVM+测试+能打包。
+<strong>这就是简历上那个"13K~15K 企业级上位机项目"，而且是真能跑的。</strong></p>
+<div class="pager">
+  <a class="prev" href="getting-started.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">实操入门 · 从零搭建企业级工程</div></a>
+  <a class="next" href="hardware.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">附录 · 硬件替代方案与讲解</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

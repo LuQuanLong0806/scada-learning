@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M14 · WinForm + 自定义控件 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M14">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — WinForm 速成（与 WPF 对照）🟢</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：WinForm vs WPF 心智模型</a></li>
+<li class="l3"><a href="#sec-3-5">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 自定义控件（自绘仪表盘/趋势）🟡</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-11">🧩 多场景应用：自定义控件怎么「开发 / 复用 / 扩展」</a></li>
+<li class="l3"><a href="#sec-3-12">场景 A · 开发（从 0 写一个控件）</a></li>
+<li class="l3"><a href="#sec-3-13">场景 B · 复用（一处写、处处用，零复制）</a></li>
+<li class="l3"><a href="#sec-3-14">场景 C · 扩展（不动原控件，加能力）—— 4 档梯度</a></li>
+<li class="l3"><a href="#sec-3-15">场景 D · 调试自定义控件（排查"为什么没显示/不更新"）</a></li>
+<li class="l3"><a href="#sec-3-16">🔗 本项目已落地的"多场景"实证</a></li>
+<li class="l3"><a href="#sec-3-17">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-18">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-19">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（GaugeControl 关键片段，已在你工程里）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">📎 关联</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M14 — WinForm 与 自定义控件</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟡 缓学 · WinForm 双修 + 自绘控件（JD 常写 WinForm/WPF 双修）
+<strong>技术来源</strong>：🟩 <code>System.Windows.Forms</code>（.NET 8 需 <code>&lt;UseWindowsForms&gt;true&lt;/UseWindowsForms&gt;</code>，BCL）；🟦 自绘 GDI+ / WPF。
+<strong>给简历加的能力</strong>：能维护老 WinForm 项目（JD 双修要求）+ 能自绘仪表/趋势控件（JD「熟练自定义控件」点名）。
+<strong>前置</strong>：M0（C#/事件）、M5（可视化）。
+<strong>前端类比总纲</strong>：WinForm 像 jQuery 时代"直接 <code>$(el).text()</code> 改 DOM"；WPF 像 React"绑数据驱动视图"；自定义控件像"封装一个可复用的 React 组件"。</p>
+</blockquote>
+<hr />
+<blockquote>
+<p>📎 <strong>本项目已提前落地</strong>：DAQMonitor 里已经有<strong>两个真正的 WPF 自定义控件</strong>，而且从早期就接在 <code>MainWindow</code> 实时点位表里"边做边用"了，不是等到 M14 才学：
+- <code>DaqMonitor.UI/Controls/GaugeControl.cs</code> + <code>Themes/Generic.xaml</code> —— 量程指针表，绑 <code>PointView.Value</code>，每个点位一格仪表。
+- <code>DaqMonitor.UI/Controls/StatusDot.cs</code> + <code>Themes/Generic.xaml</code> —— 设备状态灯，绑 <code>PointView.State</code>，<code>Connecting</code> 带脉冲动画。
+它们用的是<strong>最正宗的自定义控件写法</strong>（继承 <code>Control</code> + <code>DefaultStyleKey</code> + <code>Generic.xaml</code> + <code>ThemeInfo</code> 程序集特性 + <code>DependencyProperty</code>），所以本模块 Day 2 是"讲透你已经用着的控件"，再扩展出波形 <code>Sparkline</code>、LED 数码管等，而不是从零讲概念。M5 的可视化、M6 的报警会把 <code>GaugeControl.Level</code> 驱动起来；M12 工程量转换后，绑的 <code>Value</code> 直接变成工程量（℃/MPa），控件零改动。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>写出一个 WinForm 小窗体（按钮 + 文本框 + 后台线程刷新）+ 讲透自绘仪表盘控件（开发 / 复用 / 扩展 / 调试四场景）。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — WinForm 速成（与 WPF 对照）🟢</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>WinForm = 拖控件 + 双击写事件，<strong>直接操作控件属性</strong>；WPF = XAML 描述 + 数据绑定，UI 与逻辑分离。老工业软件 90% 是 WinForm，必须会读会改。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>WinForm</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>拖控件 + 事件</td>
+<td>jQuery <code>$(btn).on('click')</code> 直接改 DOM</td>
+</tr>
+<tr>
+<td>数据绑定弱</td>
+<td>没有 React 的单向数据流</td>
+</tr>
+<tr>
+<td>跨线程改 UI 要 Invoke</td>
+<td>必须在主线程更新 DOM</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 创建工程</strong>（🟩）</p>
+<pre><code class="language-xml">&lt;PropertyGroup&gt;&lt;UseWindowsForms&gt;true&lt;/UseWindowsForms&gt;&lt;/PropertyGroup&gt;
+</code></pre>
+<p><strong>② 控件 + 事件</strong>（🟩）</p>
+<pre><code class="language-csharp">button1.Click += (s, e) =&gt; label1.Text = &quot;clicked&quot;;
+</code></pre>
+<p><strong>③ 后台线程刷新 UI —— 必须 Invoke</strong>（🟦，WinForm 专属坑）</p>
+<pre><code class="language-csharp">Task.Run(() =&gt;
+{
+    var v = ReadSensor();
+    // 跨线程直接改 label1.Text 会抛&quot;线程间操作无效&quot;
+    label1.Invoke(() =&gt; label1.Text = v.ToString());
+});
+</code></pre>
+<blockquote>
+<p>WPF 用 <code>Dispatcher</code> 或绑定，WinForm 用 <code>Control.Invoke</code>——本质都是"回到 UI 线程"。</p>
+</blockquote>
+<h3 id="sec-3-4">🔬 掰开揉碎：WinForm vs WPF 心智模型</h3>
+<ul>
+<li>WinForm：<strong>控件是老大</strong>，你代码里到处 <code>textBox1.Text = ...</code>，UI 和逻辑耦合。</li>
+<li>WPF：<strong>数据是老大</strong>，XAML 绑定 <code>Text="{Binding Temp}"</code>，后台只改 <code>Temp</code> 属性。</li>
+<li>选型：新项目 WPF（我们 DAQ Monitor 用）；接手老项目 WinForm。</li>
+</ul>
+<h3 id="sec-3-5">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>WinForm 跨线程改 UI 必须 Invoke，否则抛异常</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>控件闪烁（双缓冲 <code>DoubleBuffered=true</code>）、高 DPI 缩放模糊</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td><code>Invoke</code> 嵌套/死锁：背景线程里又等 UI 线程结果会卡死</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🟢 基础题</h3>
+<p>WinForm 窗体放 Button，点击后后台线程计数，用 Invoke 更新 Label。</p>
+<h3 id="sec-3-7">🟡 进阶题</h3>
+<p>把 M0 的 <code>SimulatedDevice</code> 产生的点接到 WinForm：后台线程收 <code>DataReceived</code>，Invoke 到 Label/TextBox 显示最新值。</p>
+<h3 id="sec-3-8">🔴 挑战题</h3>
+<p>写一个"线程安全"的 <code>SetText(Control c, string t)</code> 辅助方法（内部判断 <code>c.InvokeRequired</code>，需要时 Invoke），并在多个控件上复用——体会 WinForm 跨线程的标准写法。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">button1.Click += (s, e) =&gt; Task.Run(() =&gt;
+{
+    int n = 0; while (n &lt; 100) { n++; label1.Invoke(() =&gt; label1.Text = n.ToString()); Thread.Sleep(50); }
+});
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 DAQ Monitor 的"点位表"概念用 WinForm 复刻一个最简版（证明你能双修），后台线程驱动 UI。</p>
+<p><strong>🎓 工控导师说</strong>：去工厂维护老设备软件，十有八九是 WinForm。你不会 WinForm，连"改个显示精度"都不敢动，只能等原厂。双修不是加分，是<strong>上岗门票</strong>。而且 WinForm 的 <code>Invoke</code> 跨线程是天天踩的坑——不写 <code>InvokeRequired</code> 判断，偶尔能跑、偶尔崩溃，最难查。</p>
+<p><strong>💼 职业建议</strong>：JD 几乎都写"WinForm/WPF 双修"。简历老实写"WPF 主，能维护 WinForm 老项目"，比只写 WPF 更稳。面试被问"两者区别"，答"WinForm 控件驱动、WPF 数据驱动 + 自绘控件写法不同"就到位。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M14',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 自定义控件（自绘仪表盘/趋势）🟡</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>现成控件不够"工业感"——仪表盘、液位、趋势是上位机门面。自绘控件 = 把"显示逻辑"封装成可复用、可换肤、可扩展的组件，这正是 JD「熟练自定义控件」要求的。</p>
+<h3 id="sec-3-10">分点精讲</h3>
+<p><strong>① WPF 自绘</strong>：继承 <code>UserControl</code> + 依赖属性，或重写 <code>OnRender</code> 用 <code>DrawingContext</code>。
+<strong>② WinForm 自绘</strong>：<code>override OnPaint</code>，用 <code>Graphics</code> 画弧/线（GDI+）。
+<strong>③ 为什么 JD 点名</strong>：现成控件不够"工业感"，自绘仪表盘/液位/趋势是上位机门面。</p>
+<h3 id="sec-3-11">🧩 多场景应用：自定义控件怎么「开发 / 复用 / 扩展」</h3>
+<p>光会写一个控件不够 —— 真实项目里你要面对的是：<strong>同一个控件要在 10 个界面用、要换肤、要加新行为、要适配不同数据源</strong>。下面用我们项目里的 <code>GaugeControl</code> 把"开发 → 复用 → 扩展"全跑一遍（这就是你问的"多种用到的场景"）。</p>
+<h3 id="sec-3-12">场景 A · 开发（从 0 写一个控件）</h3>
+<p>你已经做过了：<code>GaugeControl</code> 继承 <code>Control</code>，只暴露 <code>DependencyProperty</code>（Value/Min/Max/Unit/Label/Level），外观全在 <code>Generic.xaml</code>。</p>
+<blockquote>
+<p><strong>关键点</strong>：<code>static GaugeControl()</code> 里 <code>DefaultStyleKeyProperty.OverrideMetadata</code> 指向自己 + <code>ThemeInfo.cs</code> 的 <code>[assembly: ThemeInfo]</code> 让 WPF 找到 <code>Generic.xaml</code>。<strong>缺了 <code>ThemeInfo</code> 控件不报错但一片空白</strong>（最经典坑，已踩平）。</p>
+</blockquote>
+<h3 id="sec-3-13">场景 B · 复用（一处写、处处用，零复制）</h3>
+<table>
+<thead>
+<tr>
+<th>复用方式</th>
+<th>怎么做的</th>
+<th>控件改动</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同界面多实例</td>
+<td>DataGrid 模板列每行一个 <code>GaugeControl</code>，绑各自 <code>Value</code></td>
+<td>0（模板自动克隆）</td>
+</tr>
+<tr>
+<td>跨窗口/跨项目</td>
+<td>把 <code>Controls/</code> 抽成 <code>DaqMonitor.Controls</code> 类库，<code>dotnet add reference</code></td>
+<td>0（样式随程序集走）</td>
+</tr>
+<tr>
+<td>绑不同数据源</td>
+<td>同一控件绑"温度℃/压力MPa/流量"，只改 <code>Unit</code>+量程</td>
+<td>0（M12 工程量转换就这么用）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-14">场景 C · 扩展（不动原控件，加能力）—— 4 档梯度</h3>
+<ol>
+<li><strong>加依赖属性（最轻）</strong>：给 <code>GaugeControl</code> 加 <code>ShowScale</code>/<code>DecimalDigits</code>，模板里 <code>TemplateBinding</code> 控制显示，源码只动 1 处。</li>
+<li><strong>换肤（不改逻辑）</strong>：新建 <code>Themes/Dark.xaml</code> 覆盖 <code>TargetType=GaugeControl</code> 的 Style，运行时切 <code>MergedDictionaries</code> 即换深色皮肤，逻辑零碰。</li>
+<li><strong>派生子类（加新行为）</strong>：<code>class TrendGauge : GaugeControl { public ObservableCollection&lt;double&gt; History; }</code> —— 继承全部能力，只加"迷你趋势条"，父类零改。</li>
+<li><strong>附加行为 AttachedProperty（横切）</strong>：<code>static class GaugeBehaviors { public static readonly DependencyProperty PulseOnAlarm; }</code> 给任意 <code>GaugeControl</code> 附加"报警脉冲"行为，不影响原类 —— WPF 最优雅的扩展方式。</li>
+</ol>
+<blockquote>
+<p>💡 <strong>面试加分原话</strong>："复用靠依赖属性 + Generic.xaml，扩展靠派生/附加行为/换肤，而不是复制代码" —— 这句话直接拉开和"只会拖控件"的差距。</p>
+</blockquote>
+<h3 id="sec-3-15">场景 D · 调试自定义控件（排查"为什么没显示/不更新"）</h3>
+<ul>
+<li><strong>空白/没显示</strong> → 99% 缺 <code>ThemeInfo</code> 或 <code>Generic.xaml</code> 的 <code>TargetType</code> 写错；用 <strong>VS 实时可视化树(Live Visual Tree)</strong> 看控件有没有被创建。</li>
+<li><strong>值不更新</strong> → <strong>Live Property Explorer</strong> 看 <code>DataContext</code> 对不对、<code>DependencyProperty</code> 的变更回调有没有触发；或给 <code>RecalcAngle</code> 下断点。</li>
+<li><strong>样式不生效</strong> → 查资源字典合并顺序；开源神器 <strong>Snoop</strong> 能实时改属性看效果。</li>
+</ul>
+<h3 id="sec-3-16">🔗 本项目已落地的"多场景"实证</h3>
+<ul>
+<li><strong>复用实证</strong>：<code>MainWindow</code> 实时表每行 <code>GaugeControl</code>（场景 B-1）；<code>GaugeControl</code> 同时被 M12 工程量、M6 报警驱动（场景 B-3 跨模块复用）。</li>
+<li><strong>扩展实证</strong>：<code>Level</code> 属性让 M6 报警引擎直接把表盘变橙/红（场景 C-1 的实战版，控件零改）；<code>StatusDot</code> 的 <code>Connecting</code> 脉冲是场景 C-4 附behavior 的简化版。</li>
+</ul>
+<h3 id="sec-3-17">🟢 基础题</h3>
+<p>给 <code>GaugeControl</code> 加一个 <code>ShowScale</code> 依赖属性（bool），模板里用它控制是否显示刻度，写一个最小 XAML 测试。</p>
+<h3 id="sec-3-18">🟡 进阶题</h3>
+<p>新建 <code>Themes/Dark.xaml</code> 覆盖 <code>GaugeControl</code> 的 Style，把指针/背景改成深色，运行时切换 <code>MergedDictionaries</code> 验证换肤。</p>
+<h3 id="sec-3-19">🔴 挑战题</h3>
+<p>写 <code>TrendGauge : GaugeControl</code> 子类，加 <code>History</code> 依赖属性（ObservableCollection<double>），在控件底部画一条迷你趋势线——父类零改动，验证"派生扩展"套路。</p>
+<p><strong>✅ 答案（进阶题要点）</strong></p>
+<pre><code class="language-csharp">// App.xaml.cs 或启动时
+Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(&quot;Themes/Dark.xaml&quot;, UriKind.Relative) });
+// Dark.xaml 里 &lt;Style TargetType=&quot;local:GaugeControl&quot;&gt; ... 改 Background/Foreground ...
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 DAQ Monitor 的 <code>GaugeControl</code> 上加 <code>ShowScale</code>/<code>DecimalDigits</code> 两个依赖属性，并用 <code>Level</code> 属性让 M6 报警直接驱动表盘变色（你项目里其实已经接了，这里是"讲透 + 再加一个能力"）。</p>
+<p><strong>🎓 工控导师说</strong>：自绘控件最大的误区是"为炫技而自绘"。工厂里自绘的真实动机是<strong>现成控件没有工业样式</strong>（报警闪红、量程指针、液位动画）。我要求学员：先确认现成控件真满足不了，再自绘；自绘一定做成可复用控件，别在窗体 <code>Paint</code> 事件里写一堆一次性绘图代码——那是维护噩梦。</p>
+<p><strong>💼 职业建议</strong>："自定义控件"是区分"拖控件程序员"和"会造轮子工程师"的分水岭。能讲清"依赖属性 + Generic.xaml + ThemeInfo + 复用/扩展四场景"，面试官会直接把你归到"资深中级"那一档。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M14',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>M5</strong>：LiveCharts 是"现成图表"；M14 自绘是"理解底层绘制"，面试能讲清原理。</li>
+<li><strong>M0</strong>：后台采集 → M14 自绘控件实时刷新（同 Invoke/Dispatcher 套路）。</li>
+<li><strong>M12 / M6</strong>：<code>GaugeControl</code> 的 <code>Value</code>/<code>Level</code> 被工程量、报警驱动，控件零改 = 企业级复用实证。</li>
+</ul>
+<h2 id="sec-2-5">🧩 完整代码组装（GaugeControl 关键片段，已在你工程里）</h2>
+<pre><code class="language-csharp">// DaqMonitor.UI/Controls/GaugeControl.cs
+public class GaugeControl : Control
+{
+    public static readonly DependencyProperty ValueProperty =
+        DependencyProperty.Register(nameof(Value), typeof(double), typeof(GaugeControl),
+            new PropertyMetadata(0.0, (d, e) =&gt; ((GaugeControl)d).RecalcAngle()));
+    public double Value { get =&gt; (double)GetValue(ValueProperty); set =&gt; SetValue(ValueProperty, value); }
+    // Min/Max/Unit/Label/Level(AlarmLevel) 同理 …
+    static GaugeControl() =&gt; DefaultStyleKeyProperty.OverrideMetadata(
+        typeof(GaugeControl), new FrameworkPropertyMetadata(typeof(GaugeControl)));
+    private void RecalcAngle() { /* 由 Value/Min/Max 算出指针角度 -135°~+135° */ }
+}
+// DaqMonitor.UI/Themes/Generic.xaml 提供默认 Style；ThemeInfo.cs 让 WPF 找得到它
+</code></pre>
+<blockquote>
+<p>真实工程已把 <code>GaugeControl</code>/<code>StatusDot</code> 接进 <code>MainWindow</code> 实时表，M6 报警驱动 <code>Level</code>、M12 工程量驱动 <code>Value</code>，控件零改。</p>
+</blockquote>
+<h2 id="sec-2-6">🔗 明日预告</h2>
+<p><strong>M15 工程协作与联调（Git + 敏捷 + 调试工具）</strong>：技术到位了，但企业招你是要"在团队里交付"。M15 补齐 Git/敏捷/调试工具/联调定位——这些是初级岗 100% 要求的软硬技能。</p>
+<h2 id="sec-2-7">📚 延伸阅读</h2>
+<ul>
+<li>WPF · <a href="https://learn.microsoft.com/zh-cn/dotnet/desktop/wpf/controls/control-authoring-overview">自定义控件</a></li>
+<li>WinForms · <a href="https://learn.microsoft.com/zh-cn/dotnet/desktop/winforms/advanced/using-managed-graphics-classes">GDI+ 绘图</a></li>
+</ul>
+<h2 id="sec-2-8">📎 关联</h2>
+<ul>
+<li>可视化主章节：<strong>M5</strong>；UI 工程化：<strong>M8</strong>。</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M13.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M13 · 多品牌 PLC + 国产库</div></a>
+  <a class="next" href="M15.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M15 · 工程协作与联调</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

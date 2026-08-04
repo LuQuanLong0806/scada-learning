@@ -1,0 +1,4465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAQ Monitor · 全模块深度讲义</title>
+
+<style>
+:root{--blue:#2f6fed;--green:#1f9d55;--orange:#e07b00;--ink:#1f2430;--muted:#67708a;--line:#e6e9f0;--bg:#f7f8fb;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;}
+.topbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.topbar h1{font-size:16px;margin:0 0 8px;font-weight:700;}
+.progress{display:flex;align-items:center;gap:12px;}
+.barwrap{flex:1;height:14px;background:#eef1f7;border-radius:8px;overflow:hidden;}
+#bar{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .3s;}
+#ptext{font-size:13px;color:var(--muted);white-space:nowrap;}
+.legend{background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.badge{padding:2px 8px;border-radius:12px;font-weight:600;font-size:12px;}
+.b-syntax{background:#e8f0ff;color:var(--blue);}
+.b-bcl{background:#e6f6ec;color:var(--green);}
+.b-nuget{background:#fdf0e0;color:var(--orange);}
+.legend code{background:#f0f2f7;padding:1px 5px;border-radius:4px;font-size:12px;}
+.mnem{width:100%;color:var(--muted);font-size:12px;margin-top:2px;}
+.layout{display:flex;align-items:flex-start;}
+.sidebar{position:sticky;top:150px;width:280px;flex:none;max-height:calc(100vh - 160px);overflow:auto;padding:16px 12px;border-right:1px solid var(--line);background:#fff;}
+.navlist{list-style:none;margin:0;padding:0;font-size:13px;}
+.nav-h1>a{font-weight:800;color:var(--blue);text-decoration:none;}
+.navmod{list-style:none;margin:4px 0 8px 10px;padding:0;}
+.nav-h2>a{font-weight:700;color:var(--ink);text-decoration:none;}
+.navsub{list-style:none;margin:3px 0 6px 12px;padding:0;}
+.nav-h3>a{color:var(--muted);text-decoration:none;}
+.navlist a:hover{color:var(--orange);}
+.content{flex:1;min-width:0;padding:24px 32px 80px;max-width:980px;}
+.content h1{font-size:25px;background:linear-gradient(90deg,#eef3ff,#eafaf0);padding:12px 16px;border-radius:8px;margin-top:10px;}
+.content h2{font-size:21px;margin-top:34px;padding-top:10px;border-top:2px solid var(--line);}
+.content h3{font-size:17px;margin-top:24px;color:var(--blue);}
+.content table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
+.content th,.content td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+.content th{background:#f1f4fa;}
+.content blockquote{border-left:4px solid var(--blue);background:#f4f8ff;margin:14px 0;padding:10px 16px;color:#33405c;border-radius:0 6px 6px 0;}
+.content code{background:#eef1f7;padding:1px 5px;border-radius:4px;font-size:13px;}
+.content pre{background:#1f2430;color:#e6e9f0;padding:14px;border-radius:8px;overflow:auto;}
+.content pre code{background:none;color:inherit;padding:0;font-size:12.5px;line-height:1.55;}
+.cb{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--green);font-weight:600;margin-left:6px;}
+.cb input{width:16px;height:16px;cursor:pointer;}
+.content ul li{margin:4px 0;}
+.foot{color:var(--muted);font-size:12px;text-align:center;padding:20px;}
+@media(max-width:820px){.sidebar{display:none;}.content{padding:18px;}}
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <h1>📘 DAQ Monitor · 全模块深度讲义（M0–M10）· 打卡看板</h1>
+  <div class="progress">
+    <div class="barwrap"><div id="bar"></div></div>
+    <div id="ptext">已打卡 0 / 28 天 （0%）</div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="layout">
+  <aside class="sidebar"><ul class="navlist">
+<li class="nav-h1"><a href="#sec-1-1">M0 · C#/.NET 热身 + 工程骨架</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-1">M0 目录（8 天）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-2">Day 1 — 环境搭建 + 第一个 C# 程序（C# ≈ 带类型的 TS）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-5">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-3">Day 2 — 类型系统：值类型 / 引用类型 / 可空 / struct / enum</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-6">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-7">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-8">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-9">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-10">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-4">Day 3 — 集合与 LINQ（对标数组 / filter / map，但更强）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-11">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-12">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-13">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-15">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-5">Day 4 — 类 / 属性 / 封装 / static</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-16">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-17">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-18">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-19">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-20">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-6">Day 5 — 继承 / 接口 / 泛型</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-21">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-22">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-23">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-24">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-25">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-7">Day 6 — 委托 / 事件 / Lambda（对标回调 / EventEmitter）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-26">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-27">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-28">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-29">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-30">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-8">Day 7 — 多线程 / async-await / 锁（重头戏 ⭐⭐⭐）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-31">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-32">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-33">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-34">⚠️ 前端转 C# 多线程四大坑</a></li>
+<li class="nav-h3"><a href="#sec-3-35">✏️ 课后练习（综合大题，直接对标工业场景）</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-9">Day 8 — 周复习 + 立起 WPF 工程</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-36">复习地图（一条主线串起来）</a></li>
+<li class="nav-h3"><a href="#sec-3-37">⭐ 自测小测（答案见各 Day）</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-10">附录：M0 交付物 &amp; 埋下的 5 个企业级地基</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-11">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-2">M1 · 串口通信</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-12">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-13">Day 1 — 串口基础 + 收发第一个字节</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-38">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-39">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-40">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-41">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-42">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-14">Day 2 — 协议帧解析（把字节流变成业务数据）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-43">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-44">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-45">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-46">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</a></li>
+<li class="nav-h3"><a href="#sec-3-47">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</a></li>
+<li class="nav-h3"><a href="#sec-3-48">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</a></li>
+<li class="nav-h3"><a href="#sec-3-49">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-50">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-15">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-16">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-17">模块交付清单（M1）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-3">M2 · Modbus RTU/TCP</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-18">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-19">Day 1 — Modbus 概念 + RTU 读寄存器</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-51">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-52">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-53">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-54">🔬 掰开揉碎：Modbus 帧结构（你必须懂，才能排错）</a></li>
+<li class="nav-h3"><a href="#sec-3-55">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-56">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-20">Day 2 — 写寄存器 + 数据类型映射 + 轮询架构</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-57">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-58">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-59">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-60">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-21">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-22">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-23">模块交付清单（M2）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-4">M3 · PLC 通信(S7)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-24">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-25">Day 1 — 连接 PLC + 读 DB 块</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-61">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-62">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-63">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-64">🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）</a></li>
+<li class="nav-h3"><a href="#sec-3-65">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-66">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-26">Day 2 — 写 PLC + 结构体映射 + 多设备统一</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-67">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-68">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-69">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-70">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-27">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-28">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-29">模块交付清单（M3）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-5">M4 · 数据持久化(EF Core)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-30">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-31">Day 1 — ORM 概念 + 建模 + 写入</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-71">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-72">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-73">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-74">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</a></li>
+<li class="nav-h3"><a href="#sec-3-75">🔬 掰开揉碎：迁移（Migration）是干什么的</a></li>
+<li class="nav-h3"><a href="#sec-3-76">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-77">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-32">Day 2 — 查询 + 导出 CSV + 仓储模式</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-78">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-79">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-80">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-81">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-33">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-34">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-35">模块交付清单（M4）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-6">M5 · 实时可视化(LiveCharts)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-36">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-37">Day 1 — 动态曲线</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-82">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-83">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-84">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-85">🔬 掰开揉碎：为什么用 Channel&lt;T&gt; 而不是直接 ObservableCollection.Add</a></li>
+<li class="nav-h3"><a href="#sec-3-86">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-87">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-38">Day 2 — 仪表盘 + 性能</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-88">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-89">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-90">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-91">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-39">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-40">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-41">模块交付清单（M5）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-7">M6 · 报警引擎 + Serilog</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-42">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-43">Day 1 — 报警引擎 + 事件总线</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-92">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-93">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-94">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-95">🔬 掰开揉碎：回滞（Hysteresis）—— 生产报警的「必做题」</a></li>
+<li class="nav-h3"><a href="#sec-3-96">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-97">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-44">Day 2 — Serilog 结构化日志</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-98">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-99">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-100">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-101">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-45">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-46">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-47">模块交付清单（M6）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-8">M7 · OPC UA / MQTT 上云</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-48">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-49">Day 1 — MQTT 发布订阅</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-102">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-103">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-104">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-105">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-106">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-50">Day 2 — OPC UA 客户端（对接 SCADA）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-107">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-108">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-109">🔬 掰开揉碎：OPC UA 别用 .Result 同步阻塞（本项目已改为异步）</a></li>
+<li class="nav-h3"><a href="#sec-3-110">🔬 掰开揉碎：MQTT 是「双向」的（上位机常要接收云端下发）</a></li>
+<li class="nav-h3"><a href="#sec-3-111">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-112">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-51">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-52">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-53">模块交付清单（M7）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-9">M8 · 工程化收尾(MVVM+安装包)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-54">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-55">Day 1 — MVVM 重构 + 配置化</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-113">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-114">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-115">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-116">🔬 掰开揉碎：[ObservableProperty] 到底生成了什么（源生成器 Source Generator）</a></li>
+<li class="nav-h3"><a href="#sec-3-117">🔬 掰开揉碎：DI 生命周期怎么选（WPF + EF Core 场景）</a></li>
+<li class="nav-h3"><a href="#sec-3-118">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-119">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-56">Day 2 — 异常处理 + 安装包 + README + 简历</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-120">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-121">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-122">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-123">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-57">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-58">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-59">模块交付清单（M8）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-10">M9 · 工程素养(测试/DI/统一采集/容错)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-60">模块目标</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-61">Day 1 — 单元测试（xUnit + Moq）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-124">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-125">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-126">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-127">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-128">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-62">Day 2 — DI 容器（依赖注入）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-129">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-130">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-131">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-132">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-133">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-63">Day 3 — 统一采集架构（Channel + 定时批量）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-134">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-135">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-136">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-137">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-138">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-64">Day 4 — 生产级容错与重试（Retry）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-139">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-140">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-141">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-142">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-143">✏️ 练习</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-65">模块交付清单（M9）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-66">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-11">M10 · 报表(聚合/可视化/导出)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-67">Day 1 — 历史聚合查询（LINQ GroupBy）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-144">⭐ 重点 &amp; 🔥 坑</a></li>
+<li class="nav-h3"><a href="#sec-3-145">✏️ 练习</a></li>
+<li class="nav-h3"><a href="#sec-3-146">✅ 答案</a></li>
+<li class="nav-h3"><a href="#sec-3-147">🏗️ 项目任务</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-68">Day 2 — 报表可视化（表格 + 历史趋势）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-148">⭐ 重点 &amp; 🔥 坑</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-69">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-149">⭐ 重点 &amp; 🔥 坑</a></li>
+<li class="nav-h3"><a href="#sec-3-150">✏️ 练习</a></li>
+<li class="nav-h3"><a href="#sec-3-151">🏗️ 项目任务</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-70">📌 温故知新（跨模块联动）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-71">📄 本模块应产出的文档</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-72">打卡</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-73">📚 延伸阅读（卡点时点开）</a><ul class="navsub">
+</ul></li>
+</ul></li>
+<li class="nav-h1"><a href="#sec-1-12">附录A · 硬件替代方案与讲解(没硬件怎么练+硬件科普)</a><ul class="navmod">
+<li class="nav-h2"><a href="#sec-2-74">一、先搞懂：上位机在跟什么硬件打交道</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-152">1.1 上位机 / 下位机（一句话 + 类比）</a></li>
+<li class="nav-h3"><a href="#sec-3-153">1.2 一张表：每个模块对应的"物理硬件"是啥</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-75">二、硬件基础科普（不懂硬件也能懂，全用类比）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-154">2.1 串口：RS232 vs RS485（最容易混的两个）</a></li>
+<li class="nav-h3"><a href="#sec-3-155">2.2 传感器信号：设备在"用什么语言"告诉你数值</a></li>
+<li class="nav-h3"><a href="#sec-3-156">2.3 PLC 是什么（你最大的陌生点，掰开讲）</a></li>
+<li class="nav-h3"><a href="#sec-3-157">2.4 接线与抗干扰（现场最容易翻车的地方）</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-76">三、没有硬件怎么办？四层替代方案（重点）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-158">🎯 你有什么 → 用哪层（决策表）</a></li>
+<li class="nav-h3"><a href="#sec-3-159">🟩 T1 纯软件方案（零硬件，随时可练）</a></li>
+<li class="nav-h3"><a href="#sec-3-160">🟩 T2 虚拟接口方案（代码和真机一模一样，只是对端是软件）</a></li>
+<li class="nav-h3"><a href="#sec-3-161">🟧 T3 低成本真硬件（花小钱，真实感拉满）</a></li>
+<li class="nav-h3"><a href="#sec-3-162">🟧 T4 企业真机（实习 / 工作才有）</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-77">四、连不上的万能排查清单（真实现场经验，背下来）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-78">五、🏗️ 动手练习（从零搭虚拟环境跑通，零硬件）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-163">练习 1：用虚拟串口让 DAQ Monitor 收到"假仪表"数据</a></li>
+<li class="nav-h3"><a href="#sec-3-164">练习 2：用 Modbus 从站模拟器读"假电表"</a></li>
+<li class="nav-h3"><a href="#sec-3-165">练习 3：画出"你家的通信拓扑"</a></li>
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-79">六、📌 温故知新 / 跨模块联动</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-80">七、📚 延伸阅读（外链，解决"还不懂"的地方）</a><ul class="navsub">
+</ul></li>
+<li class="nav-h2"><a href="#sec-2-81">打卡</a><ul class="navsub">
+</ul></li>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M0 · C#/.NET 热身 + 工程骨架</h1>
+<blockquote>
+<p><strong>这份讲义怎么读</strong>：每个知识点都是 5 段式 —— ①一句话讲清楚 → ②前端类比表（秒懂）→ ③分点代码精讲 → ④⚠️重点/易踩坑表 → ⑤课后练习+答案+项目任务。目标不是"看过"，是"能写业务代码"。</p>
+<p><strong>技术来源标注</strong>（全程）：🟦 C# 语法（不装包）/ 🟩 .NET 类库 BCL（默认随 .NET，不装包）/ 🟧 第三方 NuGet（要 <code>dotnet add package</code>）。口诀：<strong>语法天生物 · BCL 随 .NET · 第三方要装包</strong>。</p>
+<p><strong>技术栈说明</strong>：本项目用 <strong>WPF</strong>（不是 WinForms）。凡遇到界面代码，我给 WPF 写法，并标注 WinForms 差异（面试两种都可能问）。</p>
+<p><strong>符号</strong>：⭐ 面试/考试高频　🔥 新手必踩坑　🏗️ 落到 DAQ Monitor 项目的任务</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">M0 目录（8 天）</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>主题</th>
+<th>上位机为什么要学</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Day 1</td>
+<td>环境 + 第一个程序（C# ≈ 强类型 TS）</td>
+<td>打通工具链，建立语言直觉</td>
+</tr>
+<tr>
+<td>Day 2</td>
+<td>类型系统：值/引用/可空/struct/enum</td>
+<td>一个"点位"天生就是 struct</td>
+</tr>
+<tr>
+<td>Day 3</td>
+<td>集合与 LINQ</td>
+<td>每秒几百个点，靠 LINQ 处理</td>
+</tr>
+<tr>
+<td>Day 4</td>
+<td>类/属性/封装/static</td>
+<td>设备=类，配置=属性</td>
+</tr>
+<tr>
+<td>Day 5</td>
+<td>继承/接口/泛型</td>
+<td>多设备共用一套接口（架构核心）</td>
+</tr>
+<tr>
+<td>Day 6</td>
+<td>委托/事件/Lambda</td>
+<td>"数据到了→通知 UI"的解耦机制</td>
+</tr>
+<tr>
+<td><strong>Day 7</strong></td>
+<td><strong>多线程 / async-await / 锁</strong>（重头戏）</td>
+<td>采集在后台、UI 在前台，必须并发</td>
+</tr>
+<tr>
+<td>Day 8</td>
+<td>周复习 + 立起 WPF 工程</td>
+<td>把前 7 天串成真实项目骨架</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-2">Day 1 — 环境搭建 + 第一个 C# 程序（C# ≈ 带类型的 TS）</h2>
+<p><strong>📌 技术来源</strong>：🟦 C# 语法（<code>using</code>/<code>class</code>/<code>var</code>/字符串插值）+ 🟩 BCL（<code>Console</code>）</p>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>C# 就是"编译期强类型 + 真正面向对象"的 TypeScript，跑在 .NET 上（≈ TS 跑在 Node 上）。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# / .NET</th>
+<th>前端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.NET Runtime</td>
+<td>Node.js Runtime</td>
+<td>代码的运行环境</td>
+</tr>
+<tr>
+<td>BCL（基础类库）</td>
+<td>Node 内置模块（fs/http…）</td>
+<td>官方自带，不用装</td>
+</tr>
+<tr>
+<td>NuGet 包</td>
+<td>npm 包</td>
+<td>第三方库</td>
+</tr>
+<tr>
+<td>Visual Studio 2022</td>
+<td>VS Code</td>
+<td>IDE（VS 更重、更强）</td>
+</tr>
+<tr>
+<td><code>dotnet run</code></td>
+<td><code>npm start</code></td>
+<td>编译并运行</td>
+</tr>
+<tr>
+<td><code>.csproj</code></td>
+<td><code>package.json</code></td>
+<td>工程/依赖配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 程序入口</strong>：🟦 传统写法要 <code>static void Main()</code>，但 .NET 6+ 支持"顶级语句"，可以像 JS 一样直接写：</p>
+<pre><code class="language-csharp">// Program.cs —— 顶级语句，不用写 class/Main
+Console.WriteLine(&quot;DAQ Monitor 启动&quot;);
+</code></pre>
+<p><strong>② 变量声明</strong>：🟦 <code>var</code> 是类型推断（≠ JS 的 <code>var</code>，更像 TS 的 <code>let</code>）：</p>
+<pre><code class="language-csharp">var name = &quot;DAQ&quot;;      // 推断为 string，之后不能赋别的类型
+string title = &quot;监控&quot;; // 显式类型，等价于 TS: let title: string
+int port = 502;        // 值类型，默认 0，不能是 undefined
+</code></pre>
+<p>⚠️ C# 没有 <code>undefined</code>，只有 <code>null</code>；而且默认变量<strong>不能为 null</strong>（要可空得写 <code>int?</code>）——这是比 JS 安全的地方。</p>
+<p><strong>③ 字符串插值</strong>：🟦 用 <code>$"..."</code>，等价于 JS 反引号模板：</p>
+<pre><code class="language-csharp">var v = 25.6;
+Console.WriteLine($&quot;温度 = {v} ℃&quot;);   // JS: `温度 = ${v} ℃`
+Console.WriteLine($&quot;{name} v1.0&quot;);
+</code></pre>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 一切皆类型</td>
+<td>变量必须有明确类型（<code>var</code> 只是让编译器帮你推断，不是"任意类型"）</td>
+</tr>
+<tr>
+<td>⭐ 无 undefined</td>
+<td>只有 <code>null</code>，且非可空类型默认不能为 null</td>
+</tr>
+<tr>
+<td>🔥 <code>var</code> ≠ JS var</td>
+<td>C# <code>var</code> 是块级 + 类型固定，别用 JS 直觉理解</td>
+</tr>
+<tr>
+<td>🔥 大小写敏感</td>
+<td><code>Console</code> 不是 <code>console</code>，类名/方法名首字母大写（PascalCase）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">✏️ 练习</h3>
+<p>新建 console 项目，输出"DAQ Monitor 启动"，再用 <code>var name="DAQ"</code> 拼一句含变量+版本号的话。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">Console.WriteLine(&quot;DAQ Monitor 启动&quot;);
+var name = &quot;DAQ&quot;;
+var version = 1.0;
+Console.WriteLine($&quot;{name} Monitor 启动，版本 {version}&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：确认 <code>dotnet --version</code> 输出 <code>8.x</code>；在 <code>DAQMonitor/src</code> 下规划 <code>DaqMonitor.Core</code> / <code>DaqMonitor.UI</code> 两个目录（真正建工程在 Day 8）。今天目标：<strong>环境通、跑出第一行</strong>。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay(1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 类型系统：值类型 / 引用类型 / 可空 / struct / enum</h2>
+<p><strong>📌 技术来源</strong>：🟦 C# 类型系统（全部内置语法，不装包）</p>
+<h3 id="sec-3-6">一句话讲清楚</h3>
+<p>值类型 = "复印件"（赋值就拷一份，互不影响）；引用类型 = "共享文档链接"（赋值只是多一个人拿到同一份地址）。</p>
+<h3 id="sec-3-7">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端</th>
+<th>赋值行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>值类型 <code>int/double/bool/struct/enum</code></td>
+<td>primitive <code>number/boolean</code></td>
+<td>拷贝值本身</td>
+</tr>
+<tr>
+<td>引用类型 <code>string/class/数组/List&lt;T&gt;</code></td>
+<td>object/array</td>
+<td>共享地址</td>
+</tr>
+<tr>
+<td>可空 <code>int?</code></td>
+<td><code>number \| null</code></td>
+<td>允许为 null</td>
+</tr>
+<tr>
+<td><code>struct</code></td>
+<td>无直接对应（≈ 轻量 object 但按值拷贝）</td>
+<td>值类型</td>
+</tr>
+<tr>
+<td><code>enum</code></td>
+<td><code>enum</code>（TS 有）</td>
+<td>命名常量</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-8">分点精讲</h3>
+<p><strong>① 值 vs 引用，看这段就懂</strong>：</p>
+<pre><code class="language-csharp">int a = 5;
+int b = a;      // 拷贝
+b = 99;
+// a 仍是 5（互不影响）
+
+int[] arr1 = { 1, 2, 3 };
+int[] arr2 = arr1;   // 共享地址
+arr2[0] = 99;
+// arr1[0] 也变成 99！（同一份数据）
+</code></pre>
+<p><strong>② 可空类型</strong>：🟦 加 <code>?</code> 表示可为 null：</p>
+<pre><code class="language-csharp">int age = null;    // ❌ 编译报错，非可空不能为 null
+int? age2 = null;  // ✅ 可空
+int real = age2 ?? 0;   // ?? 是空合并（JS 也有）：null 就取 0
+Console.WriteLine(age2?.ToString());  // ?. 空条件调用（JS 也有）
+</code></pre>
+<p><strong>③ struct —— 上位机点位的天然载体</strong>：🟦 轻量值类型，适合"坐标/点位/寄存器"这类小数据：</p>
+<pre><code class="language-csharp">public struct SensorPoint
+{
+    public int Id;          // 点位编号
+    public double Value;    // 数值
+    public DateTime Time;   // 采集时刻
+}
+</code></pre>
+<p><strong>④ enum —— 状态/功能码用它</strong>：🟦 命名常量，比 magic number 可读：</p>
+<pre><code class="language-csharp">public enum DeviceState { Offline, Connecting, Online }
+public enum AlarmLevel  { Normal, Warning, Critical }
+
+var s = DeviceState.Online;
+if (s == DeviceState.Online) Console.WriteLine(&quot;设备在线&quot;);
+</code></pre>
+<h3 id="sec-3-9">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 值 vs 引用</td>
+<td>面试必考。判断标准：<code>struct/基础数值/enum</code> 是值，<code>class/string/数组/集合</code> 是引用</td>
+</tr>
+<tr>
+<td>⭐ string 特殊</td>
+<td>虽是引用类型，但<strong>不可变</strong>，行为像值（拼接产生新对象）</td>
+</tr>
+<tr>
+<td>🔥 struct 传参被拷贝</td>
+<td>把 struct 传进方法里改，改的是副本！要改原值传 <code>ref</code> 或改用 <code>class</code></td>
+</tr>
+<tr>
+<td>🔥 非可空默认不能 null</td>
+<td>忘了写 <code>?</code> 会编译报错，别慌，这是保护你</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-10">✏️ 练习</h3>
+<p>定义 <code>enum AlarmLevel { Normal, Warning, Critical }</code> 和 <code>struct Alarm { int PointId; AlarmLevel Level; double Value; }</code>，并创建一个"点位 3、Critical、值 200"的报警。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public enum AlarmLevel { Normal, Warning, Critical }
+public struct Alarm
+{
+    public int PointId;
+    public AlarmLevel Level;
+    public double Value;
+}
+
+var alarm = new Alarm { PointId = 3, Level = AlarmLevel.Critical, Value = 200 };
+Console.WriteLine($&quot;点位{alarm.PointId} 报警 {alarm.Level} 值={alarm.Value}&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core</code> 建 <code>Models/</code> 目录，写下核心类型骨架：<code>SensorPoint</code>、<code>DeviceState</code>、<code>AlarmLevel</code>、<code>Alarm</code>。后面模块往里填字段。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay(2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">Day 3 — 集合与 LINQ（对标数组 / filter / map，但更强）</h2>
+<p><strong>📌 技术来源</strong>：🟦 集合语法 + 🟩 BCL（<code>List&lt;T&gt;</code>/<code>Dictionary&lt;K,V&gt;</code>/<code>LINQ</code>）</p>
+<h3 id="sec-3-11">一句话讲清楚</h3>
+<p>LINQ 就是"能写在代码里的 SQL"：像 <code>filter/map</code> 一样链式处理集合，还多了 <code>OrderBy/GroupBy/Sum</code> 这些数据库级操作。</p>
+<h3 id="sec-3-12">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# LINQ</th>
+<th>前端数组方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.Where(p =&gt; ...)</code></td>
+<td><code>.filter(p =&gt; ...)</code></td>
+<td>过滤</td>
+</tr>
+<tr>
+<td><code>.Select(p =&gt; ...)</code></td>
+<td><code>.map(p =&gt; ...)</code></td>
+<td>投影/转换</td>
+</tr>
+<tr>
+<td><code>.OrderBy(p =&gt; ...)</code></td>
+<td><code>.sort(...)</code></td>
+<td>升序（<code>OrderByDescending</code> 降序）</td>
+</tr>
+<tr>
+<td><code>.FirstOrDefault(...)</code></td>
+<td><code>.find(...)</code></td>
+<td>找第一个（找不到返回默认值/null）</td>
+</tr>
+<tr>
+<td><code>.Any(...)</code> / <code>.All(...)</code></td>
+<td><code>.some()</code> / <code>.every()</code></td>
+<td>存在/全部满足</td>
+</tr>
+<tr>
+<td><code>.Count()</code> / <code>.Sum()</code> / <code>.Average()</code></td>
+<td><code>.length</code> / <code>reduce</code></td>
+<td>聚合</td>
+</tr>
+<tr>
+<td><code>.GroupBy(...)</code></td>
+<td>无原生（要手写）</td>
+<td>分组（LINQ 杀手锏）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-13">分点精讲</h3>
+<p><strong>① 两大集合</strong>：</p>
+<pre><code class="language-csharp">// 🟩 List&lt;T&gt; ≈ TS 数组，但类型固定、性能高
+List&lt;SensorPoint&gt; points = new();     // new() 是简写，等价 new List&lt;SensorPoint&gt;()
+points.Add(new SensorPoint { Id = 1, Value = 10 });
+
+// 🟩 Dictionary&lt;K,V&gt; ≈ JS Map，按键 O(1) 查
+Dictionary&lt;int, SensorPoint&gt; byId = new();
+byId[1] = new SensorPoint { Id = 1, Value = 10 };
+var p = byId[1];               // 按 Id 取
+bool ok = byId.TryGetValue(2, out var p2);  // 安全取（不存在不报错）
+</code></pre>
+<p><strong>② LINQ 实战</strong>（上位机日常）：</p>
+<pre><code class="language-csharp">var points = new List&lt;SensorPoint&gt;
+{
+    new() { Id = 1, Value = 10 },  new() { Id = 2, Value = 50 },
+    new() { Id = 3, Value = 120 }, new() { Id = 4, Value = 200 },
+    new() { Id = 5, Value = 30 },
+};
+
+// 找出值 &gt; 100 的点，只取 Id
+var hotIds = points.Where(p =&gt; p.Value &gt; 100)
+                   .Select(p =&gt; p.Id)
+                   .ToList();          // 结果: [3, 4]
+
+// 按值降序排前 3
+var top3 = points.OrderByDescending(p =&gt; p.Value).Take(3).ToList();
+
+// 平均值 / 最大值
+double avg = points.Average(p =&gt; p.Value);
+double max = points.Max(p =&gt; p.Value);
+
+// 是否有超限的点
+bool hasAlarm = points.Any(p =&gt; p.Value &gt; 150);
+</code></pre>
+<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 延迟执行(lazy)</td>
+<td><code>Where/Select</code> <strong>不立即计算</strong>，直到 <code>.ToList()/.Count()/foreach</code> 才真跑</td>
+</tr>
+<tr>
+<td>🔥 遍历时改集合</td>
+<td><code>foreach</code> 里 <code>Add/Remove</code> 会抛异常。先 <code>.ToList()</code> 固化再改</td>
+</tr>
+<tr>
+<td>🔥 重复枚举</td>
+<td>一个 LINQ 查询被多次遍历会重复计算，需固化就 <code>.ToList()</code> 存起来</td>
+</tr>
+<tr>
+<td>⭐ 方法链 vs 查询语法</td>
+<td><code>points.Where(...).Select(...)</code>（推荐，和前端链式一致）；也可 <code>from p in points where ... select p</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-15">✏️ 练习</h3>
+<p>给 5 个点（值 10/50/120/200/30），用 LINQ：①找出值 &gt;100 的 Id 列表；②算全部点的平均值；③按值降序排列。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">var hot = points.Where(p =&gt; p.Value &gt; 100).Select(p =&gt; p.Id).ToList(); // [3,4]
+var avg = points.Average(p =&gt; p.Value);                                // 82
+var sorted = points.OrderByDescending(p =&gt; p.Value).ToList();          // 200,120,50,30,10
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 写 <code>PointStore</code> 类：内部用 <code>List&lt;SensorPoint&gt;</code> + <code>Dictionary&lt;int,SensorPoint&gt;</code> 双索引（列表用于遍历/统计，字典用于按 Id 快查），提供 <code>AddOrUpdate/Get/GetAll</code>，并用 LINQ 写 <code>GetAlarms(threshold)</code> 返回超阈值的点（Day 7 报警直接复用）。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay(3)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-5">Day 4 — 类 / 属性 / 封装 / static</h2>
+<p><strong>📌 技术来源</strong>：🟦 <code>class</code> / 属性 / 访问修饰符 / <code>static</code></p>
+<h3 id="sec-3-16">一句话讲清楚</h3>
+<p>类是"设备的蓝图"，属性是"带 getter/setter 的字段"（C# 一等公民），封装是"用 private 挡住不该被外部乱改的数据"。</p>
+<h3 id="sec-3-17">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>class Device {}</code></td>
+<td><code>class Device {}</code></td>
+<td>ES6 也有 class</td>
+</tr>
+<tr>
+<td><code>public double Value { get; set; }</code></td>
+<td>getter/setter</td>
+<td>C# 语法更简洁，是标准写法</td>
+</tr>
+<tr>
+<td><code>private</code> / <code>public</code> / <code>internal</code></td>
+<td><code>#private</code>（新）/ 约定 <code>_</code></td>
+<td>C# 是<strong>编译期</strong>访问控制</td>
+</tr>
+<tr>
+<td><code>static</code></td>
+<td><code>static</code></td>
+<td>属于类而非实例</td>
+</tr>
+<tr>
+<td>构造函数 <code>public Device(int id){}</code></td>
+<td><code>constructor(id){}</code></td>
+<td>初始化</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-18">分点精讲</h3>
+<p><strong>① 属性（Property）—— 不是字段</strong>：🟦 <code>{ get; set; }</code> 自动属性，还能加逻辑：</p>
+<pre><code class="language-csharp">public class Device
+{
+    public int Id { get; }               // 只读（只有 get），构造时赋值
+    public string Name { get; set; } = &quot;未命名&quot;;  // 可读写 + 默认值
+
+    private double _value;
+    public double Value                  // 带逻辑的属性
+    {
+        get =&gt; _value;
+        set
+        {
+            if (value &lt; -273) throw new ArgumentException(&quot;温度不合理&quot;);
+            _value = value;
+        }
+    }
+
+    public Device(int id) =&gt; Id = id;    // 构造函数（表达式体写法）
+}
+</code></pre>
+<blockquote>
+<p>⚠️ 前端习惯把数据直接塞字段(<code>this.value=x</code>)，C# 规范是<strong>用属性暴露状态</strong>——因为 WPF 数据绑定只认属性。</p>
+</blockquote>
+<p><strong>② 访问修饰符</strong>：</p>
+<pre><code class="language-csharp">public class Foo
+{
+    public int A;      // 任何地方可访问
+    private int _b;    // 只有本类内
+    internal int C;    // 同一个程序集（项目）内
+    protected int D;   // 本类 + 子类
+}
+</code></pre>
+<p><strong>③ static —— 工具方法/常量</strong>：🟦 属于类，不用 new：</p>
+<pre><code class="language-csharp">public static class Crc16   // 后面算 Modbus 校验会用到
+{
+    public static ushort Compute(byte[] data) { /* ... */ return 0; }
+}
+// 调用：Crc16.Compute(bytes);  ≈ 你用过的 Math.max()
+</code></pre>
+<h3 id="sec-3-19">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 属性 vs 字段</td>
+<td>面试常问。字段是变量，属性是带存取逻辑的"方法伪装"，WPF 绑定必须用属性</td>
+</tr>
+<tr>
+<td>⭐ 只读属性</td>
+<td><code>{ get; }</code> + 构造赋值，防止外部乱改 Id</td>
+</tr>
+<tr>
+<td>🔥 static 不能访问实例成员</td>
+<td>static 方法里不能直接用 <code>this.xxx</code>（没有实例）</td>
+</tr>
+<tr>
+<td>🔥 静态字段是全局共享</td>
+<td>所有实例共用一份，慎用（多线程下要加锁，见 Day 7）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-20">✏️ 练习</h3>
+<p>写 <code>class Thermometer</code>：只读 <code>Id</code>、可读写 <code>Temperature</code>、构造传 Id，加方法 <code>bool IsOverheat(double limit) =&gt; Temperature &gt; limit;</code></p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public class Thermometer
+{
+    public int Id { get; }
+    public double Temperature { get; set; }
+    public Thermometer(int id) =&gt; Id = id;
+    public bool IsOverheat(double limit) =&gt; Temperature &gt; limit;
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 抽象 <code>DeviceBase</code> 基类：含 <code>Id/Name/State</code> 属性（State 用 Day 2 的 <code>DeviceState</code> 枚举，<code>protected set</code> 只允许子类改）与 <code>Connect()/Disconnect()</code> 方法占位。这是 Day 5「IDevice 统一接口」的地基。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="4" onchange="toggleDay(4)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-6">Day 5 — 继承 / 接口 / 泛型</h2>
+<p><strong>📌 技术来源</strong>：🟦 继承（<code>:</code>）/ 接口（<code>interface</code>）/ 泛型（<code>&lt;T&gt;</code>）</p>
+<h3 id="sec-3-21">一句话讲清楚</h3>
+<p>接口 = "契约"（规定能做什么，不管怎么做），继承 = "复用父类"，泛型 = "写一次适配任意类型"。上位机靠<strong>面向接口</strong>让 UI 不关心设备是串口还是 PLC。</p>
+<h3 id="sec-3-22">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端 (TS)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interface IDevice {}</code></td>
+<td><code>interface IDevice {}</code></td>
+<td>TS 也有，几乎一样</td>
+</tr>
+<tr>
+<td><code>class A : Base, IX</code></td>
+<td><code>class A extends Base implements IX</code></td>
+<td>单继承 + 多接口</td>
+</tr>
+<tr>
+<td><code>abstract class</code></td>
+<td><code>abstract class</code></td>
+<td>不能直接 new</td>
+</tr>
+<tr>
+<td><code>&lt;T&gt;</code> 泛型</td>
+<td><code>&lt;T&gt;</code> 泛型</td>
+<td>概念一致</td>
+</tr>
+<tr>
+<td><code>virtual</code> / <code>override</code></td>
+<td>方法重写</td>
+<td>C# 要显式标 <code>virtual</code>/<code>override</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-23">分点精讲</h3>
+<p><strong>① 接口 —— 上位机架构核心</strong>：🟦</p>
+<pre><code class="language-csharp">public interface IDevice
+{
+    int Id { get; }
+    DeviceState State { get; }
+    void Connect();
+    void Disconnect();
+    double Read(int addr);            // 读寄存器
+    void Write(int addr, double v);   // 写寄存器
+}
+</code></pre>
+<blockquote>
+<p>UI 只依赖 <code>IDevice</code>，明天接串口、后天接 PLC，UI 代码一行不用改——这就是解耦的价值。</p>
+</blockquote>
+<p><strong>② 抽象基类 + 继承 + 多态</strong>：🟦</p>
+<pre><code class="language-csharp">public abstract class DeviceBase : IDevice
+{
+    public int Id { get; }
+    public DeviceState State { get; protected set; } = DeviceState.Offline;
+    protected DeviceBase(int id) =&gt; Id = id;
+
+    public abstract void Connect();      // 子类必须实现
+    public abstract void Disconnect();
+    public abstract double Read(int addr);
+    public abstract void Write(int addr, double v);
+}
+
+// 具体设备（M1/M3 实现），这里先占位
+public class SerialDevice : DeviceBase
+{
+    public SerialDevice(int id) : base(id) { }
+    public override void Connect()  =&gt; State = DeviceState.Online;
+    public override void Disconnect() =&gt; State = DeviceState.Offline;
+    public override double Read(int addr) =&gt; 0;      // M1 填真实串口逻辑
+    public override void Write(int addr, double v) { }
+}
+</code></pre>
+<p><strong>③ 泛型 —— 写一次适配任意类型</strong>：🟦</p>
+<pre><code class="language-csharp">public class RingBuffer&lt;T&gt;       // 环形缓冲，后面存历史数据用
+{
+    private readonly Queue&lt;T&gt; _q = new();
+    private readonly int _max;
+    public RingBuffer(int max) =&gt; _max = max;
+    public void Add(T item)
+    {
+        _q.Enqueue(item);
+        if (_q.Count &gt; _max) _q.Dequeue();   // 超量丢最旧
+    }
+    public IEnumerable&lt;T&gt; Items =&gt; _q;
+}
+// 用法：var buf = new RingBuffer&lt;SensorPoint&gt;(100);
+</code></pre>
+<h3 id="sec-3-24">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 接口 vs 抽象类</td>
+<td>面试高频！<strong>接口=能做什么(可多实现)</strong>，<strong>抽象类=是什么(单继承+可含实现)</strong>。设备用接口解耦</td>
+</tr>
+<tr>
+<td>⭐ 多态</td>
+<td>用 <code>IDevice d</code> 引用不同子类，调 <code>d.Read()</code> 自动走各自实现</td>
+</tr>
+<tr>
+<td>🔥 virtual/override 要配对</td>
+<td>父类方法不标 <code>virtual</code>，子类不能 <code>override</code></td>
+</tr>
+<tr>
+<td>🔥 接口不含字段</td>
+<td>只能有属性/方法（C# 8+ 可有默认实现，但别滥用）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-25">✏️ 练习</h3>
+<p>定义 <code>interface IReadable { double Read(int addr); }</code>，让 Day 4 的 <code>Thermometer</code> 实现它（Read 返回当前温度）。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public interface IReadable { double Read(int addr); }
+public class Thermometer : IReadable
+{
+    public int Id { get; }
+    public double Temperature { get; set; }
+    public Thermometer(int id) =&gt; Id = id;
+    public double Read(int addr) =&gt; Temperature;   // 简化：忽略 addr
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 正式定义 <code>IDevice</code> 接口，让 <code>DeviceBase</code> 实现它；建 <code>Devices/</code> 目录放接口与基类。DAQ Monitor 从"Day1 按钮"进化成"可插拔多设备框架"。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="5" onchange="toggleDay(5)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-7">Day 6 — 委托 / 事件 / Lambda（对标回调 / EventEmitter）</h2>
+<p><strong>📌 技术来源</strong>：🟦 委托 <code>delegate</code> / 事件 <code>event</code> / Lambda + 🟩 BCL（<code>Action</code>/<code>Func</code>/<code>EventHandler&lt;T&gt;</code>）</p>
+<h3 id="sec-3-26">一句话讲清楚</h3>
+<p>委托 = "把方法当变量传"（≈ 回调函数），事件 = "基于委托的发布订阅"（≈ <code>addEventListener</code>）。上位机用它实现"后台采到数据 → 自动通知 UI 刷新"。</p>
+<h3 id="sec-3-27">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Action</code></td>
+<td><code>() =&gt; void</code></td>
+<td>无返回的委托</td>
+</tr>
+<tr>
+<td><code>Action&lt;int&gt;</code></td>
+<td><code>(x:number) =&gt; void</code></td>
+<td>带参无返回</td>
+</tr>
+<tr>
+<td><code>Func&lt;int,int&gt;</code></td>
+<td><code>(x:number) =&gt; number</code></td>
+<td>带返回</td>
+</tr>
+<tr>
+<td><code>event</code></td>
+<td><code>EventEmitter</code> / <code>addEventListener</code></td>
+<td>发布订阅</td>
+</tr>
+<tr>
+<td><code>d.X += handler</code></td>
+<td><code>emitter.on('x', handler)</code></td>
+<td>订阅</td>
+</tr>
+<tr>
+<td><code>d.X -= handler</code></td>
+<td><code>emitter.off('x', handler)</code></td>
+<td>退订（重要！）</td>
+</tr>
+<tr>
+<td>Lambda <code>p =&gt; p.V &gt; 1</code></td>
+<td>箭头函数 <code>p =&gt; p.v &gt; 1</code></td>
+<td>几乎一样</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-28">分点精讲</h3>
+<p><strong>① Action / Func —— 内置委托，99% 不用自己写 delegate</strong>：🟩</p>
+<pre><code class="language-csharp">Action sayHi = () =&gt; Console.WriteLine(&quot;hi&quot;);        // 无参无返回
+Action&lt;string&gt; log = msg =&gt; Console.WriteLine(msg);  // 带参
+Func&lt;int, int, int&gt; add = (a, b) =&gt; a + b;           // 带返回
+sayHi();  log(&quot;采集启动&quot;);  int s = add(1, 2);   // s=3
+</code></pre>
+<p><strong>② 事件 —— 设备层→UI 层单向通知</strong>：🟦🟩</p>
+<pre><code class="language-csharp">// 事件参数（携带数据）
+public class DataEventArgs : EventArgs
+{
+    public int PointId { get; init; }
+    public double Value { get; init; }
+}
+
+public abstract class DeviceBase
+{
+    // 声明事件（EventHandler&lt;T&gt; 是 BCL 标准委托）
+    public event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+
+    // 受保护的触发方法，供子类采到数据时调用
+    protected void RaiseData(int pointId, double value)
+        =&gt; DataReceived?.Invoke(this, new DataEventArgs { PointId = pointId, Value = value });
+}
+
+// 订阅方（比如 UI）
+device.DataReceived += OnData;          // 订阅 ≈ addEventListener
+void OnData(object? s, DataEventArgs e) =&gt; Console.WriteLine($&quot;点{e.PointId}={e.Value}&quot;);
+// 销毁时：device.DataReceived -= OnData;   // 退订，防内存泄漏
+</code></pre>
+<h3 id="sec-3-29">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件为什么解耦</td>
+<td>设备不认识 UI，只管"喊一声"(<code>Invoke</code>)，谁订阅谁收到，UI 可随时增减</td>
+</tr>
+<tr>
+<td>🔥 忘了 -= 退订</td>
+<td>对象销毁前不 <code>-=</code>，会导致<strong>内存泄漏</strong>（企业级必查项，面试常问）</td>
+</tr>
+<tr>
+<td>🔥 <code>?.Invoke</code> 判空</td>
+<td>没人订阅时事件为 null，直接 <code>Invoke</code> 会崩，要写 <code>DataReceived?.Invoke(...)</code></td>
+</tr>
+<tr>
+<td>🔥 跨线程触发事件改 UI</td>
+<td>后台线程触发的事件里<strong>不能直接改 UI</strong>，要 <code>Dispatcher.Invoke</code>（见 Day 7）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-30">✏️ 练习</h3>
+<p>给 <code>Thermometer</code> 加 <code>event EventHandler&lt;DataEventArgs&gt; ValueChanged</code>，在 <code>Temperature</code> 的 set 里触发。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public class Thermometer
+{
+    private double _t;
+    public event EventHandler&lt;DataEventArgs&gt;? ValueChanged;
+    public int Id { get; }
+    public Thermometer(int id) =&gt; Id = id;
+    public double Temperature
+    {
+        get =&gt; _t;
+        set
+        {
+            _t = value;
+            ValueChanged?.Invoke(this, new DataEventArgs { PointId = Id, Value = value });
+        }
+    }
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 的 <code>IDevice</code>/<code>DeviceBase</code> 加 <code>event EventHandler&lt;DataEventArgs&gt; DataReceived</code> + <code>RaiseData</code>。让"采集→通知 UI"的架构闭环，这是 Day 7 + 后续实时刷新的地基。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="6" onchange="toggleDay(6)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-8">Day 7 — 多线程 / async-await / 锁（重头戏 ⭐⭐⭐）</h2>
+<p><strong>📌 技术来源</strong>：🟦 <code>async</code>/<code>await</code>/<code>lock</code>/<code>Task</code>/<code>Thread</code> 语法 + 🟩 BCL（<code>Task</code>/<code>Thread</code>/<code>ConcurrentQueue</code>/<code>SemaphoreSlim</code>）</p>
+<h3 id="sec-3-31">一句话讲清楚</h3>
+<p>多线程 = 多个工人同时干活，锁 = 抢厕所时排队（同一时刻只放一个人进去改数据）。<strong>前端 JS 是单线程没这问题，C# 是真多线程——两个线程同时改一个变量，数据就乱了，这就是锁存在的意义。</strong></p>
+<h3 id="sec-3-32">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# 概念</th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Thread</code></td>
+<td><code>Web Worker</code></td>
+<td>最底层的新线程，干独立任务</td>
+</tr>
+<tr>
+<td><code>Task</code></td>
+<td><code>Promise</code></td>
+<td>更高级的异步，<strong>推荐用这个</strong></td>
+</tr>
+<tr>
+<td><code>async/await</code></td>
+<td><code>async/await</code></td>
+<td>几乎一样，但 C# 有坑（见下）</td>
+</tr>
+<tr>
+<td><code>lock</code></td>
+<td>前端没有！</td>
+<td>保护共享数据不被同时改</td>
+</tr>
+<tr>
+<td><code>ConcurrentQueue</code></td>
+<td>前端没有！</td>
+<td>自带锁的线程安全队列</td>
+</tr>
+<tr>
+<td><code>SemaphoreSlim</code></td>
+<td>前端没有！</td>
+<td>更高级的限流锁</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>核心区别</strong>：前端单线程，异步只是"排队等结果"，不会真并行改数据；C# 是真并行，多个线程能同时执行、同时读写内存，所以需要锁。</p>
+</blockquote>
+<h3 id="sec-3-33">分点精讲</h3>
+<p><strong>① Thread —— 最基础的多线程</strong>：🟩</p>
+<pre><code class="language-csharp">// 前端类比：new Worker('worker.js')
+Thread t = new Thread(() =&gt;
+{
+    Console.WriteLine($&quot;后台线程 Id={Thread.CurrentThread.ManagedThreadId}&quot;);
+});
+t.IsBackground = true;   // 后台线程：主程序退出它也退出（否则程序关不掉）
+t.Start();
+Console.WriteLine($&quot;主线程 Id={Thread.CurrentThread.ManagedThreadId}&quot;);
+// ⚠️ 输出顺序不固定！多线程执行顺序不可预测
+</code></pre>
+<p><strong>② Task —— 现代 C# 推荐（≈ Promise）</strong>：🟩</p>
+<pre><code class="language-csharp">// ① 启动一个后台任务（前端：new Promise(...)）
+Task task = Task.Run(() =&gt;
+{
+    Thread.Sleep(2000);   // 真的暂停这个线程 2 秒
+    Console.WriteLine(&quot;Task 完成&quot;);
+});
+
+// ② 带返回值
+Task&lt;int&gt; calc = Task.Run(() =&gt; { Thread.Sleep(500); return 42; });
+int result = await calc;   // ✅ 用 await 拿结果（推荐）
+// int r2 = calc.Result;   // ❌ .Result/.Wait() 会阻塞线程，UI 里用会死锁！
+</code></pre>
+<p><strong>③ async/await —— 最像前端的写法</strong>：🟦</p>
+<pre><code class="language-csharp">// ✅ 正确：返回 Task，用 await
+public async Task&lt;string&gt; GetDataAsync()
+{
+    string data = await Task.Run(() =&gt;
+    {
+        Thread.Sleep(2000);
+        return &quot;数据已就绪&quot;;
+    });
+    return data;
+}
+
+// WPF 按钮点击（async 事件处理器）
+private async void BtnStart_Click(object sender, RoutedEventArgs e)
+{
+    StatusText.Text = &quot;加载中...&quot;;
+    string data = await GetDataAsync();  // UI 不卡顿！await 期间界面还能动
+    StatusText.Text = data;
+}
+</code></pre>
+<blockquote>
+<p>⚠️ <code>async void</code> <strong>只能用在事件处理器</strong>（如 <code>Click</code>）。其他任何地方一律 <code>async Task</code>，否则异常会被吞掉、程序静默崩溃。</p>
+</blockquote>
+<p><strong>④ ⚠️ 为什么需要锁 —— 经典竞态 Bug</strong>：🟦</p>
+<pre><code class="language-csharp">// ❌ 没锁：结果不是 10000！
+private int _count = 0;
+for (int i = 0; i &lt; 10000; i++)
+    Task.Run(() =&gt; _count++);   // 上万个线程同时 ++
+// 结果可能是 8234、9567... 随机
+</code></pre>
+<p><strong>为什么？</strong> <code>_count++</code> 不是原子操作，实际分三步：①读值→②+1→③写回。两个线程同时读到 5，各自 +1 都写回 6，就丢了一次 +1。</p>
+<pre><code class="language-csharp">// ✅ 加锁就对了：一定是 10000
+private int _count = 0;
+private readonly object _lock = new object();   // 锁对象，随便 new 一个
+for (int i = 0; i &lt; 10000; i++)
+    Task.Run(() =&gt;
+    {
+        lock (_lock)   // 同一刻只有一个线程能进
+        {
+            _count++;
+        }              // 出了 lock，别的线程才能进
+    });
+</code></pre>
+<p><strong>⑤ 生产者-消费者（上位机最高频场景）</strong>：🟩</p>
+<blockquote>
+<p>串口每秒收 100 条（生产者），UI 慢慢刷新（消费者），中间用<strong>线程安全队列</strong>缓冲。</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.Concurrent;
+
+// ConcurrentQueue 自带锁，不用手动 lock（前端类比：自动管理的消息队列）
+private ConcurrentQueue&lt;SensorPoint&gt; _queue = new();
+
+// 生产者：后台采集线程
+private void OnDataReceived(SensorPoint p) =&gt; _queue.Enqueue(p);   // 线程安全
+
+// 消费者：WPF DispatcherTimer 定时刷 UI
+private void UiTimer_Tick(object? s, EventArgs e)
+{
+    while (_queue.TryDequeue(out var p))   // 一条条取
+    {
+        DataGrid.Items.Add(p);
+        if (DataGrid.Items.Count &gt; 200)
+            DataGrid.Items.RemoveAt(0);    // 只留最近 200 条，防内存爆
+    }
+}
+</code></pre>
+<h3 id="sec-3-34">⚠️ 前端转 C# 多线程四大坑</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跨线程改 UI</td>
+<td>后台线程直接改 <code>TextBlock.Text</code> 会抛异常</td>
+<td>WPF：<code>Dispatcher.Invoke(() =&gt; txt.Text = "x")</code>；WinForms：<code>Invoke(...)</code></td>
+</tr>
+<tr>
+<td>死锁</td>
+<td>两线程互等对方的锁 / <code>await</code> 里用 <code>.Result</code></td>
+<td>锁顺序一致；UI 里永远 <code>await</code>，别用 <code>.Result/.Wait()</code></td>
+</tr>
+<tr>
+<td><code>async void</code> 吞异常</td>
+<td>异常静默丢失、程序莫名崩</td>
+<td>只在事件处理器用 <code>async void</code>，其他用 <code>async Task</code></td>
+</tr>
+<tr>
+<td>竞态条件</td>
+<td>多线程同时读写同一变量</td>
+<td><code>lock</code> 或用 <code>ConcurrentQueue</code>/<code>Interlocked</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-35">✏️ 课后练习（综合大题，直接对标工业场景）</h3>
+<p>写一个<strong>数据采集模拟器</strong>（WPF）：
+1. 后台线程（生产者）每 100ms 生成一条模拟数据（温度+压力+时间戳）；
+2. 用 <code>ConcurrentQueue</code> 做缓冲区；
+3. UI 用 <code>DispatcherTimer</code>（消费者）每 500ms 从队列取数显示到 <code>DataGrid</code>；
+4. 数据超 200 条自动删最旧，保持 ≤200 行；
+5. 实时显示队列积压条数。
+要求：必须用 <code>Task.Run</code> + <code>ConcurrentQueue</code> + <code>Dispatcher.Invoke</code> 更新 UI。</p>
+<p><strong>✅ 答案（核心骨架）</strong></p>
+<pre><code class="language-csharp">public partial class MainWindow : Window
+{
+    private readonly ConcurrentQueue&lt;Reading&gt; _queue = new();
+    private readonly DispatcherTimer _uiTimer = new();
+    private CancellationTokenSource? _cts;
+
+    public record Reading(double Temp, double Pressure, DateTime Time);
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        _uiTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _uiTimer.Tick += UiTimer_Tick;
+    }
+
+    private void BtnStart_Click(object sender, RoutedEventArgs e)
+    {
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        // 生产者：后台任务
+        Task.Run(async () =&gt;
+        {
+            var rnd = new Random();
+            while (!token.IsCancellationRequested)
+            {
+                _queue.Enqueue(new Reading(20 + rnd.NextDouble() * 10,
+                                           100 + rnd.NextDouble() * 5, DateTime.Now));
+                await Task.Delay(100, token);   // 每 100ms 一条
+            }
+        }, token);
+        _uiTimer.Start();
+    }
+
+    private void UiTimer_Tick(object? s, EventArgs e)   // 消费者（已在 UI 线程）
+    {
+        while (_queue.TryDequeue(out var r))
+        {
+            DataGrid.Items.Add(r);
+            if (DataGrid.Items.Count &gt; 200) DataGrid.Items.RemoveAt(0);
+        }
+        BacklogText.Text = $&quot;积压：{_queue.Count} 条&quot;;
+    }
+
+    private void BtnStop_Click(object sender, RoutedEventArgs e)
+    {
+        _cts?.Cancel();
+        _uiTimer.Stop();
+    }
+}
+</code></pre>
+<blockquote>
+<p>💡 <code>DispatcherTimer.Tick</code> 本身就在 UI 线程，所以这里不用再 <code>Dispatcher.Invoke</code>；但如果你是在 <code>Task.Run</code> 后台里直接改 UI，就<strong>必须</strong> <code>Dispatcher.Invoke(() =&gt; ...)</code>。</p>
+</blockquote>
+<p><strong>🏗️ 项目任务</strong>：给 DAQ Monitor 加一个"模拟采集"后台线程 + <code>ConcurrentQueue</code> 缓冲 + <code>DispatcherTimer</code> 刷新，把上面骨架接到项目里，形成真实的"后台采集→前台展示"并发闭环。这是 M6 实时监控的核心地基。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="7" onchange="toggleDay(7)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-9">Day 8 — 周复习 + 立起 WPF 工程</h2>
+<p><strong>📌 技术来源</strong>：🟦 前 7 天综合 + 🟩 <strong>WPF</strong>（<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，随 .NET，非 NuGet）</p>
+<h3 id="sec-3-36">复习地图（一条主线串起来）</h3>
+<p>变量/类型(Day1-2) → 集合/LINQ 处理数据(Day3) → 类/属性封装设备(Day4) → 接口/泛型架构(Day5) → 事件解耦通知(Day6) → 多线程/异步/锁并发(Day7)。这条线后面贯穿 M1~M8。</p>
+<h3 id="sec-3-37">⭐ 自测小测（答案见各 Day）</h3>
+<ol>
+<li><code>int?</code> 和 <code>int</code> 区别？</li>
+<li>LINQ 延迟执行是什么意思？为什么有时要 <code>.ToList()</code>？</li>
+<li>接口 vs 抽象类怎么选？</li>
+<li>事件订阅为什么要 <code>-=</code>？</li>
+<li><code>_count++</code> 多线程下为什么会丢数据？怎么修？</li>
+<li>后台线程能直接改 WPF 界面吗？不能的话怎么办？</li>
+<li>WPF 用 NuGet 装吗？（答：不，<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，属 🟩 生态）</li>
+</ol>
+<p><strong>🏗️ 项目任务（今日落地真实工程）</strong></p>
+<pre><code class="language-bash">dotnet new sln -n DaqMonitor
+dotnet new classlib -n DaqMonitor.Core
+dotnet new wpf -n DaqMonitor.UI
+dotnet sln add src/DaqMonitor.Core src/DaqMonitor.UI
+dotnet add src/DaqMonitor.UI reference src/DaqMonitor.Core
+</code></pre>
+<ul>
+<li>MainWindow 放"启动采集"按钮 + <code>DataGrid</code> + 状态栏；</li>
+<li>把 Day2-7 写的 Core 类型（<code>SensorPoint</code>/<code>DeviceState</code>/<code>Alarm</code>/<code>IDevice</code>/<code>DeviceBase</code>/<code>PointStore</code>/事件）搬进 <code>DaqMonitor.Core</code>；</li>
+<li>接入 Day 7 的"模拟采集+队列+定时刷新"，点按钮就能看到数据实时滚动。</li>
+<li>工程骨架即成型，<code>git commit</code> 一次，作品集第一版诞生。</li>
+</ul>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="8" onchange="toggleDay(8)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-10">附录：M0 交付物 &amp; 埋下的 5 个企业级地基</h2>
+<ul>
+<li><strong>本地工程</strong>：<code>DAQMonitor/src</code> → <code>DaqMonitor.Core</code>（领域模型+设备接口+点位存储）+ <code>DaqMonitor.UI</code>（WPF）。</li>
+<li>从 Day 8 起它就是<strong>真实项目</strong>，后续模块往里加"串口/Modbus/PLC/存储/图表"，最终 = 能拿去面试的工业数据采集监控系统（13K~15K 作品集）。</li>
+<li>本模块已提前埋下 <strong>5 个企业级地基</strong>：
+  1. <strong>分层</strong>（Core/UI 分离）
+  2. <strong>接口解耦</strong>（IDevice，UI 不认识具体设备）
+  3. <strong>事件通知</strong>（DataReceived，采集→UI 单向推送）
+  4. <strong>双索引存储</strong>（PointStore：List 遍历 + Dictionary 快查）
+  5. <strong>并发模型</strong>（后台采集 + ConcurrentQueue + DispatcherTimer，真实工业架构）</li>
+</ul>
+<blockquote>
+<p>后面 M1~M8 大多是"往这套地基里填空"，你会越来越快。</p>
+</blockquote>
+<h2 id="sec-2-11">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>C# 官方文档总入口：https://learn.microsoft.com/dotnet/csharp/</li>
+<li>异步编程 async/await 官方指南：https://learn.microsoft.com/dotnet/csharp/async —— <strong>必看</strong>，搞懂后台线程为何不能改 UI</li>
+<li>WPF 官方文档（XAML/绑定/命令）：https://learn.microsoft.com/dotnet/desktop/wpf/</li>
+<li><code>Dispatcher</code> / 线程模型：https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcher</li>
+<li>设计模式（接口/策略/观察者，M0 接口与 M6 观察者/事件的理论根）：https://learn.microsoft.com/dotnet/standard/modern-web-apps-azure/architectural-principles</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<hr />
+<h1 id="sec-1-2">M1 · 串口通信</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟩 .NET 类库 <code>System.IO.Ports</code>（.NET 8 需 <code>dotnet add package System.IO.Ports</code>；它是微软官方 BCL 扩展，不是第三方，装了就行、随 .NET 版本）。
+<strong>给简历加的能力</strong>：真实 / 虚拟串口设备接入 —— 上位机对接下位机、仪表、传感器的<strong>最普遍</strong>方式。
+<strong>前置</strong>：M0（类 / 事件 / 并发）。M1 是第一次把"后台收数 → 事件 → UI"串成真实链路。</p>
+</blockquote>
+<h2 id="sec-2-12">模块目标</h2>
+<p>写出一个串口采集器：配置波特率 → 打开端口 → 接收字节流 → 解析成业务数据 → 通过 <code>DataReceived</code> 事件抛给 UI → 显示在 DAQ Monitor。</p>
+<h2 id="sec-2-13">Day 1 — 串口基础 + 收发第一个字节</h2>
+<h3 id="sec-3-38">一句话讲清楚</h3>
+<p>串口 = 一条"按字节排队"的双向数据线。上位机和下位机约定好"语速"(波特率)和"帧格式"(数据位 / 停止位 / 校验)，然后一个发字节、一个收字节。</p>
+<h3 id="sec-3-39">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>串口概念</th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SerialPort</code></td>
+<td><code>WebSocket</code> / Node <code>serialport</code></td>
+<td>建立连接通道</td>
+</tr>
+<tr>
+<td>波特率 9600 / 115200</td>
+<td>带宽 / 速率</td>
+<td>双方必须一致</td>
+</tr>
+<tr>
+<td><code>DataReceived</code> 事件</td>
+<td><code>onmessage</code></td>
+<td>收到数据回调</td>
+</tr>
+<tr>
+<td>字节流 <code>byte[]</code></td>
+<td><code>ArrayBuffer</code></td>
+<td>裸二进制，要自己解析</td>
+</tr>
+<tr>
+<td>虚拟串口</td>
+<td><code>localhost</code> 回环</td>
+<td>没硬件也能练</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-40">分点精讲</h3>
+<p><strong>① 装包 + 建立端口</strong>（🟩）</p>
+<pre><code class="language-csharp">// .NET 8 需先装官方包（仍是微软出品，不是第三方）
+// dotnet add package System.IO.Ports
+using System.IO.Ports;
+
+var port = new SerialPort(&quot;COM3&quot;, 9600, Parity.None, 8, StopBits.One);
+port.Open();
+port.WriteLine(&quot;AT\r\n&quot;);                 // 发字符串
+int n = port.BytesToRead;
+byte[] buf = new byte[n];
+port.Read(buf, 0, n);                    // 收字节
+port.Close();
+</code></pre>
+<p><strong>② 异步收数（事件驱动）</strong>（🟩 + 🟦）</p>
+<pre><code class="language-csharp">port.DataReceived += (s, e) =&gt;
+{
+    var sp = (SerialPort)s!;
+    int n = sp.BytesToRead;
+    byte[] data = new byte[n];
+    sp.Read(data, 0, n);
+    Console.WriteLine($&quot;收到 {n} 字节&quot;);   // ⚠️ 这个回调在【后台线程】！
+};
+</code></pre>
+<blockquote>
+<p>⚠️ 串口 <code>DataReceived</code> 是后台线程触发的（呼应 M0 Day 7）。要在 WPF 改界面必须用 <code>Application.Current.Dispatcher.Invoke(...)</code>。</p>
+</blockquote>
+<p><strong>③ 虚拟串口练手（无硬件方案）</strong>
+- Windows 装 <code>com0com</code> 或 <code>VSPD</code>，虚拟出 <code>COM3&lt;-&gt;COM4</code> 一对；DAQ Monitor 开 COM3，另写个小发送器开 COM4 发数据，就能闭环测试，零硬件成本。</p>
+<h3 id="sec-3-41">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 波特率双方一致</td>
+<td>下位机 9600、上位机 115200，收的全是乱码</td>
+</tr>
+<tr>
+<td>⭐ <code>DataReceived</code> 是后台线程</td>
+<td>跨线程改 UI 必崩，用 <code>Dispatcher.Invoke</code></td>
+</tr>
+<tr>
+<td>🔥 字节流要自己分包</td>
+<td>串口不保证"一次发一次收"，可能半包 / 粘包，要按协议帧(头+长度)拼</td>
+</tr>
+<tr>
+<td>🔥 中文乱码</td>
+<td>下位机常用 GBK，上位机默认 UTF-8，要 <code>port.Encoding = Encoding.GetEncoding("GBK")</code></td>
+</tr>
+<tr>
+<td>🔥 忘记 <code>Close()</code></td>
+<td>端口被占用，下次 <code>Open()</code> 抛"拒绝访问"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-42">✏️ 练习</h3>
+<p>开一个 <code>SerialPort</code>，订阅 <code>DataReceived</code>，把收到的字节数与十六进制打印出来；用虚拟串口工具从对端发一串数据验证。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">var port = new SerialPort(&quot;COM3&quot;, 9600);
+port.DataReceived += (s, e) =&gt;
+{
+    var sp = (SerialPort)s!;
+    int n = sp.BytesToRead;
+    byte[] buf = new byte[n];
+    sp.Read(buf, 0, n);
+    Console.WriteLine($&quot;收到 {n} 字节：{BitConverter.ToString(buf)}&quot;);
+};
+port.Open();
+Console.WriteLine(&quot;按任意键退出&quot;); Console.ReadKey(); port.Close();
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core/Devices/</code> 建 <code>SerialDevice : DeviceBase</code>，<code>Connect()</code> 里 <code>new SerialPort</code> 并 <code>Open()</code>；<code>DataReceived</code> 里把字节喂给"帧解析器"，解析出的点用 <code>RaiseData</code> 抛给 UI。先在测试工程里用虚拟串口跑通。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="9" onchange="toggleDay(9)"> 打卡</label></strong></p>
+<h2 id="sec-2-14">Day 2 — 协议帧解析（把字节流变成业务数据）</h2>
+<h3 id="sec-3-43">一句话讲清楚</h3>
+<p>裸字节没意义，必须按"协议帧"切包：每个帧有【帧头 + 长度 + 数据 + 校验】，像处理 TCP 粘包一样拼包、校验、提取。</p>
+<h3 id="sec-3-44">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>协议解析</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>帧头 <code>0xAA 0x55</code></td>
+<td>自定义二进制协议的分隔符</td>
+</tr>
+<tr>
+<td>长度字段</td>
+<td><code>Content-Length</code> / WebSocket 帧头</td>
+</tr>
+<tr>
+<td>CRC16 校验</td>
+<td>数据完整性校验（类比哈希）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-45">分点精讲</h3>
+<p><strong>① 拼包缓冲（解决半包 / 粘包）</strong>（🟦）</p>
+<pre><code class="language-csharp">private readonly List&lt;byte&gt; _buffer = new();
+private void OnBytes(byte[] chunk)
+{
+    _buffer.AddRange(chunk);
+    while (TryTakeFrame(out var frame))   // 循环拆出所有完整帧
+        HandleFrame(frame);
+}
+</code></pre>
+<p><strong>② CRC16 校验</strong>（🟦，Modbus 也会用，先打好基础）</p>
+<pre><code class="language-csharp">public static class Crc16
+{
+    public static ushort Modbus(byte[] data)
+    {
+        ushort crc = 0xFFFF;
+        foreach (var b in data)
+        {
+            crc ^= b;
+            for (int i = 0; i &lt; 8; i++)
+                crc = (crc &amp; 1) != 0 ? (ushort)((crc &gt;&gt; 1) ^ 0xA001) : (ushort)(crc &gt;&gt; 1);
+        }
+        return crc;
+    }
+}
+</code></pre>
+<p><strong>③ 完整帧示例</strong>：<code>AA 55 | Len | Payload... | CRC_L CRC_H</code></p>
+<h3 id="sec-3-46">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</h3>
+<p>代码只有 8 行，但「为什么是 0xA001」「为什么初始 0xFFFF」「右移/异或在干啥」——不讲清楚你永远只会抄。
+- <strong>它算的是「数据指纹」</strong>：发送方把整帧(除 CRC 本身)算出一个 16 位校验值附在末尾；接收方用<strong>同样算法</strong>重算一遍，比对一致才说明传输没出错（类比：你给文件算个 MD5，对方再算一次对不对得上）。
+- <strong>初始值 0xFFFF</strong>：所有位先置 1 再开始异或，是为了让「全 0 数据」也能产生非零校验（否则 0 数据校验也是 0，分不清是没传还是传错了）。
+- <strong>右移 + 异或 0xA001（每一步在干啥）</strong>：
+  <code>把当前字节和 crc 低 8 位异或 → 看 crc 最低位是不是 1：
+    是 1 → 右移一位 再 异或 0xA001   （0xA001 是多项式 0x8005 的「按位反转」形式，Modbus 用反转写法）
+    是 0 → 只右移一位
+  重复 8 次 = 处理完 1 个字节，循环每个字节</code></p>
+<blockquote>
+<p>直觉理解：<strong>每右移一次，就把数据「喂」进校验寄存器一位</strong>；碰到 1 就「搅拌」一下多项式，保证任何 1 个 bit 翻转都会导致最终结果不同。
+- <strong>线序坑（本项目测试踩过）</strong>：算出的寄存器值是 <code>0x0A84</code>，但 Modbus <strong>先传低字节</strong><code>84</code>、再传高字节<code>0A</code>，所以线上字节顺序是 <code>84 0A</code>，人们常写成「0x840A」。<strong>寄存器真值是 0x0A84</strong>，本项目 <code>Crc16.Modbus</code> 返回的就是这个（测试断言 <code>0x0A84</code>，不是 <code>0x840A</code>）。
+- <strong>查表法为什么快</strong>：上面是「计算法」每字节循环 8 次；工业用「256 项预计算表」，每字节直接查表异或，快一个数量级。本项目 <code>FrameParser</code> 用计算法够用，真高频场景再换表。</p>
+</blockquote>
+<h3 id="sec-3-47">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</h3>
+<p>串口是<strong>字节流</strong>，不保证「你发一次、我收一次」：
+- <strong>半包</strong>：下位机一次发 20 字节，你 <code>DataReceived</code> 可能先收到 5 字节、再 15 字节（系统缓冲没攒够就通知你了）。
+- <strong>粘包</strong>：下位机连发两帧，你一次收到 40 字节（两帧粘一起）。
+- <strong>后果</strong>：直接按「收到=一帧」解析 = 偶发乱码/丢数据，<strong>现场几周才复现一次</strong>，极难查。
+- <strong>正解（本项目 FrameParser 的做法）</strong>：维护一个 <code>_buffer</code>，来啥都 <code>AddRange</code> 进去，然后<strong>循环尝试拆帧</strong>（<code>TryTakeFrame</code> 找帧头→读长度→够长才取出），拆不出就<strong>留着等下一波</strong>；注意：永远拆不出完整帧时（比如收到垃圾头）要<strong>清空缓冲</strong>，否则缓冲无限增长 = 内存泄漏。</p>
+<h3 id="sec-3-48">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</h3>
+<ul>
+<li><strong><code>DataReceived</code> 在某些机器/某些 USB 转串口上不触发</strong>：这是 .NET <code>SerialPort</code> 的已知老毛病（基于 Win32 事件，不稳定）。<strong>企业级写法</strong>是用 <code>BaseStream.ReadAsync</code> 自己开一个读循环，不依赖 <code>DataReceived</code>：
+  <code>csharp
+  // 现代/稳健写法：不依赖 DataReceived 事件
+  var buf = new byte[1024];
+  while (!ct.IsCancellationRequested)
+  {
+      int n = await port.BaseStream.ReadAsync(buf, 0, buf.Length, ct); // 阻塞等数据，异步不卡 UI
+      OnBytes(buf.AsMemory(0, n));   // 喂给帧解析器
+  }</code></li>
+<li><strong>硬件流控 DTR/RTS</strong>：有些下位机要求上位机拉高 <code>DtrEnable</code>/<code>RtsEnable</code> 才肯通信，连不上时检查这个。</li>
+<li><strong>跨线程 <code>Close()</code> 崩溃</strong>：<code>DataReceived</code> 在后台线程，若在 UI 线程直接 <code>port.Close()</code> 可能和后台读冲突。统一用 <code>CancellationToken</code> 先停止读循环、再 <code>Close()</code>。</li>
+<li><strong><code>BytesToRead</code> 一次性读不完</strong>：循环读直到 <code>BytesToRead == 0</code>，别只 <code>Read</code> 一次。</li>
+</ul>
+<h3 id="sec-3-49">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 一定要处理半包 / 粘包</td>
+<td>不处理 = 偶尔丢数据，现场最难查的 bug</td>
+</tr>
+<tr>
+<td>⭐ CRC 用查表法更快</td>
+<td>上面是计算法，工业可用查表优化</td>
+</tr>
+<tr>
+<td>🔥 大小端</td>
+<td>下位机可能是小端，读 <code>int</code> 用 <code>BinaryPrimitives.ReadInt32LittleEndian</code></td>
+</tr>
+<tr>
+<td>🔥 缓冲无限增长</td>
+<td>永远拆不出完整帧时要清空缓冲，防内存泄漏</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-50">✏️ 练习</h3>
+<p>实现 <code>TryTakeFrame</code>：从 <code>_buffer</code> 找 <code>AA 55</code> 开头、按第 3 字节长度取出完整帧并移除缓冲；校验 CRC。</p>
+<p><strong>✅ 答案</strong>（骨架）</p>
+<pre><code class="language-csharp">private bool TryTakeFrame(out byte[] frame)
+{
+    frame = Array.Empty&lt;byte&gt;();
+    int idx = _buffer.IndexOf(0xAA);
+    if (idx &lt; 0 || _buffer.Count &lt; idx + 3) return false;
+    if (_buffer[idx + 1] != 0x55) { _buffer.RemoveAt(idx); return false; }
+    int len = _buffer[idx + 2];
+    int total = 3 + len + 2;                 // 头+长+载荷+CRC
+    if (_buffer.Count &lt; idx + total) return false;
+    frame = _buffer.GetRange(idx, total).ToArray();
+    _buffer.RemoveRange(0, idx + total);
+    return true;
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把帧解析接到 <code>SerialDevice</code>，解析出 <code>SensorPoint</code> 后 <code>RaiseData</code>。DAQ Monitor 现在能从"虚拟串口"收到<strong>有结构</strong>的数据了。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="10" onchange="toggleDay(10)"> 打卡</label></strong></p>
+<h2 id="sec-2-15">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 后台线程 → 这里直接用上了</strong>：<code>DataReceived</code>/读循环在后台线程跑，要改 UI 必须用 <code>Dispatcher.Invoke</code>（M5 还会用 <code>Channel&lt;T&gt;</code> 彻底解耦）。</li>
+<li><strong>M0 Day2 事件 → 这里触发 <code>RaiseData</code></strong>：串口字节 → 帧解析 → <code>SensorPoint</code> → 事件抛给 UI，正是 M0 说的「事件解耦」。</li>
+<li><strong>前瞻 M4/M9</strong>：帧解析出的点最终会进 <code>PointStore</code>(M4) 和统一采集管道 <code>AcquisitionPipeline</code>(M9)，别各自造轮子。</li>
+</ul>
+<h2 id="sec-2-16">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li><code>SerialPort</code> 官方类参考：https://learn.microsoft.com/dotnet/api/system.io.ports.serialport</li>
+<li>CRC 原理（维基，讲多项式/初始值）：https://en.wikipedia.org/wiki/Cyclic_redundancy_check</li>
+<li>com0com 虚拟串口（无硬件练手）：https://sourceforge.net/projects/com0com/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：RS232/485、4-20mA、接线抗干扰科普 + 虚拟串口/Modbus 从站/PLCSIM 四层替代方案</li>
+</ul>
+<h2 id="sec-2-17">模块交付清单（M1）</h2>
+<ul>
+<li>[ ] <code>SerialDevice</code> 实现 <code>Connect/Disconnect/Read/Write</code></li>
+<li>[ ] <code>DataReceived</code> → 字节缓冲 → 帧解析 → <code>RaiseData</code></li>
+<li>[ ] <code>Crc16</code> 工具类</li>
+<li>[ ] 虚拟串口闭环跑通（无硬件也能演示）</li>
+<li>[ ] 中文乱码 / 跨线程 / 半包处理都验证过</li>
+</ul>
+<hr />
+<h1 id="sec-1-3">M2 · Modbus RTU/TCP</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 第三方 NuGet <code>NModbus4</code>（<code>dotnet add package NModbus4</code>）。
+<strong>给简历加的能力</strong>：用工业<strong>事实标准</strong>协议读写寄存器 —— 面试 / 现场最高频的对接方式。
+<strong>前置</strong>：M1（理解寄存器 / 帧 / 后台轮询）。</p>
+</blockquote>
+<h2 id="sec-2-18">模块目标</h2>
+<p>用 NModbus 连接一个 Modbus 从站（RTU 走串口 / TCP 走网口），循环读取保持寄存器，把值写入 DAQ Monitor 的 <code>PointStore</code>。</p>
+<h2 id="sec-2-19">Day 1 — Modbus 概念 + RTU 读寄存器</h2>
+<h3 id="sec-3-51">一句话讲清楚</h3>
+<p>Modbus 把设备数据排成"4 种表格"（线圈 / 离散输入 / 输入寄存器 / 保持寄存器），上位机用"功能码"当指令去读 / 写指定地址，像调 REST API 的 GET/POST 到固定端点。</p>
+<h3 id="sec-3-52">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>Modbus</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4 种寄存器表</td>
+<td>4 张数据库表</td>
+</tr>
+<tr>
+<td>功能码 0x03 读保持寄存器</td>
+<td><code>GET /hold-registers/:addr</code></td>
+</tr>
+<tr>
+<td>功能码 0x06 / 0x10 写</td>
+<td><code>POST / PUT</code></td>
+</tr>
+<tr>
+<td>从站地址</td>
+<td>路由 / 微服务名</td>
+</tr>
+<tr>
+<td>轮询</td>
+<td>定时 <code>fetch</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-53">分点精讲</h3>
+<p><strong>① 4 种寄存器</strong>（🟧 概念）
+- 线圈 Coil (0xxxx)：可读可写布尔
+- 离散输入 DI (1xxxx)：只读布尔
+- 输入寄存器 IR (3xxxx)：只读模拟量（如传感器）
+- 保持寄存器 HR (4xxxx)：可读可写模拟量（如设定值）</p>
+<p><strong>② RTU 读保持寄存器</strong>（🟧）</p>
+<pre><code class="language-csharp">using Modbus.Device;
+using System.IO.Ports;
+
+var port = new SerialPort(&quot;COM3&quot;, 9600, Parity.None, 8, StopBits.One);
+port.Open();
+var master = ModbusSerialMaster.CreateRtu(port);
+byte slaveId = 1;
+ushort[] regs = master.ReadHoldingRegisters(slaveId, 0, 10); // 功能码 0x03
+foreach (var r in regs) Console.WriteLine(r);
+</code></pre>
+<p><strong>③ TCP 读</strong>（🟧，端口 502）</p>
+<pre><code class="language-csharp">using var tcp = new TcpClient(&quot;192.168.1.10&quot;, 502);
+var master = ModbusIpMaster.CreateIp(tcp);
+ushort[] regs = master.ReadHoldingRegisters(1, 0, 10);
+</code></pre>
+<h3 id="sec-3-54">🔬 掰开揉碎：Modbus 帧结构（你必须懂，才能排错）</h3>
+<p>NModbus 帮你封好了帧，但<strong>现场数据对不上时，你得知道线长什么样</strong>才能查：
+- <strong>RTU 帧（走串口）</strong>：<code>[从站地址 1B][功能码 1B][数据 N 字节][CRC 低 1B][CRC 高 1B]</code>
+  - 例：<code>01 03 00 00 00 0A C5 CD</code> = 从站1 + 读保持寄存器(0x03) + 起始0 + 读10个 + CRC
+  - 注意帧头<strong>没有</strong>固定 <code>AA 55</code> 那种标志，靠「地址+功能码+长度隐性约定」+ CRC 来切分 —— 所以 RTU 对<strong>字符间隔(帧间超时)</strong>敏感，串口参数错了整帧废。
+- <strong>TCP 帧（走网口）</strong>：<code>[MBAP 头 7B][功能码 1B][数据]</code>。MBAP 头含「事务号/协议号=0/长度/单元标识」，多了长度字段就<strong>不用 CRC</strong>了（TCP 本身可靠）。
+- <strong>功能码全集（记常用的）</strong>：
+  | 码 | 含义 | 本项目 |
+  |---|---|---|
+  | 0x01/0x02 | 读线圈 / 读离散输入 | 布尔量 |
+  | <strong>0x03</strong> | <strong>读保持寄存器</strong> | ✅ 模拟量主用 |
+  | 0x04 | 读输入寄存器 | 传感器只读量 |
+  | 0x05/0x06 | 写单线圈 / 写单寄存器 | 下发设定值 |
+  | 0x0F/0x10 | 写多线圈 / 写多寄存器 | 批量下发 |
+- <strong>异常码（真实设备会回，必须 catch）</strong>：从站不回正常数据、而回 <code>功能码|0x80</code> + 异常码。常见：
+  | 异常码 | 含义 | 现场对策 |
+  |---|---|---|
+  | 0x01 | 非法功能 | 这设备不支持该码，换功能 |
+  | 0x02 | 非法数据地址 | 地址超范围，<strong>检查 ±1 偏移</strong> |
+  | 0x03 | 非法数据值 | 写的值超设备允许范围 |
+  | 0x04 | 从站设备故障 | 设备内部错，重试/查设备 |
+  | 0x0B/0x0C | 忙 / 不允许 | 设备正忙，<strong>退避重试</strong>(见 M9) |
+  NModbus 会把它抛成 <code>ModbusSlaveException</code>，务必 <code>try-catch</code> 区分「通信断」和「设备拒」。</p>
+<h3 id="sec-3-55">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 寄存器地址偏移</td>
+<td>手册写"40001"，代码常从 0 开始，注意 ±1 差异</td>
+</tr>
+<tr>
+<td>⭐ 数据类型拼接</td>
+<td>32 位浮点占 2 个寄存器，用 <code>BitConverter</code> 拼，注意大小端</td>
+</tr>
+<tr>
+<td>🔥 轮询阻塞 UI</td>
+<td>读寄存器放后台 <code>Task</code>，别在 UI 线程同步读</td>
+</tr>
+<tr>
+<td>🔥 超时 / 重试</td>
+<td>现场通信会掉，要 <code>try-catch</code> + 重连</td>
+</tr>
+<tr>
+<td>🔥 从站地址</td>
+<td>多设备共用串口时地址错 = 读不到</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-56">✏️ 练习</h3>
+<p>用 NModbus TCP 连本地模拟从站（可用 <code>ModbusSlave</code> 或第三方模拟器），读保持寄存器 0 起的 5 个值并打印。</p>
+<p><strong>✅ 答案</strong>（骨架，需配模拟从站）</p>
+<pre><code class="language-csharp">using var tcp = new TcpClient(&quot;127.0.0.1&quot;, 502);
+var master = ModbusIpMaster.CreateIp(tcp);
+ushort[] regs = master.ReadHoldingRegisters(1, 0, 5);
+Console.WriteLine(string.Join(&quot;,&quot;, regs));
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：建 <code>ModbusDevice : DeviceBase</code>，RTU/TCP 可选，后台 <code>Task</code> 循环 <code>ReadHoldingRegisters</code> → 映射成 <code>SensorPoint</code> → <code>RaiseData</code>。DAQ Monitor 现在能接真实工业设备。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="11" onchange="toggleDay(11)"> 打卡</label></strong></p>
+<h2 id="sec-2-20">Day 2 — 写寄存器 + 数据类型映射 + 轮询架构</h2>
+<h3 id="sec-3-57">一句话讲清楚</h3>
+<p>上位机不只是"看"，还要"控"：写保持寄存器下发设定值；32 位浮点 / 整数跨 2 寄存器，要按设备约定拼 / 拆。</p>
+<h3 id="sec-3-58">分点精讲</h3>
+<p><strong>① 写保持寄存器</strong>（🟧）</p>
+<pre><code class="language-csharp">master.WriteSingleRegister(slaveId, 10, 1234);                    // 0x06 写单个
+master.WriteMultipleRegisters(slaveId, 10, new ushort[]{1,2,3});  // 0x10 写多个
+</code></pre>
+<p><strong>② 浮点拼拆（32 位 = 2×16 位）</strong>（🟦）</p>
+<pre><code class="language-csharp">float ToFloat(ushort hi, ushort lo) =&gt;
+    BitConverter.ToSingle(
+        BitConverter.GetBytes(lo).Concat(BitConverter.GetBytes(hi)).ToArray(), 0);
+// 注意设备大小端，必要时交换 hi/lo
+</code></pre>
+<p><strong>③ 后台轮询架构</strong>（呼应 M0 Day 7）</p>
+<pre><code class="language-csharp">private async Task PollLoop(CancellationToken ct)
+{
+    while (!ct.IsCancellationRequested)
+    {
+        try
+        {
+            var regs = master.ReadHoldingRegisters(1, 0, 10);
+            RaiseData(/* 映射成点 */);
+        }
+        catch (Exception ex) { /* 重连 / 日志 */ }
+        await Task.Delay(500, ct);   // 500ms 轮询，不阻塞 UI
+    }
+}
+</code></pre>
+<h3 id="sec-3-59">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ <code>CancellationToken</code> 优雅退出</td>
+<td>关闭窗口要 cancel 轮询，否则线程泄漏</td>
+</tr>
+<tr>
+<td>⭐ 寄存器 → 物理量换算</td>
+<td>设备值常是原始码，要乘系数 / 偏移：<code>real = raw * 0.1</code></td>
+</tr>
+<tr>
+<td>🔥 写错地址烧设备</td>
+<td>写保持寄存器可能直接驱动执行器，务必先确认地址表</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-60">✏️ 练习</h3>
+<p>把两个寄存器 <code>0xABCD, 0x1234</code> 按大端拼成 float 并打印。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">float f = BitConverter.ToSingle(
+    BitConverter.GetBytes(0x1234).Concat(BitConverter.GetBytes(0xABCD)).ToArray(), 0);
+Console.WriteLine(f);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：<code>ModbusDevice</code> 加 <code>Write</code> 实现；加一个 <code>Scale</code> 配置(系数 / 偏移)把原始码转物理量；接入 <code>CancellationToken</code> 管理生命周期。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="12" onchange="toggleDay(12)"> 打卡</label></strong></p>
+<h2 id="sec-2-21">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 后台轮询 → 这里 <code>PollLoop</code></strong>：读寄存器放后台 <code>Task</code>+<code>CancellationToken</code>，和 M0 讲的一模一样。</li>
+<li><strong>M1 帧/CRC → 这里底层复用</strong>：RTU 帧的 CRC 就是 M1 讲的 <code>Crc16.Modbus</code>；NModbus 帮你算，但懂原理才排得了错。</li>
+<li><strong>前瞻 M4/M9</strong>：读出的点会进 <code>PointStore</code>(M4) 和统一管道(M9)；批量读性能见 M9 的限流。</li>
+</ul>
+<h2 id="sec-2-22">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>NModbus 仓库 + 示例：https://github.com/NModbus/NModbus</li>
+<li>Modbus 官方协议规范（帧结构/功能码/异常码权威）：https://modbus.org/specs</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：Modbus 从站模拟器(diagslave/QModMaster) 零成本练手 + RS485/终端电阻科普</li>
+</ul>
+<h2 id="sec-2-23">模块交付清单（M2）</h2>
+<ul>
+<li>[ ] NModbus RTU + TCP 两种连接</li>
+<li>[ ] 读 4 类寄存器（重点保持寄存器）</li>
+<li>[ ] 浮点 / 整数跨寄存器映射</li>
+<li>[ ] 后台轮询 + 异常重试 + 优雅退出</li>
+<li>[ ] 物理量换算配置</li>
+</ul>
+<hr />
+<h1 id="sec-1-4">M3 · PLC 通信(S7)</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 第三方 NuGet <code>S7.Net Plus</code>（<code>dotnet add package S7.Net</code>）。
+<strong>给简历加的能力</strong>：直连 PLC 读写 DB 块 —— 工业现场<strong>最核心</strong>、面试最加分的对接。
+<strong>前置</strong>：M1 / M2（寄存器 / 通信概念）。</p>
+</blockquote>
+<h2 id="sec-2-24">模块目标</h2>
+<p>用 S7.Net 连接一台西门子 S7-1200 / 1500 PLC，读取 DB 块里的温度 / 压力点位，写入 DAQ Monitor。</p>
+<h2 id="sec-2-25">Day 1 — 连接 PLC + 读 DB 块</h2>
+<h3 id="sec-3-61">一句话讲清楚</h3>
+<p>PLC 把工艺数据存在"DB 数据块"里，上位机用 S7 协议直接读 / 写指定 DB 的偏移地址，像直接读一个结构体字段。</p>
+<h3 id="sec-3-62">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>S7 概念</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLC IP + Rack/Slot</td>
+<td>数据库 host + schema</td>
+</tr>
+<tr>
+<td>DB 块号 + 偏移</td>
+<td>表名 + 字段偏移</td>
+</tr>
+<tr>
+<td><code>ReadBytes</code></td>
+<td>按字节读一行</td>
+</tr>
+<tr>
+<td><code>ReadClass</code> 映射结构体</td>
+<td>ORM 把行映射成对象</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-63">分点精讲</h3>
+<p><strong>① 连接 + 读字节</strong>（🟧）</p>
+<pre><code class="language-csharp">using S7.Net;
+
+var plc = new Plc(CpuType.S71200, &quot;192.168.0.1&quot;, 0, 1); // Rack=0, Slot=1
+plc.Open();
+if (plc.IsConnected)
+{
+    byte[] buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
+    float temp = S7.GetRealAt(buf, 0);                      // 一个 float
+    Console.WriteLine($&quot;温度={temp}&quot;);
+}
+</code></pre>
+<p><strong>② 直接读变量</strong>（🟧）</p>
+<pre><code class="language-csharp">var temp = (float)plc.Read(DataType.DataBlock, 1, 0, VarType.Real, 1);
+var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
+</code></pre>
+<h3 id="sec-3-64">🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）</h3>
+<p>和串口/Modbus 不同，<strong>S7.Net 很多失败「不抛异常」，而是返回错误状态</strong>——这是新手最容易栽的地方：
+- <strong><code>plc.IsConnected</code> 不可全信</strong>：<code>Open()</code> 成功只代表「握手成功」，线中途掉了 <code>IsConnected</code> 可能还是 <code>true</code>。正确做法：每次读后<strong>检查 <code>plc.LastErrorCode</code></strong>（0 = OK，非 0 = 出错），或读之前 <code>ReadStatus()</code> 探活。
+- <strong>读失败要判错误码再决定重试</strong>：
+  <code>csharp
+  var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+  if (plc.LastErrorCode != 0)            // 非 0 即出错（如 0x0005 地址错、0x000A 对象不存在）
+  {
+      Log.Warning("读 DB1 失败 错误码{Code}", plc.LastErrorCode);
+      // 用 M9 的 Retry 退避重连，别裸 throw
+  }</code>
+- <strong>常见错误码</strong>：<code>0x0005</code> 地址/长度非法（DB 号或偏移写错）、<code>0x000A</code> 对象不存在（DB 没下载/被删除）、<code>0x7000+</code> 通信层错误（断线/PLC 停止）。
+- <strong>类比修正</strong>：之前说「DB块号+偏移 = 表名+字段偏移」<strong>不够准</strong>——DB 块是「结构化变量容器」，更像「一个 <code>class</code> 实例」，<code>DB1.DBW2</code> 是「实例的字段」，不是裸字节表。读字节后用 <code>S7.GetRealAt(buf,0)</code> 这种<strong>带类型的解码方法</strong>才是正道（类比 ORM 把行映射成强类型对象）。</p>
+<h3 id="sec-3-65">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ DB 号 / 偏移必须与 TIA 一致</td>
+<td>PLC 侧定义 DB1.0=温度(Real)，代码才能对上</td>
+</tr>
+<tr>
+<td>⭐ 优化块访问</td>
+<td>西门子"优化访问"DB 不能用绝对偏移，要勾掉或用符号访问</td>
+</tr>
+<tr>
+<td>🔥 连不上</td>
+<td>检查 IP / 子网 / 防火墙 / PLC 是否允许 PUT/GET 通信</td>
+</tr>
+<tr>
+<td>🔥 读错类型</td>
+<td>Real 读成 Int = 全错值；用 <code>S7.GetRealAt</code> 等辅助方法</td>
+</tr>
+<tr>
+<td>🔥 频繁 Open</td>
+<td>保持长连接，断线再重连，别每次读都 Open</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-66">✏️ 练习</h3>
+<p>连接模拟 PLC（PLCSIM + NetToPLCSim），读 DB1 偏移 0 的 Real 并打印。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">var plc = new Plc(CpuType.S71200, &quot;127.0.0.1&quot;, 0, 1);
+plc.Open();
+float temp = (float)plc.Read(DataType.DataBlock, 1, 0, VarType.Real, 1);
+Console.WriteLine(temp);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：建 <code>PlcDevice : DeviceBase</code>，<code>Connect()</code> 里 <code>Open()</code>，<code>Read(addr)</code> 读 DB 变量并映射成点；后台轮询。DAQ Monitor 现在能直连 PLC。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="13" onchange="toggleDay(13)"> 打卡</label></strong></p>
+<h2 id="sec-2-26">Day 2 — 写 PLC + 结构体映射 + 多设备统一</h2>
+<h3 id="sec-3-67">一句话讲清楚</h3>
+<p>上位机下发设定值到 PLC（写 DB），并用"结构体映射"把一批点位一次读出来，再用 M0 Day 5 的 <code>IDevice</code> 统一调度多设备。</p>
+<h3 id="sec-3-68">分点精讲</h3>
+<p><strong>① 写 DB</strong>（🟧）</p>
+<pre><code class="language-csharp">plc.Write(DataType.DataBlock, 1, 4, 1.0f);   // 写 Real 设定值
+plc.Write(&quot;DB1.DBW2&quot;, 100);                  // 也可用符号 / 绝对地址
+</code></pre>
+<p><strong>② 一次读多个点位 + 映射</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">byte[] buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 12);
+var model = new
+{
+    Temp  = S7.GetRealAt(buf, 0),
+    Press = S7.GetRealAt(buf, 4),
+    Run   = S7.GetBitAt(buf, 8, 0)
+};
+</code></pre>
+<p><strong>③ 接入统一接口</strong>（呼应 M0 Day 5）</p>
+<pre><code class="language-csharp">IDevice dev = new PlcDevice(&quot;192.168.0.1&quot;);
+dev.DataReceived += (s, e) =&gt; Console.WriteLine($&quot;点{e.PointId}={e.Value}&quot;);
+dev.Connect();
+</code></pre>
+<h3 id="sec-3-69">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 写生产 PLC 要授权</td>
+<td>现场写 PLC 可能直接动设备，必须走审批 / 测试环境</td>
+</tr>
+<tr>
+<td>⭐ 统一接口价值</td>
+<td>UI 不关心串口 / Modbus / PLC，全用 <code>IDevice</code> —— 简历亮点</td>
+</tr>
+<tr>
+<td>🔥 读取频率</td>
+<td>PLC 扫描周期有限，轮询别太猛（&lt;50ms 易压力设备）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-70">✏️ 练习</h3>
+<p>读 DB1 前 12 字节映射成 Temp/Press/Run 三个字段并打印。</p>
+<p><strong>✅ 答案</strong>（见上方 ②）。</p>
+<p><strong>🏗️ 项目任务</strong>：<code>PlcDevice</code> 完成 <code>Write</code>；在 DAQ Monitor 里同时挂 <code>SerialDevice</code> + <code>ModbusDevice</code> + <code>PlcDevice</code>，用 <code>List&lt;IDevice&gt;</code> 统一轮询 —— 至此"多设备接入"达标（M0–M3 串联）。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="14" onchange="toggleDay(14)"> 打卡</label></strong></p>
+<h2 id="sec-2-27">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day5 <code>IDevice</code> 接口 → 这里最经典的落地</strong>：<code>PlcDevice</code> 实现统一接口，UI 不关心背后是串口/Modbus/PLC —— <strong>这就是「面向接口」的价值，也是 15K 面试必讲的点</strong>。</li>
+<li><strong>M1 字节解码 → 这里 <code>S7.GetRealAt</code></strong>：本质一样是「字节 → 强类型」，只是 PLC 帮你按 DB 结构解。</li>
+<li><strong>M2 轮询/重试 → 这里同样适用</strong>：PLC 扫描周期有限，轮询别 &lt;50ms；通信错用 M9 的 <code>Retry</code> 退避。</li>
+<li><strong>前瞻 M9</strong>：多设备统一调度最终由 <code>AcquisitionPipeline</code> 收口，别各自写轮询循环。</li>
+</ul>
+<h2 id="sec-2-28">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>S7.Net Plus 仓库 + Wiki：https://github.com/killnine/s7netplus</li>
+<li>PLCSIM + NetToPLCSim（无真机练手）：https://github.com/mesta1/NetToPLCSim</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：PLCSIM+NetToPLCSim 仿真练手 + PLC/DB块/寄存器科普</li>
+</ul>
+<h2 id="sec-2-29">模块交付清单（M3）</h2>
+<ul>
+<li>[ ] S7.Net 连接 PLC（Rack/Slot）</li>
+<li>[ ] 读 DB 字节 / 变量 + 类型辅助方法</li>
+<li>[ ] 写 DB 下发设定值</li>
+<li>[ ] 结构体批量映射</li>
+<li>[ ] 多设备统一 <code>IDevice</code> 调度（M0–M3 串联）</li>
+</ul>
+<hr />
+<h1 id="sec-1-5">M4 · 数据持久化(EF Core)</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 第三方 NuGet <code>Microsoft.EntityFrameworkCore.Sqlite</code>（<code>dotnet add package Microsoft.EntityFrameworkCore.Sqlite</code>）。
+<strong>给简历加的能力</strong>：历史库 + 查询 / 导出 —— 上位机不只是"看实时"，还要"存下来查历史"。
+<strong>前置</strong>：M0（类 / LINQ）、M3（点数据）。</p>
+</blockquote>
+<h2 id="sec-2-30">模块目标</h2>
+<p>把采集到的 <code>SensorPoint</code> 历史存进 SQLite，支持按时间 / 点位查询，并能导出 CSV。</p>
+<h2 id="sec-2-31">Day 1 — ORM 概念 + 建模 + 写入</h2>
+<h3 id="sec-3-71">一句话讲清楚</h3>
+<p>EF Core 是"对象 ↔ 数据库"的桥梁（ORM）：你写 C# 类，它自动建表、把对象存进去、把行读成对象，不用手搓 SQL。</p>
+<h3 id="sec-3-72">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>EF Core</th>
+<th>前端后端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DbContext</code></td>
+<td>数据库连接池 / Prisma Client</td>
+</tr>
+<tr>
+<td>实体类 <code>SensorRecord</code></td>
+<td>数据模型 schema</td>
+</tr>
+<tr>
+<td><code>SaveChanges()</code></td>
+<td><code>prisma.user.create()</code> 提交</td>
+</tr>
+<tr>
+<td><code>IQueryable</code> / LINQ</td>
+<td>Prisma query / SQL</td>
+</tr>
+<tr>
+<td>Code First 迁移</td>
+<td>用代码定义表结构</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-73">分点精讲</h3>
+<p><strong>① 实体 + DbContext</strong>（🟧）</p>
+<pre><code class="language-csharp">public class SensorRecord
+{
+    public int Id { get; set; }              // 自增主键
+    public int PointId { get; set; }
+    public double Value { get; set; }
+    public DateTime Time { get; set; }
+}
+
+public class AppDb : DbContext
+{
+    public DbSet&lt;SensorRecord&gt; Records =&gt; Set&lt;SensorRecord&gt;();
+    protected override void OnConfiguring(DbContextOptionsBuilder b)
+        =&gt; b.UseSqlite(&quot;Data Source=daq.db&quot;);   // 单文件数据库
+}
+</code></pre>
+<p><strong>② 写入</strong>（🟧）</p>
+<pre><code class="language-csharp">using var db = new AppDb();
+db.Records.Add(new SensorRecord { PointId = 1, Value = 25.6, Time = DateTime.Now });
+db.SaveChanges();                          // 提交事务
+</code></pre>
+<h3 id="sec-3-74">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</h3>
+<p>很多人 <code>SaveChanges()</code> 调得好好的，但被面试官问「它怎么知道哪些改了」就懵。拆开讲：
+- <strong>DbContext 是个「工作单元 + 缓存」</strong>：你 <code>db.Records.Add(x)</code> 或改 <code>r.Value=99</code>，它并<strong>不立刻写库</strong>，而是把实体记进内部「追踪缓存」并标记状态（Added/Modified/Deleted）。
+- <strong><code>SaveChanges()</code> 才一次性比对、生成 SQL、提交事务</strong>。这就是为什么你改了属性不调 <code>SaveChanges</code> 数据库没变化。
+- <strong>为什么要「短生命周期」</strong>：追踪缓存会一直持有实体引用，一个 DbContext 用一辈子 = 缓存无限膨胀 + 并发写冲突。<strong>正确</strong>：每次操作 <code>new AppDb()</code> 用完 <code>Dispose</code>（<code>using</code>），或 DI 里用 <code>Scoped</code>（一次请求/一次批量任务一个实例）。
+- <strong>高频写入策略</strong>：每秒几千条别每条 <code>SaveChanges</code>（每次都开事务，慢 10 倍）。攒一批（如每秒 500 条）一次 <code>AddRange</code>+<code>SaveChanges</code>；或用 SQLite 的 WAL 模式（<code>PRAGMA journal_mode=WAL</code>）提升并发读写。</p>
+<h3 id="sec-3-75">🔬 掰开揉碎：迁移（Migration）是干什么的</h3>
+<ul>
+<li><strong>问题</strong>：你改了 <code>SensorRecord</code> 加个字段，数据库表结构不会自动变。手动改表易错、不可复现。</li>
+<li><strong>迁移 = 把「模型变化」记成一份</strong>可版本化的脚本<strong>，一路 <code>Up</code>/<code>Down</code></strong>：
+  <code>bash
+  dotnet tool install --global dotnet-ef        # 装 CLI（一次性）
+  dotnet add package Microsoft.EntityFrameworkCore.Design
+  dotnet ef migrations add Init                 # 生成第一版迁移（建表）
+  dotnet ef database update                     # 把迁移应用到数据库
+  # 以后改模型 → dotnet ef migrations add AddColumnX → update</code></li>
+<li><strong>为什么 15K 必须会</strong>：企业项目表结构随需求变，靠迁移才能「代码和库结构同步、可回滚、可部署到客户机自动建库」。本项目为演示用了 Code First 运行时建库，真项目请用迁移。</li>
+</ul>
+<h3 id="sec-3-76">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ DbContext 用完即弃</td>
+<td>用 <code>using</code> 短生命周期，别做成全局单例后长期不释放</td>
+</tr>
+<tr>
+<td>⭐ 异步 API</td>
+<td>生产用 <code>SaveChangesAsync</code> / <code>ToListAsync</code>，避免堵 UI 线程</td>
+</tr>
+<tr>
+<td>🔥 小数精度</td>
+<td><code>double</code> 映射到 REAL，金额/精确量用 <code>decimal</code></td>
+</tr>
+<tr>
+<td>🔥 并发写</td>
+<td>多设备同时写要串行化或用连接池，避免"数据库锁定"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-77">✏️ 练习</h3>
+<p>建 <code>SensorRecord</code> 实体 + <code>AppDb</code>，插入 3 条记录并查询打印。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">using var db = new AppDb();
+db.Records.AddRange(new[]
+{
+    new SensorRecord{PointId=1,Value=20,Time=DateTime.Now},
+    new SensorRecord{PointId=2,Value=30,Time=DateTime.Now},
+    new SensorRecord{PointId=3,Value=40,Time=DateTime.Now},
+});
+db.SaveChanges();
+foreach (var r in db.Records) Console.WriteLine($&quot;{r.PointId}:{r.Value}&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core</code> 加 <code>Persistence/AppDb.cs</code> 与 <code>SensorRecord</code>；建 <code>HistoryRepository</code> 封装"批量写入 + 查询"。DAQ Monitor 的 <code>DataReceived</code> 事件里把点存库。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="15" onchange="toggleDay(15)"> 打卡</label></strong></p>
+<h2 id="sec-2-32">Day 2 — 查询 + 导出 CSV + 仓储模式</h2>
+<h3 id="sec-3-78">一句话讲清楚</h3>
+<p>存进去是为了查：按点位 / 时间段捞历史，再导出 CSV 给 Excel 分析 —— 这是"数据价值"闭环。</p>
+<h3 id="sec-3-79">分点精讲</h3>
+<p><strong>① LINQ 查询</strong>（🟧🟦，呼应 M0 Day 3）</p>
+<pre><code class="language-csharp">var today = db.Records
+    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; DateTime.Now.AddHours(-1))
+    .OrderBy(r =&gt; r.Time)
+    .ToList();
+
+double avg = db.Records.Where(r =&gt; r.PointId == 1).Average(r =&gt; r.Value);
+</code></pre>
+<p><strong>② 导出 CSV</strong>（🟦）</p>
+<pre><code class="language-csharp">var sb = new StringBuilder();
+sb.AppendLine(&quot;PointId,Value,Time&quot;);
+foreach (var r in today)
+    sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Time:yyyy-MM-dd HH:mm:ss}&quot;);
+File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
+</code></pre>
+<p><strong>③ 仓储模式（解耦数据访问）</strong>（🟦）</p>
+<pre><code class="language-csharp">public class HistoryRepository
+{
+    private readonly AppDb _db;
+    public HistoryRepository(AppDb db) =&gt; _db = db;
+    public void AddRange(IEnumerable&lt;SensorRecord&gt; rs) { _db.Records.AddRange(rs); _db.SaveChanges(); }
+    public List&lt;SensorRecord&gt; Query(int pointId, DateTime from, DateTime to)
+        =&gt; _db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToList();
+}
+</code></pre>
+<h3 id="sec-3-80">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 仓储模式</td>
+<td>UI 不直接碰 DbContext，便于测试和替换数据库</td>
+</tr>
+<tr>
+<td>⭐ 批量写</td>
+<td>别每条 <code>SaveChanges</code>，攒一批再提交，性能差 10 倍</td>
+</tr>
+<tr>
+<td>🔥 时区</td>
+<td>存 <code>DateTime</code> 注意 Kind（UTC/Local），导出格式要统一</td>
+</tr>
+<tr>
+<td>🔥 库文件被占用</td>
+<td>程序运行时别手动删 <code>daq.db</code>，会锁</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-81">✏️ 练习</h3>
+<p>写 <code>HistoryRepository.Query</code> 按点位 + 时间段查询，并加一个 <code>ExportCsv(path)</code> 方法。</p>
+<p><strong>✅ 答案</strong>（见上方 ②③）。</p>
+<p><strong>🏗️ 项目任务</strong>：<code>HistoryRepository</code> 接入 DAQ Monitor，后台定时（如每 5 秒）把缓冲的点批量入库；UI 加"导出 CSV"按钮。至此"数据持久化"达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="16" onchange="toggleDay(16)"> 打卡</label></strong></p>
+<h2 id="sec-2-33">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day3 LINQ → 这里 <code>Where/OrderBy/Average</code> 直接复用</strong>：查询语法完全一致，只是数据源从内存集合变成数据库（<code>IQueryable</code> 会翻译成 SQL）。</li>
+<li><strong>M9 DI 生命周期 → 这里 <code>Scoped</code> 的由来</strong>：为什么 DbContext 在 DI 里用 <code>AddDbContext</code>（本质 Scoped）而非 Singleton，正是上面「变更追踪缓存」那节讲的。</li>
+<li><strong>前瞻 M10 报表</strong>：本模块存的 <code>SensorPoint</code> 历史，就是 M10 聚合报表的「米」。</li>
+</ul>
+<h2 id="sec-2-34">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>EF Core 官方文档（变更追踪/迁移/索引全有）：https://learn.microsoft.com/ef/core/</li>
+<li>迁移入门：https://learn.microsoft.com/ef/core/managing-schemas/migrations</li>
+<li>SQLite 官方：https://www.sqlite.org/index.html</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-35">模块交付清单（M4）</h2>
+<ul>
+<li>[ ] EF Core + SQLite 建模（Code First）</li>
+<li>[ ] 批量写入（攒批提交）</li>
+<li>[ ] LINQ 历史查询（点位 / 时间段）</li>
+<li>[ ] CSV 导出</li>
+<li>[ ] 仓储模式解耦</li>
+</ul>
+<hr />
+<h1 id="sec-1-6">M5 · 实时可视化(LiveCharts)</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 第三方 NuGet <code>LiveChartsCore.SkiaSharpView.WPF</code>（<code>dotnet add package LiveChartsCore.SkiaSharpView.WPF</code>）。
+<strong>给简历加的能力</strong>：动态曲线 / 仪表盘 —— 上位机的"面子"，让数据一眼可见。
+<strong>前置</strong>：M0（WPF / 绑定 / 并发）、M1–M3（有点数据）。</p>
+</blockquote>
+<h2 id="sec-2-36">模块目标</h2>
+<p>用 LiveCharts2 在 WPF 里画实时曲线（温度随时间）和仪表盘（当前值），数据来自 <code>DataReceived</code> 事件。</p>
+<h2 id="sec-2-37">Day 1 — 动态曲线</h2>
+<h3 id="sec-3-82">一句话讲清楚</h3>
+<p>LiveCharts2 把"一串点"绑到图表上，数据变了图表自动重绘；实时场景就是不断往集合里 <code>Add</code> 新点、丢掉旧点。</p>
+<h3 id="sec-3-83">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>LiveCharts2</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ObservablePoint</code></td>
+<td><code>{x, y}</code> 数据点</td>
+</tr>
+<tr>
+<td><code>CartesianChart</code> + <code>LineSeries</code></td>
+<td>ECharts <code>line</code> series</td>
+</tr>
+<tr>
+<td><code>ObservableCollection</code> 绑定</td>
+<td>Vue <code>data</code> 响应式</td>
+</tr>
+<tr>
+<td><code>XAxes/YAxes</code></td>
+<td>坐标轴配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-84">分点精讲</h3>
+<p><strong>① ViewModel 准备数据</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.WPF;
+
+public class ChartVm
+{
+    public ISeries[] Series { get; } =
+    {
+        new LineSeries&lt;ObservablePoint&gt;
+        {
+            Values = new ObservableCollection&lt;ObservablePoint&gt;(),
+            Fill = null,        // 不填充，只画线
+        }
+    };
+}
+</code></pre>
+<p><strong>② XAML 绑定</strong>（🟩 WPF）</p>
+<pre><code class="language-xml">&lt;lvc:CartesianChart Series=&quot;{Binding Series}&quot; /&gt;
+</code></pre>
+<p><strong>③ 实时追加（事件→入队→定时批量）</strong>（呼应 M0 Day 7 跨线程 + M5② 批量刷新）</p>
+<blockquote>
+<p>🔥 <strong>修正说明</strong>：早期版本在 <code>DataReceived</code> 里用 <code>Dispatcher.Invoke</code> 逐点刷新 UI —— 100Hz×多设备时直接卡死。正确做法是：事件<strong>只负责入队</strong>，UI 用定时器<strong>批量</strong>刷新。</p>
+</blockquote>
+<pre><code class="language-csharp">// 1) 事件只做“入队”这件极轻的事（线程安全，不阻塞采集线程）
+var ch = System.Threading.Channels.Channel.CreateUnbounded&lt;SensorPoint&gt;();
+device.DataReceived += (s, e) =&gt;
+    ch.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = DateTime.Now });
+
+// 2) UI 线程用 DispatcherTimer 每 500ms 定时“批量拉取”一批，一次性画曲线
+var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+timer.Tick += (_, _) =&gt;
+{
+    var batch = new List&lt;SensorPoint&gt;();
+    while (ch.Reader.TryRead(out var p)) batch.Add(p);   // 取出这一批
+    if (batch.Count == 0) return;
+    var series = (LineSeries&lt;ObservablePoint&gt;)vm.Series[0];
+    foreach (var p in batch)                              // 批量追加，不是逐点
+        series.Values.Add(new ObservablePoint(p.Timestamp.Second, p.Value));
+    while (series.Values.Count &gt; 200) series.Values.RemoveAt(0); // 限长防内存涨
+};
+timer.Start();
+</code></pre>
+<blockquote>
+<p>📌 更完整的企业级封装见 <strong>M9 统一采集架构（AcquisitionPipeline）</strong>：用 <code>Channel&lt;T&gt;</code> + <code>Timer</code> 把“可视化 / 报警 / 上云”统一成「事件→入队→定时批量」一条流水线，避免每个模块各写一套逐点刷新。</p>
+</blockquote>
+<h3 id="sec-3-85">🔬 掰开揉碎：为什么用 <code>Channel&lt;T&gt;</code> 而不是直接 <code>ObservableCollection.Add</code></h3>
+<p>直觉上「收到点就 <code>series.Values.Add</code> 不行吗？」在低频(1Hz)下可以，但工业是 100Hz×多设备：
+- <strong><code>ObservableCollection.Add</code> 会立刻通知 UI 重绘</strong>：每加 1 个点，WPF 就重画一次曲线。100Hz = 每秒重绘 100 次，UI 线程直接被打满 → 卡死/掉帧。
+- <strong><code>Channel&lt;T&gt;</code> 是无锁队列缓冲</strong>：<code>Writer.TryWrite</code> 是 O(1)、线程安全、几乎零开销，<strong>只把点存进去，不碰 UI</strong>。然后 <code>DispatcherTimer</code> 每 500ms 一次性「取出这一批 → 批量 Add」，重绘频率从 100 次/秒降到 2 次/秒。
+- <strong>一句话</strong>：Channel 把「高频生产」和「低频消费」解耦，这正是 M9 统一采集管道的核心思想（可视化/报警/上云全从 <code>BatchReady</code> 批量取）。</p>
+<h3 id="sec-3-86">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件里只入队</td>
+<td><code>DataReceived</code> 是高频率后台回调，里面只做极轻操作，重活交给定时器</td>
+</tr>
+<tr>
+<td>⭐ 跨线程改 UI 要回 UI 线程</td>
+<td><code>DispatcherTimer</code> 的 Tick 自动在 UI 线程；若订阅后台线程事件（如 M9 的 <code>BatchReady</code>）要用 <code>Dispatcher.Invoke</code></td>
+</tr>
+<tr>
+<td>⭐ 限制点数</td>
+<td>曲线无限增长 = 内存泄漏 + 卡顿，固定窗口(如 200 点)</td>
+</tr>
+<tr>
+<td>🔥 绑定没生效</td>
+<td>Series 要 <code>public</code> 属性 + 实现通知，或用 <code>ObservableCollection</code></td>
+</tr>
+<tr>
+<td>🔥 高频刷新卡</td>
+<td>别每毫秒刷新，定时(100~500ms)批量更新</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-87">✏️ 练习</h3>
+<p>建一个 <code>ChartVm</code>，用 <code>DispatcherTimer</code> 每 500ms 往曲线加一个随机数点，限制 100 点。</p>
+<p><strong>✅ 答案</strong>（核心）</p>
+<pre><code class="language-csharp">var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+timer.Tick += (_,_) =&gt;
+{
+    var s = (LineSeries&lt;ObservablePoint&gt;)vm.Series[0];
+    s.Values!.Add(new ObservablePoint(DateTime.Now.Second, Random.Shared.NextDouble()*100));
+    if (s.Values.Count &gt; 100) s.Values.RemoveAt(0);
+};
+timer.Start();
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 DAQ Monitor 的 <code>MainWindow</code> 加曲线图，绑定 <code>ChartVm</code>；<code>DataReceived</code> 把点画上去。实时可视化第一步达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="17" onchange="toggleDay(17)"> 打卡</label></strong></p>
+<h2 id="sec-2-38">Day 2 — 仪表盘 + 性能</h2>
+<h3 id="sec-3-88">一句话讲清楚</h3>
+<p>仪表盘（Gauge）用一个"指针"显示当前值，适合监控单点(如总压)；配合曲线组成监控大屏。</p>
+<h3 id="sec-3-89">分点精讲</h3>
+<p><strong>① 仪表盘</strong>（🟧）</p>
+<pre><code class="language-csharp">public ISeries[] Gauge =&gt; new ISeries[]
+{
+    new PieSeries&lt;double&gt; { Values = new double[]{ Current }, InnerRadius = 60, MaxValue = 200 }
+};
+private double _current;
+public double Current { get =&gt; _current; set { _current = value; OnPropertyChanged(); } }
+</code></pre>
+<p><strong>② 性能要点</strong>（🟦 架构）
+- 用 <code>DispatcherTimer</code> 而不是每个事件都刷新
+- 数据层用 <code>Channel&lt;T&gt;</code> / <code>ConcurrentQueue</code> 缓冲，UI 定时批量取
+- 关闭 <code>Animation</code> 高频场景可提速：<code>new LineSeries&lt;ObservablePoint&gt;{ AnimationsSpeed = TimeSpan.Zero }</code></p>
+<h3 id="sec-3-90">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 单一数据源</td>
+<td>Current 用属性通知，仪表盘/曲线共用，别各算各的</td>
+</tr>
+<tr>
+<td>⭐ 批量刷新</td>
+<td>100Hz 数据别逐点刷 UI，攒 100ms 一批</td>
+</tr>
+<tr>
+<td>🔥 内存</td>
+<td>所有集合都要限长</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-91">✏️ 练习</h3>
+<p>给仪表盘加一个 <code>MaxValue=200</code>，并用 <code>Current</code> 属性通知驱动指针。</p>
+<p><strong>✅ 答案</strong>（见上方 ①②）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加仪表盘显示"当前总压"；把"曲线 + 仪表盘 + 数值列表"组合成监控页。至此"实时可视化"达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="18" onchange="toggleDay(18)"> 打卡</label></strong></p>
+<h2 id="sec-2-39">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 后台线程 → 这里 <code>Dispatcher</code>/<code>Channel</code></strong>：后台收数不能直接改 UI，要么 <code>Dispatcher.Invoke</code>(M0)，要么入队批量(M9)，本质都是「别在采集线程碰界面」。</li>
+<li><strong>M1–M3 点数据 → 这里画出来</strong>：可视化是采集链的「输出端」，没前面的设备接入就没东西画。</li>
+<li><strong>M9 统一管道 → 这里是其第一个消费者</strong>：<code>BatchReady</code> 批量取点画曲线，比本模块手搓 Channel 更彻底（报警 M6、上云 M7 共用同一批）。</li>
+</ul>
+<h2 id="sec-2-40">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>LiveCharts2 官方文档：https://livecharts.dev/</li>
+<li><code>System.Threading.Channels</code> 参考（统一缓冲原理）：https://learn.microsoft.com/dotnet/api/system.threading.channels</li>
+<li>WPF 数据绑定总览：https://learn.microsoft.com/dotnet/desktop/wpf/data/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-41">模块交付清单（M5）</h2>
+<ul>
+<li>[ ] LiveCharts2 动态曲线（限长）</li>
+<li>[ ] 仪表盘 Gauge</li>
+<li>[ ] 跨线程安全刷新（Dispatcher）</li>
+<li>[ ] 批量刷新架构（Timer 拉取缓冲）</li>
+</ul>
+<hr />
+<h1 id="sec-1-7">M6 · 报警引擎 + Serilog</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟦 规则模型 / 事件总线 + 🟧 第三方 NuGet <code>Serilog</code>（<code>dotnet add package Serilog.Sinks.File</code>）。
+<strong>给简历加的能力</strong>：阈值规则触发报警 + 结构化日志 —— 上位机的"哨兵"与"黑匣子"。
+<strong>前置</strong>：M0（事件 / 接口）、M1–M3（有点数据）。</p>
+</blockquote>
+<h2 id="sec-2-42">模块目标</h2>
+<p>写一套报警引擎：配置"点位 + 阈值 + 级别"，数据进来自动判警并通知；用 Serilog 把运行/错误写进日志文件。</p>
+<h2 id="sec-2-43">Day 1 — 报警引擎 + 事件总线</h2>
+<h3 id="sec-3-92">一句话讲清楚</h3>
+<p>报警引擎 = 一组"规则"，每条规则说"点位 X 超过 Y 就报警 Z 级"；数据流过时逐条匹配，命中就发事件通知 UI / 写日志。</p>
+<h3 id="sec-3-93">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>报警引擎</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AlarmRule</code> 模型</td>
+<td>校验规则配置</td>
+</tr>
+<tr>
+<td><code>AlarmEngine.Evaluate(point)</code></td>
+<td><code>rules.forEach(r =&gt; r.test(data))</code></td>
+</tr>
+<tr>
+<td><code>event EventHandler&lt;AlarmEvent&gt;</code></td>
+<td><code>EventEmitter('alarm')</code></td>
+</tr>
+<tr>
+<td>观察者模式</td>
+<td>发布订阅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-94">分点精讲</h3>
+<p><strong>① 规则模型 + 引擎</strong>（🟦）</p>
+<pre><code class="language-csharp">public class AlarmRule
+{
+    public int PointId { get; set; }
+    public double Threshold { get; set; }
+    public AlarmLevel Level { get; set; }      // M0 Day2 的 enum
+    public bool IsHigh { get; set; } = true;   // true: 超上限报警；false: 低于下限
+}
+
+public class AlarmEngine
+{
+    private readonly List&lt;AlarmRule&gt; _rules = new();
+    public event EventHandler&lt;AlarmEvent&gt;? AlarmTriggered;
+
+    public void Add(AlarmRule r) =&gt; _rules.Add(r);
+
+    public void Evaluate(SensorPoint p)
+    {
+        foreach (var r in _rules)
+            if (r.PointId == p.Id &amp;&amp; (r.IsHigh ? p.Value &gt; r.Threshold : p.Value &lt; r.Threshold))
+                AlarmTriggered?.Invoke(this, new AlarmEvent { PointId = p.Id, Level = r.Level, Value = p.Value });
+    }
+}
+</code></pre>
+<p><strong>② 接到数据流</strong>（呼应 M0 Day 6）</p>
+<pre><code class="language-csharp">device.DataReceived += (s, e) =&gt;
+{
+    var p = new SensorPoint { Id = e.PointId, Value = e.Value };
+    engine.Evaluate(p);          // 自动判警
+};
+engine.AlarmTriggered += (s, a) =&gt; Console.WriteLine($&quot;⚠ 点位{a.PointId} 报警{a.Level} 值={a.Value}&quot;);
+</code></pre>
+<h3 id="sec-3-95">🔬 掰开揉碎：回滞（Hysteresis）—— 生产报警的「必做题」</h3>
+<p>讲义之前把回滞标成「可选进阶」，<strong>但本项目的 <code>AlarmEngine.cs</code> 真实代码已经用了它</strong>，你必须会写，否则你写不出和项目一致的实现。
+- <strong>问题场景</strong>：阈值 100，真实温度在 99↔101 之间<strong>抖动</strong>（工业常态，噪声导致）。没有回滞时：101 报警 → 100 不报 → 101 又报 → 100 又不报……一秒内刷几十次「报警/恢复」，这就是<strong>报警风暴</strong>，值班人直接无视。
+- <strong>回滞解法</strong>：设两个阈值——<strong>触发 100 / 恢复 95</strong>。只有「超过 100」才报；之后要「降到 95 以下」才算恢复，中间抖动区间（95~100）保持原状态不变。类比：空调设 26°，到 26° 停机，但回到 28° 才重启，避免频繁启停。
+- <strong>本项目 <code>AlarmRule</code> 的真实字段</strong>（代码里就有）：
+  <code>csharp
+  public double Threshold { get; set; }     // 触发阈值（如 100）
+  public double Hysteresis { get; set; }    // 回滞带（如 5 → 恢复阈值 = 95）
+  public bool IsHigh { get; set; } = true;  // true: 超上限报警；false: 低于下限报警</code>
+- <strong>边沿触发（本项目也做了）</strong>：即使值持续超阈值，也<strong>只报一次</strong>（记录「已报警」状态，恢复前不再重复触发），这就是之前 M9 测试 <code>Evaluate_FiresOnlyOnRisingEdge</code> 验证的行为——避免「持续超阈还每秒刷屏」。</p>
+<h3 id="sec-3-96">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 规则与数据分离</td>
+<td>规则放配置，不改代码就能加报警点</td>
+</tr>
+<tr>
+<td>⭐ 防抖 / 回滞</td>
+<td>值在阈值附近抖动会狂报警，用"恢复区间"避免（可选进阶）</td>
+</tr>
+<tr>
+<td>🔥 报警风暴</td>
+<td>一秒内上千点超限，要限流/聚合再通知</td>
+</tr>
+<tr>
+<td>🔥 跨线程</td>
+<td>引擎在后台线程跑，通知 UI 要 Dispatcher</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-97">✏️ 练习</h3>
+<p>写 <code>AlarmRule</code> 与 <code>AlarmEngine</code>，给点位 3 设阈值 100（超上限 Critical），喂几个点验证是否触发。</p>
+<p><strong>✅ 答案</strong>（见上方 ①②，喂 <code>Value=200</code> 的点位 3 应触发 Critical）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加 <code>Alarm/AlarmEngine.cs</code>，启动时从配置加载规则；<code>DataReceived</code> 里 <code>Evaluate</code>；报警时 UI 闪烁 + 写日志。报警能力达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="19" onchange="toggleDay(19)"> 打卡</label></strong></p>
+<h2 id="sec-2-44">Day 2 — Serilog 结构化日志</h2>
+<h3 id="sec-3-98">一句话讲清楚</h3>
+<p>Serilog 把"发生了什么"按级别（Info/Warn/Error）结构化写进文件，出问题能回放 —— 企业级必不可少的"黑匣子"。</p>
+<h3 id="sec-3-99">分点精讲</h3>
+<p><strong>① 配置 + 写日志</strong>（🟧）</p>
+<pre><code class="language-csharp">using Serilog;
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.File(&quot;logs/daq-.txt&quot;, rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+Log.Information(&quot;设备 {Device} 已连接&quot;, device.Name);
+Log.Warning(&quot;点位 {Point} 超阈值 {Value}&quot;, 3, 200);
+Log.Error(ex, &quot;采集异常&quot;);
+</code></pre>
+<p><strong>② 接全局异常</strong>（🟦）</p>
+<pre><code class="language-csharp">AppDomain.CurrentDomain.UnhandledException += (s, e) =&gt;
+    Log.Fatal(e.ExceptionObject as Exception, &quot;未处理异常&quot;);
+</code></pre>
+<h3 id="sec-3-100">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 结构化参数</td>
+<td><code>Log.Information("值 {V}", v)</code> 不是字符串拼接，便于检索</td>
+</tr>
+<tr>
+<td>⭐ 日志分级</td>
+<td>别全写 Info，错误用 Error，否则日志无用</td>
+</tr>
+<tr>
+<td>🔥 忘了 <code>CloseAndFlush</code></td>
+<td>程序退出前 <code>Log.CloseAndFlush()</code>，否则最后几条丢</td>
+</tr>
+<tr>
+<td>🔥 日志无限增长</td>
+<td>用滚动文件(按天) + 保留策略</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-101">✏️ 练习</h3>
+<p>配置 Serilog 写文件，分别写一条 Info 和一条 Error，并验证文件生成。</p>
+<p><strong>✅ 答案</strong>（见上方 ①）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 全工程接入 Serilog；采集异常 / 设备上下线 / 报警都记录；退出时 <code>CloseAndFlush</code>。至此"报警 + 日志"能力达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="20" onchange="toggleDay(20)"> 打卡</label></strong></p>
+<h2 id="sec-2-45">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day6 事件 → 这里 <code>AlarmTriggered</code> 事件</strong>：报警引擎本质是个「观察者」，数据流入触发通知，和 M0 讲的事件机制一模一样。</li>
+<li><strong>M1–M3 点数据 → 这里被评估</strong>：报警引擎是采集链的「判官」，没点数据就没啥可判。</li>
+<li><strong>M9 统一管道 → 这里订阅 <code>BatchReady</code> 批量评估</strong>：别在 <code>DataReceived</code> 里逐点 <code>Evaluate</code>（高频下引擎也被刷爆），从 M9 管道批量取。</li>
+<li><strong>前瞻 M4/M10</strong>：报警记录应落库(M4)，并并入 M10 报表统计（报警次数）。</li>
+</ul>
+<h2 id="sec-2-46">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>Serilog 官方：https://serilog.net/ · Sinks（写文件/数据库）：https://github.com/serilog/serilog</li>
+<li>回滞/报警风暴概念（通用）：https://en.wikipedia.org/wiki/Hysteresis</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-47">模块交付清单（M6）</h2>
+<ul>
+<li>[ ] <code>AlarmRule</code> + <code>AlarmEngine</code> 规则模型</li>
+<li>[ ] 数据点流入自动判警 + 事件通知</li>
+<li>[ ] 防抖 / 报警风暴处理（基础版）</li>
+<li>[ ] Serilog 分级 + 滚动文件日志</li>
+<li>[ ] 全局异常捕获写日志</li>
+</ul>
+<hr />
+<h1 id="sec-1-8">M7 · OPC UA / MQTT 上云</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 第三方 NuGet <code>MQTTnet</code>（MQTT）、<code>OPCFoundation.NetStandard.Opc.Ua.Client</code>（OPC UA）。
+<strong>给简历加的能力</strong>：把数据推到云端 / 对接 SCADA —— 这是 13K→15K 的分水岭，体现"会联网"。
+<strong>前置</strong>：M0–M6（有完整采集/存储/报警链路）。</p>
+</blockquote>
+<h2 id="sec-2-48">模块目标</h2>
+<p>把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。</p>
+<h2 id="sec-2-49">Day 1 — MQTT 发布订阅</h2>
+<h3 id="sec-3-102">一句话讲清楚</h3>
+<p>MQTT = 物联网的"微信群"：设备往"主题(topic)"发消息，订阅同一主题的人都能收到。上位机把采集数据发到 <code>factory/line1/temp</code> 这种主题，云端/大屏订阅即可。</p>
+<h3 id="sec-3-103">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>MQTT</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Broker</td>
+<td>消息服务器（如 RabbitMQ/NATS）</td>
+</tr>
+<tr>
+<td>Topic</td>
+<td>频道 / 事件名</td>
+</tr>
+<tr>
+<td>Publish</td>
+<td><code>emitter.emit('topic', data)</code></td>
+</tr>
+<tr>
+<td>Subscribe</td>
+<td><code>emitter.on('topic', cb)</code></td>
+</tr>
+<tr>
+<td>QoS</td>
+<td>送达保证级别</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-104">分点精讲</h3>
+<p><strong>① 连接 + 发布</strong>（🟧）</p>
+<pre><code class="language-csharp">using MQTTnet;
+using MQTTnet.Client;
+
+var factory = new MqttFactory();
+var client = factory.CreateMqttClient();
+await client.ConnectAsync(new MqttClientOptionsBuilder()
+    .WithTcpServer(&quot;broker.emqx.io&quot;, 1883).Build());
+
+var msg = new MqttApplicationMessageBuilder()
+    .WithTopic(&quot;factory/line1/temp&quot;)
+    .WithPayload($&quot;{{\&quot;point\&quot;:1,\&quot;value\&quot;:{value},\&quot;ts\&quot;:\&quot;{DateTime.Now:o}\&quot;}}&quot;)
+    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+    .Build();
+await client.PublishAsync(msg);
+</code></pre>
+<p><strong>② 批量发布（事件→入队→定时批量，呼应 M9）</strong>（🟧）</p>
+<blockquote>
+<p>🔥 <strong>修正说明</strong>：早期版本在 <code>DataReceived</code> 里 <code>await client.PublishAsync(...)</code> 逐点发布 —— 高频下会阻塞采集线程、MQTT 抖动。正确做法：从 <strong>M9 的统一采集管道 <code>BatchReady</code></strong> 批量发布。</p>
+</blockquote>
+<pre><code class="language-csharp">// 订阅统一管道的“批量就绪”事件（M9 的 AcquisitionPipeline 已把多设备数据聚合成批）
+_pipeline.BatchReady += async (s, batch) =&gt;
+{
+    foreach (var p in batch)
+    {
+        var m = new MqttApplicationMessageBuilder()
+            .WithTopic($&quot;factory/line1/point{p.Id}&quot;)
+            .WithPayload($&quot;{{\&quot;v\&quot;:{p.Value},\&quot;t\&quot;:\&quot;{p.Timestamp:o}\&quot;}}&quot;)   // JSON 载荷，云端好解析
+            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+            .Build();
+        await client.PublishAsync(m);   // 后台线程 await，不卡 UI
+    }
+};
+</code></pre>
+<blockquote>
+<p>📌 断线重连用 <strong>M9 的 <code>Retry</code></strong>（指数退避 + 抖动）：连接失败自动重试，而不是裸 <code>try/catch</code> 抛给用户。</p>
+</blockquote>
+<h3 id="sec-3-105">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 用 JSON 载荷</td>
+<td>云端好解析，字段对齐你的 <code>SensorPoint</code>（含 <code>Timestamp</code>）</td>
+</tr>
+<tr>
+<td>⭐ QoS</td>
+<td>AtLeastOnce 至少一次，关键数据别用 AtMostOnce</td>
+</tr>
+<tr>
+<td>🔥 别逐点发布</td>
+<td>必须从 <code>BatchReady</code> 批量发布（见上），别在 <code>DataReceived</code> 里逐点 <code>PublishAsync</code></td>
+</tr>
+<tr>
+<td>🔥 断线重连</td>
+<td>Broker 会掉，用 M9 的 <code>Retry</code> 自动重连，别裸 <code>try/catch</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-106">✏️ 练习</h3>
+<p>连公共 MQTT Broker（<code>broker.emqx.io:1883</code>），向 <code>test/daq</code> 主题发布一条 JSON 消息。</p>
+<p><strong>✅ 答案</strong>（见上方 ①，topic 改 <code>test/daq</code>）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加 <code>Cloud/MqttPublisher.cs</code>，订阅 <code>AcquisitionPipeline.BatchReady</code> 批量发布到配置的主题；用 M9 的 <code>Retry</code> 做断线重连。上云能力达标（15K 亮点）。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="21" onchange="toggleDay(21)"> 打卡</label></strong></p>
+<h2 id="sec-2-50">Day 2 — OPC UA 客户端（对接 SCADA）</h2>
+<h3 id="sec-3-107">一句话讲清楚</h3>
+<p>OPC UA 是工业互联的"世界语"：上位机作为客户端连 OPC UA 服务器（PLC/SCADA 暴露的），读/写"节点(Node)"，跨厂商互通 —— 工厂级集成标配。</p>
+<h3 id="sec-3-108">分点精讲</h3>
+<p><strong>① 连接 + 读节点</strong>（🟧）</p>
+<pre><code class="language-csharp">using Opc.Ua;
+using Opc.Ua.Client;
+
+var cfg = new ApplicationConfiguration { ApplicationName = &quot;DAQMonitor&quot;, ... };
+var ep = new ConfiguredEndpoint(null, new EndpointDescription(&quot;opc.tcp://localhost:4840&quot;));
+using var session = Session.Create(cfg, ep, false, &quot;DAQMonitor&quot;, 60000, null, null).Result;
+var node = session.ReadNode(&quot;ns=2;s=Line1.Temp&quot;);   // 按节点名读
+var val = session.ReadValue(&quot;ns=2;s=Line1.Temp&quot;).Value;
+</code></pre>
+<h3 id="sec-3-109">🔬 掰开揉碎：OPC UA 别用 <code>.Result</code> 同步阻塞（本项目已改为异步）</h3>
+<p>上面 ① 的 <code>Session.Create(...).Result</code> 是<strong>反模式</strong>，真项目要改：
+- <strong>为什么危险</strong>：<code>.Result</code> 会「阻塞当前线程等结果」。如果在 UI 线程调，UI 卡死；更隐蔽的是<strong>死锁</strong>——当异步方法内部要 <code>await</code> 回 UI 线程（WPF 的 <code>SynchronizationContext</code>），而 UI 线程正被 <code>.Result</code> 卡着等它，两边互等 = 永久死锁。
+- <strong>正确写法（异步）</strong>：
+  <code>csharp
+  var session = await Session.Create(cfg, ep, false, "DAQMonitor", 60000, null, null);
+  var val = await session.ReadValueAsync("ns=2;s=Line1.Temp");</code>
+  全程 <code>async/await</code>，不阻塞任何线程。M9 讲过 <code>async Task</code> 测试，这里同理。</p>
+<h3 id="sec-3-110">🔬 掰开揉碎：MQTT 是「双向」的（上位机常要接收云端下发）</h3>
+<p>讲义只发了（Publish），真实上云是<strong>双向</strong>——云端/大屏给上位机下发「设定值」「启停指令」：</p>
+<pre><code class="language-csharp">// 订阅「云端下发」主题，接收控制命令（呼应 M3 给 PLC 写设定值）
+await client.SubscribeAsync(&quot;factory/line1/cmd&quot;);
+client.ApplicationMessageReceivedAsync += (s, e) =&gt;
+{
+    var cmd = JsonSerializer.Deserialize&lt;Command&gt;(e.ApplicationMessage.ConvertPayloadToString());
+    // 把命令转成给 PLC/设备的写操作（接 M3 的 Write）
+};
+</code></pre>
+<blockquote>
+<p>记住：<strong>Publish = 上报数据，Subscribe = 接收指令</strong>，上位机通常两者都要。</p>
+</blockquote>
+<p><strong>② 订阅（主动推送）</strong>（🟧）</p>
+<pre><code class="language-csharp">var sub = new Subscription(session.DefaultSubscription) { PublishingInterval = 500 };
+sub.AddItem(new MonitoredItem { StartNodeId = &quot;ns=2;s=Line1.Temp&quot; });
+sub.ItemChanged += (s, e) =&gt; Console.WriteLine($&quot;值={e.NotificationValue}&quot;);
+session.AddSubscription(sub); sub.Create();
+</code></pre>
+<h3 id="sec-3-111">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 节点路径 <code>ns=2;s=...</code></td>
+<td>命名空间+标识符，需服务器方给，别瞎猜</td>
+</tr>
+<tr>
+<td>⭐ 用订阅而非轮询</td>
+<td>服务端推送更高效，少打扰设备</td>
+</tr>
+<tr>
+<td>🔥 证书</td>
+<td>OPC UA 默认要证书，测试可关安全策略(生产不可)</td>
+</tr>
+<tr>
+<td>🔥 这是加分项</td>
+<td>不要求精通，能讲清"OPC UA 解决跨厂商互通"即可</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-112">✏️ 练习</h3>
+<p>（若有本地 OPC UA 模拟服务器）连上并读一个节点值。</p>
+<p><strong>✅ 答案</strong>（见上方 ①，需配模拟服务器）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加 <code>Cloud/OpcUaClient.cs</code>（按需），能作为客户端订阅 SCADA 节点。M7 整体达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="22" onchange="toggleDay(22)"> 打卡</label></strong></p>
+<h2 id="sec-2-51">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 异步 / M9 容错 → 这里全用得上</strong>：OPC UA 用 <code>await</code>（别 <code>.Result</code>），MQTT 断线用 M9 的 <code>Retry</code> 退避重连。</li>
+<li><strong>M3 PLC 写设定值 → 这里云端下发接上</strong>：MQTT 订阅收到的命令，转成给 PLC/设备的写操作，构成「云端→上位机→设备」闭环。</li>
+<li><strong>M9 统一管道 → 这里批量发布</strong>：MQTT 发布从 <code>BatchReady</code> 取批，别在 <code>DataReceived</code> 逐点 <code>PublishAsync</code>。</li>
+</ul>
+<h2 id="sec-2-52">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>MQTTnet 仓库：https://github.com/dotnet/MQTTnet · MQTT 协议概念：https://mqtt.org/</li>
+<li>OPC 基金会：https://opcfoundation.org/ · OPC UA .NET 栈：https://github.com/OPCFoundation/UA-.NETStandard</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：本地 OPC UA 模拟服务器(Prosys) / MQTT Broker(Mosquitto) 零成本练手</li>
+</ul>
+<h2 id="sec-2-53">模块交付清单（M7）</h2>
+<ul>
+<li>[ ] MQTTnet 连接 Broker + 发布 JSON</li>
+<li>[ ] 断线重连 + QoS</li>
+<li>[ ] 数据上云接入 DataReceived</li>
+<li>[ ] OPC UA 客户端（连接/读/订阅，了解即可）</li>
+</ul>
+<hr />
+<h1 id="sec-1-9">M8 · 工程化收尾(MVVM+安装包)</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 <code>CommunityToolkit.Mvvm</code>（MVVM）、🟧 安装包（MSIX / ClickOnce）、🟦 <code>IConfiguration</code> 配置化。
+<strong>给简历加的能力</strong>：把"能跑的项目"打磨成"能交付的作品" —— 架构清晰、可配置、能安装、讲得清。
+<strong>前置</strong>：M0–M7（DAQ Monitor 已具备采集/可视化/存储/报警/上云）。</p>
+</blockquote>
+<h2 id="sec-2-54">模块目标</h2>
+<p>① 用 MVVM 重构 UI（解耦界面与逻辑）；② 配置化（设备/报警/上云参数进 <code>appsettings.json</code>）；③ 全局异常处理；④ 打包成可安装程序；⑤ 写 README + 简历描述。</p>
+<h2 id="sec-2-55">Day 1 — MVVM 重构 + 配置化</h2>
+<h3 id="sec-3-113">一句话讲清楚</h3>
+<p>MVVM = 把 UI(XAML) 和逻辑(ViewModel) 用"绑定"解耦：ViewModel 只管数据和命令，界面自动跟着变。配置化 = 把易变的参数挪到外部文件，改配置不改代码。</p>
+<h3 id="sec-3-114">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>MVVM</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View (XAML)</td>
+<td>模板 / JSX</td>
+</tr>
+<tr>
+<td>ViewModel</td>
+<td>组件逻辑 / store</td>
+</tr>
+<tr>
+<td><code>INotifyPropertyChanged</code></td>
+<td>响应式 <code>ref</code> / <code>reactive</code></td>
+</tr>
+<tr>
+<td><code>[RelayCommand]</code></td>
+<td>事件处理函数</td>
+</tr>
+<tr>
+<td><code>appsettings.json</code></td>
+<td><code>.env</code> 配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-115">分点精讲</h3>
+<p><strong>① ViewModel（CommunityToolkit.Mvvm）</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+public partial class MainViewModel : ObservableObject
+{
+    [ObservableProperty] private string _status = &quot;就绪&quot;;
+    [ObservableProperty] private double _currentValue;
+
+    [RelayCommand]
+    private async Task StartAsync()
+    {
+        Status = &quot;采集中...&quot;;
+        // 调设备/引擎，结果自动反映到界面
+    }
+}
+</code></pre>
+<p><strong>② XAML 绑定</strong>（🟩 WPF）</p>
+<pre><code class="language-xml">&lt;TextBlock Text=&quot;{Binding Status}&quot; /&gt;
+&lt;Button Command=&quot;{Binding StartCommand}&quot; Content=&quot;启动&quot; /&gt;
+</code></pre>
+<p><strong>③ 配置化</strong>（🟦 <code>IConfiguration</code> + 🟧 <code>Microsoft.Extensions.Configuration.Json</code>）</p>
+<pre><code class="language-json">// appsettings.json
+{
+  &quot;Devices&quot;: [
+    { &quot;Type&quot;: &quot;Modbus&quot;, &quot;Ip&quot;: &quot;192.168.1.10&quot;, &quot;Port&quot;: 502, &quot;Points&quot;: [0,1,2] },
+    { &quot;Type&quot;: &quot;Plc&quot;, &quot;Ip&quot;: &quot;192.168.0.1&quot;, &quot;Rack&quot;: 0, &quot;Slot&quot;: 1 }
+  ],
+  &quot;Alarms&quot;: [ { &quot;PointId&quot;: 3, &quot;Threshold&quot;: 100, &quot;Level&quot;: &quot;Critical&quot; } ],
+  &quot;Mqtt&quot;: { &quot;Broker&quot;: &quot;broker.emqx.io&quot;, &quot;Port&quot;: 1883, &quot;TopicPrefix&quot;: &quot;factory/line1&quot; }
+}
+</code></pre>
+<pre><code class="language-csharp">var cfg = new ConfigurationBuilder().AddJsonFile(&quot;appsettings.json&quot;).Build();
+var devices = cfg.GetSection(&quot;Devices&quot;).Get&lt;List&lt;DeviceConfig&gt;&gt;();
+</code></pre>
+<h3 id="sec-3-116">🔬 掰开揉碎：<code>[ObservableProperty]</code> 到底生成了什么（源生成器 Source Generator）</h3>
+<p>手写 <code>INotifyPropertyChanged</code> 又臭又长（每个属性要 <code>OnPropertyChanged</code>）。<code>CommunityToolkit.Mvvm</code> 用 <strong>Roslyn 源生成器</strong>在<strong>编译期</strong>帮你生成样板代码：
+- 你写：<code>[ObservableProperty] private double _currentValue;</code>
+- 编译后自动生成：<code>public double CurrentValue { get =&gt; _currentValue; set { _currentValue = value; OnPropertyChanged(); } }</code> + 实现 <code>INotifyPropertyChanged</code>。
+- <code>[RelayCommand]</code> 同理生成 <code>StartCommand</code> 属性和 <code>ICommand</code> 实现。
+- <strong>为什么比手写好</strong>：零样板、不会漏写 <code>OnPropertyChanged</code>、编译期就检查类型。<strong>进阶阅读</strong>：源生成器原理 https://learn.microsoft.com/dotnet/csharp/roslyn-sdk/</p>
+<h3 id="sec-3-117">🔬 掰开揉碎：DI 生命周期怎么选（WPF + EF Core 场景）</h3>
+<p><code>AddSingleton / AddScoped / AddTransient</code> 选错会出诡异 bug：
+- <strong>Singleton（全局唯一）</strong>：<code>PointStore</code>、<code>AlarmEngine</code>、<code>AcquisitionPipeline</code>——整个程序就一份，所有窗口/线程共享。
+- <strong>Scoped（一次作用域一份）</strong>：<strong><code>DbContext</code> 必须用 Scoped</strong>（或每次 <code>new</code>）。原因见 M4「变更追踪缓存」——一个 DbContext 用太久缓存膨胀、并发冲突。在 WPF 里常手动开 <code>using var scope = provider.CreateScope()</code> 包住一次数据库操作。
+- <strong>Transient（每次都新建）</strong>：轻量无状态工具类用，别给有状态的服务用（会各自一份、不共享）。
+- <strong>循环依赖</strong>：A 构造函数要 B、B 又要 A → 启动即炸，拆出公共依赖到第三个类。</p>
+<h3 id="sec-3-118">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ MVVM 不是必须但加分</td>
+<td>13K+ 岗位普遍要求，面试常问</td>
+</tr>
+<tr>
+<td>⭐ 配置不写死</td>
+<td>IP/阈值进文件，现场改配置不动代码</td>
+</tr>
+<tr>
+<td>🔥 命令异步</td>
+<td><code>[RelayCommand]</code> 方法用 <code>async Task</code>，别 <code>async void</code></td>
+</tr>
+<tr>
+<td>🔥 配置缺失</td>
+<td>读不到配置要给默认值 + 日志告警</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-119">✏️ 练习</h3>
+<p>把 DAQ Monitor 主窗口的"启动"按钮逻辑抽成 <code>MainViewModel</code> 的 <code>[RelayCommand]</code>，状态用 <code>[ObservableProperty]</code>。</p>
+<p><strong>✅ 答案</strong>（见上方 ①）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 全 UI 迁移到 MVVM；设备/报警/MQTT 配置读 <code>appsettings.json</code>。工程素养达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="23" onchange="toggleDay(23)"> 打卡</label></strong></p>
+<h2 id="sec-2-56">Day 2 — 异常处理 + 安装包 + README + 简历</h2>
+<h3 id="sec-3-120">一句话讲清楚</h3>
+<p>企业级 = "出问题不崩、能装、讲得清"。全局异常兜底、打包成 exe/msix、写好 README 和简历描述，作品才算完整。</p>
+<h3 id="sec-3-121">分点精讲</h3>
+<p><strong>① 全局异常兜底</strong>（🟦，呼应 M6）</p>
+<pre><code class="language-csharp">AppDomain.CurrentDomain.UnhandledException += (s, e) =&gt;
+    Log.Fatal((Exception)e.ExceptionObject, &quot;未处理异常&quot;);
+System.Windows.Application.Current.DispatcherUnhandledException += (s, e) =&gt;
+    { Log.Error(e.Exception, &quot;UI异常&quot;); e.Handled = true; };
+</code></pre>
+<p><strong>② 打包（MSIX / ClickOnce）</strong>（🟧）
+- VS 右键项目 → 发布 → 创建安装包(MSIX)；或 DotNet 用 <code>Microsoft.NET.Sdk.WindowsDesktop</code> 的打包工程。
+- 目标：双击安装、有开始菜单图标、能卸载。</p>
+<p><strong>③ README 模板</strong>（🟦文档）</p>
+<pre><code class="language-markdown"># DAQ Monitor
+工业数据采集监控系统（C#/.NET 8 + WPF）
+## 功能
+- 多设备接入：串口 / Modbus / PLC(S7)
+- 实时曲线 + 仪表盘
+- 历史库(SQLite) + 查询/导出
+- 报警引擎 + Serilog 日志
+- MQTT 上云
+## 运行
+dotnet restore &amp;&amp; dotnet run --project src/DaqMonitor.UI
+</code></pre>
+<p><strong>④ 简历描述（15K 写法）</strong></p>
+<blockquote>
+<p>独立开发工业数据采集监控系统：基于 .NET 8 + WPF(MVVM)，对接串口/Modbus/西门子PLC 多源设备，采用后台采集+ConcurrentQueue 缓冲+Dispatcher 刷新避免卡顿；实现实时曲线/仪表盘、SQLite 历史库与 CSV 导出、阈值报警引擎与 Serilog 日志、MQTT 上云；分层架构(领域/设备/持久化/UI) + 面向接口设计，支持配置化与一键安装。</p>
+</blockquote>
+<h3 id="sec-3-122">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 简历写"架构决策"</td>
+<td>写"为什么用接口/事件/锁"，不是罗列技术名</td>
+</tr>
+<tr>
+<td>⭐ 能演示</td>
+<td>准备虚拟串口/模拟 PLC 的演示链路，面试现场跑</td>
+</tr>
+<tr>
+<td>🔥 安装包签名</td>
+<td>企业分发常要证书签名，练习可先免签</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-123">✏️ 练习</h3>
+<p>写一段你的简历"项目描述"（按上方 ④ 改造成你自己的话）。</p>
+<p><strong>✅ 答案</strong>（见上方 ④，按个人经历改写）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加全局异常处理；用 VS 发布 MSIX 安装包；补全 README；把简历描述沉淀到项目根 <code>RESUME.md</code>。🏁 全部模块达标！</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="24" onchange="toggleDay(24)"> 打卡</label></strong></p>
+<h2 id="sec-2-57">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 接口/事件 → 这里 MVVM 是它们的「UI 版」</strong>：ViewModel 用接口/命令解耦界面，思想同源。</li>
+<li><strong>M9 DI 容器 → 这里 <code>Bootstrapper</code> 是组合根</strong>：M8 的配置 + M9 的注入合起来，才是「可配置、可测试、可交付」的完整工程素养。</li>
+<li><strong>全模块收口</strong>：M1–M7 的能力，经 M8(MVVM/配置/异常/打包) + M9(测试/DI/容错) + M10(报表) 打磨，才成为一个「能演示、讲得清、有测试兜底」的简历作品。</li>
+</ul>
+<h2 id="sec-2-58">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>CommunityToolkit.Mvvm 文档（源生成器）：https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/</li>
+<li>Microsoft DI 官方：https://learn.microsoft.com/dotnet/core/extensions/dependency-injection</li>
+<li>MSIX 打包：https://learn.microsoft.com/windows/msix/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-59">模块交付清单（M8）</h2>
+<ul>
+<li>[ ] MVVM 重构（CommunityToolkit.Mvvm）</li>
+<li>[ ] 配置化（appsettings.json）</li>
+<li>[ ] 全局异常处理 + 日志</li>
+<li>[ ] MSIX / ClickOnce 安装包</li>
+<li>[ ] README + 简历描述（RESUME.md）</li>
+</ul>
+<hr />
+<h1 id="sec-1-10">M9 · 工程素养(测试/DI/统一采集/容错)</h1>
+<blockquote>
+<p><strong>技术来源</strong>：🟧 <code>xunit</code> + <code>Moq</code>（单元测试）、🟧 <code>Microsoft.Extensions.DependencyInjection</code>（DI 容器）、🟦 <code>System.Threading.Channels</code>（统一缓冲）、🟦 <code>Task</code>/异常（容错重试）。
+<strong>给简历加的能力</strong>：把"能跑的代码"升级成"信得过、可维护、可交付"的工程 —— 有测试兜底、有容器解耦、有统一架构、有生产级容错。这正是 <strong>13K→15K</strong> 的分水岭。
+<strong>前置</strong>：M0–M8（DAQ Monitor 已具备采集/可视化/存储/报警/上云），本模块给它们"穿上工程铠甲"。
+<strong>已落地验证</strong>：本项目的 <code>DaqMonitor.Tests</code> 已含 <strong>13 个真实测试全绿</strong>（<code>dotnet test</code>），覆盖 PointStore / AlarmEngine / Crc16 / FrameParser / Retry / AcquisitionPipeline / Moq 集成。</p>
+</blockquote>
+<h2 id="sec-2-60">模块目标</h2>
+<p>① <strong>单元测试</strong>（xUnit + Moq）：核心逻辑可验证，改代码不怕回归；② <strong>DI 容器</strong>：服务一处注册、随处可取，便于替换与测试；③ <strong>统一采集架构</strong>（<code>Channel&lt;T&gt;</code> + <code>Timer</code> 批量）：修正 M5③/M7② 的"逐点刷新/逐点发布"坑；④ <strong>生产级容错与重试</strong>：通信断了自动退避重试，而不是裸 <code>try/catch</code> 抛给用户。</p>
+<h2 id="sec-2-61">Day 1 — 单元测试（xUnit + Moq）</h2>
+<h3 id="sec-3-124">一句话讲清楚</h3>
+<p>单元测试 = 给核心逻辑写"自动裁判"：输入固定，断言输出符合预期。改完代码跑一遍，全绿就说明没搞坏东西。<strong>这是 15K 岗位的硬通货</strong>——不会写测试的上位机工程师，简历会被直接刷掉。</p>
+<h3 id="sec-3-125">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xunit</code> + <code>[Fact]</code></td>
+<td><code>Jest</code> / <code>Vitest</code> + <code>test()</code> / <code>it()</code></td>
+</tr>
+<tr>
+<td><code>Assert.Equal(a, b)</code></td>
+<td><code>expect(a).toBe(b)</code></td>
+</tr>
+<tr>
+<td><code>Moq</code>（造替身）</td>
+<td><code>jest.mock()</code> / <code>vi.fn()</code></td>
+</tr>
+<tr>
+<td>测试项目引用被测项目</td>
+<td><code>*.test.ts</code> 同仓库</td>
+</tr>
+<tr>
+<td><code>dotnet test</code></td>
+<td><code>npm test</code> / <code>vitest</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-126">分点精讲</h3>
+<p><strong>① 测试项目怎么建</strong>（🟧）</p>
+<pre><code class="language-bash">dotnet new xunit -o src/DaqMonitor.Tests
+cd src/DaqMonitor.Tests
+dotnet add package Moq
+dotnet add reference ../DaqMonitor.Core   # 引用被测工程
+</code></pre>
+<blockquote>
+<p>约定：测试类名 = <code>被测类 + Tests</code>，方法名 = <code>被测方法_场景_预期</code>（<code>Evaluate_FiresOnlyOnRisingEdge</code>）。</p>
+</blockquote>
+<p><strong>② 测"纯逻辑"（不依赖外部）</strong>（🟦🟧）
+报警引擎是典型纯逻辑——给它点，断言是否触发。本项目真实用例：</p>
+<pre><code class="language-csharp">[Fact]
+public void Evaluate_FiresOnlyOnRisingEdge()   // 边沿触发：只报一次，不刷屏
+{
+    var engine = new AlarmEngine();
+    engine.Add(new AlarmRule { PointId = 3, Threshold = 100, Level = AlarmLevel.Critical, IsHigh = true });
+    int count = 0;
+    engine.AlarmTriggered += (s, e) =&gt; count++;
+    engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });
+    engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });   // 仍超阈值，不应重复报
+    Assert.Equal(1, count);
+}
+</code></pre>
+<p>同样写法覆盖：<code>PointStore.AddOrUpdate</code>（双索引增改）、<code>Crc16.Modbus</code>（寄存器值 <code>0x0A84</code>，注意 Modbus 低字节在前的线序）、<code>FrameParser.Feed</code>（半包/粘包拆分）。</p>
+<p><strong>③ 用 Moq 造"替身"测集成</strong>（🟧）—— 不碰真实串口/PLC</p>
+<pre><code class="language-csharp">[Fact]
+public async Task Pipeline_ReceivesData_FromMockedDevice()   // 真实存在于本项目
+{
+    var device = new Mock&lt;IDevice&gt;();          // 虚拟设备，免去真实硬件
+    using var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+    var done = new TaskCompletionSource();
+    var received = new List&lt;SensorPoint&gt;();
+    pipeline.BatchReady += (s, batch) =&gt; { received.AddRange(batch); if (received.Count&gt;=1) done.TrySetResult(); };
+
+    pipeline.Register(device.Object);
+    device.Raise(d =&gt; d.DataReceived += null,    // Moq 模拟&quot;设备来了一帧&quot;
+        new DataEventArgs { PointId = 7, Value = 42, Timestamp = DateTime.Now });
+
+    await Task.WhenAny(done.Task, Task.Delay(2000));
+    Assert.Single(received);
+    Assert.Equal(7, received[0].Id);
+}
+</code></pre>
+<p><strong>④ 跑测试</strong>（🟦）</p>
+<pre><code class="language-bash">dotnet test            # 全绿 = 改代码有底气
+</code></pre>
+<h3 id="sec-3-127">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 测"行为"不是"实现"</td>
+<td>断言输入输出，别断言内部私有字段，否则重构即红</td>
+</tr>
+<tr>
+<td>⭐ 不依赖外部</td>
+<td>串口/PLC/DB/MQTT 一律用 Mock，测试要快且稳定</td>
+</tr>
+<tr>
+<td>⭐ 命名讲人话</td>
+<td><code>方法_场景_预期</code>，失败一眼知道哪坏</td>
+</tr>
+<tr>
+<td>🔥 异步测试要 <code>async Task</code></td>
+<td>别在测试里 <code>.Wait()</code>/<code>.Result()</code>，会死锁；用 <code>await Task.WhenAny(t, Task.Delay(...))</code> 等异步完成</td>
+</tr>
+<tr>
+<td>🔥 边界/反例也要测</td>
+<td>成功路径 + 异常路径（如 <code>Retry</code> 耗尽后抛异常）都覆盖才稳</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-128">✏️ 练习</h3>
+<p>给 <code>PointStore</code> 加一个 <code>Remove(int id)</code> 方法，并写测试：删除存在的 Id 后 <code>Get</code> 返回 <code>null</code>、删除不存在的 Id 不报错。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">// PointStore.cs
+public void Remove(int id) { _byId.Remove(id); _points.RemoveAll(x =&gt; x.Id == id); }
+// PointStoreTests.cs
+[Fact] public void Remove_ExistingId_ThenGetNull()
+{
+    var s = new PointStore(); s.AddOrUpdate(new SensorPoint { Id = 5, Value = 1 });
+    s.Remove(5); Assert.Null(s.Get(5));
+}
+[Fact] public void Remove_MissingId_NoThrow()
+{ new PointStore().Remove(999); }   // 不抛即过
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 DAQ Monitor 的核心逻辑（Store/Alarm/Protocol/Pipeline/Retry）都补上测试，<code>dotnet test</code> 全绿。工程素养第一关达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="25" onchange="toggleDay(25)"> 打卡</label></strong></p>
+<h2 id="sec-2-62">Day 2 — DI 容器（依赖注入）</h2>
+<h3 id="sec-3-129">一句话讲清楚</h3>
+<p>依赖注入（DI）= 把"对象从哪来"交给一个容器统一管理。组件只声明"我需要什么"（构造函数参数），容器负责造好并喂进来。好处：换实现只改一处、写测试能塞 Mock。</p>
+<h3 id="sec-3-130">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ServiceCollection</code> + <code>AddSingleton</code></td>
+<td>React <code>Context.Provider</code> 提供单例</td>
+</tr>
+<tr>
+<td><code>GetRequiredService&lt;T&gt;()</code></td>
+<td><code>useContext(MyCtx)</code> 取服务</td>
+</tr>
+<tr>
+<td>组合根（Composition Root）</td>
+<td>应用顶层 <code>main.tsx</code> 装配</td>
+</tr>
+<tr>
+<td>接口 <code>IDevice</code> + 实现</td>
+<td>接口 + 多实现（策略模式）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-131">分点精讲</h3>
+<p><strong>① 注册服务</strong>（🟧 <code>Microsoft.Extensions.DependencyInjection</code>）</p>
+<pre><code class="language-csharp">var services = new ServiceCollection();
+services.AddSingleton&lt;PointStore&gt;();                       // 全局唯一存储
+services.AddSingleton&lt;AlarmEngine&gt;();                      // 全局唯一报警引擎
+services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt;            // 带参数的单例
+    new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+// services.AddSingleton&lt;IDevice, ModbusDevice&gt;();         // M2 落地后注册具体设备
+var provider = services.BuildServiceProvider();
+</code></pre>
+<p><strong>② 组合根（本项目真实代码 <code>Bootstrapper.Build</code>）</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">public static ServiceProvider Build()
+{
+    var services = new ServiceCollection();
+    services.AddSingleton&lt;PointStore&gt;();
+    services.AddSingleton&lt;AlarmEngine&gt;();
+    services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt; new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+    return services.BuildServiceProvider();
+}
+</code></pre>
+<p><strong>③ 在 App 里取服务</strong>（🟩 WPF <code>App.xaml.cs</code>）</p>
+<pre><code class="language-csharp">public partial class App : Application
+{
+    public static ServiceProvider Provider { get; private set; } = Bootstrapper.Build();
+    // 任何地方：App.Provider.GetRequiredService&lt;PointStore&gt;()
+}
+</code></pre>
+<p><strong>④ 为什么是 15K 关键点</strong>
+- <strong>可替换</strong>：把 <code>ModbusDevice</code> 换成 <code>PlcDevice</code>，只改注册那一行，调用方一行不动（面向接口）。
+- <strong>可测试</strong>：测试时 <code>services.AddSingleton&lt;IDevice, MockDevice&gt;()</code> 即可隔离硬件。</p>
+<h3 id="sec-3-132">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 组合根唯一</td>
+<td>所有 <code>new</code> 只允许在 <code>Bootstrapper</code> 里出现，别在 ViewModel 里到处 <code>new</code></td>
+</tr>
+<tr>
+<td>⭐ 生命周期选对</td>
+<td>有状态/全局共享用 <code>Singleton</code>；每次要新的用 <code>Transient</code>；请求级用 <code>Scoped</code></td>
+</tr>
+<tr>
+<td>🔥 别 <code>new</code> 依赖</td>
+<td>ViewModel 构造函数写 <code>public MainViewModel(PointStore store)</code>，让容器注入，别自己 <code>new PointStore()</code></td>
+</tr>
+<tr>
+<td>🔥 循环依赖</td>
+<td>A 依赖 B、B 又依赖 A 会启动即炸，重构拆公共依赖</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-133">✏️ 练习</h3>
+<p>把 <code>MainViewModel</code> 改成"通过构造函数拿到 <code>PointStore</code> 和 <code>AcquisitionPipeline</code>"，而不是在内部 <code>new</code>。</p>
+<p><strong>✅ 答案</strong>（示意）</p>
+<pre><code class="language-csharp">public partial class MainViewModel : ObservableObject
+{
+    private readonly PointStore _store;
+    private readonly AcquisitionPipeline _pipeline;
+    public MainViewModel(PointStore store, AcquisitionPipeline pipeline)
+    { _store = store; _pipeline = pipeline; }
+}
+// App 启动：Provider.GetRequiredService&lt;MainViewModel&gt;()（需先注册 ViewModel）
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：用 <code>Bootstrapper</code> 装配 DAQ Monitor 全部 Core 服务；MainWindow/ViewModel 改为构造函数注入，移除散落的 <code>new</code>。工程素养第二关达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="26" onchange="toggleDay(26)"> 打卡</label></strong></p>
+<h2 id="sec-2-63">Day 3 — 统一采集架构（Channel<T> + 定时批量）</h2>
+<h3 id="sec-3-134">一句话讲清楚</h3>
+<p><strong>所有设备数据走同一条流水线</strong>：事件只做"入队" → <code>Channel&lt;T&gt;</code> 缓冲 → <code>Timer</code> 定时把一批取出来 → 一次性推给"可视化 / 报警 / 上云"。彻底消灭"每个模块各写一套逐点刷新"的混乱。</p>
+<blockquote>
+<p>🔥 <strong>为什么必须这样（修正 M5③ / M7② 的坑）</strong>：早期在 <code>DataReceived</code> 里 <code>Dispatcher.Invoke</code> 逐点刷曲线、或 <code>await PublishAsync</code> 逐点发云——100Hz × 多设备时 UI 线程被刷爆、MQTT 抖动。<strong>正确姿势：事件里只入队，重活交给定时器批量做。</strong></p>
+</blockquote>
+<h3 id="sec-3-135">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>device.DataReceived += ...</code></td>
+<td><code>emitter.on('data', ...)</code></td>
+</tr>
+<tr>
+<td><code>Channel.Writer.TryWrite</code></td>
+<td>消息入队（<code>queue.push</code>）</td>
+</tr>
+<tr>
+<td><code>Timer</code> 定时 <code>Flush</code></td>
+<td><code>setInterval</code> 批量消费</td>
+</tr>
+<tr>
+<td><code>BatchReady</code> 事件</td>
+<td>发布到订阅者（事件总线）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-136">分点精讲</h3>
+<p><strong>① 统一管道 <code>AcquisitionPipeline</code>（本项目真实代码）</strong>（🟦 <code>System.Threading.Channels</code>）</p>
+<pre><code class="language-csharp">public sealed class AcquisitionPipeline : IDisposable
+{
+    private readonly Channel&lt;SensorPoint&gt; _channel = Channel.CreateUnbounded&lt;SensorPoint&gt;();
+    public event EventHandler&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;? BatchReady;   // 批就绪，后台线程触发
+
+    public AcquisitionPipeline(TimeSpan flushInterval, int maxBatch = 500)
+        =&gt; _flushTimer = new Timer(_ =&gt; Flush(), null, flushInterval, flushInterval);
+
+    public void Register(IDevice device)
+        =&gt; device.DataReceived += (s, e) =&gt;
+            _channel.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp });
+
+    private void Flush()
+    {
+        List&lt;SensorPoint&gt;? batch = null;
+        lock (_gate) { if (_pending.Count &gt; 0) { batch = _pending; _pending = new(); } }
+        if (batch is not null) BatchReady?.Invoke(this, batch);   // 一批推给所有订阅方
+    }
+}
+</code></pre>
+<p><strong>② 可视化 / 报警 / 上云 统一订阅 <code>BatchReady</code></strong>（🟩 WPF）</p>
+<pre><code class="language-csharp">// 可视化（M5）：后台线程事件 → Dispatcher 回 UI 线程批量画曲线
+_pipeline.BatchReady += (s, batch) =&gt; Application.Current.Dispatcher.Invoke(() =&gt;
+{
+    foreach (var p in batch) chart.Add(new ObservablePoint(p.Timestamp.Second, p.Value));
+});
+// 报警（M6）：批量送进 AlarmEngine 评估
+_pipeline.BatchReady += (s, batch) =&gt; { foreach (var p in batch) _alarm.Evaluate(p); };
+// 上云（M7）：批量发布（不再逐点 PublishAsync）
+_pipeline.BatchReady += async (s, batch) =&gt; { foreach (var p in batch) await _mqtt.PublishAsync(p); };
+</code></pre>
+<p><strong>③ 限流（maxBatch）</strong>：<code>_pending</code> 攒满 <code>maxBatch</code>（如 500）也立刻出队，防突发洪峰堆爆内存。</p>
+<h3 id="sec-3-137">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件里只做极轻操作</td>
+<td><code>TryWrite</code> 是 O(1) 无锁入队，绝不写文件/刷 UI/发网络</td>
+</tr>
+<tr>
+<td>⭐ <code>BatchReady</code> 在后台线程</td>
+<td>订阅方若要改 UI 必须 <code>Dispatcher.Invoke</code>，否则跨线程异常</td>
+</tr>
+<tr>
+<td>⭐ 单一数据源</td>
+<td>可视化/报警/上云都读同一批 <code>SensorPoint</code>，天然一致</td>
+</tr>
+<tr>
+<td>🔥 忘记 <code>Flush</code> 间隔</td>
+<td>间隔太长曲线"跳变"，太短失去批量意义（200~500ms 通常合适）</td>
+</tr>
+<tr>
+<td>🔥  Dispose 要退订</td>
+<td><code>Dispose</code> 里 <code>_channel.Writer.TryComplete()</code> + 退订 <code>DataReceived</code>，防内存泄漏</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-138">✏️ 练习</h3>
+<p>把 M6 报警引擎接入 <code>AcquisitionPipeline</code>：订阅 <code>BatchReady</code>，把每批点送进 <code>AlarmEngine.Evaluate</code>，并在 <code>AlarmTriggered</code> 里写一条 Serilog 日志。</p>
+<p><strong>✅ 答案</strong>（示意）</p>
+<pre><code class="language-csharp">_pipeline.BatchReady += (s, batch) =&gt;
+{
+    foreach (var p in batch) _alarm.Evaluate(p);
+};
+_alarm.AlarmTriggered += (s, e) =&gt;
+    Log.Warning(&quot;报警 点位{Id} 值{Value} 级别{Level}&quot;, e.PointId, e.Value, e.Level);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：重构 DAQ Monitor，让 M5 可视化 / M6 报警 / M7 上云 全部从 <code>_pipeline.BatchReady</code> 取数，删除各处散落的逐点 <code>Dispatcher.Invoke</code> / 逐点 <code>PublishAsync</code>。工程素养第三关（统一架构）达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="27" onchange="toggleDay(27)"> 打卡</label></strong></p>
+<h2 id="sec-2-64">Day 4 — 生产级容错与重试（Retry）</h2>
+<h3 id="sec-3-139">一句话讲清楚</h3>
+<p>工业现场通信<strong>必出错</strong>（串口松动、PLC 忙、网络闪断）。合格做法是：<strong>失败自动重试 + 指数退避 + 抖动</strong>，而不是把异常直接甩给用户或默默吞掉。</p>
+<h3 id="sec-3-140">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Retry.ExecuteAsync(action, 3)</code></td>
+<td><code>axios-retry</code> / <code>fetch</code> 重试封装</td>
+</tr>
+<tr>
+<td>指数退避 <code>base * 2^n</code></td>
+<td>重试间隔翻倍，避免雪崩</td>
+</tr>
+<tr>
+<td><code>Random</code> 抖动</td>
+<td>错开多个客户端的重试时刻</td>
+</tr>
+<tr>
+<td><code>CancellationToken</code> 超时</td>
+<td><code>AbortController</code> / <code>setTimeout</code> 取消</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-141">分点精讲</h3>
+<p><strong>① 为什么裸 <code>try/catch</code> 不够</strong>（🟦）
+裸 catch 要么"失败就抛"（用户体验差），要么"catch 后啥也不干"（故障被藏起来）。重试 + 退避才是正解。</p>
+<p><strong>② 本项目真实 <code>Retry</code>（指数退避 + 抖动）</strong>（🟦）</p>
+<pre><code class="language-csharp">public static async Task ExecuteAsync(Func&lt;Task&gt; action, int maxRetries = 3, int baseDelayMs = 200, CancellationToken ct = default)
+{
+    var attempt = 0;
+    while (true)
+    {
+        try { await action(); return; }
+        catch (Exception) when (attempt &lt; maxRetries &amp;&amp; !ct.IsCancellationRequested)
+        {
+            attempt++;
+            var delay = (int)(baseDelayMs * Math.Pow(2, attempt - 1))   // 200→400→800ms 指数退避
+                        + Random.Shared.Next(0, baseDelayMs);           // 加随机抖动，避免多设备同时重试
+            await Task.Delay(delay, ct);
+        }
+    }
+}
+</code></pre>
+<p><strong>③ 用在"会失败的地方"</strong>（🟧 串口/Modbus/PLC/网络）</p>
+<pre><code class="language-csharp">// 连接设备：失败重试 3 次（首试+3次=共4次），指数退避
+await Retry.ExecuteAsync(() =&gt; Task.Run(() =&gt; device.Connect()), maxRetries: 3);
+// 上云发布：断线重连用 Retry（呼应 M7②）
+await Retry.ExecuteAsync(() =&gt; client.PublishAsync(msg), maxRetries: 5);
+</code></pre>
+<p><strong>④ 配合超时（<code>CancellationToken</code>）</strong>（🟦）</p>
+<pre><code class="language-csharp">using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5s 超时
+await Retry.ExecuteAsync(() =&gt; ReadWithTimeout(addr, cts.Token), maxRetries: 2, ct: cts.Token);
+</code></pre>
+<h3 id="sec-3-142">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 只对"瞬时故障"重试</td>
+<td>网络抖、设备忙可重试；参数错/权限错重试也没用，要快速失败</td>
+</tr>
+<tr>
+<td>⭐ 退避别用固定间隔</td>
+<td>固定间隔会让上千设备同时重试把服务端打挂，必须指数+抖动</td>
+</tr>
+<tr>
+<td>⭐ 设上限 + 超时</td>
+<td>重试次数和总时长要有上限，否则卡死在重试里</td>
+</tr>
+<tr>
+<td>🔥 吞异常</td>
+<td><code>catch{}</code> 空捕获是事故温床；至少记日志或上抛</td>
+</tr>
+<tr>
+<td>🔥 重试幂等</td>
+<td>写操作（如下发指令）重试前确认可重复执行，避免重复写入</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-143">✏️ 练习</h3>
+<p>给 <code>Retry.ExecuteAsync</code> 写测试：模拟前两次抛异常、第三次成功，断言共调用 3 次；再写一个"耗尽重试后仍抛异常"的测试。</p>
+<p><strong>✅ 答案</strong>（本项目已存在）</p>
+<pre><code class="language-csharp">[Fact] public async Task ExecuteAsync_RetriesThenSucceeds()
+{
+    int calls = 0;
+    await Retry.ExecuteAsync(async () =&gt; { calls++; if (calls &lt; 3) throw new InvalidOperationException(); await Task.Yield(); }, maxRetries: 5);
+    Assert.Equal(3, calls);
+}
+[Fact] public async Task ExecuteAsync_ThrowsAfterExhaustingRetries()
+    =&gt; await Assert.ThrowsAsync&lt;InvalidOperationException&gt;(() =&gt;
+        Retry.ExecuteAsync(async () =&gt; { await Task.Yield(); throw new InvalidOperationException(); }, maxRetries: 2));
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 DAQ Monitor 里所有"连设备 / 读寄存器 / 发云"的通信调用用 <code>Retry.ExecuteAsync</code> 包起来，并配 <code>CancellationToken</code> 超时 + Serilog 记录重试。工程素养第四关（生产容错）达标。🛡️</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="28" onchange="toggleDay(28)"> 打卡</label></strong></p>
+<h2 id="sec-2-65">模块交付清单（M9）</h2>
+<ul>
+<li>[ ] 单元测试覆盖 Core（Store/Alarm/Protocol/Pipeline/Retry），<code>dotnet test</code> 全绿</li>
+<li>[ ] Moq 集成测试（虚拟设备 → 管道）</li>
+<li>[ ] DI 容器装配（Bootstrapper + 构造函数注入）</li>
+<li>[ ] 统一采集架构（可视化/报警/上云 全部走 <code>BatchReady</code>）</li>
+<li>[ ] 生产级容错（Retry 指数退避 + 抖动 + 超时）</li>
+<li>[ ] 修正 M5③ / M7② 的逐点刷新/逐点发布反模式</li>
+</ul>
+<blockquote>
+<p>📌 <strong>环境提示（真实踩过的坑）</strong>：若本机只装了 .NET 10 运行时、项目却 <code>net8.0</code>，测试会报"必须安装 .NET 8"。在三个 <code>.csproj</code> 加 <code>&lt;RollForward&gt;Major&lt;/RollForward&gt;</code> 即可让 net8 应用滚动运行在 net10 上（本项目已加）。这是生产常用技巧，项目本身仍是 net8.0。</p>
+</blockquote>
+<h2 id="sec-2-66">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>xUnit 官方：https://xunit.net/ · Moq：https://github.com/moq/moq —— 单元测试</li>
+<li>Microsoft DI 官方：https://learn.microsoft.com/dotnet/core/extensions/dependency-injection —— 容器/生命周期</li>
+<li><code>System.Threading.Channels</code> 参考：https://learn.microsoft.com/dotnet/api/system.threading.channels —— 统一缓冲原理</li>
+<li>异步/取消令牌：<code>CancellationToken</code> https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<hr />
+<h1 id="sec-1-11">M10 · 报表(聚合/可视化/导出)</h1>
+<blockquote>
+<p><strong>给简历加的能力</strong>：历史聚合报表 + 可视化 + Excel 导出 —— 车间主任天天要"昨天的班报""本月能耗"，光有实时曲线和 CSV 原始文件等于把活甩给别人。这是之前岗位调研里发现的<strong>最大缺口</strong>，补齐它，"独立做完整项目"才闭环。</p>
+<p><strong>🟦C#语法(不装包) · 🟩.NET类库BCL(默认不装包) · 🟧第三方NuGet(必须 <code>dotnet add package</code>)</strong></p>
+<p><strong>知识关联（事半功倍的关键）</strong>：
+- M4 把点位存进 <code>PointStore</code>/历史库 → <strong>本模块按时间窗聚合</strong>
+- M5 画实时曲线 → <strong>本模块用同样的图表库画"历史趋势报表"</strong>
+- M6 报警引擎 → <strong>报警记录可并入报表统计</strong>
+也就是说，M10 不是新学一堆东西，而是把前面已学的"收口成一张能交差的表"。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-67">Day 1 — 历史聚合查询（LINQ GroupBy）</h2>
+<p>企业报表的本质：<strong>把海量原始记录，按"维度+时间窗"聚合成少量统计行</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>前端/JS 类比</th>
+<th>C# 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT point, MIN(v),MAX(v),AVG(v) FROM t GROUP BY point</code></td>
+<td><code>GroupBy(p =&gt; p.Id)</code> + <code>Min/Max/Average</code></td>
+</tr>
+<tr>
+<td><code>arr.reduce((acc,cur)=&gt;..., {})</code></td>
+<td>LINQ 链式 <code>Where → GroupBy → Select</code></td>
+</tr>
+<tr>
+<td>时间戳过滤 <code>t &gt;= from &amp;&amp; t &lt;= to</code></td>
+<td><code>Where(p =&gt; p.Timestamp &gt;= from &amp;&amp; p.Timestamp &lt;= to)</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>① 聚合服务</strong>（🟦 LINQ + 🟩 DateTime，纯计算、可单测）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Reporting/ReportService.cs
+public sealed class ReportService
+{
+    public IReadOnlyList&lt;PointStat&gt; Aggregate(IEnumerable&lt;SensorPoint&gt; points, DateTime from, DateTime to)
+    {
+        return points
+            .Where(p =&gt; p.Timestamp &gt;= from &amp;&amp; p.Timestamp &lt;= to)  // 时间窗过滤
+            .GroupBy(p =&gt; p.Id)                                    // 按点位分组
+            .Select(g =&gt; new PointStat(
+                PointId: g.Key,
+                Count: g.Count(),
+                Min:   g.Min(p =&gt; p.Value),
+                Max:   g.Max(p =&gt; p.Value),
+                Avg:   g.Average(p =&gt; p.Value),
+                First: g.Min(p =&gt; p.Timestamp),
+                Last:  g.Max(p =&gt; p.Timestamp)))
+            .OrderBy(s =&gt; s.PointId)
+            .ToList();
+    }
+}
+</code></pre>
+<blockquote>
+<p>真实可行性：这段代码已在 <code>DaqMonitor.Tests/ReportServiceTests.cs</code> 里用 6 条样例点验证（含窗外点被正确过滤），<code>dotnet test</code> 全绿。</p>
+</blockquote>
+<h3 id="sec-3-144">⭐ 重点 &amp; 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 聚合放在 Core 而非 UI</td>
+<td>纯逻辑、无 IO，才能单测；UI 只负责"展示/导出"</td>
+</tr>
+<tr>
+<td>⭐ 时间窗边界</td>
+<td><code>&gt;= from &amp;&amp; &lt;= to</code> 含端点；跨时区存 <code>DateTime</code> 注意 <code>Kind</code></td>
+</tr>
+<tr>
+<td>🔥 大数据量</td>
+<td>真历史库要用 SQL <code>GROUP BY</code>（EF <code>IQueryable</code>），别把全表拉内存再 LINQ；本演示数据量小，内存聚合 OK</td>
+</tr>
+<tr>
+<td>🔥 空窗返回空集合</td>
+<td>不是 null，UI 绑定 <code>ItemsSource</code> 才不崩</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-145">✏️ 练习</h3>
+<ol>
+<li>给 <code>ReportService</code> 加一个 <code>AggregateByHour(points, from, to)</code>，按"小时"分桶（提示：<code>p.Timestamp.Date.AddHours(p.Timestamp.Hour)</code> 当 key）。</li>
+<li>加一条"报警次数"统计：传入 <code>IEnumerable&lt;AlarmEvent&gt;</code>，按点位统计触发次数。</li>
+</ol>
+<h3 id="sec-3-146">✅ 答案</h3>
+<pre><code class="language-csharp">// 1) 按小时
+.GroupBy(p =&gt; p.Timestamp.Date.AddHours(p.Timestamp.Hour))
+// 2) 报警次数
+alarms.GroupBy(a =&gt; a.PointId)
+      .Select(g =&gt; new { PointId = g.Key, Triggers = g.Count() });
+</code></pre>
+<h3 id="sec-3-147">🏗️ 项目任务</h3>
+<p>把 <code>ReportService</code> 接入 DAQ Monitor：在 <code>Bootstrapper</code> 注册，主界面"导出报表"时先用它对 <code>PointStore.GetAll()</code> 聚合。</p>
+<hr />
+<h2 id="sec-2-68">Day 2 — 报表可视化（表格 + 历史趋势）</h2>
+<p>报表不是只导出 Excel，界面里也要能看。复用 M5 的图表库。</p>
+<table>
+<thead>
+<tr>
+<th>前端类比</th>
+<th>C# 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;table&gt;</code> / Ant Design Table</td>
+<td>WPF <code>DataGrid</code> 绑定 <code>ObservableCollection&lt;PointStat&gt;</code></td>
+</tr>
+<tr>
+<td>ECharts 折线</td>
+<td>LiveCharts <code>LineSeries</code> 绑历史点</td>
+</tr>
+</tbody>
+</table>
+<p><strong>② 表格绑定</strong>（🟩 WPF DataGrid，关联 M5）</p>
+<pre><code class="language-xml">&lt;DataGrid ItemsSource=&quot;{Binding ReportRows}&quot; AutoGenerateColumns=&quot;False&quot;&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridTextColumn Header=&quot;点位&quot;   Binding=&quot;{Binding PointId}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;样本数&quot; Binding=&quot;{Binding Count}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;最小&quot;   Binding=&quot;{Binding Min, StringFormat=F2}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;最大&quot;   Binding=&quot;{Binding Max, StringFormat=F2}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;平均&quot;   Binding=&quot;{Binding Avg, StringFormat=F2}&quot;/&gt;
+  &lt;/DataGrid.Columns&gt;
+&lt;/DataGrid&gt;
+</code></pre>
+<blockquote>
+<p>历史趋势图：把 <code>PointStat</code> 或原始 <code>SensorPoint</code> 按时间轴喂给 LiveCharts（同 M5），区别只是数据源从"实时批量"换成"历史查询"。</p>
+</blockquote>
+<h3 id="sec-3-148">⭐ 重点 &amp; 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 报表用"快照数据"</td>
+<td>历史查询结果是固定集合，不用实时 <code>Dispatcher</code> 刷新那套</td>
+</tr>
+<tr>
+<td>🔥 精度格式</td>
+<td><code>StringFormat=F2</code> 统一小数位，报表才整齐</td>
+</tr>
+<tr>
+<td>🔥 大数据表格卡顿</td>
+<td>用 <code>VirtualizingStackPanel</code>（WPF 默认开），别一次绑十万行</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-69">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</h2>
+<p>企业最终要的是<strong>文件</strong>：班报发邮件、日报交主管、月报归档。</p>
+<table>
+<thead>
+<tr>
+<th>前端类比</th>
+<th>C# 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SheetJS (<code>xlsx</code>) 前端导出</td>
+<td><strong>ClosedXML</strong> 后端生成 <code>.xlsx</code>（无需装 Office）</td>
+</tr>
+<tr>
+<td>jsPDF</td>
+<td><strong>QuestPDF</strong> 生成 <code>.pdf</code>（Fluently 式 API）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>③ 导出 Excel</strong>（🟧 ClosedXML，<code>dotnet add package ClosedXML</code>）</p>
+<pre><code class="language-csharp">// DaqMonitor.UI/Reporting/ReportExporter.cs
+public static void ExportToExcel(IEnumerable&lt;PointStat&gt; stats, string path)
+{
+    using var wb = new XLWorkbook();
+    var ws = wb.Worksheets.Add(&quot;报表&quot;);
+    ws.Cell(1,1).Value = &quot;点位&quot;; ws.Cell(1,2).Value = &quot;样本数&quot;; /* …表头… */
+    int r = 2;
+    foreach (var s in stats)
+    {
+        ws.Cell(r,1).Value = s.PointId; ws.Cell(r,2).Value = s.Count;
+        ws.Cell(r,3).Value = s.Min;      ws.Cell(r,4).Value = s.Max;
+        ws.Cell(r,5).Value = s.Avg;      ws.Cell(r,6).Value = s.First;
+        ws.Cell(r,7).Value = s.Last;     r++;
+    }
+    ws.Columns().AdjustToContents();   // 自动列宽
+    wb.SaveAs(path);
+}
+</code></pre>
+<blockquote>
+<p>真实可行性：DAQ Monitor 的 <code>MainWindow</code> 已加"导出报表"按钮 + 起止时间选择器，命令里 <code>new ReportService().Aggregate(...)</code> → <code>ReportExporter.ExportToExcel(...)</code>，UI 构建 <strong>0 错误 0 警告</strong>，点按钮即生成真实 <code>.xlsx</code>。</p>
+</blockquote>
+<p><strong>PDF（🟧 QuestPDF，可选）</strong>：<code>Document.Create(cfg =&gt; cfg.Page(p =&gt; p.Content().Table(...)))</code>，适合要盖章/打印的场景。</p>
+<h3 id="sec-3-149">⭐ 重点 &amp; 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ ClosedXML 不用装 Office</td>
+<td>纯托管代码生成 xlsx，部署机干净</td>
+</tr>
+<tr>
+<td>⭐ 用 <code>using</code> 包 <code>XLWorkbook</code></td>
+<td>不释放会锁文件</td>
+</tr>
+<tr>
+<td>🔥 路径权限</td>
+<td>导出到用户选的路径（<code>SaveFileDialog</code>），别写 <code>C:\Program Files</code></td>
+</tr>
+<tr>
+<td>🔥 大数据导出</td>
+<td>流式写、分批，避免一次性占内存</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-150">✏️ 练习</h3>
+<ol>
+<li>在 DAQ Monitor 里加一个"导出 PDF"按钮，用 QuestPDF 把同一份 <code>PointStat</code> 写成 PDF 报表。</li>
+<li>给 Excel 加一行"合计/平均汇总"，放在数据行之后。</li>
+</ol>
+<h3 id="sec-3-151">🏗️ 项目任务</h3>
+<p>DAQ Monitor 现已具备：启动采集 → 实时表+报警 → 选时间窗 → 一键导出 Excel 报表。<strong>这就是一个完整可交付的企业上位机雏形</strong>。把这句写进你的简历项目描述。</p>
+<hr />
+<h2 id="sec-2-70">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>本模块 = M4(存储) + M5(可视化) + M6(报警) 的收口</strong>：没有前面三块，报表就是无米之炊。</li>
+<li><strong>聚合逻辑放 Core（M9 工程素养）</strong>：所以它能单测、能被 UI 和测试共用——这正是 M9 讲"分层+DI"的意义。</li>
+<li><strong>导出是 IO 边界（M0 Day7 并发）</strong>：文件写入放 UI 命令里、用 <code>SaveFileDialog</code> 拿到路径，不阻塞采集线程。</li>
+</ul>
+<h2 id="sec-2-71">📄 本模块应产出的文档</h2>
+<ul>
+<li><strong>报表设计文档</strong>：指标定义（点位/维度/时间窗）、字段含义、导出格式（xlsx 列结构）。</li>
+<li><strong>操作说明</strong>：用户如何选时间窗、点导出、文件存哪。</li>
+</ul>
+<h2 id="sec-2-72">打卡</h2>
+<ul>
+<li>[ ] Day 1 历史聚合查询（LINQ GroupBy）</li>
+<li>[ ] Day 2 报表可视化（表格 + 历史趋势）</li>
+<li>[ ] Day 3 导出 Excel（ClosedXML）/ PDF（QuestPDF）</li>
+<li>[ ] 🏗️ DAQ Monitor 导出报表跑通</li>
+</ul>
+<h2 id="sec-2-73">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>LINQ GroupBy 官方：https://learn.microsoft.com/dotnet/csharp/linq/ —— 聚合查询</li>
+<li>ClosedXML（Excel）：https://github.com/ClosedXML/ClosedXML · QuestPDF（PDF）：https://github.com/QuestPDF/QuestPDF</li>
+<li>WPF DataGrid 绑定：https://learn.microsoft.com/dotnet/desktop/wpf/controls/datagrid/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<hr />
+<h1 id="sec-1-12">附录A · 硬件替代方案与讲解(没硬件怎么练+硬件科普)</h1>
+<blockquote>
+<p><strong>你最关心的两件事，这一篇一次讲清</strong>：
+1. 上位机到底在跟什么"硬件"打交道？那些 RS232/485、4-20mA、PLC、寄存器到底是啥？（硬件科普）
+2. 我没有 PLC、没有仪表、没有串口线，<strong>怎么练、怎么证明自己会</strong>？（替代方案）</p>
+<p>学完这篇，你<strong>不需要买任何硬件</strong>就能把 M1–M3、M7 全部练通；真想"真刀真枪"时，也知道花几十块钱买什么。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-74">一、先搞懂：上位机在跟什么硬件打交道</h2>
+<h3 id="sec-3-152">1.1 上位机 / 下位机（一句话 + 类比）</h3>
+<table>
+<thead>
+<tr>
+<th>词</th>
+<th>是什么</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>上位机</strong></td>
+<td>你写的 <strong>PC 软件</strong>（DAQ Monitor 这种）</td>
+<td>你写的<strong>前端 + Node 后端</strong>（跑在电脑上，有界面）</td>
+</tr>
+<tr>
+<td><strong>下位机</strong></td>
+<td>现场真正干活的<strong>硬件</strong>：PLC、仪表、传感器、控制器</td>
+<td>后端连的<strong>数据库 / 第三方 API / 硬件设备</strong></td>
+</tr>
+<tr>
+<td><strong>通信</strong></td>
+<td>上位机向下位机"读数据 / 下指令"</td>
+<td>前端调后端接口 <code>fetch('/api/points')</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔑 <strong>核心心智模型</strong>：上位机 = 一个<strong>会画图、会报警、会存数据库、有按钮</strong>的"高级客户端"；它自己<strong>不产生数据</strong>，数据全靠往下位机要。你 90% 的活儿是：<strong>把下位机的数据搬上来、画出来、存起来、超阈值报警</strong>。</p>
+</blockquote>
+<h3 id="sec-3-153">1.2 一张表：每个模块对应的"物理硬件"是啥</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>物理硬件</th>
+<th>物理接口 / 信号</th>
+<th>你实际连的是什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1 串口</td>
+<td>仪表、传感器、老设备、单片机</td>
+<td>RS232 / RS485（串口线）</td>
+<td>一根 COM 口线，或 USB 转串口</td>
+</tr>
+<tr>
+<td>M2 Modbus</td>
+<td>智能电表、温控仪、变频器、PLC（当从站）</td>
+<td>RS485（RTU）或 网线（TCP）</td>
+<td>串口线 / 网线</td>
+</tr>
+<tr>
+<td>M3 PLC</td>
+<td>西门子 / 欧姆龙 / 三菱 等 PLC</td>
+<td>网线（S7 协议）或 RS485（Modbus）</td>
+<td>网线 / 串口线</td>
+</tr>
+<tr>
+<td>M4 数据库</td>
+<td>本机 SQLite / 企业 SQL Server</td>
+<td>文件 / 网线</td>
+<td>不用硬件</td>
+</tr>
+<tr>
+<td>M5 可视化</td>
+<td>显示器（你电脑屏幕）</td>
+<td>无</td>
+<td>不用硬件</td>
+</tr>
+<tr>
+<td>M6 报警</td>
+<td>同上</td>
+<td>无</td>
+<td>不用硬件</td>
+</tr>
+<tr>
+<td>M7 上云</td>
+<td>OPC UA 服务器 / MQTT Broker</td>
+<td>网线</td>
+<td>本地装个服务即可</td>
+</tr>
+<tr>
+<td>M10 报表</td>
+<td>打印机 / Excel</td>
+<td>无</td>
+<td>不用硬件</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>重点</strong>：<strong>只有 M1/M2/M3/M7 沾硬件</strong>，而且 M7 的"硬件"只是个<strong>网络服务</strong>（本地就能装）。所以"没硬件"完全不是借口——下面给你四层替代方案，从零成本到真机全覆盖。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-75">二、硬件基础科普（不懂硬件也能懂，全用类比）</h2>
+<h3 id="sec-3-154">2.1 串口：RS232 vs RS485（最容易混的两个）</h3>
+<p>🟦 C# 语法天生物 · 🟩 .NET 类库（System.IO.Ports）· 🟧 第三方（无，串口是系统自带）</p>
+<blockquote>
+<p>串口 = 计算机和外设之间<strong>一根线一根线传字节</strong>的古老但极可靠的通信方式。工业现场 90% 的简单设备都靠它。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><strong>RS232</strong></th>
+<th><strong>RS485</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>连接拓扑</td>
+<td><strong>点对点</strong>（1 对 1，像一根 USB 直连线）</td>
+<td><strong>总线</strong>（1 根线挂 N 个设备，像一根网线接多个设备）</td>
+</tr>
+<tr>
+<td>信号方式</td>
+<td>单端（对地电压 ±12V）</td>
+<td><strong>差分</strong>（A、B 两线电压差，抗干扰强）</td>
+</tr>
+<tr>
+<td>距离</td>
+<td>短（&lt; 15 米）</td>
+<td>远（<strong>1200 米</strong>）</td>
+</tr>
+<tr>
+<td>节点数</td>
+<td>1 对 1</td>
+<td><strong>32+ 个</strong>设备挂同一条总线</td>
+</tr>
+<tr>
+<td>前端类比</td>
+<td><code>localhost</code> 直连（只有你和我）</td>
+<td>公司内网（一个交换机挂一堆电脑）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么工业爱 RS485？</strong> 工厂里传感器离电脑几十米、电机干扰大，RS232 早被干扰搞死；RS485 用"差分信号"（A 比 B 高就是 1，低就是 0），电磁噪声同时打到 A 和 B 上会被抵消，<strong>天生抗干扰</strong>。你的 USB 转 485 线（¥20）插电脑上，电脑就多出一个 COM 口，当 RS485 用。</p>
+<p><strong>串口"三件套"参数（双方必须完全一致，否则乱码/连不上）：</strong>
+| 参数 | 常见值 | 类比 |
+|---|---|---|
+| 波特率 (Baud) | 9600 / 19200 / 115200 | <strong>网速</strong>（双方必须同速，否则"鸡同鸭讲"） |
+| 数据位 | 通常 8 | 每个"字节"几位 |
+| 停止位 | 通常 1 | 帧之间的间隔位 |
+| 校验 (Parity) | None / Odd / Even | 简单的"校验和"，防传错 |</p>
+<blockquote>
+<p>🔥 <strong>坑</strong>：下位机手册写"9600,8,N,1"就是 波特率9600、8数据位、无校验、1停止位。<strong>你设错一个就全乱码</strong>——这是现场第一高频故障。</p>
+</blockquote>
+<h3 id="sec-3-155">2.2 传感器信号：设备在"用什么语言"告诉你数值</h3>
+<p>🟦 概念科普 · 🟩 无需代码 · 🟧 无</p>
+<p>真实世界的物理量（温度、压力）要变成上位机能读的数字，中间有"变送"过程。常见信号：</p>
+<table>
+<thead>
+<tr>
+<th>信号类型</th>
+<th>含义</th>
+<th>前端类比</th>
+<th>为啥这么设计</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>4–20mA</strong></td>
+<td>电流环：4mA=量程最低，20mA=最高</td>
+<td>用<strong>电流大小</strong>当数值</td>
+<td><strong>抗干扰最强</strong>；断线时电流=0mA，立刻知道"线断了"（不像电压会被干扰）</td>
+</tr>
+<tr>
+<td><strong>0–10V</strong></td>
+<td>电压：0V=最低，10V=最高</td>
+<td>用<strong>电压高低</strong>当数值</td>
+<td>简单便宜，但线长易受干扰</td>
+</tr>
+<tr>
+<td><strong>PT100</strong></td>
+<td>热电阻：0°C 时电阻正好 100Ω，温度变电阻变</td>
+<td>一个"会随温度变阻值的电阻"</td>
+<td>测温度经典方案，需变送器转成 4–20mA</td>
+</tr>
+<tr>
+<td><strong>热电偶</strong></td>
+<td>两种金属接合产生毫伏级电压（K 型等）</td>
+<td>温差→微小电压</td>
+<td>测高温（上千度），需冷端补偿</td>
+</tr>
+<tr>
+<td><strong>数字量 DI/DO</strong></td>
+<td>开关量：24V=通(1)，0V=断(0)</td>
+<td><code>true</code> / <code>false</code></td>
+<td>按钮、限位开关、继电器</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔑 <strong>你作为上位机工程师要知道的</strong>：绝大多数仪表把"物理量"先变成 <strong>4–20mA 或 0–10V</strong>，再用 <strong>RS485+Modbus</strong> 把数字传给你的软件。所以你<strong>只管读 Modbus 寄存器里的数字</strong>，不用自己处理电流电压——那是仪表厂的事。你只要知道"这个寄存器的值 × 量程系数 = 真实温度"就行。</p>
+</blockquote>
+<h3 id="sec-3-156">2.3 PLC 是什么（你最大的陌生点，掰开讲）</h3>
+<p>🟦 概念科普 · 🟩 无需代码 · 🟧 S7.Net（M3）</p>
+<blockquote>
+<p><strong>PLC = 现场的一台专用小电脑</strong>，专门用来控制机器（比你的笔记本皮实，能在电柜里 7×24 跑十年）。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>PLC 概念</th>
+<th>是啥</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DB 块（数据块）</strong></td>
+<td>PLC 里一块<strong>命名的内存区</strong>，存变量</td>
+<td>一个 <code>const config = {...}</code> 对象 / 一块共享内存</td>
+</tr>
+<tr>
+<td><strong>地址</strong>（如 <code>DB1.DBD0</code>）</td>
+<td>变量在内存里的<strong>具体位置</strong></td>
+<td>对象属性路径 <code>config.temp</code></td>
+</tr>
+<tr>
+<td><strong>I / Q / M</strong></td>
+<td>输入(I) / 输出(Q) / 中间标志(M) 区</td>
+<td>读传感器 / 控制执行器 / 临时变量</td>
+</tr>
+<tr>
+<td><strong>S7 通信</strong></td>
+<td>西门子私有的"读 DB 块"协议</td>
+<td>一个专用的 <code>readDb(block, offset)</code> API</td>
+</tr>
+<tr>
+<td><strong>TIA Portal</strong></td>
+<td>西门子官方编程软件（写 PLC 程序用）</td>
+<td>PLC 的"IDE"</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔑 <strong>你写上位机，不是写 PLC 程序</strong>。你的工作是：用 S7.Net（或 Modbus）<strong>去读 PLC 的 DB 块里已经算好的数值</strong>。PLC 程序员负责把温度传感器的值算好放进 DB1 的第 0 个浮点数——你只管 <code>ReadFloat("DB1", 0)</code> 拿走。这就是"上位机对接 PLC"的全部日常。</p>
+</blockquote>
+<h3 id="sec-3-157">2.4 接线与抗干扰（现场最容易翻车的地方）</h3>
+<p>🟦 经验科普 · 🟩 无需代码 · 🟧 无</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>现象</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A/B 接反</strong>（RS485）</td>
+<td>完全不通 / 疯狂乱码</td>
+<td>把 A、B 两根线对调</td>
+</tr>
+<tr>
+<td><strong>没共地</strong>（两端电源不同）</td>
+<td>时通时断、偶发乱码</td>
+<td>把两端 <strong>GND 地线连起来</strong>（参考电位）</td>
+</tr>
+<tr>
+<td><strong>终端电阻缺失</strong></td>
+<td>远距离 / 高波特率时乱码</td>
+<td>总线<strong>两端</strong>各并一个 <strong>120Ω</strong> 电阻（防信号反射）</td>
+</tr>
+<tr>
+<td><strong>强电干扰</strong></td>
+<td>电机一启动就掉线</td>
+<td>信号线和动力线<strong>分开走线</strong>，用屏蔽双绞线，屏蔽层单端接地</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>真实现场口诀</strong>："连不上先查线，乱码先查地（共地）和终端电阻，偶发掉线查干扰和电源。"——这比任何协议都重要，因为 <strong>80% 的"通信故障"是物理层，不是代码</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-76">三、没有硬件怎么办？四层替代方案（重点）</h2>
+<blockquote>
+<p><strong>核心结论</strong>：从零成本到真机，四层任选。M0–M3、M7 全部能练，<strong>不用买任何东西也能学完</strong>。</p>
+</blockquote>
+<h3 id="sec-3-158">🎯 你有什么 → 用哪层（决策表）</h3>
+<table>
+<thead>
+<tr>
+<th>你的条件</th>
+<th>推荐方案</th>
+<th>成本</th>
+<th>真实度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>啥都没有，只想学架构/代码</td>
+<td><strong>T1 纯软件</strong>（SimulatedDevice / Moq / 回放）</td>
+<td>¥0</td>
+<td>中（验证逻辑够）</td>
+</tr>
+<tr>
+<td>想练"串口程序"但不想买线</td>
+<td><strong>T2 虚拟串口对</strong>（com0com）</td>
+<td>¥0</td>
+<td>高（和真串口代码一模一样）</td>
+</tr>
+<tr>
+<td>想练 Modbus 主站</td>
+<td><strong>T2 Modbus 从站模拟器</strong></td>
+<td>¥0</td>
+<td>高</td>
+</tr>
+<tr>
+<td>想练 PLC 通信</td>
+<td><strong>T2 PLCSIM + NetToPLCSim</strong></td>
+<td>¥0（需 TIA）</td>
+<td>高（真 PLC 协议）</td>
+</tr>
+<tr>
+<td>想练上云</td>
+<td><strong>T2 本地 MQTT / OPC UA 模拟服务器</strong></td>
+<td>¥0</td>
+<td>高</td>
+</tr>
+<tr>
+<td>想要"真设备"手感又省钱</td>
+<td><strong>T3 智能电表 / USB-485 / 开发板从站</strong></td>
+<td>¥20–100</td>
+<td>很高</td>
+</tr>
+<tr>
+<td>想冲简历"真 PLC 经验"</td>
+<td><strong>T3 二手 S7-200 SMART / S7-1200</strong></td>
+<td>¥300–800</td>
+<td>真机</td>
+</tr>
+<tr>
+<td>实习/工作现场</td>
+<td><strong>T4 企业真机</strong></td>
+<td>公司出</td>
+<td>真机</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="sec-3-159">🟩 T1 纯软件方案（零硬件，随时可练）</h3>
+<p><strong>① SimulatedDevice（项目里已经有了！）</strong>
+- 它实现 <code>IDevice</code>，后台线程周期产点，<strong>就是个"假数据源"</strong>。
+- 你之前跑 <code>dotnet run</code> 看到的跳动点位，就是它产的。
+- <strong>用途</strong>：练通"采集→管道→存储→报警→界面"全链路，完全不需要硬件。</p>
+<p><strong>② Moq 虚拟设备（M9 教过）</strong></p>
+<pre><code class="language-csharp">var device = new Mock&lt;IDevice&gt;();
+device.Setup(d =&gt; d.Connect()).Raises(d =&gt; d.DataReceived += null,
+    new DataEventArgs { PointId = 1, Value = 36.5 });
+</code></pre>
+<ul>
+<li>单元测试里用，隔离硬件，测你的逻辑。</li>
+</ul>
+<p><strong>③ 数据回放（最像现场）</strong>
+- 录一段真实数据到 CSV/JSON，回放器逐行 <code>RaiseData</code>。
+- 好处：能反复复现"那天凌晨 3 点报警"的 bug，不用等真机再出一次。</p>
+<blockquote>
+<p>💡 <strong>企业真实做法</strong>：很多上位机团队<strong>先无硬件开发</strong>（用 SimulatedDevice 把界面、报警、报表全做完），等真机到了只换一个 <code>Device</code> 实现，一天接入。你现在的 DAQMonitor 就是这路数——M1–M7 只需把 <code>SimulatedDevice</code> 换掉。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-160">🟩 T2 虚拟接口方案（代码和真机一模一样，只是对端是软件）</h3>
+<p><strong>① 虚拟串口对（M1 练手必备）</strong> 🟧 com0com / VSPD
+- <strong>是什么</strong>：装一个驱动，虚拟出 <code>COM3 ↔ COM4</code> 一对"背靠背"的串口。你的 DAQ Monitor 开 COM3，另一个小程序（或串口调试助手）开 COM4 发数据，<strong>数据从 COM4 流进 COM3</strong>，完全模拟"仪表连着电脑"。
+- <strong>怎么用</strong>：
+  1. 装 <code>com0com</code>（Win10/11 需测试模式签名，见外链）→ 建 <code>COM3&lt;-&gt;COM4</code>。
+  2. DAQ Monitor 把 <code>SerialDevice</code> 注册到 COM3。
+  3. 用"串口调试助手"或 10 行 Python 往 COM4 发一帧 <code>AA 55 ...</code>。
+  4. 看 MainWindow 是否出现对应点位。
+- <strong>真实度</strong>：⭐⭐⭐⭐ 你的串口代码和连真仪表<strong>一行都不用改</strong>。</p>
+<p><strong>② Modbus 从站模拟器（M2 练手）</strong> 🟧 QModMaster / Modbus Slave / diagslave
+- <strong>是什么</strong>：一个跑在你电脑上的"假仪表"，监听某个串口或 TCP 端口，响应你主站的读请求。
+- <strong>怎么用</strong>：
+  1. 开 <code>diagslave -m tcp -p 502</code>（TCP 从站）或 QModMaster 当从站。
+  2. DAQ Monitor 用 NModbus 主站连 <code>localhost:502</code>，读保持寄存器。
+  3. 你在模拟器里改个值，软件里立刻变——和真电表一模一样。</p>
+<p><strong>③ PLCSIM + NetToPLCSim（M3 练手）</strong> 🟧
+- <strong>是什么</strong>：西门子官方 <code>PLCSIM</code> 在电脑里仿真一台 PLC；<code>NetToPLCSim</code> 把它的通信"透传"到网络端口，这样 <strong>S7.Net 能像连真 PLC 一样连它</strong>。
+- <strong>怎么用</strong>：TIA 里写个简单 DB 块 → 下载进 PLCSIM → 开 NetToPLCSim 映射 → DAQ Monitor 用 S7.Net 连 <code>127.0.0.1</code> 读 DB。
+- <strong>限制</strong>：需有 TIA Portal + PLCSIM（学生版/试用版可）。</p>
+<p><strong>④ OPC UA 模拟服务器 / 本地 MQTT（M7 练手）</strong> 🟧
+- OPC UA：<code>Prosys OPC UA Simulation Server</code> 本地跑，提供随机变化的节点，你的 UA 客户端去订阅。
+- MQTT：本地装 <code>Mosquitto</code> broker，<code>mosquitto_pub</code> 发消息，你的 <code>MQTTnet</code> 客户端订阅——和真上云代码一致。</p>
+<hr />
+<h3 id="sec-3-161">🟧 T3 低成本真硬件（花小钱，真实感拉满）</h3>
+<table>
+<thead>
+<tr>
+<th>买啥</th>
+<th>价格</th>
+<th>能干啥</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>USB↔RS485 转换器</strong>（CH340/FT232）</td>
+<td>¥20–50</td>
+<td>电脑多出 RS485 口</td>
+<td>接任何 485 设备；FT232 驱动稳</td>
+</tr>
+<tr>
+<td><strong>智能电表 / 温控仪</strong>（带 Modbus RTU）</td>
+<td>¥50–120</td>
+<td><strong>真能读到电流/温度数据</strong></td>
+<td>最便宜的"真设备"，Modbus 协议，接上就能练 M2</td>
+</tr>
+<tr>
+<td><strong>Arduino/STM32 + RS485 模块</strong></td>
+<td>¥50–100</td>
+<td>自己写个 Modbus <strong>从站</strong>固件</td>
+<td>比模拟器更真：你控制它回什么值；理解"从站怎么想"</td>
+</tr>
+<tr>
+<td><strong>二手 S7-200 SMART / S7-1200</strong></td>
+<td>¥300–800</td>
+<td><strong>真 PLC</strong></td>
+<td>简历写"对接西门子 S7-1200"的底气；需配网线+电源</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>性价比之王</strong>：买个 <strong>¥60 的 Modbus 智能电表 + ¥30 的 USB-485 线</strong>，你立刻拥有一个"真下位机"——DAQ Monitor 改 <code>SerialDevice</code> 为 <code>ModbusRtuDevice</code> 注册进去，就能看到<strong>真实电流在跳</strong>。这比任何模拟器都长经验。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-162">🟧 T4 企业真机（实习 / 工作才有）</h3>
+<p>真实产线 PLC、SCADA、DCS——这时候你已经有 T1–T3 的全部能力，上手真机只是"换根线 + 问清楚地址表"。<strong>别怂，你练过的虚拟/低成本方案，和真机代码 95% 一样。</strong></p>
+<hr />
+<h2 id="sec-2-77">四、连不上的万能排查清单（真实现场经验，背下来）</h2>
+<blockquote>
+<p>无论虚拟还是真机，<strong>按这个顺序查，能解决 95% 的"通信失败"</strong>：</p>
+</blockquote>
+<pre><code>1. 物理层（先查线！）
+   □ 串口：COM 口号对吗？（设备管理器看）
+   □ 485：A/B 接反了吗？（对调试一下）
+   □ 共地接了吗？（两端 GND 连起来）
+   □ 远距离/高波特率：总线两端 120Ω 终端电阻有吗？
+2. 参数层（双方必须一致）
+   □ 波特率 / 数据位 / 停止位 / 校验 对吗？
+   □ 流控 DTR/RTS 要不要拉高？（部分设备必须）
+3. 网络层（TCP/OPC/MQTT 类）
+   □ IP / 端口对吗？防火墙放了吗？
+   □ PLC：DB 号/偏移和 TIA 一致吗？该 DB &quot;优化访问&quot;关了吗？
+   □ PLC 在 RUN 吗？允许 PUT/GET 通信吗？
+4. 协议层
+   □ Modbus：寄存器地址 ±1 偏移对吗？（手册 40001 vs 代码 0）
+   □ 从站地址（站号）对吗？
+5. 软件层
+   □ 你的 Device 注册进 Bootstrapper 了吗？
+   □ 异常信息是啥？（看 Serilog 日志，别瞎猜）
+</code></pre>
+<blockquote>
+<p>🔥 <strong>血的教训</strong>：新手 80% 时间花在"代码没错但线没接对/参数没对齐"。<strong>先看物理层和参数层，再看代码</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-78">五、🏗️ 动手练习（从零搭虚拟环境跑通，零硬件）</h2>
+<h3 id="sec-3-163">练习 1：用虚拟串口让 DAQ Monitor 收到"假仪表"数据</h3>
+<p><strong>目标</strong>：不买任何东西，让 M1 的串口代码真正跑起来。
+1. 装 <code>com0com</code>，建虚拟对 <code>COM3&lt;-&gt;COM4</code>。
+2. 在 <code>DaqMonitor.Core/Devices/</code> 写 <code>SerialDevice : DeviceBase</code>，<code>Connect()</code> 里 <code>new SerialPort("COM3", 9600, Parity.None, 8, StopBits.One)</code> 并 <code>Open()</code>，<code>DataReceived</code> 里把字节喂给帧解析器，<code>RaiseData</code> 抛出点位。
+3. 注册进 <code>Bootstrapper</code> 替换 <code>SimulatedDevice</code>。
+4. 用任意"串口调试助手"开 COM4，发一帧 <code>AA 55 02 00 1E 3C 9E</code>（示意帧）。
+5. 运行 DAQ Monitor，<code>dotnet run</code>，看 MainWindow 是否出现点位。</p>
+<p><strong>✅ 答案要点</strong>：
+- <code>SerialPort</code> 来自 🟩 <code>System.IO.Ports</code>（.NET 8 需 <code>dotnet add package System.IO.Ports</code>）。
+- 必须用 <code>DataReceived</code> 事件 + 字节缓冲解决<strong>半包/粘包</strong>（见 M1 帧解析器），不能"收到就当一帧"。
+- 收不到先查：COM 号对不对、<code>DataReceived</code> 在某些机器不触发 → 改用 <code>BaseStream.ReadAsync</code> 循环读。
+- 跑通 = 你<strong>已经会写工业串口程序了</strong>，和连真仪表代码一致。</p>
+<h3 id="sec-3-164">练习 2：用 Modbus 从站模拟器读"假电表"</h3>
+<p><strong>目标</strong>：练 M2 主站。
+1. 下载 <code>diagslave</code>，命令行 <code>diagslave -m tcp -p 502 -a 1</code> 起一个 TCP 从站（站号 1）。
+2. DAQ Monitor 用 NModbus <code>TcpClient</code> 连 <code>127.0.0.1:502</code>，读保持寄存器 0 起 5 个值。
+3. 在 diagslave 里改寄存器值，看软件是否同步变化。</p>
+<p><strong>✅ 答案要点</strong>：注意地址偏移（手册 40001 → 代码 0）；NModbus 是 🟧 第三方包；这就是真实智能电表的读法。</p>
+<h3 id="sec-3-165">练习 3：画出"你家的通信拓扑"</h3>
+<p>画一张图：电脑 →（USB-485）→ 智能电表 →（RS485 总线）→ PLC →（网线）→ 你的 DAQ Monitor。标注每个环节的接口、协议、参数。<strong>这是面试常考的"你懂不懂现场"题。</strong></p>
+<hr />
+<h2 id="sec-2-79">六、📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>关联 M0</strong>：M0 教的"后台线程 + 事件 + 并发"在这里直接用到——<code>SerialPort.DataReceived</code> 是<strong>后台线程回调</strong>，你处理字节时绝不能跨线程碰 UI（复习 M0 Day7 的 <code>Dispatcher</code>/批量原则）。</li>
+<li><strong>关联 M1→M2→M3</strong>：三者是<strong>同一件事的不同对端</strong>——都是"上位机往下位机要数据"。串口是"传输方式"，Modbus 是"对话语言"，PLC 是"对端设备类型"。学会一个，另外两个只是换 <code>Device</code> 实现。</li>
+<li><strong>关联 M9（DI）</strong>：为什么我们抽象 <code>IDevice</code>？因为这样<strong>硬件可替换</strong>——今天 <code>SimulatedDevice</code>，明天 <code>SerialDevice</code>，后天 <code>ModbusDevice</code>，UI 和采集层一行都不用改。这就是"面向接口"的真实价值，也是你能在"没硬件"时照样开发的原因。</li>
+<li><strong>关联 M7（上云）</strong>：OPC UA / MQTT 的"对端"也可以本地模拟（Prosys / Mosquitto），思路和 T2 虚拟串口一模一样。</li>
+</ul>
+<hr />
+<h2 id="sec-2-80">七、📚 延伸阅读（外链，解决"还不懂"的地方）</h2>
+<ul>
+<li><strong>串口基础 + com0com 虚拟串口</strong>：https://sourceforge.net/projects/com0com/ —— M1 零硬件闭环，Win10/11 需测试模式签名，教程见站内搜索"com0com windows 11"</li>
+<li><strong>VSPD 虚拟串口（商业可试用）</strong>：https://www.eltima.com/products/vspd/ —— 比 com0com 安装简单</li>
+<li><strong>Modbus 官方协议</strong>：https://modbus.org/specs.php —— 想啃原始帧格式看这个</li>
+<li><strong>diagslave Modbus 从站模拟器</strong>：http://www.modbusdriver.com/diagslave.html —— M2 练手</li>
+<li><strong>QModMaster（开源主/从站工具）</strong>：https://sourceforge.net/projects/qmodmaster/ —— 调试 Modbus 神器</li>
+<li><strong>NetToPLCSim（西门子仿真透传）</strong>：https://github.com/mesta1/NetToPLCSim —— M3 无真机练手</li>
+<li><strong>Prosys OPC UA Simulation Server</strong>：https://www.prosysopc.com/products/opc-ua-simulation-server/ —— M7 本地 OPC UA 服务器</li>
+<li><strong>Eclipse Mosquitto（MQTT Broker）</strong>：https://mosquitto.org/ —— M7 本地 MQTT</li>
+<li><strong>西门子 S7-1200 文档中心</strong>：https://support.industry.siemens.com/cs/ —— 真 PLC 资料</li>
+<li><strong>RS485 应用笔记（终端电阻/布线）</strong>：搜索"TI RS485 设计指南"或"ADI RS485 故障排查" —— 硬件抗干扰权威</li>
+</ul>
+<hr />
+<h2 id="sec-2-81">打卡</h2>
+<ul>
+<li>[ ] 看懂"上位机/下位机/串口/Modbus/PLC"的关系图</li>
+<li>[ ] 能向别人讲清 RS232 vs RS485、4–20mA 为什么抗干扰</li>
+<li>[ ] T1：用 SimulatedDevice 跑通 DAQ Monitor 全链路</li>
+<li>[ ] T2：虚拟串口 / Modbus 从站 / PLCSIM 至少选一个跑通</li>
+<li>[ ] 背下"连不上的排查清单"</li>
+<li>[ ] 🏗️ 练习 1/2/3 至少完成 1 个并跑绿</li>
+</ul>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage）。</div>
+  </main>
+</div>
+
+<script>
+var TOTAL = 28;
+function key(n){return 'allmod_day_'+n;}
+function toggleDay(n){
+  var cb=document.querySelector('.daycb[data-day="'+n+'"]');
+  if(cb.checked){localStorage.setItem(key(n),'1');} else {localStorage.removeItem(key(n));}
+  syncAll();
+}
+function syncAll(){
+  var done=0;
+  document.querySelectorAll('.daycb').forEach(function(cb){
+    var n=cb.getAttribute('data-day');
+    var on=localStorage.getItem(key(n))==='1';
+    cb.checked=on; if(on)done++;
+  });
+  var pct=Math.round(done/TOTAL*100);
+  document.getElementById('bar').style.width=pct+'%';
+  document.getElementById('ptext').textContent='已打卡 '+done+' / '+TOTAL+' 天 （'+pct+'%）';
+}
+window.onload=function(){syncAll();};
+</script>
+
+</body>
+</html>

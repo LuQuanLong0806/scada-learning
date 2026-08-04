@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>上位机转行13K · 学习进度</title>
+
+<style>
+:root{--blue:#2f6fed;--green:#1f9d55;--orange:#e07b00;--ink:#1f2430;--muted:#67708a;--line:#e6e9f0;--bg:#f7f8fb;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;}
+.topbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.topbar h1{font-size:16px;margin:0 0 8px;font-weight:700;}
+.progress{display:flex;align-items:center;gap:12px;}
+.barwrap{flex:1;height:14px;background:#eef1f7;border-radius:8px;overflow:hidden;}
+#bar{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .3s;}
+#ptext{font-size:13px;color:var(--muted);white-space:nowrap;}
+.legend{background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.badge{padding:2px 8px;border-radius:12px;font-weight:600;font-size:12px;}
+.b-syntax{background:#e8f0ff;color:var(--blue);}
+.b-bcl{background:#e6f6ec;color:var(--green);}
+.b-nuget{background:#fdf0e0;color:var(--orange);}
+.legend code{background:#f0f2f7;padding:1px 5px;border-radius:4px;font-size:12px;}
+.mnem{width:100%;color:var(--muted);font-size:12px;margin-top:2px;}
+.layout{display:flex;align-items:flex-start;}
+.sidebar{position:sticky;top:110px;width:260px;flex:none;max-height:calc(100vh - 120px);overflow:auto;padding:16px 12px;border-right:1px solid var(--line);background:#fff;}
+.navlist{list-style:none;margin:0;padding:0;font-size:13px;}
+.nav-h2>a{font-weight:700;color:var(--ink);text-decoration:none;}
+.navsub{list-style:none;margin:4px 0 8px 12px;padding:0;}
+.nav-h3>a{color:var(--muted);text-decoration:none;}
+.navlist a:hover{color:var(--blue);}
+.content{flex:1;min-width:0;padding:24px 32px 80px;max-width:920px;}
+.content h1{font-size:24px;}
+.content h2{font-size:21px;margin-top:38px;padding-top:10px;border-top:2px solid var(--line);}
+.content h3{font-size:17px;margin-top:26px;color:var(--blue);}
+.content table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
+.content th,.content td{border:1px solid var(--line);padding:7px 10px;text-align:left;}
+.content th{background:#f1f4fa;}
+.content blockquote{border-left:4px solid var(--blue);background:#f4f8ff;margin:14px 0;padding:10px 16px;color:#33405c;border-radius:0 6px 6px 0;}
+.content code{background:#eef1f7;padding:1px 5px;border-radius:4px;font-size:13px;}
+.content pre{background:#1f2430;color:#e6e9f0;padding:14px;border-radius:8px;overflow:auto;}
+.content pre code{background:none;color:inherit;padding:0;}
+.cb{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--green);font-weight:600;margin-left:6px;}
+.cb input{width:16px;height:16px;cursor:pointer;}
+.content ul li{margin:4px 0;}
+.foot{color:var(--muted);font-size:12px;text-align:center;padding:20px;}
+@media(max-width:820px){.sidebar{display:none;}.content{padding:18px;}}
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <h1>🚀 上位机转行 13K · 学习进度看板</h1>
+  <div class="progress">
+    <div class="barwrap"><div id="bar"></div></div>
+    <div id="ptext">已完成 0 / 64 项 （0%）</div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>📖 看之前先认 3 类东西（不然会云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>（SerialPort 等少数需加一行 <code>dotnet add package</code>，但仍官方）
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code> 才能用
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="layout">
+  <aside class="sidebar"><ul class="navlist">
+
+<li class="nav-h2"><a href="#sec-2-1">〇、看文档前先认这 3 类东西（不然会云里雾里）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-2">一、为什么改成「项目驱动」（你的策略，我加了 3 道保险）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-3">二、选定项目：工业数据采集监控系统（DAQ Monitor）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-4">三、知识点串联地图（数据流水线）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-5">四、模块路线（M0–M8：学 → 练 → 用）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-1">▶ M0 脚手架 + C#/.NET 热身（你的主场，可加速）· 对应原 Day1-7</a></li>
+<li class="nav-h3"><a href="#sec-3-2">▶ M1 串口通信（⚠️ 新领域，重点突破）· 对应原 Day15-17</a></li>
+<li class="nav-h3"><a href="#sec-3-3">▶ M2 Modbus 协议（⚠️ 核心壁垒）· 对应原 Day22-28</a></li>
+<li class="nav-h3"><a href="#sec-3-4">▶ M3 TCP/Socket 多设备（⚠️ 重点）· 对应原 Day19-21</a></li>
+<li class="nav-h3"><a href="#sec-3-5">▶ M4 PLC 通信（西门子 S7，⚠️ 重点突破）· 对应原 Day29-35</a></li>
+<li class="nav-h3"><a href="#sec-3-6">▶ M5 数据存储（SQLite + EF Core）· 对应原 Day36-42</a></li>
+<li class="nav-h3"><a href="#sec-3-7">▶ M6 实时可视化 + 报警（你的 UI 主场）· 对应原 Day43-47</a></li>
+<li class="nav-h3"><a href="#sec-3-8">▶ M7 企业级工程化（溢价项，13K 必问）· 对应原 Day41/48</a></li>
+<li class="nav-h3"><a href="#sec-3-9">▶ M8 求职冲刺（拿 Offer）· 对应原 Day49-56</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-6">五、企业级工程化清单（13K 面试必问，贯穿全程）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-7">六、进度打卡总表（按模块/天，随时勾）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-8">七、资源清单</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-9">八、怎么用这份文档（必读）</a><ul class="navsub">
+</ul></li></ul></aside>
+  <main class="content">
+<h1>上位机转行 13K · 项目制学习路线（DAQ Monitor）</h1>
+<blockquote>
+<p><strong>目标</strong>：从中高级前端工程师（0 上位机基础）→ 达到企业 <strong>13K</strong> 上位机开发岗位要求
+<strong>方式</strong>：<strong>项目驱动</strong>——选定一个真实工业项目，边做边学；每个模块 = <strong>先学本次知识点 → 做 1 道练习 → 直接写进项目</strong>
+<strong>你提的 4 个硬要求（已贯彻全文）</strong>：① 知识点<strong>串联</strong>成线 ② 讲解<strong>通俗易懂</strong>、<strong>对比前端 / 举例</strong> ③ 确保达到<strong>企业级</strong>要求 ④ 内容进<strong>腾讯文档</strong>方便随时更新
+<strong>节奏</strong>：8 大模块（≈56 天），每周 6 天学 + 1 天复盘，可加速/跳过已会
+<strong>进度可见</strong>：每个学习日行尾有 <code>打卡[ ]</code>，在配套 HTML 看板勾选，进度条实时涨</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">〇、看文档前先认这 3 类东西（不然会云里雾里）</h2>
+<p>C# 世界里「写出来能跑的东西」分三类来源。本路线每个模块都会标注 🟦/🟩/🟧，请对照看：</p>
+<ul>
+<li>🟦 <strong>【C# 语法】</strong> = 语言自带的关键字/写法。装好 .NET 就有，<strong>不用装任何包</strong>。
+  例：<code>using</code>、<code>class</code>、<code>int</code>、<code>var</code>、<code>=&gt;</code>
+  （对照 TS：<code>let/const</code> → <code>var</code>；<code>: type</code> → 类型写在前面；<code>function</code> → <code>方法</code>）</li>
+<li>🟩 <strong>【.NET 类库 / BCL】</strong> = 微软随 .NET 提供的"标准零件库"，<code>using</code> 对应命名空间即可用，<strong>默认不用额外装包</strong>。
+  少数（如 <code>SerialPort</code>）需加一行 <code>dotnet add package System.IO.Ports</code>——但它仍是<strong>微软官方库，不是第三方</strong>。
+  例：<code>Console</code>、<code>List&lt;T&gt;</code>、<code>Dictionary</code>、<code>Math</code>、<code>Task</code>、<code>HttpClient</code>、<code>System.Text.Json</code>、<code>LINQ</code></li>
+<li>🟧 <strong>【第三方 NuGet 包】</strong> = 别人写好的库，<strong>必须 <code>dotnet add package 包名</code></strong> 才能用。
+  例：<code>NModbus</code>、<code>S7.Net</code>、<code>LiveCharts</code>、<code>Serilog</code>、<code>MQTTnet</code>、<code>EF Core</code>
+  → 看到 <code>using Xxx;</code> 报错"找不到类型"，十有八九是要装 NuGet 包了。</li>
+</ul>
+<blockquote>
+<p>💡 口诀：<strong>语法天生物、BCL 随 .NET、第三方要装包。</strong></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">一、为什么改成「项目驱动」（你的策略，我加了 3 道保险）</h2>
+<p>你已经有中高级前端工程能力，<strong>真正的短板只是上位机专属领域知识</strong>（串口/Modbus/PLC/工业协议），这些只有写真实程序才学得会。所以「先学后练再应用」是最优解。我补 3 个保险防翻车：</p>
+<ol>
+<li><strong>精准预习</strong>：每个模块先给 10–20 分钟只学"本次用到的点 + 1 道练习"，再写代码 → 不盲目试错。</li>
+<li><strong>知识点串联地图</strong>（见第三节）：把 <code>设备 → 串口/网口 → 协议 → 字节解析 → 业务对象 → 数据库 → 图表/报警</code> 看成一条<strong>数据流水线</strong>，学一个就知道它接在链的哪一环。</li>
+<li><strong>企业级工程化</strong>（见第五节）：日志、配置化、断线重连、异常处理、MVVM 分层、测试意识——这些正好是 13K 面试必问的"工程化"分，功能是基础，工程化才是溢价。</li>
+</ol>
+<p><strong>怎么用这份文档</strong>：每模块按顺序走 ① 前置知识点（带 🟦🟩🟧 + 对比前端）② 练习 ③ 项目任务（落到 DAQ Monitor）。</p>
+<hr />
+<h2 id="sec-2-3">二、选定项目：工业数据采集监控系统（DAQ Monitor）</h2>
+<p><strong>为什么是它</strong>：这是工厂里上位机每天干的典型活——从 PLC/仪表采数据、解析、存库、画面实时展示、超限报警。一个项目覆盖 13K 全部要求，面试拿来讲最有说服力。</p>
+<p><strong>它长什么样（功能清单）</strong>：
+- 连接串口/网口设备，按 Modbus / S7 协议周期读取温度、压力、产量等数据点
+- 实时曲线 + 数字面板展示，超限弹报警
+- 数据落 SQLite 历史库，可查历史趋势
+- 断线自动重连、运行日志记录
+- 一键打包成可安装程序</p>
+<p><strong>技术栈 × 13K 要求对照</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>13K 要求</th>
+<th>本项目里怎么体现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C# / .NET 熟练</td>
+<td>全程 C#，MVVM 分层</td>
+</tr>
+<tr>
+<td>WPF 熟练</td>
+<td>监控主界面、实时曲线、报警弹窗</td>
+</tr>
+<tr>
+<td>串口 + Modbus</td>
+<td>M1/M2 串口调试助手 + Modbus 读写</td>
+</tr>
+<tr>
+<td>PLC（西门子 S7）</td>
+<td>M4 用 S7.Net 读 DB 块</td>
+</tr>
+<tr>
+<td>数据库 + EF Core</td>
+<td>M5 SQLite 历史库</td>
+</tr>
+<tr>
+<td>TCP/UDP</td>
+<td>M3 Socket 多设备轮询</td>
+</tr>
+<tr>
+<td>多线程/异步</td>
+<td>采集线程不卡 UI</td>
+</tr>
+<tr>
+<td>OPC UA / MQTT</td>
+<td>M7 可选扩展</td>
+</tr>
+<tr>
+<td>工程化</td>
+<td>日志/配置/重连/异常/测试（贯穿）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>架构（数据流水线）</strong>：</p>
+<pre><code>[PLC/仪表]──串口/网口──▶[采集层]──Modbus/S7──▶[解析层]──▶[业务对象]
+                                                                 │
+                                          ┌──────────────┼──────────────┐
+                                       [存储层]        [展示层]        [报警层]
+                                      SQLite/EF      WPF+LiveCharts   阈值判断+弹窗
+</code></pre>
+<hr />
+<h2 id="sec-2-4">三、知识点串联地图（数据流水线）</h2>
+<p>把整条链路记熟，考点就串起来了：</p>
+<ol>
+<li><strong>设备层</strong>：PLC、仪表、传感器——它们只认"寄存器/地址 + 数值"。</li>
+<li><strong>传输层</strong>：串口（RS485，SerialPort 🟩）或网口（TCP Socket 🟩）。→ <em>对应 M1/M3</em></li>
+<li><strong>协议层</strong>：Modbus RTU/TCP（🟩手搓 + 🟧NModbus）、西门子 S7（🟧S7.Net）。协议 = "怎么把'读地址100的温度'打包成字节发给设备，再把回的字节解出来"。→ <em>对应 M2/M4</em></li>
+<li><strong>解析层</strong>：字节序（大小端）、BitConverter 🟩、类型转换——把原始字节变成 <code>float temperature</code>。→ <em>贯穿 M2–M4</em></li>
+<li><strong>业务层</strong>：变成 <code>SensorData</code> 等业务对象，用 <code>List&lt;T&gt;</code>/LINQ 🟩 处理。→ <em>M2 起</em></li>
+<li><strong>存储层</strong>：SQLite + EF Core 🟧 落历史库。→ <em>M5</em></li>
+<li><strong>展示层</strong>：WPF Binding/MVVM 🟩 + LiveCharts 🟧 实时曲线（类比前端：Binding≈<code>v-model</code>，LiveCharts≈<code>echarts</code>）。→ <em>M6</em></li>
+<li><strong>报警层</strong>：阈值判断 + 弹窗 + Serilog 🟧 日志。→ <em>M6/M7</em></li>
+</ol>
+<blockquote>
+<p>考试常问"Modbus 一帧怎么组成的""大小端怎么处理""为什么要用 MVVM"——答案都在这条链上，串起来就不会慌。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">四、模块路线（M0–M8：学 → 练 → 用）</h2>
+<h3 id="sec-3-1">▶ M0 脚手架 + C#/.NET 热身（你的主场，可加速）· 对应原 Day1-7</h3>
+<ul>
+<li><strong>目标/产出</strong>：建好 DAQ Monitor 的 WPF 工程骨架，跑出第一个窗口。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦 C# 语法 + 🟩 BCL（<code>Console</code>/<code>List&lt;T&gt;</code>/<code>LINQ</code>/<code>Task</code>）+ 🟩 <strong>WPF</strong>（<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，不是 NuGet）。</li>
+<li><strong>前置知识点（对比前端）</strong>：</li>
+<li><code>var x = 1;</code> ≈ TS <code>let x = 1;</code>；类型在<strong>前面</strong>：<code>int x = 1;</code></li>
+<li><code>class</code>/<code>方法</code> ≈ JS 的 <code>class</code>/<code>function</code>，但 C# 方法要写返回类型：<code>int Add(int a,int b)</code></li>
+<li><code>=&gt;</code> 既是 Lambda（≈ JS 箭头函数）也是属性简写：<code>public int Sum =&gt; A+B;</code></li>
+<li><code>List&lt;T&gt;</code> ≈ JS 数组但<strong>类型固定</strong>；<code>LINQ</code> 的 <code>Where/Select</code> ≈ JS 的 <code>filter/map</code></li>
+<li><strong>练习</strong>：用 <code>struct Point{public int X,Y;}</code> 表示一个坐标，写个方法算两点距离。· <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay(1)"> 打卡</label></li>
+<li><strong>项目任务</strong>：用 <code>dotnet new wpf</code> 建工程，MainWindow 放一个"启动采集"按钮 + 文本框，点按钮在文本框打印"DAQ Monitor 启动"。· <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay(2)"> 打卡</label></li>
+<li><strong>Day 1</strong> C# 环境+首程序+对比TS · 3-4h · <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay(3)"> 打卡</label></li>
+<li><strong>Day 2</strong> 类型系统 var/可空/struct · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="4" onchange="toggleDay(4)"> 打卡</label></li>
+<li><strong>Day 3</strong> 集合与 LINQ · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="5" onchange="toggleDay(5)"> 打卡</label></li>
+<li><strong>Day 4</strong> 类/属性/封装/static · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="6" onchange="toggleDay(6)"> 打卡</label></li>
+<li><strong>Day 5</strong> 继承/接口/泛型 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="7" onchange="toggleDay(7)"> 打卡</label></li>
+<li><strong>Day 6</strong> 委托/事件/Lambda · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="8" onchange="toggleDay(8)"> 打卡</label></li>
+<li><strong>Day 7</strong> 周复习+小测 · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="9" onchange="toggleDay(9)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-2">▶ M1 串口通信（⚠️ 新领域，重点突破）· 对应原 Day15-17</h3>
+<ul>
+<li><strong>目标/产出</strong>：做出"串口调试助手"子模块，能收发字符串。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦 位运算 + 🟩 <strong>SerialPort</strong>（<code>System.IO.Ports</code>，需 <code>dotnet add package System.IO.Ports</code>，但仍官方）+ 🟩 <code>System.Text.Encoding</code>。</li>
+<li><strong>前置知识点（举例）</strong>：串口像"一根只能按顺序说句子的电话线"——双方约定波特率（语速）、数据位、停止位、校验（防口误）。<code>SerialPort</code> 就是这根线的 .NET 封装。</li>
+<li><strong>练习</strong>：用虚拟串口（com0com）把本机两个虚拟口连起来，A 发"B"，B 收到打印。· <label class="cb"><input type="checkbox" class="daycb" data-day="10" onchange="toggleDay(10)"> 打卡</label></li>
+<li><strong>项目任务</strong>：在 DAQ Monitor 加"串口设置"面板（端口/波特率下拉）+ 收发日志框；连虚拟串口能自发自收。· <label class="cb"><input type="checkbox" class="daycb" data-day="11" onchange="toggleDay(11)"> 打卡</label></li>
+<li><strong>Day 8</strong> 通信概念(比特/字节/进制/ASCII) · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="12" onchange="toggleDay(12)"> 打卡</label></li>
+<li><strong>Day 9</strong> 串口参数+SerialPort类 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="13" onchange="toggleDay(13)"> 打卡</label></li>
+<li><strong>Day 10</strong> 串口实战收发+虚拟串口 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="14" onchange="toggleDay(14)"> 打卡</label></li>
+<li><strong>Day 11</strong> 异常/文件IO/JSON序列化 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="15" onchange="toggleDay(15)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-3">▶ M2 Modbus 协议（⚠️ 核心壁垒）· 对应原 Day22-28</h3>
+<ul>
+<li><strong>目标/产出</strong>：能读保持寄存器，把值显示到界面。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦 字节数组/struct 手搓 + 🟩 <code>System.Net.Sockets</code>(Modbus TCP) + 🟧 <strong>NModbus</strong>（Day25 起）。先纯 BCL 手搓再引包。</li>
+<li><strong>前置知识点（通俗）</strong>：Modbus 是"设备间的普通话"。功能码=动词（03=读保持寄存器），寄存器地址=名词。一帧 ≈ <code>[从站号][功能码][起始地址][数量][CRC校验]</code>。</li>
+<li><strong>练习</strong>：手工组一帧"读从站1的寄存器0开始2个字"的 RTU 报文，并算 CRC。· <label class="cb"><input type="checkbox" class="daycb" data-day="16" onchange="toggleDay(16)"> 打卡</label></li>
+<li><strong>项目任务</strong>：DAQ Monitor 接入一个 Modbus 从站（用仿真软件），周期读温度/压力寄存器，显示数值。· <label class="cb"><input type="checkbox" class="daycb" data-day="17" onchange="toggleDay(17)"> 打卡</label></li>
+<li><strong>Day 12</strong> Modbus概念/主从/寄存器 · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="18" onchange="toggleDay(18)"> 打卡</label></li>
+<li><strong>Day 13</strong> Modbus RTU帧结构+手搓组包 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="19" onchange="toggleDay(19)"> 打卡</label></li>
+<li><strong>Day 14</strong> Modbus TCP+Socket实现 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="20" onchange="toggleDay(20)"> 打卡</label></li>
+<li><strong>Day 15</strong> NModbus库实战读写 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="21" onchange="toggleDay(21)"> 打卡</label></li>
+<li><strong>Day 16</strong> 字节序大小端+BitConverter · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="22" onchange="toggleDay(22)"> 打卡</label></li>
+<li><strong>Day 17</strong> 数据解析(寄存器→工程量缩放) · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="23" onchange="toggleDay(23)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-4">▶ M3 TCP/Socket 多设备（⚠️ 重点）· 对应原 Day19-21</h3>
+<ul>
+<li><strong>目标/产出</strong>：支持网口设备 + 多设备轮询架构。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦 异步 + 🟩 <code>System.Net.Sockets</code>(<code>TcpClient</code>/<code>TcpListener</code>/<code>UdpClient</code>) + 🟩 <code>Task</code>/多线程。</li>
+<li><strong>前置知识点（对比前端）</strong>：<code>Socket</code> ≈ 浏览器底层的"网络连接"；<code>async/await</code> 在 C# 里和 JS 的 <code>Promise/async</code> 几乎同构，但 C# 有 <code>CancellationToken</code>（≈ <code>AbortController</code>）。</li>
+<li><strong>练习</strong>：写 TCP 客户端连本地回显服务，发消息收回来。· <label class="cb"><input type="checkbox" class="daycb" data-day="24" onchange="toggleDay(24)"> 打卡</label></li>
+<li><strong>项目任务</strong>：DAQ Monitor 抽象出 <code>IDevice</code> 接口，串口设备和网口设备都实现它；主循环轮询多个设备。· <label class="cb"><input type="checkbox" class="daycb" data-day="25" onchange="toggleDay(25)"> 打卡</label></li>
+<li><strong>Day 18</strong> TCP客户端编程 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="26" onchange="toggleDay(26)"> 打卡</label></li>
+<li><strong>Day 19</strong> TCP服务端+多线程多客户端 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="27" onchange="toggleDay(27)"> 打卡</label></li>
+<li><strong>Day 20</strong> UDP+自定义帧+校验和 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="28" onchange="toggleDay(28)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-5">▶ M4 PLC 通信（西门子 S7，⚠️ 重点突破）· 对应原 Day29-35</h3>
+<ul>
+<li><strong>目标/产出</strong>：读真实/模拟 PLC 的 DB 块数据点。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦 语法 + 🟧 <strong>S7.Net</strong>（读 DB 块）+ 🟧 <strong>OPC UA 客户端库</strong>（可选）。</li>
+<li><strong>前置知识点（举例）</strong>：PLC 的 DB 块 ≈ "设备给你的一块带地址的结构体变量"；S7.Net 就是帮你读这块结构体的工具，不用自己组 S7 报文。</li>
+<li><strong>练习</strong>：用 S7.Net 连 PLC 仿真，读一个 <code>Real</code> 温度值打印。· <label class="cb"><input type="checkbox" class="daycb" data-day="29" onchange="toggleDay(29)"> 打卡</label></li>
+<li><strong>项目任务</strong>：DAQ Monitor 接入 PLC 数据源，把 DB 块里的温度/产量映射到业务对象。· <label class="cb"><input type="checkbox" class="daycb" data-day="30" onchange="toggleDay(30)"> 打卡</label></li>
+<li><strong>Day 21</strong> PLC与上位机关系+S7概述 · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="31" onchange="toggleDay(31)"> 打卡</label></li>
+<li><strong>Day 22</strong> S7.Net连接+读DB块 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="32" onchange="toggleDay(32)"> 打卡</label></li>
+<li><strong>Day 23</strong> 读写Bool/Int/Real/字符串 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="33" onchange="toggleDay(33)"> 打卡</label></li>
+<li><strong>Day 24</strong> OPC UA概念+客户端 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="34" onchange="toggleDay(34)"> 打卡</label></li>
+<li><strong>Day 25</strong> 多设备轮询+断线重连机制 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="35" onchange="toggleDay(35)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-6">▶ M5 数据存储（SQLite + EF Core）· 对应原 Day36-42</h3>
+<ul>
+<li><strong>目标/产出</strong>：采集数据落历史库，能查趋势。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦 语法 + 🟧 <strong>EF Core</strong>(<code>Microsoft.EntityFrameworkCore</code>+<code>Sqlite</code> 包) + 🟧 <strong>SQLite</strong>(<code>Microsoft.Data.Sqlite</code>) + 🟩 多线程队列。</li>
+<li><strong>前置知识点（对比前端）</strong>：EF Core ≈ 前端的 ORM（如 Prisma/TypeORM）——用 C# 类描述表，LINQ 当 SQL 写。</li>
+<li><strong>练习</strong>：用 EF Core Code First 建 <code>History</code> 表（时间/点名/值），插入并查询昨天数据。· <label class="cb"><input type="checkbox" class="daycb" data-day="36" onchange="toggleDay(36)"> 打卡</label></li>
+<li><strong>项目任务</strong>：DAQ Monitor 把每次采集值写入历史库；提供"查某点某时段"的方法。· <label class="cb"><input type="checkbox" class="daycb" data-day="37" onchange="toggleDay(37)"> 打卡</label></li>
+<li><strong>Day 26</strong> SQL基础+SQLite · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="38" onchange="toggleDay(38)"> 打卡</label></li>
+<li><strong>Day 27</strong> EF Core入门CodeFirst · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="39" onchange="toggleDay(39)"> 打卡</label></li>
+<li><strong>Day 28</strong> 多线程Thread/Task/Parallel · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="40" onchange="toggleDay(40)"> 打卡</label></li>
+<li><strong>Day 29</strong> 生产者-消费者队列缓冲 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="41" onchange="toggleDay(41)"> 打卡</label></li>
+<li><strong>Day 30</strong> 实时存储策略(历史/缓存) · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="42" onchange="toggleDay(42)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-7">▶ M6 实时可视化 + 报警（你的 UI 主场）· 对应原 Day43-47</h3>
+<ul>
+<li><strong>目标/产出</strong>：监控主界面——实时曲线 + 数字面板 + 超限报警弹窗。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦🟩 前面全用上 + 🟧 <strong>LiveCharts2</strong>(实时曲线) + 🟩 WPF Binding/MVVM + 🟧 <strong>Serilog</strong>(日志)。</li>
+<li><strong>前置知识点（对比前端）</strong>：WPF 的 <code>Binding</code> ≈ Vue 的 <code>v-model</code>/<code>{{}}</code>；<code>INotifyPropertyChanged</code> ≈ 响应式 <code>ref</code>；LiveCharts ≈ ECharts/Chart.js；MVVM ≈ 前端"数据/视图分离"。</li>
+<li><strong>练习</strong>：用 LiveCharts 画一条随定时器更新的正弦曲线。· <label class="cb"><input type="checkbox" class="daycb" data-day="43" onchange="toggleDay(43)"> 打卡</label></li>
+<li><strong>项目任务</strong>：DAQ Monitor 主界面绑定采集数据，实时曲线滚动；某点超阈值弹报警+写 Serilog 日志。· <label class="cb"><input type="checkbox" class="daycb" data-day="44" onchange="toggleDay(44)"> 打卡</label></li>
+<li><strong>Day 31</strong> UI搭建 WPF+LiveCharts · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="45" onchange="toggleDay(45)"> 打卡</label></li>
+<li><strong>Day 32</strong> 通信层抽象(Modbus+PLC统一接口) · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="46" onchange="toggleDay(46)"> 打卡</label></li>
+<li><strong>Day 33</strong> 数据存储+报警逻辑 · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="47" onchange="toggleDay(47)"> 打卡</label></li>
+<li><strong>Day 34</strong> 完善+打包(ClickOnce/安装包) · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="48" onchange="toggleDay(48)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-8">▶ M7 企业级工程化（溢价项，13K 必问）· 对应原 Day41/48</h3>
+<ul>
+<li><strong>目标/产出</strong>：把 DAQ Monitor 打磨成"能拿出手的作品"，补工程化。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦🟩🟧 全复习 + 🟧 Serilog/配置/单元测试。</li>
+<li><strong>企业级清单（做到位）</strong>：
+  1. <strong>日志</strong>：Serilog 写文件+分级（Info/Error），代替 <code>Console.WriteLine</code>。
+  2. <strong>配置化</strong>：端口/轮询周期/报警阈值放 <code>appsettings.json</code>，不写死代码。
+  3. <strong>断线重连</strong>：采集层捕获异常→指数退避重连→日志。
+  4. <strong>异常处理</strong>：设备通信必须用 <code>try/catch</code>，单点故障不崩整个程序。
+  5. <strong>MVVM 分层</strong>：View / ViewModel / Model / Service 清晰分层，不在后台代码写业务逻辑。
+  6. <strong>测试意识</strong>：对"字节解析/缩放公式"写几个单元测试（用 xUnit 🟧）。</li>
+<li><strong>练习</strong>：给 M2 的"寄存器→工程量"缩放函数写 3 个 xUnit 用例。· <label class="cb"><input type="checkbox" class="daycb" data-day="49" onchange="toggleDay(49)"> 打卡</label></li>
+<li><strong>项目任务</strong>：把上述 6 条逐项落到 DAQ Monitor；写 README 说明架构与跑法。· <label class="cb"><input type="checkbox" class="daycb" data-day="50" onchange="toggleDay(50)"> 打卡</label></li>
+<li><strong>Day 35</strong> 日志Serilog+配置化 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="51" onchange="toggleDay(51)"> 打卡</label></li>
+<li><strong>Day 36</strong> 断线重连+异常处理完善 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="52" onchange="toggleDay(52)"> 打卡</label></li>
+<li><strong>Day 37</strong> 单元测试xUnit(解析/缩放) · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="53" onchange="toggleDay(53)"> 打卡</label></li>
+<li><strong>Day 38</strong> 项目复盘+GitHub提交+README · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="54" onchange="toggleDay(54)"> 打卡</label></li>
+</ul>
+<h3 id="sec-3-9">▶ M8 求职冲刺（拿 Offer）· 对应原 Day49-56</h3>
+<ul>
+<li><strong>目标/产出</strong>：简历 + 项目讲解 + 笔试面试通关。</li>
+<li>📌 <strong>本周技术来源</strong>：🟦🟩🟧 全复习，<strong>无新技术</strong>。</li>
+<li><strong>练习</strong>：用 STAR 法则写 3 段 DAQ Monitor 的项目经历。· <label class="cb"><input type="checkbox" class="daycb" data-day="55" onchange="toggleDay(55)"> 打卡</label></li>
+<li><strong>项目任务</strong>：把作品集（DAQ Monitor 源码+README+演示视频）挂 GitHub；按 Boss/猎聘/智联投递。· <label class="cb"><input type="checkbox" class="daycb" data-day="56" onchange="toggleDay(56)"> 打卡</label></li>
+<li><strong>Day 39</strong> 简历撰写(突出转型/UI/工程化) · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="57" onchange="toggleDay(57)"> 打卡</label></li>
+<li><strong>Day 40</strong> 上位机面试题(C#/WPF/通信) · 4h · <label class="cb"><input type="checkbox" class="daycb" data-day="58" onchange="toggleDay(58)"> 打卡</label></li>
+<li><strong>Day 41</strong> 项目讲解STAR准备 · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="59" onchange="toggleDay(59)"> 打卡</label></li>
+<li><strong>Day 42</strong> 笔试题协议/字节处理刷题 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="60" onchange="toggleDay(60)"> 打卡</label></li>
+<li><strong>Day 43</strong> 投递策略+渠道 · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="61" onchange="toggleDay(61)"> 打卡</label></li>
+<li><strong>Day 44</strong> 模拟面试+查漏 · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="62" onchange="toggleDay(62)"> 打卡</label></li>
+<li><strong>Day 45</strong> 持续投递+复盘 · 2h · <label class="cb"><input type="checkbox" class="daycb" data-day="63" onchange="toggleDay(63)"> 打卡</label></li>
+<li><strong>Day 46</strong> 学习网站进度同步(所学做成课程) · 3h · <label class="cb"><input type="checkbox" class="daycb" data-day="64" onchange="toggleDay(64)"> 打卡</label></li>
+</ul>
+<hr />
+<h2 id="sec-2-6">五、企业级工程化清单（13K 面试必问，贯穿全程）</h2>
+<table>
+<thead>
+<tr>
+<th>工程化能力</th>
+<th>在哪练</th>
+<th>面试常问</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>日志 Serilog</td>
+<td>M6/M7</td>
+<td>"你们怎么排查线上问题？"</td>
+</tr>
+<tr>
+<td>配置化 appsettings</td>
+<td>M7</td>
+<td>"参数写死还是配置？为什么？"</td>
+</tr>
+<tr>
+<td>断线重连</td>
+<td>M4/M7</td>
+<td>"设备掉线程序怎么办？"</td>
+</tr>
+<tr>
+<td>异常处理</td>
+<td>M3/M7</td>
+<td>"通信超时怎么处理？"</td>
+</tr>
+<tr>
+<td>MVVM 分层</td>
+<td>M0/M6</td>
+<td>"为什么用 MVVM 不用事件驱动？"</td>
+</tr>
+<tr>
+<td>单元测试 xUnit</td>
+<td>M7</td>
+<td>"核心算法有没有测试？"</td>
+</tr>
+<tr>
+<td>打包部署</td>
+<td>M6</td>
+<td>"怎么交付给客户？"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-7">六、进度打卡总表（按模块/天，随时勾）</h2>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>主题</th>
+<th>天数</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M0</td>
+<td>脚手架+C#热身</td>
+<td>Day1-7</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M1</td>
+<td>串口通信</td>
+<td>Day8-11</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Modbus</td>
+<td>Day12-17</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>TCP/Socket多设备</td>
+<td>Day18-20</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>PLC(S7)</td>
+<td>Day21-25</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>数据存储</td>
+<td>Day26-30</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M6</td>
+<td>实时可视化+报警</td>
+<td>Day31-34</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M7</td>
+<td>企业级工程化</td>
+<td>Day35-38</td>
+<td>打卡[ ]</td>
+</tr>
+<tr>
+<td>M8</td>
+<td>求职冲刺</td>
+<td>Day39-46</td>
+<td>打卡[ ]</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-8">七、资源清单</h2>
+<ul>
+<li><strong>官方</strong>：Microsoft Learn《C# 文档》《WPF》《.NET 网络通信》</li>
+<li><strong>协议</strong>：Modbus 协议规范（只读功能码/帧格式即可）；西门子 S7 通信手册</li>
+<li><strong>NuGet</strong>：NModbus / S7.Net / LiveCharts / Serilog / Microsoft.EntityFrameworkCore.Sqlite / xUnit</li>
+<li><strong>工具</strong>：com0com（虚拟串口）、Modbus 从站仿真、PLC 仿真（或真实 S7-1200/200 SMART）、Visual Studio 2022、.NET 8 SDK</li>
+<li><strong>对比学习</strong>：把你熟悉的 TS/JS 概念列在旁边（本路线已尽量标注）</li>
+</ul>
+<hr />
+<h2 id="sec-2-9">八、怎么用这份文档（必读）</h2>
+<ol>
+<li><strong>顺序走模块 M0→M8</strong>，每模块先读"前置知识点+练习"，做对练习再写"项目任务"。</li>
+<li>遇到 🟦/🟩/🟧 不确定属哪类，回看<strong>第〇节</strong>口诀。</li>
+<li>卡住就说「<strong>帮我讲 Mx 的 xx</strong>」或「<strong>Day N 练习答案</strong>」，我展开讲。</li>
+<li>学完一个模块就把 DAQ Monitor 对应功能提交一次 Git，作品集逐步成形。</li>
+<li>进度在配套 HTML 看板勾 <code>打卡[ ]</code>，看到进度条涨 = 你在进步。</li>
+<li>这份文档在<strong>腾讯在线文档</strong>同步更新；本地 <code>上位机项目制学习路线.md</code> 为源文件。</li>
+</ol>
+  <div class="foot">本页打卡状态自动保存在你浏览器本地（localStorage），换设备不会同步。想全平台同步就照计划里的腾讯文档打卡总表填写。</div>
+  </main>
+</div>
+
+<script>
+var TOTAL = 64;
+function key(n){return 'swj_day_'+n;}
+function toggleDay(n){
+  var cb=document.querySelector('.daycb[data-day="'+n+'"]');
+  if(cb.checked){localStorage.setItem(key(n),'1');}
+  else{localStorage.removeItem(key(n));}
+  syncAll();
+}
+function syncAll(){
+  var done=0;
+  document.querySelectorAll('.daycb').forEach(function(cb){
+    var n=cb.getAttribute('data-day');
+    var on=localStorage.getItem(key(n))==='1';
+    cb.checked=on; if(on)done++;
+  });
+  var pct=Math.round(done/TOTAL*100);
+  document.getElementById('bar').style.width=pct+'%';
+  document.getElementById('ptext').textContent='已完成 '+done+' / '+TOTAL+' 项 （'+pct+'%）';
+  document.title='上位机13K进度 '+done+'/'+TOTAL+' · '+pct+'%';
+}
+window.onload=function(){syncAll();};
+</script>
+
+</body>
+</html>

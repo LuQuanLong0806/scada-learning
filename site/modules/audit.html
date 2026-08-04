@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>质量复核 · 15K 完整性复核 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="audit">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、五维评估总表（✓到位 / △部分 / ✗缺失）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、逐模块具体缺口（用户原话：「掰开揉碎、有无外部链接」）</a><ul>
+<li class="l3"><a href="#sec-3-1">M0（地基，779 行，最扎实）</a></li>
+<li class="l3"><a href="#sec-3-2">M1 串口（168 行，明显偏薄）</a></li>
+<li class="l3"><a href="#sec-3-3">M2 Modbus（138 行，偏薄）</a></li>
+<li class="l3"><a href="#sec-3-4">M3 PLC（119 行，最薄）</a></li>
+<li class="l3"><a href="#sec-3-5">M4 EF Core（137 行）</a></li>
+<li class="l3"><a href="#sec-3-6">M5 可视化（142 行）</a></li>
+<li class="l3"><a href="#sec-3-7">M6 报警/日志（124 行）</a></li>
+<li class="l3"><a href="#sec-3-8">M7 MQTT/OPC（127 行）</a></li>
+<li class="l3"><a href="#sec-3-9">M8 工程化（140 行）</a></li>
+<li class="l3"><a href="#sec-3-10">M9 / M10（已较强）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、补齐计划（已在任务 T36/T38/T39 执行）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、诚实结论</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">讲义质量复核 · 15K 完整性 / 连贯性 / 易懂性 / 难点拆解 / 外部链接</h1>
+<blockquote>
+<p>复核日期：2026-07-23
+复核范围：M0–M10 全部深度版讲义 + 实操入门 + 练习阶梯 + README
+复核方法：逐篇精读全文，按用户要求的 5 个维度逐知识点打分；并用脚本量化「外部链接数」「温故知新段分布」。
+结论先行：<strong>主干路线已达标（13K 主干 + 工程素养超标），但距「真能学会、真达 15K」还差三类系统性缺口——外部链接全空白、难点只给代码不给推导、模块间复习/串联缺失。</strong> 本报告列出具体缺口，并已在同名任务中逐项补齐。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、五维评估总表（✓到位 / △部分 / ✗缺失）</h2>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>完整性</th>
+<th>连贯性(衔接句)</th>
+<th>易懂性(前端类比)</th>
+<th>难点掰开揉碎</th>
+<th>外部链接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M0 C#/WPF/并发</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>△(并发/异步偏浅)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M1 串口</td>
+<td>△</td>
+<td>△</td>
+<td>✓</td>
+<td>✗(CRC/半包没推导)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M2 Modbus</td>
+<td>△</td>
+<td>△</td>
+<td>✓</td>
+<td>✗(帧结构/异常码没讲)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M3 PLC(S7)</td>
+<td>△</td>
+<td>△</td>
+<td>△(类比偏松)</td>
+<td>✗(错误模型/区域没讲)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M4 EF Core</td>
+<td>△</td>
+<td>△</td>
+<td>✓</td>
+<td>✗(变更追踪/迁移没讲)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M5 可视化</td>
+<td>△</td>
+<td>✓(已修矛盾)</td>
+<td>✓</td>
+<td>△(Channel 原理没讲)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M6 报警/日志</td>
+<td>△</td>
+<td>△</td>
+<td>✓</td>
+<td>✗(回滞代码有讲义没教)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M7 MQTT/OPC</td>
+<td>△</td>
+<td>△</td>
+<td>✓</td>
+<td>✗(OPC UA <code>.Result</code> 危险未改)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M8 工程化</td>
+<td>△</td>
+<td>△</td>
+<td>✓</td>
+<td>△(源生成器/DI 生命周期浅)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M9 测试/DI/容错</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓(已较细)</td>
+<td>✗(0)</td>
+</tr>
+<tr>
+<td>M10 报表</td>
+<td>✓</td>
+<td>✓(有温故)</td>
+<td>✓</td>
+<td>✓(已较细)</td>
+<td>✗(0)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>量化事实</strong>：
+- 全部学习讲义外部链接 = <strong>0</strong>（仅 <code>DAQMonitor/README.md</code> 有 1 个自链接，不算）。
+- 有「温故知新/复习/跨模块联动」段的 = M0(仅 Day8)、M10。M1–M9 全部缺失。</p>
+<hr />
+<h2 id="sec-2-2">二、逐模块具体缺口（用户原话：「掰开揉碎、有无外部链接」）</h2>
+<h3 id="sec-3-1">M0（地基，779 行，最扎实）</h3>
+<ul>
+<li>缺：① 异步/线程「为什么需要」的底层推导（只讲 API，没讲「UI 线程被阻塞会怎样」的直观演示）；② 外部链接全无。</li>
+<li>建议补：📚 延伸阅读块 + 1 个「并发为什么难」的图解式说明。</li>
+</ul>
+<h3 id="sec-3-2">M1 串口（168 行，明显偏薄）</h3>
+<ul>
+<li><strong>难点没掰开</strong>：<code>Crc16.Modbus</code> 只给 8 行位运算代码，没讲「多项式 0xA001 是哪来的」「初始 0xFFFF 为什么」「每步右移/异或在干啥」「低字节在前线序怎么读」——这是新手最卡的点。</li>
+<li><strong>半包/粘包只给代码</strong>：<code>TryTakeFrame</code> 没讲「为什么串口会半包、真实现场多频繁、拆不出完整帧为什么要清空缓冲」。</li>
+<li><strong>此前审计标记的 B 类缺口仍未补</strong>：<code>BaseStream.ReadAsync</code> 现代写法、DTR/RTS 硬件流控、<code>DataReceived</code> 在某些机器不触发、跨线程 <code>Close</code> 崩溃。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-3">M2 Modbus（138 行，偏薄）</h3>
+<ul>
+<li><strong>Modbus 帧结构没讲</strong>：只调 <code>ReadHoldingRegisters</code>，没讲 RTU 帧 = 从站地址+功能码+数据+CRC，TCP 帧 = MBAP 头+功能码，以及「NModbus 帮你封好了，但你要懂才能排错」。</li>
+<li>缺：Modbus <strong>异常码</strong>（0x01 非法功能、0x02 非法地址…）、功能码全集、批量读性能对比。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-4">M3 PLC（119 行，最薄）</h3>
+<ul>
+<li>类比「DB块号+偏移=表名+字段偏移」偏松，易误解（DB 块是结构化，不是裸偏移表）。</li>
+<li><strong>S7 错误模型没讲</strong>：<code>plc.LastErrorCode</code> / <code>IsConnected</code> 检查、不能假设一定抛异常——这是真实现场高频坑，也是面试高频。</li>
+<li>缺：多区域 M/I/Q、<code>ReadClass</code>/<code>WriteClass</code> 结构体映射实战。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-5">M4 EF Core（137 行）</h3>
+<ul>
+<li><strong>变更追踪(Change Tracking)没讲</strong>：为什么 <code>SaveChanges</code> 能知道哪些改了、为什么 <code>using</code> 短生命周期、为什么 DI 里 DbContext 要 <code>Scoped</code>——这些是 15K 面试深挖点，只给了「用 using」一句话。</li>
+<li><strong>迁移(Migration)没动手</strong>：只在类比提了 <code>dotnet ef migrations add</code>，没给命令和「为什么要迁移」。</li>
+<li>缺：时间字段索引（历史查询性能）、WAL/高频写入策略。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-6">M5 可视化（142 行）</h3>
+<ul>
+<li><code>Channel&lt;T&gt;</code> 只当工具用，没讲「为什么用 Channel 而不是 <code>ObservableCollection</code> 直接 Add」「它内部无锁队列的原理」。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-7">M6 报警/日志（124 行）</h3>
+<ul>
+<li>⚠️ <strong>严重不一致</strong>：DAQMonitor 的 <code>AlarmEngine.cs</code> 真实代码<strong>已用回滞(hysteresis)带</strong>，但讲义只把回滞标为「可选进阶」且<strong>没教怎么实现</strong>——学员看讲义写不出项目里的回滞。</li>
+<li>缺：报警确认/历史入库（接 M4）、规则运行时增删的线程安全。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-8">M7 MQTT/OPC（127 行）</h3>
+<ul>
+<li>⚠️ <strong>仍用 <code>.Result</code> 同步阻塞</strong>（Day2 第①行 <code>Session.Create(...).Result</code>），审计已标「死锁风险」未改。</li>
+<li>缺：MQTT <strong>订阅</strong>（云端下发设定值，真实上云是双向）、OPC UA 异步正确写法。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-9">M8 工程化（140 行）</h3>
+<ul>
+<li><code>[ObservableProperty]</code>/<code>[RelayCommand]</code> 源生成器没讲「编译期生成了什么代码、为什么比手写 INotifyPropertyChanged 好」。</li>
+<li>DI 生命周期只给了一句话，没讲「Singleton/Scoped/Transient 在 WPF + EF Core 场景怎么选」。</li>
+<li>打包只说「VS 右键发布」，没给实际步骤/踩坑。</li>
+<li>缺温故知新段、缺外部链接。</li>
+</ul>
+<h3 id="sec-3-10">M9 / M10（已较强）</h3>
+<ul>
+<li>已含温故知新、代码已 <code>dotnet test</code> 验证、深度足够。唯一缺口：<strong>外部链接全无</strong>。</li>
+<li>仅做补充链接即可，不必重写。</li>
+</ul>
+<hr />
+<h2 id="sec-2-3">三、补齐计划（已在任务 T36/T38/T39 执行）</h2>
+<p><strong>P0 — 用户显式要求，全库通用</strong>
+1. 每个模块加「📚 延伸阅读（官方文档 + 精选教程）」段，配<strong>真实可点击</strong>链接（Microsoft Learn / 官方 GitHub / 官方文档站）。
+2. 新建 <code>外部链接索引.md</code> 汇总所有链接 + 一句话说明「解决什么不懂」。</p>
+<p><strong>P1 — 难点掰开揉碎（M1–M8）</strong>
+3. M1：CRC 算法分步推导 + 半包/粘包原理图 + SerialPort 已知坑。
+4. M2：Modbus RTU/TCP 帧结构图解 + 异常码表。
+5. M3：S7 错误模型 + 类比修正 + 多区域。
+6. M4：变更追踪原理 + 迁移实战 + DbContext 生命周期。
+7. M5：Channel<T> 为什么替代 ObservableCollection。
+8. M6：回滞(hysteresis)真实教学（对齐代码）。
+9. M7：OPC UA 改异步 + MQTT 订阅(双向)。</p>
+<p><strong>P2 — 连贯性（温故知新）</strong>
+10. M1–M8 各补「📌 温故知新 / 跨模块联动」段，串联前后知识点。</p>
+<p><strong>P3 — 产物</strong>
+11. 更新 README（标注已含外链+难点拆解+复习段）、重建 HTML、MEMORY 记录。</p>
+<hr />
+<h2 id="sec-2-4">四、诚实结论</h2>
+<p>路线方向对、主干技术够 13~15K 硬门槛、工程素养(M9)甚至超标。但<strong>「学会」和「达 15K」靠的是把难点讲透 + 真把项目跑起来 + 面试能讲为什么</strong>。此前文档「看起来全」，但在「难点推导、外部链接、模块串联」三处偏薄，正是你担心的「弄虚作假」风险点。本轮补齐后，文档才真正配得上「15K 真实学习资料」之名。</p>
+<div class="pager">
+  <a class="prev" href="job.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">真实岗位调研 · 13-15K 技能对照</div></a>
+  <a class="next" href="jobmap.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">岗位驱动 · 知识点全景图谱与缺口审计</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

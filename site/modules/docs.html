@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>文档能力 · 设计/协议/操作/测试文档 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="docs">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、设计文档（模块设计）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、上下位机协议文档</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、操作说明（给用户）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、测试报告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📌 跨模块联动</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">文档能力 · 设计 / 协议 / 操作 / 测试文档（交付硬要求）</h1>
+<blockquote>
+<p><strong>为什么有这篇</strong>：真实 JD 多次明确要求"设计文档 / 上下位机协议文档 / 操作说明 / 测试报告"。代码能跑还不够，<strong>写得出文档 = 能独立负责模块</strong>。这是 13→15K 的分水岭之一。
+本文给你 4 类文档的<strong>模板 + 结合 DAQ Monitor 的范例 + 练习</strong>。</p>
+</blockquote>
+<h2 id="sec-2-1">一、设计文档（模块设计）</h2>
+<ul>
+<li><strong>内容</strong>：模块职责、对外接口、依赖、关键流程图、异常处理策略。</li>
+<li><strong>DAQ Monitor 范例</strong>：<code>AcquisitionPipeline</code> 设计——输入 <code>IDevice.DataReceived</code>，输出 <code>PointStore</code> + 报警，用 <code>Channel&lt;T&gt;</code> 缓冲，200ms 批量落库。</li>
+<li><strong>练习</strong>：给 M11 <code>TcpDevice</code> 写一页设计文档（接口 / 帧格式 / 重连策略）。</li>
+</ul>
+<h2 id="sec-2-2">二、上下位机协议文档</h2>
+<ul>
+<li><strong>内容</strong>：帧格式、命令字、数据域含义、校验、时序、错误码。</li>
+<li><strong>DAQ Monitor 范例</strong>：把 M11 的"长度前缀帧"写成协议文档（头 / 长度 / 命令 / 数据 / 校验 / 尾）。</li>
+<li><strong>练习</strong>：把 M2 Modbus 读保持寄存器报文整理成协议文档。</li>
+</ul>
+<h2 id="sec-2-3">三、操作说明（给用户）</h2>
+<ul>
+<li><strong>内容</strong>：怎么装、怎么配串口/IP、怎么看曲线、怎么导出报表、常见报错怎么办。</li>
+<li><strong>练习</strong>：写 DAQ Monitor 的"5 分钟上手"操作说明。</li>
+</ul>
+<h2 id="sec-2-4">四、测试报告</h2>
+<ul>
+<li><strong>内容</strong>：测了什么、用例、通过情况、遗留风险。</li>
+<li><strong>DAQ Monitor 范例</strong>：我们的 28 个单测（<code>CompositionSmoke</code> 无界面冒烟 + <code>ReportService</code> 报表聚合 + <code>SerialDeviceTests</code> 串口通信层 6 项 + <code>CanDeviceTests</code>/<code>UsbHidDeviceTests</code> 各 2 + <code>DeviceHealthMonitorTests</code> 2）即报告素材。</li>
+<li><strong>练习</strong>：把 M9 的测试写成一页测试报告。</li>
+</ul>
+<h2 id="sec-2-5">📌 跨模块联动</h2>
+<ul>
+<li>每完成一个模块（M0–M14），顺手产出对应"设计 / 协议 / 操作 / 测试"文档中的<strong>相关一项</strong>，作品集更完整。</li>
+<li>关联：<strong>M9 工程素养（测试）</strong>、<strong>M11 协议帧</strong>、<strong>M2 Modbus 报文</strong>。</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="jobmap.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">岗位驱动 · 知识点全景图谱与缺口审计</div></a>
+  <a class="next" href="license.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">依赖与授权 · 免费开源清单</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>项目开发全景 · 每一步是什么/为什么 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="roadmap-dev">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">0. 一句话建立心智模型</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">1. 开发步骤全景表（按真实顺序）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">2. 现成 vs 自研 · 一页速查</a><ul>
+<li class="l3"><a href="#sec-3-1">✅ 全程可以直接用（免费，不怕没授权）</a></li>
+<li class="l3"><a href="#sec-3-2">🛠️ 必须自己写（这是你"会做上位机"的证据）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">3. 快速看懂这个项目的"阅读顺序"</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">4. 你学的时候，每一步该"抄"什么、该"写"什么</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">DAQMonitor 项目开发全景 · 每一步是什么 / 为什么 / 现成 vs 自研</h1>
+<blockquote>
+<p>这份文档帮你<strong>一眼看懂企业级上位机是怎么长出来的</strong>。它不是按"模块号 M0–M14"排的，而是按<strong>项目真实成长的顺序</strong>排——你学的时候也是这个顺序：先打地基，再一层层往上加能力。</p>
+<p>图例（和我们讲义一致）：
+- 🟦 <strong>C# 语法</strong>：语言自带，不装包
+- 🟩 <strong>.NET 类库（BCL）</strong>：随 .NET 安装，官方自带
+- 🟧 <strong>第三方 NuGet</strong>：免费开源，需 <code>dotnet add package</code>
+- 🛠️ <strong>自己开发</strong>：业务逻辑 / 架构 / 控件 / 协议解析——这是你"学会写上位机"的真正价值所在</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">0. 一句话建立心智模型</h2>
+<pre><code>DAQMonitor = 三层架构 + 一条数据主线 + 三大支柱
+├─ 三层架构：Core(业务核心) · UI(界面) · Tests(测试)   ← 分层是为了&quot;可替换、可测试&quot;
+├─ 一条数据主线：设备 → 管道 → 存储/报警 → 界面/库/云   ← 数据永远单向流动
+└─ 三大支柱：① 面向接口(换设备不动UI) ② 并发采集(后台不卡界面) ③ 工程素养(测试/DI/容错)
+</code></pre>
+<p><strong>最关键的认知</strong>：这个项目里<strong>"能直接用的"都是地基和工具</strong>（语言、框架、通信库、图表库、数据库），<strong>"必须自己写的"才是你的本事</strong>（设备抽象、采集管道、报警逻辑、业务控件、协议解析、组合根装配）。下面逐步拆开。</p>
+<hr />
+<h2 id="sec-2-2">1. 开发步骤全景表（按真实顺序）</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>这一步做什么</th>
+<th>为什么必须这么做</th>
+<th>直接用（现成）</th>
+<th>自己开发（自研）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>脚手架 + 分层</strong>（Core/UI/Tests 三工程）</td>
+<td>分层后"换设备不动 UI、换数据库不动采集"，且每层可独立测试</td>
+<td>🟦 项目模板 / 🟩 MSBuild</td>
+<td>🛠️ 三层目录划分、引用关系、命名约定</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>领域模型 <code>SensorPoint</code></strong>（点位/数值/时间/状态）</td>
+<td>全链路共用一个"数据点"结构，下游不用反复转换</td>
+<td>🟦 <code>record</code>/<code>class</code></td>
+<td>🛠️ 字段设计（含 <code>Timestamp</code> 贯穿事件链）</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>设备抽象 <code>IDevice</code> + <code>DeviceBase</code></strong></td>
+<td>界面只认接口，不关心串口/网口/PLC——<strong>换硬件 UI 零改动</strong>（面向接口的核心）</td>
+<td>🟦 <code>interface</code>/<code>event</code>/<code>abstract</code></td>
+<td>🛠️ 接口方法设计（<code>Connect/Read/Write/DataReceived</code>）</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>模拟设备 <code>SimulatedDevice</code></strong></td>
+<td>没有真实硬件也能跑通整条链路，边学边演示</td>
+<td>🟩 <code>Task</code>/定时器/Random</td>
+<td>🛠️ 后台线程按周期产点、~10% 越界触发报警</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>采集管道 <code>AcquisitionPipeline</code></strong></td>
+<td>后台线程收数据 → <code>Channel&lt;T&gt;</code> 缓冲 → 200ms 定时批量出队，<strong>界面永不卡顿、无内存泄漏</strong></td>
+<td>🟩 <code>System.Threading.Channels</code></td>
+<td>🛠️ 统一采集架构（注册设备/批量出队/回调 UI）</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>存储 <code>PointStore</code></strong></td>
+<td>最新值缓存 + 历史序列，报警/曲线/报表都从它取</td>
+<td>🟦 <code>ConcurrentDictionary</code>/List</td>
+<td>🛠️ 线程安全的最新值表 + 历史循环缓冲</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>报警引擎 <code>AlarmEngine</code></strong>（带回滞）</td>
+<td>阈值判断 + <strong>回滞(Hysteresis)防抖动</strong>（到 101 报、回到 99 才解除，不是 100 反复跳）</td>
+<td>🟦 事件/字典</td>
+<td>🛠️ 规则模型、越界判定、上升沿/下降沿（报警+恢复）</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>组合根 <code>Bootstrapper</code></strong>（DI 装配）</td>
+<td>把所有服务"焊"在一起，<strong>放在 Core 不在 UI</strong>——测试/未来服务端都能复用同一套装配</td>
+<td>🟧 <code>Microsoft.Extensions.DependencyInjection</code></td>
+<td>🛠️ 注册顺序、生命周期(Singleton)、预置报警规则</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>界面 <code>MainWindow</code> + <code>MainViewModel</code></strong>（MVVM）</td>
+<td>MVVM 让"数据绑定"代替"手动刷新控件"，企业级标配</td>
+<td>🟩 WPF / 🟧 <code>CommunityToolkit.Mvvm</code> 思路</td>
+<td>🛠️ <code>MainViewModel</code> 订阅管道事件、命令(Start/Stop/导出)、<code>_levels</code> 同步报警级别</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>自定义控件 <code>GaugeControl</code>/<code>StatusDot</code></strong></td>
+<td>仪表盘/状态灯是上位机"脸面"，自绘才能满足工业审美与复用</td>
+<td>🟩 WPF <code>Control</code>/<code>DependencyProperty</code></td>
+<td>🛠️ <code>Generic.xaml</code>+<code>ThemeInfo</code>、<code>Level</code> 属性接报警变色</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>持久化 <code>EF Core</code> + SQLite</strong></td>
+<td>历史数据落库才能查/导出/做报表</td>
+<td>🟧 <code>EF Core</code>/<code>SQLite</code>（均免费）</td>
+<td>🛠️ <code>DbContext</code>、实体映射、迁移、按时间查询</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>实时可视化 <code>LiveCharts</code></strong></td>
+<td>把点变成动态曲线/仪表盘，人才看得懂</td>
+<td>🟧 <code>LiveCharts</code>（免费）</td>
+<td>🛠️ 把 <code>PointStore</code> 数据接进图表系列的绑定逻辑</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>报表 <code>ReportService</code> + <code>ClosedXML</code></strong></td>
+<td>把"数据库+曲线+报警"收口成企业交付物（Excel/PDF）</td>
+<td>🟧 <code>ClosedXML</code>(MIT)/<code>QuestPDF</code></td>
+<td>🛠️ <code>ReportService</code> 聚合(min/max/avg，纯逻辑可单测)</td>
+</tr>
+<tr>
+<td>14</td>
+<td><strong>诊断/调试 <code>DiagnosticsService</code> + 面板</strong></td>
+<td>工业现场 80% 时间在"为什么没数据/连不上"——内置诊断面板 = 排查力</td>
+<td>🟧 <code>Serilog</code>（结构化日志，免费）</td>
+<td>🛠️ 采集统计(采样数/报警数/批次耗时) + 环形日志(≤200条) + 诊断 Tab</td>
+</tr>
+<tr>
+<td>15</td>
+<td><strong>通信层 M1–M3</strong>（串口/Modbus/PLC）</td>
+<td>真实设备靠协议对接，这是岗位"必会"</td>
+<td>🟧 <code>System.IO.Ports</code>(BCL)/<code>NModbus</code>/<code>S7.Net</code>/<code>HslCommunication</code></td>
+<td>🛠️ 把串口/Modbus/PLC 实现成 <code>IDevice</code> 的具体子类（接步骤 3 的接口）。<strong>✅ 串口已落地</strong>：<code>SerialDevice</code> + <code>ISerialChannel</code>/<code>RealSerialChannel</code>/<code>LoopbackSerialChannel</code>（零硬件内存回环，没串口也能跑），含 <code>FrameParser.Build</code> 双向建帧 + CRC 校验，21 测试中 5 个串口实测（单帧/粘包/半包/坏CRC/管道集成）。Modbus/PLC 设备类待 M2/M3 落地。</td>
+</tr>
+<tr>
+<td>16</td>
+<td><strong>上云 M7</strong>（OPC UA / MQTT）</td>
+<td>对接 SCADA/云端，15K 加分</td>
+<td>🟧 <code>OPCFoundation UA</code>/<code>MQTTnet</code>（免费）</td>
+<td>🛠️ 发布订阅桥接、断线重连策略</td>
+</tr>
+<tr>
+<td>17</td>
+<td><strong>工程量转换 M12</strong></td>
+<td>原始值(0–4095 / 4–20mA) → 工程量(℃/MPa)，DAQ 基本功</td>
+<td>—</td>
+<td>🛠️ 线性标定公式、多量程、反向下发、查表法</td>
+</tr>
+<tr>
+<td>18</td>
+<td><strong>容错重试 <code>Resilience/Retry</code></strong></td>
+<td>网络抖动/设备掉线时指数退避重连，生产环境必备</td>
+<td>🟦 <code>Task</code>/<code>CancellationToken</code></td>
+<td>🛠️ 指数退避算法封装</td>
+</tr>
+<tr>
+<td>19</td>
+<td><strong>单元测试 <code>xunit</code> + <code>Moq</code></strong></td>
+<td>证明代码对、重构不怕改坏——13K→15K 分水岭</td>
+<td>🟧 <code>xunit</code>/<code>Moq</code>（免费）</td>
+<td>🛠️ 用 <code>Moq</code> 造假设备验证管道、<strong>28 个测试全绿（含 CAN/USB/心跳监测）</strong></td>
+</tr>
+<tr>
+<td>20</td>
+<td><strong>协议解析 <code>Protocol/Crc16/FrameParser</code></strong></td>
+<td>串口/TCP 私有帧要自己拆包、算校验</td>
+<td>🟦 位运算</td>
+<td>🛠️ CRC16 反射算法、半包/粘包处理、帧结构解析</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">2. 现成 vs 自研 · 一页速查</h2>
+<h3 id="sec-3-1">✅ 全程可以直接用（免费，不怕没授权）</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>直接用什么</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言/运行时</td>
+<td>C# / .NET 8 / WPF</td>
+<td>官方开源</td>
+</tr>
+<tr>
+<td>依赖注入</td>
+<td><code>Microsoft.Extensions.DependencyInjection</code></td>
+<td>官方，组合根用它</td>
+</tr>
+<tr>
+<td>串口</td>
+<td><code>System.IO.Ports</code>（BCL）</td>
+<td>官方类库，不用装包</td>
+</tr>
+<tr>
+<td>工业协议</td>
+<td><code>NModbus</code> / <code>S7.Net</code> / <code>HslCommunication</code></td>
+<td>均免费开源，国产 Hsl 最常用</td>
+</tr>
+<tr>
+<td>上云</td>
+<td><code>OPCFoundation UA</code> / <code>MQTTnet</code></td>
+<td>免费</td>
+</tr>
+<tr>
+<td>数据库</td>
+<td><code>EF Core</code> + <code>SQLite</code> / <code>SQL Server</code> / <code>MySQL</code></td>
+<td>均免费（企业库用 SQL Server/MySQL 也免费）</td>
+</tr>
+<tr>
+<td>图表</td>
+<td><code>LiveCharts</code> / <code>OxyPlot</code></td>
+<td>免费</td>
+</tr>
+<tr>
+<td>报表</td>
+<td><code>ClosedXML</code>(MIT) / <code>QuestPDF</code></td>
+<td>免费导出 Excel/PDF</td>
+</tr>
+<tr>
+<td>日志</td>
+<td><code>Serilog</code> / <code>NLog</code></td>
+<td>免费结构化日志</td>
+</tr>
+<tr>
+<td>UI 控件库</td>
+<td><code>HandyControl</code> / <code>MaterialDesign</code></td>
+<td>免费，告别丑界面</td>
+</tr>
+<tr>
+<td>测试</td>
+<td><code>xunit</code> + <code>Moq</code></td>
+<td>免费</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">🛠️ 必须自己写（这是你"会做上位机"的证据）</h3>
+<table>
+<thead>
+<tr>
+<th>自研内容</th>
+<th>对应模块</th>
+<th>为什么不能省</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IDevice</code>/<code>DeviceBase</code> 抽象</td>
+<td>M0/M3</td>
+<td>换硬件 UI 零改动的灵魂</td>
+</tr>
+<tr>
+<td><code>SimulatedDevice</code> 模拟器</td>
+<td>M0</td>
+<td>没硬件也能开发/演示</td>
+</tr>
+<tr>
+<td><code>AcquisitionPipeline</code> 采集管道</td>
+<td>M0/M9</td>
+<td>并发采集不卡界面的核心</td>
+</tr>
+<tr>
+<td><code>PointStore</code> 存储</td>
+<td>M0</td>
+<td>最新值+历史，全系统数据源</td>
+</tr>
+<tr>
+<td><code>AlarmEngine</code> 报警(回滞)</td>
+<td>M6</td>
+<td>业务逻辑，框架给不了</td>
+</tr>
+<tr>
+<td><code>Bootstrapper</code> 组合根</td>
+<td>M9</td>
+<td>架构装配说明书</td>
+</tr>
+<tr>
+<td><code>MainViewModel</code></td>
+<td>M0/M8</td>
+<td>MVVM 业务逻辑层</td>
+</tr>
+<tr>
+<td><code>GaugeControl</code>/<code>StatusDot</code> 控件</td>
+<td>M14(已种入)</td>
+<td>工业自绘控件，JD 点名</td>
+</tr>
+<tr>
+<td><code>ReportService</code> 聚合</td>
+<td>M10</td>
+<td>报表业务逻辑，可单测</td>
+</tr>
+<tr>
+<td><code>DiagnosticsService</code> 诊断</td>
+<td>调试能力</td>
+<td>排查力，企业标配</td>
+</tr>
+<tr>
+<td>工程量转换公式</td>
+<td>M12</td>
+<td>领域知识，自己算</td>
+</tr>
+<tr>
+<td><code>Retry</code> 容错</td>
+<td>M9</td>
+<td>生产可靠性</td>
+</tr>
+<tr>
+<td><code>Crc16</code>/<code>FrameParser</code> 协议解析</td>
+<td>M1/M11</td>
+<td>私有帧必须自己拆</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-4">3. 快速看懂这个项目的"阅读顺序"</h2>
+<blockquote>
+<p>别从 <code>Main()</code> 开始读，按<strong>数据主线</strong>读最快：</p>
+</blockquote>
+<ol>
+<li><strong>先看 <code>IDevice</code>（Devices/IDevice.cs）</strong> —— 它是整个系统的"插座标准"：所有设备（模拟/串口/PLC）都插这个口。</li>
+<li><strong>再看 <code>Bootstrapper</code>（AppServices/Bootstrapper.cs）</strong> —— 它是"装配图"：<code>new SimulatedDevice()</code> 挂到 <code>AcquisitionPipeline</code>，报警规则预置好。换真实设备<strong>只要改这一行</strong>。</li>
+<li><strong>然后 <code>AcquisitionPipeline</code></strong> —— 数据怎么从设备流进来、怎么批量出去。</li>
+<li><strong><code>MainViewModel</code> + <code>MainWindow</code></strong> —— 数据怎么进界面、控件怎么绑。</li>
+<li><strong>最后看 <code>GaugeControl</code>/<code>AlarmEngine</code>/<code>DiagnosticsService</code></strong> —— 这些是"加分项"：控件自绘、报警逻辑、诊断面板。</li>
+</ol>
+<p><strong>一句话</strong>：<code>IDevice</code> 定义标准 → <code>Bootstrapper</code> 装配 → <code>Pipeline</code> 流动 → <code>ViewModel/UI</code> 展示 → 自研控件/报警/诊断/报表 是长在这条主线上的"器官"。</p>
+<hr />
+<h2 id="sec-2-5">4. 你学的时候，每一步该"抄"什么、该"写"什么</h2>
+<table>
+<thead>
+<tr>
+<th>学习动作</th>
+<th>抄（直接用）</th>
+<th>写（自己动手）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>搭工程</td>
+<td>复制三层 csproj 模板</td>
+<td>决定命名、引用谁</td>
+</tr>
+<tr>
+<td>接设备</td>
+<td>装 <code>NModbus</code>/<code>S7.Net</code></td>
+<td>写 <code>XxxDevice : DeviceBase</code> 把协议套进 <code>IDevice</code></td>
+</tr>
+<tr>
+<td>做界面</td>
+<td>用 WPF / HandyControl</td>
+<td>写 <code>ViewModel</code> 业务逻辑、写自定义控件</td>
+</tr>
+<tr>
+<td>存数据</td>
+<td>用 <code>EF Core</code></td>
+<td>设计实体、写查询/聚合</td>
+</tr>
+<tr>
+<td>出报表</td>
+<td>用 <code>ClosedXML</code></td>
+<td>写 <code>ReportService</code> 聚合逻辑</td>
+</tr>
+<tr>
+<td>保质量</td>
+<td>用 <code>xunit</code>/<code>Moq</code></td>
+<td>写测试用例、用 Mock 造假设备</td>
+</tr>
+<tr>
+<td>排故障</td>
+<td>用 <code>Serilog</code></td>
+<td>设计诊断面板要展示哪些指标</td>
+</tr>
+</tbody>
+</table>
+<p><strong>核心心法</strong>：<strong>"数据来源与绘制分离、原始值与工程量分离，换场景只改配置不改动控件"</strong>——这就是企业级复用的精髓，也是你面试时能讲清楚、和 8K 岗拉开差距的关键。</p>
+<hr />
+<h2 id="sec-2-6">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li>本表是 <strong>M0–M14 全部模块在项目里的"落地位置"</strong>：想看某知识点在代码里长什么样，按 # 列对应模块去翻 <code>DAQMonitor/src</code>。</li>
+<li><strong>M0</strong> 打的三层+接口+并发，是后面所有模块的"插槽"；<strong>M9</strong> 的 DI/测试/容错让架构可装配可验证；<strong>M14</strong> 的控件已提前种进项目（步骤 10），不是等学完才补。</li>
+<li><strong>调试能力</strong>（步骤 14）不是单独一章，而是贯穿每一步——<code>DiagnosticsService</code> 统计采样数/报警数/批次耗时，帮你立刻看出"哪一步没跑起来"。</li>
+</ul>
+<h2 id="sec-2-7">📚 延伸阅读</h2>
+<ul>
+<li>组合根为什么放 Core 不在 UI：<a href="https://learn.microsoft.com/dotnet/core/extensions/dependency-injection">Microsoft DI 官方文档</a></li>
+<li>WPF 自定义控件 vs UserControl：<a href="https://learn.microsoft.com/dotnet/desktop/wpf/controls/control-authoring-overview">WPF Control 创作概述</a></li>
+<li>所有第三方库官方入口见站点「💡 依赖与授权」卡片（全部免费开源）。</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="wpf.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">WPF / XAML 入门速查（前端类比版）</div></a>
+  <a class="next" href="proj2.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">项目二 · CommLab 协议调试助手（规划）</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

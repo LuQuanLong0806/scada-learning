@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WPF / XAML 入门速查（前端类比版） · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="wpf">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一句话讲清楚</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">🟢 核心映射表（前端 → WPF，先建立肌肉记忆）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">🟡 逐点精讲：怎么用（先懂用法，再落工程）</a><ul>
+<li class="l3"><a href="#sec-3-1">① 最小窗口：XAML ≈ JSX</a></li>
+<li class="l3"><a href="#sec-3-2">② 绑定基础（地道写法）：Text = "{Binding Temp}" ≈ v-model</a></li>
+<li class="l3"><a href="#sec-3-3">③ 列表绑定：ItemsControl ≈ array.map()</a></li>
+<li class="l3"><a href="#sec-3-4">④ 命令绑定：Command ≈ useCallback</a></li>
+<li class="l3"><a href="#sec-3-5">⑤ 模板：ControlTemplate ≈ 重写 render</a></li>
+<li class="l3"><a href="#sec-3-6">⑥ 依赖属性 + 自定义控件（呼应 M14 的 GaugeControl）</a></li>
+<li class="l3"><a href="#sec-3-7">⑦ 跨线程改 UI：Dispatcher ≈ 回主线程</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">⭐ 重点 / 🔥 坑表</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧪 三档练习</a><ul>
+<li class="l3"><a href="#sec-3-8">💡 工控导师说</a></li>
+<li class="l3"><a href="#sec-3-9">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-10">📅 明日预告</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">WPF / XAML 入门速查（前端类比版）🖥️</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 地基里的 WPF 部分（M0 Day 8 立工程，这里集中讲「怎么写 XAML」）
+<strong>给谁看</strong>：你是有扎实 JS/TS 直觉的前端工程师。WPF 对前端来说<strong>一点都不陌生</strong>——XAML ≈ JSX，Binding ≈ 数据驱动视图。这份速查把所有 WPF 概念和你的前端知识一一对上，<strong>先讲概念 + 怎么用，再给工程对照</strong>。
+<strong>技术来源</strong>：🟩 WPF 随 .NET（<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，不装包）；🟧 <code>CommunityToolkit.Mvvm</code>（MVVM 源生成器）。</p>
+</blockquote>
+<h2 id="sec-2-1">一句话讲清楚</h2>
+<p>WPF 用 <strong>XAML（声明式 UI）+ 数据绑定</strong> 驱动界面，思想和 React「声明 UI + state 变 → 视图自动重渲染」完全同源。<strong>你不是在「代码里改控件属性」，而是在「绑一个数据，数据变了界面自己变」</strong>——这就是 WPF 和老 WinForm「直接 <code>label.Text = x</code>」的本质区别。</p>
+<hr />
+<h2 id="sec-2-2">🟢 核心映射表（前端 → WPF，先建立肌肉记忆）</h2>
+<table>
+<thead>
+<tr>
+<th>前端概念</th>
+<th>WPF 概念</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>JSX</code> / <code>html</code></td>
+<td><strong>XAML</strong></td>
+<td>声明式描述 UI 结构</td>
+</tr>
+<tr>
+<td><code>id</code> / <code>ref</code></td>
+<td><code>x:Name</code></td>
+<td>后台代码里拿控件实例</td>
+</tr>
+<tr>
+<td><code>const [x,setX]=useState()</code></td>
+<td><strong><code>{Binding X}</code> + 属性变化通知</strong></td>
+<td>数据变 → 界面自动变</td>
+</tr>
+<tr>
+<td>组件 <code>state</code> / <code>props</code></td>
+<td><strong>DataContext / ViewModel</strong></td>
+<td>视图绑定的数据来源</td>
+</tr>
+<tr>
+<td><code>useEffect</code> 监听 → 改 DOM</td>
+<td><strong>INotifyPropertyChanged</strong></td>
+<td>属性变了通知 WPF 重绘</td>
+</tr>
+<tr>
+<td>CSS 类 / <code>:hover</code></td>
+<td><strong>Style / Trigger</strong></td>
+<td>状态样式</td>
+</tr>
+<tr>
+<td>重写组件 <code>render</code></td>
+<td><strong>ControlTemplate / DataTemplate</strong></td>
+<td>改外观 / 按数据类型给不同视图</td>
+</tr>
+<tr>
+<td><code>array.map(x =&gt; &lt;li&gt;)</code></td>
+<td><strong>ItemsControl + ItemTemplate</strong></td>
+<td>列表渲染</td>
+</tr>
+<tr>
+<td><code>flex</code> / <code>grid</code> 布局</td>
+<td><strong>StackPanel / Grid / DockPanel</strong></td>
+<td>布局容器</td>
+</tr>
+<tr>
+<td><code>onClick={fn}</code></td>
+<td><strong><code>Command</code> / <code>Click</code> 事件</strong></td>
+<td>交互</td>
+</tr>
+<tr>
+<td><code>useCallback</code></td>
+<td><strong><code>ICommand</code> / RelayCommand</strong></td>
+<td>可绑定的命令（带能否执行）</td>
+</tr>
+<tr>
+<td>React 自动批处理</td>
+<td><strong><code>Dispatcher.Invoke</code></strong></td>
+<td>后台线程改 UI 必须「回主线程」</td>
+</tr>
+<tr>
+<td>全局 CSS 文件</td>
+<td><strong>ResourceDictionary / Themes/Generic.xaml</strong></td>
+<td>全局样式表</td>
+</tr>
+<tr>
+<td><code>reactive</code> 状态</td>
+<td><strong>DependencyProperty</strong></td>
+<td>可被绑定/动画/样式监听的"超级属性"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">🟡 逐点精讲：怎么用（先懂用法，再落工程）</h2>
+<h3 id="sec-3-1">① 最小窗口：XAML ≈ JSX</h3>
+<pre><code class="language-xml">&lt;!-- MainWindow.xaml --&gt;
+&lt;Window x:Class=&quot;DaqMonitor.UI.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        Title=&quot;DAQ Monitor&quot; Height=&quot;450&quot; Width=&quot;800&quot;&gt;
+    &lt;Grid&gt;
+        &lt;Button x:Name=&quot;BtnStart&quot; Content=&quot;启动采集&quot; Click=&quot;BtnStart_Click&quot;/&gt;
+        &lt;TextBlock x:Name=&quot;TxtStatus&quot; Text=&quot;未启动&quot; HorizontalAlignment=&quot;Center&quot;/&gt;
+    &lt;/Grid&gt;
+&lt;/Window&gt;
+</code></pre>
+<p><strong>前端类比</strong>：<code>&lt;Window&gt;</code> 像根组件，<code>&lt;Grid&gt;</code> 像布局容器，<code>&lt;Button Click=...&gt;</code> ≈ <code>onClick</code>。<code>x:Name</code> ≈ <code>ref</code>，后台 <code>.cs</code> 里直接 <code>TxtStatus.Text = "..."</code>。这是<strong>WinForm 式写法</strong>（直接操作控件），能用但不地道——下面讲地道的数据驱动写法。</p>
+<h3 id="sec-3-2">② 绑定基础（地道写法）：Text = "{Binding Temp}" ≈ v-model</h3>
+<p><strong>关键</strong>：界面不写死值，而是「绑一个属性」。属性变了，TextBlock 自动更新。</p>
+<pre><code class="language-xml">&lt;TextBlock Text=&quot;{Binding Temp, StringFormat={}{0:F1} ℃}&quot;/&gt;
+</code></pre>
+<p>后台 ViewModel（用 CommunityToolkit.Mvvm 源生成器，免写样板）：</p>
+<pre><code class="language-csharp">using CommunityToolkit.Mvvm.ComponentModel;
+public partial class MainViewModel : ObservableObject
+{
+    [ObservableProperty] private double _temp;   // 自动生成 public double Temp + 变化通知
+    // 后台只改 _temp 或 Temp，界面自动刷新——不用手动 .Text =
+}
+// MainWindow.xaml.cs 里把 VM 设为数据上下文：
+public MainWindow() { InitializeComponent(); DataContext = new MainViewModel(); }
+</code></pre>
+<blockquote>
+<p>🔥 <strong>坑</strong>：普通 <code>public double Temp { get; set; }</code> 不会触发 UI 更新！必须实现 <code>INotifyPropertyChanged</code>（或用 <code>[ObservableProperty]</code> 源生成）。这是前端转过来<strong>第一坑</strong>：你改了属性界面没动，多半是忘了通知。</p>
+</blockquote>
+<h3 id="sec-3-3">③ 列表绑定：ItemsControl ≈ array.map()</h3>
+<pre><code class="language-xml">&lt;DataGrid ItemsSource=&quot;{Binding Points}&quot; AutoGenerateColumns=&quot;True&quot;/&gt;
+&lt;!-- Points 是 ObservableCollection&lt;SensorPoint&gt;：增删项界面自动跟着变 --&gt;
+</code></pre>
+<p><strong>前端类比</strong>：<code>ObservableCollection</code> ≈ 一个「带响应式能力的数组」，<code>.Add()</code> 就像 React state 数组 push 后重渲染。<code>SensorPoint</code> 里的属性要能被绑定显示（所以 M0 强调"WPF 绑定只认属性"——领域模型全用属性暴露）。</p>
+<h3 id="sec-3-4">④ 命令绑定：Command ≈ useCallback</h3>
+<pre><code class="language-xml">&lt;Button Command=&quot;{Binding StartCmd}&quot; Content=&quot;启动&quot;/&gt;
+</code></pre>
+<pre><code class="language-csharp">[ICommand] private void StartCmd() =&gt; _pipeline.Start();  // CommunityToolkit 源生成 ICommand
+</code></pre>
+<p><strong>前端类比</strong>：<code>Command</code> 是把"点击该干嘛"也变成可绑定的数据，比 <code>Click</code> 事件更适合 MVVM（界面和逻辑彻底解耦）。<code>[ICommand]</code> 自动生成 <code>StartCmd</code> 属性。</p>
+<h3 id="sec-3-5">⑤ 模板：ControlTemplate ≈ 重写 render</h3>
+<pre><code class="language-xml">&lt;Button Content=&quot;报警&quot;&gt;
+  &lt;Button.Template&gt;
+    &lt;ControlTemplate TargetType=&quot;Button&quot;&gt;
+      &lt;Border Background=&quot;{TemplateBinding Background}&quot; CornerRadius=&quot;6&quot;&gt;
+        &lt;ContentPresenter/&gt;   &lt;!-- 把&quot;内容&quot;放进来，类似 {children} --&gt;
+      &lt;/Border&gt;
+    &lt;/ControlTemplate&gt;
+  &lt;/Button.Template&gt;
+&lt;/Button&gt;
+</code></pre>
+<p><strong>前端类比</strong>：<code>ControlTemplate</code> = 你决定这个按钮"长什么样"，等价于 React 里重写组件的返回 JSX。<code>DataTemplate</code> 更常用：给不同类型数据自动选不同视图（≈ 根据 <code>type</code> 字段 <code>if/else</code> 选组件）。</p>
+<h3 id="sec-3-6">⑥ 依赖属性 + 自定义控件（呼应 M14 的 GaugeControl）</h3>
+<pre><code class="language-csharp">public class GaugeControl : Control
+{
+    public static readonly DependencyProperty ValueProperty =
+        DependencyProperty.Register(nameof(Value), typeof(double), typeof(GaugeControl),
+            new PropertyMetadata(0d, OnValueChanged));  // 值变 → 回调（可触发重绘/动画）
+    public double Value { get =&gt; (double)GetValue(ValueProperty); set =&gt; SetValue(ValueProperty, value); }
+    private static void OnValueChanged(DependencyProperty d, DependencyPropertyChangedEventArgs e) { /* 重绘 */ }
+}
+</code></pre>
+<p><strong>前端类比</strong>：<code>DependencyProperty</code> ≈ 一个"超级 state"——它不只是存值，还能被 <strong>Style/动画/绑定/继承</strong> 监听（React 里得自己用 context + effect 拼）。WPF 把这个能力内建了。</p>
+<h3 id="sec-3-7">⑦ 跨线程改 UI：Dispatcher ≈ 回主线程</h3>
+<pre><code class="language-csharp">// 后台线程拿到数据后，必须回到 UI 线程才能改界面（直接改会抛异常）
+Application.Current.Dispatcher.Invoke(() =&gt; TxtStatus.Text = &quot;收到数据&quot;);
+</code></pre>
+<p><strong>前端类比</strong>：React 自动把 state 更新批处理回主线程；WPF <strong>不会自动</strong>，后台线程碰 UI 必崩，必须 <code>Dispatcher.Invoke</code>（或绑定——绑定天然在 UI 线程生效，所以<strong>优先用绑定而不是手动 Dispatcher</strong>）。</p>
+<hr />
+<h2 id="sec-2-4">⭐ 重点 / 🔥 坑表</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ <strong>数据驱动 &gt; 控件驱动</strong></td>
+<td>写 WPF 第一原则：界面绑数据，别在 <code>.cs</code> 里狂写 <code>label.Text =</code>。MVVM 就是把这个原则制度化</td>
+</tr>
+<tr>
+<td>🔥 <strong>属性要能通知</strong></td>
+<td>绑定不刷新？99% 是忘了 <code>INotifyPropertyChanged</code> / <code>[ObservableProperty]</code></td>
+</tr>
+<tr>
+<td>🔥 <strong>后台线程碰 UI 必崩</strong></td>
+<td>用 <code>Dispatcher.Invoke</code> 或（更好）走绑定让数据自己驱动</td>
+</tr>
+<tr>
+<td>🔥 <strong><code>{Binding}</code> 找不到值</strong></td>
+<td>八成是 <code>DataContext</code> 没设对（VM 没挂上去）。调试第一看 DataContext</td>
+</tr>
+<tr>
+<td>⭐ <strong>ItemsControl 配 ObservableCollection</strong></td>
+<td>列表要"增删自动刷新"，数据源必须是 <code>ObservableCollection</code> 不是 <code>List</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-5">🧪 三档练习</h2>
+<ul>
+<li>🟢 <strong>基础题</strong>：写一个 <code>TextBlock</code> 绑定 <code>Count</code> 属性，<code>Button</code> 点击让 <code>Count++</code>，要求<strong>不写一行 <code>.Text =</code></strong>（纯绑定 + <code>[ObservableProperty]</code>）。</li>
+<li>🟡 <strong>进阶题</strong>：用 <code>ItemsControl</code> + <code>ObservableCollection&lt;string&gt;</code> 绑定一个列表，点击按钮 <code>Add</code> 一项，验证界面自动出现新行。</li>
+<li>🔴 <strong>挑战题</strong>：把 M0 Day 8 的「模拟采集滚动数据」从"手动 Dispatcher 改 DataGrid"改造成"ViewModel + ObservableCollection 绑定驱动"，体会数据驱动 vs 控件驱动的区别。</li>
+</ul>
+<h3 id="sec-3-8">💡 工控导师说</h3>
+<blockquote>
+<p>新人最常犯的错：把 WPF 当 WinForm 写——在事件里 <code>txtTemp.Text = value</code>，几百个点一刷新 UI 直接卡死。记住一句：<strong>WPF 里"数据是唯一真相"，界面只是数据的投影</strong>。你只管改 ViewModel 的属性，刷新是 WPF 的事。</p>
+</blockquote>
+<h3 id="sec-3-9">🎓 职业建议</h3>
+<p>面试被问"WPF 和 WinForm 区别"，答："<strong>WinForm 控件驱动（直接改属性），WPF 数据驱动（XAML 绑定 + MVVM）</strong>；WPF 适合复杂工业界面 + 自绘控件，老项目维护 WinForm"。能顺带说"我用 <code>CommunityToolkit.Mvvm</code> 源生成器少写样板"会很加分。</p>
+<h3 id="sec-3-10">📅 明日预告</h3>
+<p>回到主线：M5 实时可视化——用 LiveCharts 在 WPF 里画实时曲线，数据正是来自这里讲的 <code>ObservableCollection</code> 绑定；M8 用 MVVM 把整个 DAQ Monitor 界面重构为"数据驱动"。</p>
+<hr />
+<h2 id="sec-2-6">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day 7/8</strong>：并发 + 立 WPF 工程骨架——本速查是那两步里"XAML 怎么写"的集中补讲。</li>
+<li><strong>M5 可视化</strong>：<code>ChartVm</code> + <code>ObservableCollection</code> 绑定曲线，正是这里 ②③ 的应用。</li>
+<li><strong>M8 MVVM</strong>：<code>CommunityToolkit.Mvvm</code> 的 <code>[ObservableProperty]</code>/<code>[ICommand]</code> 源生成器，本速查 ②④ 已用。</li>
+<li><strong>M14 自绘控件</strong>：<code>GaugeControl</code>/<code>StatusDot</code>（工程里真实存在）用的就是这里 ⑥ 的依赖属性。</li>
+</ul>
+<h2 id="sec-2-7">📚 延伸阅读</h2>
+<ul>
+<li>WPF 数据绑定总览：https://learn.microsoft.com/dotnet/desktop/wpf/data/</li>
+<li>XAML 概览：https://learn.microsoft.com/dotnet/desktop/wpf/xaml/</li>
+<li>CommunityToolkit.Mvvm（源生成器）：https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/</li>
+<li>自定义控件：https://learn.microsoft.com/dotnet/desktop/wpf/controls/control-authoring-overview</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="license.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">依赖与授权 · 免费开源清单</div></a>
+  <a class="next" href="roadmap-dev.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">项目开发全景 · 每一步是什么/为什么</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

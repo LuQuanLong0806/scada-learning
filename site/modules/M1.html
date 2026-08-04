@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M1 · 串口通信 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M1">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 串口基础 + 收发第一个字节</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">✏️ 练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 协议帧解析（把字节流变成业务数据）</a><ul>
+<li class="l3"><a href="#sec-3-6">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-7">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-8">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-9">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</a></li>
+<li class="l3"><a href="#sec-3-10">🧪 手算验证例（自己算一遍才算会，面试硬要求）</a></li>
+<li class="l3"><a href="#sec-3-11">✏️ CRC 三档练习</a></li>
+<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</a></li>
+<li class="l3"><a href="#sec-3-13">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</a></li>
+<li class="l3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-15">✏️ 练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">模块交付清单（M1）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M1 — 串口通信（SerialPort）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 串口 RS232/485（JD 主干必会）
+<strong>技术来源</strong>：🟩 .NET 类库 <code>System.IO.Ports</code>（.NET 8 需 <code>dotnet add package System.IO.Ports</code>；它是微软官方 BCL 扩展，不是第三方，装了就行、随 .NET 版本）。
+<strong>给简历加的能力</strong>：真实 / 虚拟串口设备接入 —— 上位机对接下位机、仪表、传感器的<strong>最普遍</strong>方式。
+<strong>前置</strong>：M0（类 / 事件 / 并发）。M1 是第一次把"后台收数 → 事件 → UI"串成真实链路。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>写出一个串口采集器：配置波特率 → 打开端口 → 接收字节流 → 解析成业务数据 → 通过 <code>DataReceived</code> 事件抛给 UI → 显示在 DAQ Monitor。</p>
+<h2 id="sec-2-2">Day 1 — 串口基础 + 收发第一个字节</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>串口 = 一条"按字节排队"的双向数据线。上位机和下位机约定好"语速"(波特率)和"帧格式"(数据位 / 停止位 / 校验)，然后一个发字节、一个收字节。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>串口概念</th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SerialPort</code></td>
+<td><code>WebSocket</code> / Node <code>serialport</code></td>
+<td>建立连接通道</td>
+</tr>
+<tr>
+<td>波特率 9600 / 115200</td>
+<td>带宽 / 速率</td>
+<td>双方必须一致</td>
+</tr>
+<tr>
+<td><code>DataReceived</code> 事件</td>
+<td><code>onmessage</code></td>
+<td>收到数据回调</td>
+</tr>
+<tr>
+<td>字节流 <code>byte[]</code></td>
+<td><code>ArrayBuffer</code></td>
+<td>裸二进制，要自己解析</td>
+</tr>
+<tr>
+<td>虚拟串口</td>
+<td><code>localhost</code> 回环</td>
+<td>没硬件也能练</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 装包 + 建立端口</strong>（🟩）</p>
+<pre><code class="language-csharp">// .NET 8 需先装官方包（仍是微软出品，不是第三方）
+// dotnet add package System.IO.Ports
+using System.IO.Ports;
+
+var port = new SerialPort(&quot;COM3&quot;, 9600, Parity.None, 8, StopBits.One);
+port.Open();
+port.WriteLine(&quot;AT\r\n&quot;);                 // 发字符串
+int n = port.BytesToRead;
+byte[] buf = new byte[n];
+port.Read(buf, 0, n);                    // 收字节
+port.Close();
+</code></pre>
+<p><strong>② 异步收数（事件驱动）</strong>（🟩 + 🟦）</p>
+<pre><code class="language-csharp">port.DataReceived += (s, e) =&gt;
+{
+    var sp = (SerialPort)s!;
+    int n = sp.BytesToRead;
+    byte[] data = new byte[n];
+    sp.Read(data, 0, n);
+    Console.WriteLine($&quot;收到 {n} 字节&quot;);   // ⚠️ 这个回调在【后台线程】！
+};
+</code></pre>
+<blockquote>
+<p>⚠️ 串口 <code>DataReceived</code> 是后台线程触发的（呼应 M0 Day 7）。要在 WPF 改界面必须用 <code>Application.Current.Dispatcher.Invoke(...)</code>。</p>
+</blockquote>
+<p><strong>③ 虚拟串口练手（无硬件方案）</strong>
+- Windows 装 <code>com0com</code> 或 <code>VSPD</code>，虚拟出 <code>COM3&lt;-&gt;COM4</code> 一对；DAQ Monitor 开 COM3，另写个小发送器开 COM4 发数据，就能闭环测试，零硬件成本。</p>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 波特率双方一致</td>
+<td>下位机 9600、上位机 115200，收的全是乱码</td>
+</tr>
+<tr>
+<td>⭐ <code>DataReceived</code> 是后台线程</td>
+<td>跨线程改 UI 必崩，用 <code>Dispatcher.Invoke</code></td>
+</tr>
+<tr>
+<td>🔥 字节流要自己分包</td>
+<td>串口不保证"一次发一次收"，可能半包 / 粘包，要按协议帧(头+长度)拼</td>
+</tr>
+<tr>
+<td>🔥 中文乱码</td>
+<td>下位机常用 GBK，上位机默认 UTF-8，要 <code>port.Encoding = Encoding.GetEncoding("GBK")</code></td>
+</tr>
+<tr>
+<td>🔥 忘记 <code>Close()</code></td>
+<td>端口被占用，下次 <code>Open()</code> 抛"拒绝访问"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">✏️ 练习</h3>
+<p>开一个 <code>SerialPort</code>，订阅 <code>DataReceived</code>，把收到的字节数与十六进制打印出来；用虚拟串口工具从对端发一串数据验证。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">var port = new SerialPort(&quot;COM3&quot;, 9600);
+port.DataReceived += (s, e) =&gt;
+{
+    var sp = (SerialPort)s!;
+    int n = sp.BytesToRead;
+    byte[] buf = new byte[n];
+    sp.Read(buf, 0, n);
+    Console.WriteLine($&quot;收到 {n} 字节：{BitConverter.ToString(buf)}&quot;);
+};
+port.Open();
+Console.WriteLine(&quot;按任意键退出&quot;); Console.ReadKey(); port.Close();
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core/Devices/</code> 建 <code>SerialDevice : DeviceBase</code>，<code>Connect()</code> 里 <code>new SerialPort</code> 并 <code>Open()</code>；<code>DataReceived</code> 里把字节喂给"帧解析器"，解析出的点用 <code>RaiseData</code> 抛给 UI。先在测试工程里用虚拟串口跑通。</p>
+<blockquote>
+<p>🔗 <strong>本项目已含参考实现（可直接读，不必从零）</strong>：<code>DaqMonitor.Core/Devices/</code> 下已有 <code>ISerialChannel</code>/<code>RealSerialChannel</code>/<code>LoopbackSerialChannel</code>/<code>SerialDevice</code>（含 <code>FrameParser.Build</code> 双向建帧 + CRC 校验），并配 5 个单测全绿（单帧/粘包/半包/坏CRC/管道集成）。<strong>建议</strong>：先读这份实现理清思路 → 自己照着重写一遍加深记忆 → 跑 <code>dotnet test</code> 看那 5 个绿。这就是"边做边学"：你手里的工程已经是能跑的真实代码。</p>
+</blockquote>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M1',1)"> 打卡</label></strong></p>
+<h2 id="sec-2-3">Day 2 — 协议帧解析（把字节流变成业务数据）</h2>
+<h3 id="sec-3-6">一句话讲清楚</h3>
+<p>裸字节没意义，必须按"协议帧"切包：每个帧有【帧头 + 长度 + 数据 + 校验】，像处理 TCP 粘包一样拼包、校验、提取。</p>
+<h3 id="sec-3-7">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>协议解析</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>帧头 <code>0xAA 0x55</code></td>
+<td>自定义二进制协议的分隔符</td>
+</tr>
+<tr>
+<td>长度字段</td>
+<td><code>Content-Length</code> / WebSocket 帧头</td>
+</tr>
+<tr>
+<td>CRC16 校验</td>
+<td>数据完整性校验（类比哈希）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-8">分点精讲</h3>
+<p><strong>① 拼包缓冲（解决半包 / 粘包）</strong>（🟦）</p>
+<pre><code class="language-csharp">private readonly List&lt;byte&gt; _buffer = new();
+private void OnBytes(byte[] chunk)
+{
+    _buffer.AddRange(chunk);
+    while (TryTakeFrame(out var frame))   // 循环拆出所有完整帧
+        HandleFrame(frame);
+}
+</code></pre>
+<p><strong>② CRC16 校验</strong>（🟦，Modbus 也会用，先打好基础）</p>
+<pre><code class="language-csharp">public static class Crc16
+{
+    public static ushort Modbus(byte[] data)
+    {
+        ushort crc = 0xFFFF;
+        foreach (var b in data)
+        {
+            crc ^= b;
+            for (int i = 0; i &lt; 8; i++)
+                crc = (crc &amp; 1) != 0 ? (ushort)((crc &gt;&gt; 1) ^ 0xA001) : (ushort)(crc &gt;&gt; 1);
+        }
+        return crc;
+    }
+}
+</code></pre>
+<p><strong>③ 完整帧示例</strong>：<code>AA 55 | Len | Payload... | CRC_L CRC_H</code></p>
+<h3 id="sec-3-9">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</h3>
+<p>代码只有 8 行，但「为什么是 0xA001」「为什么初始 0xFFFF」「右移/异或在干啥」——不讲清楚你永远只会抄。
+- <strong>它算的是「数据指纹」</strong>：发送方把整帧(除 CRC 本身)算出一个 16 位校验值附在末尾；接收方用<strong>同样算法</strong>重算一遍，比对一致才说明传输没出错（类比：你给文件算个 MD5，对方再算一次对不对得上）。
+- <strong>初始值 0xFFFF</strong>：所有位先置 1 再开始异或，是为了让「全 0 数据」也能产生非零校验（否则 0 数据校验也是 0，分不清是没传还是传错了）。
+- <strong>右移 + 异或 0xA001（每一步在干啥）</strong>：
+  <code>把当前字节和 crc 低 8 位异或 → 看 crc 最低位是不是 1：
+    是 1 → 右移一位 再 异或 0xA001   （0xA001 是多项式 0x8005 的「按位反转」形式，Modbus 用反转写法）
+    是 0 → 只右移一位
+  重复 8 次 = 处理完 1 个字节，循环每个字节</code></p>
+<blockquote>
+<p>直觉理解：<strong>每右移一次，就把数据「喂」进校验寄存器一位</strong>；碰到 1 就「搅拌」一下多项式，保证任何 1 个 bit 翻转都会导致最终结果不同。
+- <strong>线序坑（本项目测试踩过）</strong>：算出的寄存器值是 <code>0x0A84</code>，但 Modbus <strong>先传低字节</strong><code>84</code>、再传高字节<code>0A</code>，所以线上字节顺序是 <code>84 0A</code>，人们常写成「0x840A」。<strong>寄存器真值是 0x0A84</strong>，本项目 <code>Crc16.Modbus</code> 返回的就是这个（测试断言 <code>0x0A84</code>，不是 <code>0x840A</code>）。
+- <strong>查表法为什么快</strong>：上面是「计算法」每字节循环 8 次；工业用「256 项预计算表」，每字节直接查表异或，快一个数量级。本项目 <code>FrameParser</code> 用计算法够用，真高频场景再换表。</p>
+</blockquote>
+<h3 id="sec-3-10">🧪 手算验证例（自己算一遍才算会，面试硬要求）</h3>
+<blockquote>
+<p>用本模块的 <code>Crc16.Modbus</code> 跑一遍，确认输出和手搓帧对得上。</p>
+</blockquote>
+<pre><code class="language-csharp">// 算 Modbus 读取请求 01 03 00 00 00 02 的 CRC
+ushort crc = Crc16.Modbus(new byte[] { 0x01, 0x03, 0x00, 0x00, 0x00, 0x02 });
+byte lo = (byte)(crc &amp; 0xFF);   // 低字节 → C4
+byte hi = (byte)(crc &gt;&gt; 8);     // 高字节 → 0B
+Console.WriteLine($&quot;{lo:X2} {hi:X2}&quot;);   // 运行结果：C4 0B
+</code></pre>
+<p><strong>运行结果：<code>C4 0B</code></strong> —— 和 M2 手搓请求帧补齐后的 <code>01 03 00 00 00 02 C4 0B</code> 一致 ✓。</p>
+<blockquote>
+<p>⚠️ <strong>连「标准答案」都可能错</strong>：某份流传的 Modbus 讲义写「<code>01 06 00 01 00 64</code> 的 CRC 是 <code>19 98</code>」——<strong>实测是 <code>D9 E1</code></strong>（用上面同样的函数一算便知）。所以 CRC 必须自己会手算/会跑代码验证，不能抄别人的结论。</p>
+</blockquote>
+<h3 id="sec-3-11">✏️ CRC 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础题</strong>：用 <code>Crc16.Modbus</code> 算 <code>01 06 00 01 00 64</code>（写寄存器 40002 = 100）的 CRC，打印低/高字节。
+  <strong>✅ 答案</strong>：<code>D9 E1</code>（不是网上有些资料写的 <code>19 98</code>）。</li>
+<li>🟡 <strong>进阶题</strong>：写一个 <code>VerifyCrc(byte[] frame)</code>：拆出末尾 2 字节与 <code>Crc16.Modbus(数据部分)</code> 比对，返回 <code>bool</code>。</li>
+<li>🔴 <strong>挑战题</strong>：把 <code>Crc16.Modbus</code> 改成<strong>查表法</strong>（预生成 256 项表），和原实现跑同一组输入，断言结果一致。</li>
+</ul>
+<h3 id="sec-3-12">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</h3>
+<p>串口是<strong>字节流</strong>，不保证「你发一次、我收一次」：
+- <strong>半包</strong>：下位机一次发 20 字节，你 <code>DataReceived</code> 可能先收到 5 字节、再 15 字节（系统缓冲没攒够就通知你了）。
+- <strong>粘包</strong>：下位机连发两帧，你一次收到 40 字节（两帧粘一起）。
+- <strong>后果</strong>：直接按「收到=一帧」解析 = 偶发乱码/丢数据，<strong>现场几周才复现一次</strong>，极难查。
+- <strong>正解（本项目 FrameParser 的做法）</strong>：维护一个 <code>_buffer</code>，来啥都 <code>AddRange</code> 进去，然后<strong>循环尝试拆帧</strong>（<code>TryTakeFrame</code> 找帧头→读长度→够长才取出），拆不出就<strong>留着等下一波</strong>；注意：永远拆不出完整帧时（比如收到垃圾头）要<strong>清空缓冲</strong>，否则缓冲无限增长 = 内存泄漏。</p>
+<h3 id="sec-3-13">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</h3>
+<ul>
+<li><strong><code>DataReceived</code> 在某些机器/某些 USB 转串口上不触发</strong>：这是 .NET <code>SerialPort</code> 的已知老毛病（基于 Win32 事件，不稳定）。<strong>企业级写法</strong>是用 <code>BaseStream.ReadAsync</code> 自己开一个读循环，不依赖 <code>DataReceived</code>：
+  <code>csharp
+  // 现代/稳健写法：不依赖 DataReceived 事件
+  var buf = new byte[1024];
+  while (!ct.IsCancellationRequested)
+  {
+      int n = await port.BaseStream.ReadAsync(buf, 0, buf.Length, ct); // 阻塞等数据，异步不卡 UI
+      OnBytes(buf.AsMemory(0, n));   // 喂给帧解析器
+  }</code></li>
+<li><strong>硬件流控 DTR/RTS</strong>：有些下位机要求上位机拉高 <code>DtrEnable</code>/<code>RtsEnable</code> 才肯通信，连不上时检查这个。</li>
+<li><strong>跨线程 <code>Close()</code> 崩溃</strong>：<code>DataReceived</code> 在后台线程，若在 UI 线程直接 <code>port.Close()</code> 可能和后台读冲突。统一用 <code>CancellationToken</code> 先停止读循环、再 <code>Close()</code>。</li>
+<li><strong><code>BytesToRead</code> 一次性读不完</strong>：循环读直到 <code>BytesToRead == 0</code>，别只 <code>Read</code> 一次。</li>
+</ul>
+<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 一定要处理半包 / 粘包</td>
+<td>不处理 = 偶尔丢数据，现场最难查的 bug</td>
+</tr>
+<tr>
+<td>⭐ CRC 用查表法更快</td>
+<td>上面是计算法，工业可用查表优化</td>
+</tr>
+<tr>
+<td>🔥 大小端</td>
+<td>下位机可能是小端，读 <code>int</code> 用 <code>BinaryPrimitives.ReadInt32LittleEndian</code></td>
+</tr>
+<tr>
+<td>🔥 缓冲无限增长</td>
+<td>永远拆不出完整帧时要清空缓冲，防内存泄漏</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-15">✏️ 练习</h3>
+<p>实现 <code>TryTakeFrame</code>：从 <code>_buffer</code> 找 <code>AA 55</code> 开头、按第 3 字节长度取出完整帧并移除缓冲；校验 CRC。</p>
+<p><strong>✅ 答案</strong>（骨架）</p>
+<pre><code class="language-csharp">private bool TryTakeFrame(out byte[] frame)
+{
+    frame = Array.Empty&lt;byte&gt;();
+    int idx = _buffer.IndexOf(0xAA);
+    if (idx &lt; 0 || _buffer.Count &lt; idx + 3) return false;
+    if (_buffer[idx + 1] != 0x55) { _buffer.RemoveAt(idx); return false; }
+    int len = _buffer[idx + 2];
+    int total = 3 + len + 2;                 // 头+长+载荷+CRC
+    if (_buffer.Count &lt; idx + total) return false;
+    frame = _buffer.GetRange(idx, total).ToArray();
+    _buffer.RemoveRange(0, idx + total);
+    return true;
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把帧解析接到 <code>SerialDevice</code>，解析出 <code>SensorPoint</code> 后 <code>RaiseData</code>。DAQ Monitor 现在能从"虚拟串口"收到<strong>有结构</strong>的数据了。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M1',2)"> 打卡</label></strong></p>
+<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 后台线程 → 这里直接用上了</strong>：<code>DataReceived</code>/读循环在后台线程跑，要改 UI 必须用 <code>Dispatcher.Invoke</code>（M5 还会用 <code>Channel&lt;T&gt;</code> 彻底解耦）。</li>
+<li><strong>M0 Day2 事件 → 这里触发 <code>RaiseData</code></strong>：串口字节 → 帧解析 → <code>SensorPoint</code> → 事件抛给 UI，正是 M0 说的「事件解耦」。</li>
+<li><strong>前瞻 M4/M9</strong>：帧解析出的点最终会进 <code>PointStore</code>(M4) 和统一采集管道 <code>AcquisitionPipeline</code>(M9)，别各自造轮子。</li>
+</ul>
+<h2 id="sec-2-5">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li><code>SerialPort</code> 官方类参考：https://learn.microsoft.com/dotnet/api/system.io.ports.serialport</li>
+<li>CRC 原理（维基，讲多项式/初始值）：https://en.wikipedia.org/wiki/Cyclic_redundancy_check</li>
+<li>com0com 虚拟串口（无硬件练手）：https://sourceforge.net/projects/com0com/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：RS232/485、4-20mA、接线抗干扰科普 + 虚拟串口/Modbus 从站/PLCSIM 四层替代方案</li>
+</ul>
+<h2 id="sec-2-6">模块交付清单（M1）</h2>
+<ul>
+<li>[ ] <code>SerialDevice</code> 实现 <code>Connect/Disconnect/Read/Write</code></li>
+<li>[ ] <code>DataReceived</code> → 字节缓冲 → 帧解析 → <code>RaiseData</code></li>
+<li>[ ] <code>Crc16</code> 工具类</li>
+<li>[ ] 虚拟串口闭环跑通（无硬件也能演示）</li>
+<li>[ ] 中文乱码 / 跨线程 / 半包处理都验证过</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M0.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M0 · C#/.NET 热身 + 工程骨架</div></a>
+  <a class="next" href="M2.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M2 · Modbus RTU/TCP</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

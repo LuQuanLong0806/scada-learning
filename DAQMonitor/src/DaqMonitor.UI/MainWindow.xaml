@@ -1,0 +1,76 @@
+<Window x:Class="DaqMonitor.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:DaqMonitor.UI.ViewModels"
+        xmlns:ctrl="clr-namespace:DaqMonitor.UI.Controls"
+        xmlns:diag="clr-namespace:DaqMonitor.UI.Diagnostics"
+        Title="DAQ Monitor · 工业数据采集监控" Height="560" Width="880">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 顶部：标题 + 启动/停止 + 报表 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="📡 DAQ Monitor" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+            <Button Content="启动采集" Command="{Binding StartCommand}" Width="90" Height="30" Margin="16,0,0,0"
+                    IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBool}}" />
+            <Button Content="停止采集" Command="{Binding StopCommand}" Width="90" Height="30" Margin="8,0,0,0"
+                    IsEnabled="{Binding IsRunning}" />
+            <TextBlock VerticalAlignment="Center" Margin="16,0,0,0">
+                <Run Text="状态：" />
+                <Run Text="{Binding IsRunning, Converter={StaticResource RunningText}}" FontWeight="Bold" />
+            </TextBlock>
+            <DatePicker SelectedDate="{Binding From}" Width="110" Margin="16,0,0,0" VerticalAlignment="Center" ToolTip="报表起始时间" />
+            <DatePicker SelectedDate="{Binding To}" Width="110" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="报表结束时间" />
+            <Button Content="导出报表" Command="{Binding ExportReportCommand}" Width="80" Height="30" Margin="8,0,0,0" />
+        </StackPanel>
+
+        <!-- 左：实时点位表（数值列用 GaugeControl 显示读数，并绑 Level 让报警驱动变色） -->
+        <GroupBox Grid.Row="1" Header="实时点位" Margin="0,0,8,0">
+            <DataGrid ItemsSource="{Binding Points}" AutoGenerateColumns="False" IsReadOnly="True"
+                      CanUserAddRows="False" FontSize="13">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="点位" Binding="{Binding Id}" Width="55" />
+                    <!-- 数值列：自定义控件 GaugeControl，Level 绑定当前报警级别（M6→M14 跨模块复用） -->
+                    <DataGridTemplateColumn Header="数值(仪表)" Width="130">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ctrl:GaugeControl Value="{Binding Value}" Min="0" Max="150" Level="{Binding Level}"
+                                                   Label="{Binding Id, StringFormat=P{0}}"
+                                                   Height="84" Margin="2" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <!-- 状态列：自定义控件 StatusDot，M1/M3 真设备会出现 Connecting 脉冲 -->
+                    <DataGridTemplateColumn Header="状态" Width="110">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ctrl:StatusDot State="{Binding State}" Text="{Binding State}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="采样时间" Binding="{Binding Timestamp, StringFormat=HH:mm:ss.fff}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
+
+        <!-- 右：Tab 页（报警日志 + 诊断/调试面板） -->
+        <TabControl Grid.Row="1" Margin="8,0,0,0" HorizontalAlignment="Stretch">
+            <TabItem Header="报警日志">
+                <ListBox ItemsSource="{Binding AlarmLog}" FontSize="12" />
+            </TabItem>
+            <TabItem Header="诊断 / 调试">
+                <diag:DiagnosticsPanel />
+            </TabItem>
+        </TabControl>
+
+        <!-- 底：架构说明 -->
+        <TextBlock Grid.Row="2" Margin="0,8,0,0" FontSize="11" Foreground="Gray" TextWrapping="Wrap">
+            架构：SimulatedDevice → DataReceived → AcquisitionPipeline(Channel 缓冲 + 200ms 定时批量) → PointStore + AlarmEngine → UI。
+            当前用模拟设备演示；M1/M3 把 SimulatedDevice 换成真实串口/PLC 设备即可，UI 与采集层零改动。右侧「诊断/调试」页可实时看采集统计与日志，是现场排查的第一抓手。
+        </TextBlock>
+    </Grid>
+</Window>

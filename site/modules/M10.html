@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M10 · 报表 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M10">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">Day 1 — 历史聚合查询（LINQ GroupBy）</a><ul>
+<li class="l3"><a href="#sec-3-1">⭐ 重点 &amp; 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-2">✏️ 练习</a></li>
+<li class="l3"><a href="#sec-3-3">✅ 答案</a></li>
+<li class="l3"><a href="#sec-3-4">🏗️ 项目任务</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 2 — 报表可视化（表格 + 历史趋势）</a><ul>
+<li class="l3"><a href="#sec-3-5">⭐ 重点 &amp; 🔥 坑</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</a><ul>
+<li class="l3"><a href="#sec-3-6">⭐ 重点 &amp; 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-7">✏️ 练习</a></li>
+<li class="l3"><a href="#sec-3-8">🏗️ 项目任务</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📄 本模块应产出的文档</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">打卡</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M10 — 报表（把 M4+M5+M6 收口成企业交付物）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 报表 Excel/PDF（调研 P0 缺口，闭环）</p>
+<p><strong>给简历加的能力</strong>：历史聚合报表 + 可视化 + Excel 导出 —— 车间主任天天要"昨天的班报""本月能耗"，光有实时曲线和 CSV 原始文件等于把活甩给别人。这是之前岗位调研里发现的<strong>最大缺口</strong>，补齐它，"独立做完整项目"才闭环。</p>
+<p><strong>🟦C#语法(不装包) · 🟩.NET类库BCL(默认不装包) · 🟧第三方NuGet(必须 <code>dotnet add package</code>)</strong></p>
+<p><strong>知识关联（事半功倍的关键）</strong>：
+- M4 把点位存进 <code>PointStore</code>/历史库 → <strong>本模块按时间窗聚合</strong>
+- M5 画实时曲线 → <strong>本模块用同样的图表库画"历史趋势报表"</strong>
+- M6 报警引擎 → <strong>报警记录可并入报表统计</strong>
+也就是说，M10 不是新学一堆东西，而是把前面已学的"收口成一张能交差的表"。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">Day 1 — 历史聚合查询（LINQ GroupBy）</h2>
+<p>企业报表的本质：<strong>把海量原始记录，按"维度+时间窗"聚合成少量统计行</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>前端/JS 类比</th>
+<th>C# 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT point, MIN(v),MAX(v),AVG(v) FROM t GROUP BY point</code></td>
+<td><code>GroupBy(p =&gt; p.Id)</code> + <code>Min/Max/Average</code></td>
+</tr>
+<tr>
+<td><code>arr.reduce((acc,cur)=&gt;..., {})</code></td>
+<td>LINQ 链式 <code>Where → GroupBy → Select</code></td>
+</tr>
+<tr>
+<td>时间戳过滤 <code>t &gt;= from &amp;&amp; t &lt;= to</code></td>
+<td><code>Where(p =&gt; p.Timestamp &gt;= from &amp;&amp; p.Timestamp &lt;= to)</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>① 聚合服务</strong>（🟦 LINQ + 🟩 DateTime，纯计算、可单测）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Reporting/ReportService.cs
+public sealed class ReportService
+{
+    public IReadOnlyList&lt;PointStat&gt; Aggregate(IEnumerable&lt;SensorPoint&gt; points, DateTime from, DateTime to)
+    {
+        return points
+            .Where(p =&gt; p.Timestamp &gt;= from &amp;&amp; p.Timestamp &lt;= to)  // 时间窗过滤
+            .GroupBy(p =&gt; p.Id)                                    // 按点位分组
+            .Select(g =&gt; new PointStat(
+                PointId: g.Key,
+                Count: g.Count(),
+                Min:   g.Min(p =&gt; p.Value),
+                Max:   g.Max(p =&gt; p.Value),
+                Avg:   g.Average(p =&gt; p.Value),
+                First: g.Min(p =&gt; p.Timestamp),
+                Last:  g.Max(p =&gt; p.Timestamp)))
+            .OrderBy(s =&gt; s.PointId)
+            .ToList();
+    }
+}
+</code></pre>
+<blockquote>
+<p>真实可行性：这段代码已在 <code>DaqMonitor.Tests/ReportServiceTests.cs</code> 里用 6 条样例点验证（含窗外点被正确过滤），<code>dotnet test</code> 全绿。</p>
+</blockquote>
+<h3 id="sec-3-1">⭐ 重点 &amp; 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 聚合放在 Core 而非 UI</td>
+<td>纯逻辑、无 IO，才能单测；UI 只负责"展示/导出"</td>
+</tr>
+<tr>
+<td>⭐ 时间窗边界</td>
+<td><code>&gt;= from &amp;&amp; &lt;= to</code> 含端点；跨时区存 <code>DateTime</code> 注意 <code>Kind</code></td>
+</tr>
+<tr>
+<td>🔥 大数据量</td>
+<td>真历史库要用 SQL <code>GROUP BY</code>（EF <code>IQueryable</code>），别把全表拉内存再 LINQ；本演示数据量小，内存聚合 OK</td>
+</tr>
+<tr>
+<td>🔥 空窗返回空集合</td>
+<td>不是 null，UI 绑定 <code>ItemsSource</code> 才不崩</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">✏️ 练习</h3>
+<ol>
+<li>给 <code>ReportService</code> 加一个 <code>AggregateByHour(points, from, to)</code>，按"小时"分桶（提示：<code>p.Timestamp.Date.AddHours(p.Timestamp.Hour)</code> 当 key）。</li>
+<li>加一条"报警次数"统计：传入 <code>IEnumerable&lt;AlarmEvent&gt;</code>，按点位统计触发次数。</li>
+</ol>
+<h3 id="sec-3-3">✅ 答案</h3>
+<pre><code class="language-csharp">// 1) 按小时
+.GroupBy(p =&gt; p.Timestamp.Date.AddHours(p.Timestamp.Hour))
+// 2) 报警次数
+alarms.GroupBy(a =&gt; a.PointId)
+      .Select(g =&gt; new { PointId = g.Key, Triggers = g.Count() });
+</code></pre>
+<h3 id="sec-3-4">🏗️ 项目任务</h3>
+<p>把 <code>ReportService</code> 接入 DAQ Monitor：在 <code>Bootstrapper</code> 注册，主界面"导出报表"时先用它对 <code>PointStore.GetAll()</code> 聚合。</p>
+<hr />
+<h2 id="sec-2-2">Day 2 — 报表可视化（表格 + 历史趋势）</h2>
+<p>报表不是只导出 Excel，界面里也要能看。复用 M5 的图表库。</p>
+<table>
+<thead>
+<tr>
+<th>前端类比</th>
+<th>C# 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;table&gt;</code> / Ant Design Table</td>
+<td>WPF <code>DataGrid</code> 绑定 <code>ObservableCollection&lt;PointStat&gt;</code></td>
+</tr>
+<tr>
+<td>ECharts 折线</td>
+<td>LiveCharts <code>LineSeries</code> 绑历史点</td>
+</tr>
+</tbody>
+</table>
+<p><strong>② 表格绑定</strong>（🟩 WPF DataGrid，关联 M5）</p>
+<pre><code class="language-xml">&lt;DataGrid ItemsSource=&quot;{Binding ReportRows}&quot; AutoGenerateColumns=&quot;False&quot;&gt;
+  &lt;DataGrid.Columns&gt;
+    &lt;DataGridTextColumn Header=&quot;点位&quot;   Binding=&quot;{Binding PointId}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;样本数&quot; Binding=&quot;{Binding Count}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;最小&quot;   Binding=&quot;{Binding Min, StringFormat=F2}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;最大&quot;   Binding=&quot;{Binding Max, StringFormat=F2}&quot;/&gt;
+    &lt;DataGridTextColumn Header=&quot;平均&quot;   Binding=&quot;{Binding Avg, StringFormat=F2}&quot;/&gt;
+  &lt;/DataGrid.Columns&gt;
+&lt;/DataGrid&gt;
+</code></pre>
+<blockquote>
+<p>历史趋势图：把 <code>PointStat</code> 或原始 <code>SensorPoint</code> 按时间轴喂给 LiveCharts（同 M5），区别只是数据源从"实时批量"换成"历史查询"。</p>
+</blockquote>
+<h3 id="sec-3-5">⭐ 重点 &amp; 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 报表用"快照数据"</td>
+<td>历史查询结果是固定集合，不用实时 <code>Dispatcher</code> 刷新那套</td>
+</tr>
+<tr>
+<td>🔥 精度格式</td>
+<td><code>StringFormat=F2</code> 统一小数位，报表才整齐</td>
+</tr>
+<tr>
+<td>🔥 大数据表格卡顿</td>
+<td>用 <code>VirtualizingStackPanel</code>（WPF 默认开），别一次绑十万行</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">Day 3 — 导出 Excel（ClosedXML）/ PDF（QuestPDF）</h2>
+<p>企业最终要的是<strong>文件</strong>：班报发邮件、日报交主管、月报归档。</p>
+<table>
+<thead>
+<tr>
+<th>前端类比</th>
+<th>C# 对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SheetJS (<code>xlsx</code>) 前端导出</td>
+<td><strong>ClosedXML</strong> 后端生成 <code>.xlsx</code>（无需装 Office）</td>
+</tr>
+<tr>
+<td>jsPDF</td>
+<td><strong>QuestPDF</strong> 生成 <code>.pdf</code>（Fluently 式 API）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>③ 导出 Excel</strong>（🟧 ClosedXML，<code>dotnet add package ClosedXML</code>）</p>
+<pre><code class="language-csharp">// DaqMonitor.UI/Reporting/ReportExporter.cs
+public static void ExportToExcel(IEnumerable&lt;PointStat&gt; stats, string path)
+{
+    using var wb = new XLWorkbook();
+    var ws = wb.Worksheets.Add(&quot;报表&quot;);
+    ws.Cell(1,1).Value = &quot;点位&quot;; ws.Cell(1,2).Value = &quot;样本数&quot;; /* …表头… */
+    int r = 2;
+    foreach (var s in stats)
+    {
+        ws.Cell(r,1).Value = s.PointId; ws.Cell(r,2).Value = s.Count;
+        ws.Cell(r,3).Value = s.Min;      ws.Cell(r,4).Value = s.Max;
+        ws.Cell(r,5).Value = s.Avg;      ws.Cell(r,6).Value = s.First;
+        ws.Cell(r,7).Value = s.Last;     r++;
+    }
+    ws.Columns().AdjustToContents();   // 自动列宽
+    wb.SaveAs(path);
+}
+</code></pre>
+<blockquote>
+<p>真实可行性：DAQ Monitor 的 <code>MainWindow</code> 已加"导出报表"按钮 + 起止时间选择器，命令里 <code>new ReportService().Aggregate(...)</code> → <code>ReportExporter.ExportToExcel(...)</code>，UI 构建 <strong>0 错误 0 警告</strong>，点按钮即生成真实 <code>.xlsx</code>。</p>
+</blockquote>
+<p><strong>PDF（🟧 QuestPDF，可选）</strong>：<code>Document.Create(cfg =&gt; cfg.Page(p =&gt; p.Content().Table(...)))</code>，适合要盖章/打印的场景。</p>
+<h3 id="sec-3-6">⭐ 重点 &amp; 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ ClosedXML 不用装 Office</td>
+<td>纯托管代码生成 xlsx，部署机干净</td>
+</tr>
+<tr>
+<td>⭐ 用 <code>using</code> 包 <code>XLWorkbook</code></td>
+<td>不释放会锁文件</td>
+</tr>
+<tr>
+<td>🔥 路径权限</td>
+<td>导出到用户选的路径（<code>SaveFileDialog</code>），别写 <code>C:\Program Files</code></td>
+</tr>
+<tr>
+<td>🔥 大数据导出</td>
+<td>流式写、分批，避免一次性占内存</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-7">✏️ 练习</h3>
+<ol>
+<li>在 DAQ Monitor 里加一个"导出 PDF"按钮，用 QuestPDF 把同一份 <code>PointStat</code> 写成 PDF 报表。</li>
+<li>给 Excel 加一行"合计/平均汇总"，放在数据行之后。</li>
+</ol>
+<h3 id="sec-3-8">🏗️ 项目任务</h3>
+<p>DAQ Monitor 现已具备：启动采集 → 实时表+报警 → 选时间窗 → 一键导出 Excel 报表。<strong>这就是一个完整可交付的企业上位机雏形</strong>。把这句写进你的简历项目描述。</p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>本模块 = M4(存储) + M5(可视化) + M6(报警) 的收口</strong>：没有前面三块，报表就是无米之炊。</li>
+<li><strong>聚合逻辑放 Core（M9 工程素养）</strong>：所以它能单测、能被 UI 和测试共用——这正是 M9 讲"分层+DI"的意义。</li>
+<li><strong>导出是 IO 边界（M0 Day7 并发）</strong>：文件写入放 UI 命令里、用 <code>SaveFileDialog</code> 拿到路径，不阻塞采集线程。</li>
+</ul>
+<h2 id="sec-2-5">📄 本模块应产出的文档</h2>
+<ul>
+<li><strong>报表设计文档</strong>：指标定义（点位/维度/时间窗）、字段含义、导出格式（xlsx 列结构）。</li>
+<li><strong>操作说明</strong>：用户如何选时间窗、点导出、文件存哪。</li>
+</ul>
+<h2 id="sec-2-6">打卡</h2>
+<ul>
+<li>[ ] Day 1 历史聚合查询（LINQ GroupBy）</li>
+<li>[ ] Day 2 报表可视化（表格 + 历史趋势）</li>
+<li>[ ] Day 3 导出 Excel（ClosedXML）/ PDF（QuestPDF）</li>
+<li>[ ] 🏗️ DAQ Monitor 导出报表跑通</li>
+</ul>
+<h2 id="sec-2-7">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>LINQ GroupBy 官方：https://learn.microsoft.com/dotnet/csharp/linq/ —— 聚合查询</li>
+<li>ClosedXML（Excel）：https://github.com/ClosedXML/ClosedXML · QuestPDF（PDF）：https://github.com/QuestPDF/QuestPDF</li>
+<li>WPF DataGrid 绑定：https://learn.microsoft.com/dotnet/desktop/wpf/controls/datagrid/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M9.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M9 · 工程素养</div></a>
+  <a class="next" href="M11.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M11 · TCP Socket 自定义协议</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

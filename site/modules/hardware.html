@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>附录 · 硬件替代方案与讲解 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="hardware">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、先搞懂：上位机在跟什么硬件打交道</a><ul>
+<li class="l3"><a href="#sec-3-1">1.1 上位机 / 下位机（一句话 + 类比）</a></li>
+<li class="l3"><a href="#sec-3-2">1.2 一张表：每个模块对应的"物理硬件"是啥</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、硬件基础科普（不懂硬件也能懂，全用类比）</a><ul>
+<li class="l3"><a href="#sec-3-3">2.1 串口：RS232 vs RS485（最容易混的两个）</a></li>
+<li class="l3"><a href="#sec-3-4">2.2 传感器信号：设备在"用什么语言"告诉你数值</a></li>
+<li class="l3"><a href="#sec-3-5">2.3 PLC 是什么（你最大的陌生点，掰开讲）</a></li>
+<li class="l3"><a href="#sec-3-6">2.4 接线与抗干扰（现场最容易翻车的地方）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、没有硬件怎么办？四层替代方案（重点）</a><ul>
+<li class="l3"><a href="#sec-3-7">🎯 你有什么 → 用哪层（决策表）</a></li>
+<li class="l3"><a href="#sec-3-8">🟩 T1 纯软件方案（零硬件，随时可练）</a></li>
+<li class="l3"><a href="#sec-3-9">🟩 T2 虚拟接口方案（代码和真机一模一样，只是对端是软件）</a></li>
+<li class="l3"><a href="#sec-3-10">🟧 T3 低成本真硬件（花小钱，真实感拉满）</a></li>
+<li class="l3"><a href="#sec-3-11">🟧 T4 企业真机（实习 / 工作才有）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、连不上的万能排查清单（真实现场经验，背下来）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、🏗️ 动手练习（从零搭虚拟环境跑通，零硬件）</a><ul>
+<li class="l3"><a href="#sec-3-12">练习 1：用虚拟串口让 DAQ Monitor 收到"假仪表"数据</a></li>
+<li class="l3"><a href="#sec-3-13">练习 2：用 Modbus 从站模拟器读"假电表"</a></li>
+<li class="l3"><a href="#sec-3-14">练习 3：画出"你家的通信拓扑"</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、📚 延伸阅读（外链，解决"还不懂"的地方）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">打卡</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">硬件替代方案与实战讲解（深度版）</h1>
+<blockquote>
+<p><strong>你最关心的两件事，这一篇一次讲清</strong>：
+1. 上位机到底在跟什么"硬件"打交道？那些 RS232/485、4-20mA、PLC、寄存器到底是啥？（硬件科普）
+2. 我没有 PLC、没有仪表、没有串口线，<strong>怎么练、怎么证明自己会</strong>？（替代方案）</p>
+<p>学完这篇，你<strong>不需要买任何硬件</strong>就能把 M1–M3、M7 全部练通；真想"真刀真枪"时，也知道花几十块钱买什么。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、先搞懂：上位机在跟什么硬件打交道</h2>
+<h3 id="sec-3-1">1.1 上位机 / 下位机（一句话 + 类比）</h3>
+<table>
+<thead>
+<tr>
+<th>词</th>
+<th>是什么</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>上位机</strong></td>
+<td>你写的 <strong>PC 软件</strong>（DAQ Monitor 这种）</td>
+<td>你写的<strong>前端 + Node 后端</strong>（跑在电脑上，有界面）</td>
+</tr>
+<tr>
+<td><strong>下位机</strong></td>
+<td>现场真正干活的<strong>硬件</strong>：PLC、仪表、传感器、控制器</td>
+<td>后端连的<strong>数据库 / 第三方 API / 硬件设备</strong></td>
+</tr>
+<tr>
+<td><strong>通信</strong></td>
+<td>上位机向下位机"读数据 / 下指令"</td>
+<td>前端调后端接口 <code>fetch('/api/points')</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔑 <strong>核心心智模型</strong>：上位机 = 一个<strong>会画图、会报警、会存数据库、有按钮</strong>的"高级客户端"；它自己<strong>不产生数据</strong>，数据全靠往下位机要。你 90% 的活儿是：<strong>把下位机的数据搬上来、画出来、存起来、超阈值报警</strong>。</p>
+</blockquote>
+<h3 id="sec-3-2">1.2 一张表：每个模块对应的"物理硬件"是啥</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>物理硬件</th>
+<th>物理接口 / 信号</th>
+<th>你实际连的是什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1 串口</td>
+<td>仪表、传感器、老设备、单片机</td>
+<td>RS232 / RS485（串口线）</td>
+<td>一根 COM 口线，或 USB 转串口</td>
+</tr>
+<tr>
+<td>M2 Modbus</td>
+<td>智能电表、温控仪、变频器、PLC（当从站）</td>
+<td>RS485（RTU）或 网线（TCP）</td>
+<td>串口线 / 网线</td>
+</tr>
+<tr>
+<td>M3 PLC</td>
+<td>西门子 / 欧姆龙 / 三菱 等 PLC</td>
+<td>网线（S7 协议）或 RS485（Modbus）</td>
+<td>网线 / 串口线</td>
+</tr>
+<tr>
+<td>M4 数据库</td>
+<td>本机 SQLite / 企业 SQL Server</td>
+<td>文件 / 网线</td>
+<td>不用硬件</td>
+</tr>
+<tr>
+<td>M5 可视化</td>
+<td>显示器（你电脑屏幕）</td>
+<td>无</td>
+<td>不用硬件</td>
+</tr>
+<tr>
+<td>M6 报警</td>
+<td>同上</td>
+<td>无</td>
+<td>不用硬件</td>
+</tr>
+<tr>
+<td>M7 上云</td>
+<td>OPC UA 服务器 / MQTT Broker</td>
+<td>网线</td>
+<td>本地装个服务即可</td>
+</tr>
+<tr>
+<td>M10 报表</td>
+<td>打印机 / Excel</td>
+<td>无</td>
+<td>不用硬件</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>重点</strong>：<strong>只有 M1/M2/M3/M7 沾硬件</strong>，而且 M7 的"硬件"只是个<strong>网络服务</strong>（本地就能装）。所以"没硬件"完全不是借口——下面给你四层替代方案，从零成本到真机全覆盖。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">二、硬件基础科普（不懂硬件也能懂，全用类比）</h2>
+<h3 id="sec-3-3">2.1 串口：RS232 vs RS485（最容易混的两个）</h3>
+<p>🟦 C# 语法天生物 · 🟩 .NET 类库（System.IO.Ports）· 🟧 第三方（无，串口是系统自带）</p>
+<blockquote>
+<p>串口 = 计算机和外设之间<strong>一根线一根线传字节</strong>的古老但极可靠的通信方式。工业现场 90% 的简单设备都靠它。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><strong>RS232</strong></th>
+<th><strong>RS485</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>连接拓扑</td>
+<td><strong>点对点</strong>（1 对 1，像一根 USB 直连线）</td>
+<td><strong>总线</strong>（1 根线挂 N 个设备，像一根网线接多个设备）</td>
+</tr>
+<tr>
+<td>信号方式</td>
+<td>单端（对地电压 ±12V）</td>
+<td><strong>差分</strong>（A、B 两线电压差，抗干扰强）</td>
+</tr>
+<tr>
+<td>距离</td>
+<td>短（&lt; 15 米）</td>
+<td>远（<strong>1200 米</strong>）</td>
+</tr>
+<tr>
+<td>节点数</td>
+<td>1 对 1</td>
+<td><strong>32+ 个</strong>设备挂同一条总线</td>
+</tr>
+<tr>
+<td>前端类比</td>
+<td><code>localhost</code> 直连（只有你和我）</td>
+<td>公司内网（一个交换机挂一堆电脑）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么工业爱 RS485？</strong> 工厂里传感器离电脑几十米、电机干扰大，RS232 早被干扰搞死；RS485 用"差分信号"（A 比 B 高就是 1，低就是 0），电磁噪声同时打到 A 和 B 上会被抵消，<strong>天生抗干扰</strong>。你的 USB 转 485 线（¥20）插电脑上，电脑就多出一个 COM 口，当 RS485 用。</p>
+<p><strong>串口"三件套"参数（双方必须完全一致，否则乱码/连不上）：</strong>
+| 参数 | 常见值 | 类比 |
+|---|---|---|
+| 波特率 (Baud) | 9600 / 19200 / 115200 | <strong>网速</strong>（双方必须同速，否则"鸡同鸭讲"） |
+| 数据位 | 通常 8 | 每个"字节"几位 |
+| 停止位 | 通常 1 | 帧之间的间隔位 |
+| 校验 (Parity) | None / Odd / Even | 简单的"校验和"，防传错 |</p>
+<blockquote>
+<p>🔥 <strong>坑</strong>：下位机手册写"9600,8,N,1"就是 波特率9600、8数据位、无校验、1停止位。<strong>你设错一个就全乱码</strong>——这是现场第一高频故障。</p>
+</blockquote>
+<h3 id="sec-3-4">2.2 传感器信号：设备在"用什么语言"告诉你数值</h3>
+<p>🟦 概念科普 · 🟩 无需代码 · 🟧 无</p>
+<p>真实世界的物理量（温度、压力）要变成上位机能读的数字，中间有"变送"过程。常见信号：</p>
+<table>
+<thead>
+<tr>
+<th>信号类型</th>
+<th>含义</th>
+<th>前端类比</th>
+<th>为啥这么设计</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>4–20mA</strong></td>
+<td>电流环：4mA=量程最低，20mA=最高</td>
+<td>用<strong>电流大小</strong>当数值</td>
+<td><strong>抗干扰最强</strong>；断线时电流=0mA，立刻知道"线断了"（不像电压会被干扰）</td>
+</tr>
+<tr>
+<td><strong>0–10V</strong></td>
+<td>电压：0V=最低，10V=最高</td>
+<td>用<strong>电压高低</strong>当数值</td>
+<td>简单便宜，但线长易受干扰</td>
+</tr>
+<tr>
+<td><strong>PT100</strong></td>
+<td>热电阻：0°C 时电阻正好 100Ω，温度变电阻变</td>
+<td>一个"会随温度变阻值的电阻"</td>
+<td>测温度经典方案，需变送器转成 4–20mA</td>
+</tr>
+<tr>
+<td><strong>热电偶</strong></td>
+<td>两种金属接合产生毫伏级电压（K 型等）</td>
+<td>温差→微小电压</td>
+<td>测高温（上千度），需冷端补偿</td>
+</tr>
+<tr>
+<td><strong>数字量 DI/DO</strong></td>
+<td>开关量：24V=通(1)，0V=断(0)</td>
+<td><code>true</code> / <code>false</code></td>
+<td>按钮、限位开关、继电器</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔑 <strong>你作为上位机工程师要知道的</strong>：绝大多数仪表把"物理量"先变成 <strong>4–20mA 或 0–10V</strong>，再用 <strong>RS485+Modbus</strong> 把数字传给你的软件。所以你<strong>只管读 Modbus 寄存器里的数字</strong>，不用自己处理电流电压——那是仪表厂的事。你只要知道"这个寄存器的值 × 量程系数 = 真实温度"就行。</p>
+</blockquote>
+<h3 id="sec-3-5">2.3 PLC 是什么（你最大的陌生点，掰开讲）</h3>
+<p>🟦 概念科普 · 🟩 无需代码 · 🟧 S7.Net（M3）</p>
+<blockquote>
+<p><strong>PLC = 现场的一台专用小电脑</strong>，专门用来控制机器（比你的笔记本皮实，能在电柜里 7×24 跑十年）。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>PLC 概念</th>
+<th>是啥</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DB 块（数据块）</strong></td>
+<td>PLC 里一块<strong>命名的内存区</strong>，存变量</td>
+<td>一个 <code>const config = {...}</code> 对象 / 一块共享内存</td>
+</tr>
+<tr>
+<td><strong>地址</strong>（如 <code>DB1.DBD0</code>）</td>
+<td>变量在内存里的<strong>具体位置</strong></td>
+<td>对象属性路径 <code>config.temp</code></td>
+</tr>
+<tr>
+<td><strong>I / Q / M</strong></td>
+<td>输入(I) / 输出(Q) / 中间标志(M) 区</td>
+<td>读传感器 / 控制执行器 / 临时变量</td>
+</tr>
+<tr>
+<td><strong>S7 通信</strong></td>
+<td>西门子私有的"读 DB 块"协议</td>
+<td>一个专用的 <code>readDb(block, offset)</code> API</td>
+</tr>
+<tr>
+<td><strong>TIA Portal</strong></td>
+<td>西门子官方编程软件（写 PLC 程序用）</td>
+<td>PLC 的"IDE"</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔑 <strong>你写上位机，不是写 PLC 程序</strong>。你的工作是：用 S7.Net（或 Modbus）<strong>去读 PLC 的 DB 块里已经算好的数值</strong>。PLC 程序员负责把温度传感器的值算好放进 DB1 的第 0 个浮点数——你只管 <code>ReadFloat("DB1", 0)</code> 拿走。这就是"上位机对接 PLC"的全部日常。</p>
+</blockquote>
+<h3 id="sec-3-6">2.4 接线与抗干扰（现场最容易翻车的地方）</h3>
+<p>🟦 经验科普 · 🟩 无需代码 · 🟧 无</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>现象</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A/B 接反</strong>（RS485）</td>
+<td>完全不通 / 疯狂乱码</td>
+<td>把 A、B 两根线对调</td>
+</tr>
+<tr>
+<td><strong>没共地</strong>（两端电源不同）</td>
+<td>时通时断、偶发乱码</td>
+<td>把两端 <strong>GND 地线连起来</strong>（参考电位）</td>
+</tr>
+<tr>
+<td><strong>终端电阻缺失</strong></td>
+<td>远距离 / 高波特率时乱码</td>
+<td>总线<strong>两端</strong>各并一个 <strong>120Ω</strong> 电阻（防信号反射）</td>
+</tr>
+<tr>
+<td><strong>强电干扰</strong></td>
+<td>电机一启动就掉线</td>
+<td>信号线和动力线<strong>分开走线</strong>，用屏蔽双绞线，屏蔽层单端接地</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>🔥 <strong>真实现场口诀</strong>："连不上先查线，乱码先查地（共地）和终端电阻，偶发掉线查干扰和电源。"——这比任何协议都重要，因为 <strong>80% 的"通信故障"是物理层，不是代码</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">三、没有硬件怎么办？四层替代方案（重点）</h2>
+<blockquote>
+<p><strong>核心结论</strong>：从零成本到真机，四层任选。M0–M3、M7 全部能练，<strong>不用买任何东西也能学完</strong>。</p>
+</blockquote>
+<h3 id="sec-3-7">🎯 你有什么 → 用哪层（决策表）</h3>
+<table>
+<thead>
+<tr>
+<th>你的条件</th>
+<th>推荐方案</th>
+<th>成本</th>
+<th>真实度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>啥都没有，只想学架构/代码</td>
+<td><strong>T1 纯软件</strong>（SimulatedDevice / Moq / 回放）</td>
+<td>¥0</td>
+<td>中（验证逻辑够）</td>
+</tr>
+<tr>
+<td>想练"串口程序"但不想买线</td>
+<td><strong>T2 虚拟串口对</strong>（com0com）</td>
+<td>¥0</td>
+<td>高（和真串口代码一模一样）</td>
+</tr>
+<tr>
+<td>想练 Modbus 主站</td>
+<td><strong>T2 Modbus 从站模拟器</strong></td>
+<td>¥0</td>
+<td>高</td>
+</tr>
+<tr>
+<td>想练 PLC 通信</td>
+<td><strong>T2 PLCSIM + NetToPLCSim</strong></td>
+<td>¥0（需 TIA）</td>
+<td>高（真 PLC 协议）</td>
+</tr>
+<tr>
+<td>想练上云</td>
+<td><strong>T2 本地 MQTT / OPC UA 模拟服务器</strong></td>
+<td>¥0</td>
+<td>高</td>
+</tr>
+<tr>
+<td>想要"真设备"手感又省钱</td>
+<td><strong>T3 智能电表 / USB-485 / 开发板从站</strong></td>
+<td>¥20–100</td>
+<td>很高</td>
+</tr>
+<tr>
+<td>想冲简历"真 PLC 经验"</td>
+<td><strong>T3 二手 S7-200 SMART / S7-1200</strong></td>
+<td>¥300–800</td>
+<td>真机</td>
+</tr>
+<tr>
+<td>实习/工作现场</td>
+<td><strong>T4 企业真机</strong></td>
+<td>公司出</td>
+<td>真机</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="sec-3-8">🟩 T1 纯软件方案（零硬件，随时可练）</h3>
+<p><strong>① SimulatedDevice（项目里已经有了！）</strong>
+- 它实现 <code>IDevice</code>，后台线程周期产点，<strong>就是个"假数据源"</strong>。
+- 你之前跑 <code>dotnet run</code> 看到的跳动点位，就是它产的。
+- <strong>用途</strong>：练通"采集→管道→存储→报警→界面"全链路，完全不需要硬件。</p>
+<p><strong>② Moq 虚拟设备（M9 教过）</strong></p>
+<pre><code class="language-csharp">var device = new Mock&lt;IDevice&gt;();
+device.Setup(d =&gt; d.Connect()).Raises(d =&gt; d.DataReceived += null,
+    new DataEventArgs { PointId = 1, Value = 36.5 });
+</code></pre>
+<ul>
+<li>单元测试里用，隔离硬件，测你的逻辑。</li>
+</ul>
+<p><strong>③ 数据回放（最像现场）</strong>
+- 录一段真实数据到 CSV/JSON，回放器逐行 <code>RaiseData</code>。
+- 好处：能反复复现"那天凌晨 3 点报警"的 bug，不用等真机再出一次。</p>
+<blockquote>
+<p>💡 <strong>企业真实做法</strong>：很多上位机团队<strong>先无硬件开发</strong>（用 SimulatedDevice 把界面、报警、报表全做完），等真机到了只换一个 <code>Device</code> 实现，一天接入。你现在的 DAQMonitor 就是这路数——M1–M7 只需把 <code>SimulatedDevice</code> 换掉。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-9">🟩 T2 虚拟接口方案（代码和真机一模一样，只是对端是软件）</h3>
+<p><strong>① 虚拟串口对（M1 练手必备）</strong> 🟧 com0com / VSPD
+- <strong>是什么</strong>：装一个驱动，虚拟出 <code>COM3 ↔ COM4</code> 一对"背靠背"的串口。你的 DAQ Monitor 开 COM3，另一个小程序（或串口调试助手）开 COM4 发数据，<strong>数据从 COM4 流进 COM3</strong>，完全模拟"仪表连着电脑"。
+- <strong>怎么用</strong>：
+  1. 装 <code>com0com</code>（Win10/11 需测试模式签名，见外链）→ 建 <code>COM3&lt;-&gt;COM4</code>。
+  2. DAQ Monitor 把 <code>SerialDevice</code> 注册到 COM3。
+  3. 用"串口调试助手"或 10 行 Python 往 COM4 发一帧 <code>AA 55 ...</code>。
+  4. 看 MainWindow 是否出现对应点位。
+- <strong>真实度</strong>：⭐⭐⭐⭐ 你的串口代码和连真仪表<strong>一行都不用改</strong>。</p>
+<p><strong>② Modbus 从站模拟器（M2 练手）</strong> 🟧 QModMaster / Modbus Slave / diagslave
+- <strong>是什么</strong>：一个跑在你电脑上的"假仪表"，监听某个串口或 TCP 端口，响应你主站的读请求。
+- <strong>怎么用</strong>：
+  1. 开 <code>diagslave -m tcp -p 502</code>（TCP 从站）或 QModMaster 当从站。
+  2. DAQ Monitor 用 NModbus 主站连 <code>localhost:502</code>，读保持寄存器。
+  3. 你在模拟器里改个值，软件里立刻变——和真电表一模一样。</p>
+<p><strong>③ PLCSIM + NetToPLCSim（M3 练手）</strong> 🟧
+- <strong>是什么</strong>：西门子官方 <code>PLCSIM</code> 在电脑里仿真一台 PLC；<code>NetToPLCSim</code> 把它的通信"透传"到网络端口，这样 <strong>S7.Net 能像连真 PLC 一样连它</strong>。
+- <strong>怎么用</strong>：TIA 里写个简单 DB 块 → 下载进 PLCSIM → 开 NetToPLCSim 映射 → DAQ Monitor 用 S7.Net 连 <code>127.0.0.1</code> 读 DB。
+- <strong>限制</strong>：需有 TIA Portal + PLCSIM（学生版/试用版可）。</p>
+<p><strong>④ OPC UA 模拟服务器 / 本地 MQTT（M7 练手）</strong> 🟧
+- OPC UA：<code>Prosys OPC UA Simulation Server</code> 本地跑，提供随机变化的节点，你的 UA 客户端去订阅。
+- MQTT：本地装 <code>Mosquitto</code> broker，<code>mosquitto_pub</code> 发消息，你的 <code>MQTTnet</code> 客户端订阅——和真上云代码一致。</p>
+<hr />
+<h3 id="sec-3-10">🟧 T3 低成本真硬件（花小钱，真实感拉满）</h3>
+<table>
+<thead>
+<tr>
+<th>买啥</th>
+<th>价格</th>
+<th>能干啥</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>USB↔RS485 转换器</strong>（CH340/FT232）</td>
+<td>¥20–50</td>
+<td>电脑多出 RS485 口</td>
+<td>接任何 485 设备；FT232 驱动稳</td>
+</tr>
+<tr>
+<td><strong>智能电表 / 温控仪</strong>（带 Modbus RTU）</td>
+<td>¥50–120</td>
+<td><strong>真能读到电流/温度数据</strong></td>
+<td>最便宜的"真设备"，Modbus 协议，接上就能练 M2</td>
+</tr>
+<tr>
+<td><strong>Arduino/STM32 + RS485 模块</strong></td>
+<td>¥50–100</td>
+<td>自己写个 Modbus <strong>从站</strong>固件</td>
+<td>比模拟器更真：你控制它回什么值；理解"从站怎么想"</td>
+</tr>
+<tr>
+<td><strong>二手 S7-200 SMART / S7-1200</strong></td>
+<td>¥300–800</td>
+<td><strong>真 PLC</strong></td>
+<td>简历写"对接西门子 S7-1200"的底气；需配网线+电源</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>性价比之王</strong>：买个 <strong>¥60 的 Modbus 智能电表 + ¥30 的 USB-485 线</strong>，你立刻拥有一个"真下位机"——DAQ Monitor 改 <code>SerialDevice</code> 为 <code>ModbusRtuDevice</code> 注册进去，就能看到<strong>真实电流在跳</strong>。这比任何模拟器都长经验。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-11">🟧 T4 企业真机（实习 / 工作才有）</h3>
+<p>真实产线 PLC、SCADA、DCS——这时候你已经有 T1–T3 的全部能力，上手真机只是"换根线 + 问清楚地址表"。<strong>别怂，你练过的虚拟/低成本方案，和真机代码 95% 一样。</strong></p>
+<hr />
+<h2 id="sec-2-4">四、连不上的万能排查清单（真实现场经验，背下来）</h2>
+<blockquote>
+<p>无论虚拟还是真机，<strong>按这个顺序查，能解决 95% 的"通信失败"</strong>：</p>
+</blockquote>
+<pre><code>1. 物理层（先查线！）
+   □ 串口：COM 口号对吗？（设备管理器看）
+   □ 485：A/B 接反了吗？（对调试一下）
+   □ 共地接了吗？（两端 GND 连起来）
+   □ 远距离/高波特率：总线两端 120Ω 终端电阻有吗？
+2. 参数层（双方必须一致）
+   □ 波特率 / 数据位 / 停止位 / 校验 对吗？
+   □ 流控 DTR/RTS 要不要拉高？（部分设备必须）
+3. 网络层（TCP/OPC/MQTT 类）
+   □ IP / 端口对吗？防火墙放了吗？
+   □ PLC：DB 号/偏移和 TIA 一致吗？该 DB &quot;优化访问&quot;关了吗？
+   □ PLC 在 RUN 吗？允许 PUT/GET 通信吗？
+4. 协议层
+   □ Modbus：寄存器地址 ±1 偏移对吗？（手册 40001 vs 代码 0）
+   □ 从站地址（站号）对吗？
+5. 软件层
+   □ 你的 Device 注册进 Bootstrapper 了吗？
+   □ 异常信息是啥？（看 Serilog 日志，别瞎猜）
+</code></pre>
+<blockquote>
+<p>🔥 <strong>血的教训</strong>：新手 80% 时间花在"代码没错但线没接对/参数没对齐"。<strong>先看物理层和参数层，再看代码</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">五、🏗️ 动手练习（从零搭虚拟环境跑通，零硬件）</h2>
+<h3 id="sec-3-12">练习 1：用虚拟串口让 DAQ Monitor 收到"假仪表"数据</h3>
+<p><strong>目标</strong>：不买任何东西，让 M1 的串口代码真正跑起来。
+1. 装 <code>com0com</code>，建虚拟对 <code>COM3&lt;-&gt;COM4</code>。
+2. 在 <code>DaqMonitor.Core/Devices/</code> 写 <code>SerialDevice : DeviceBase</code>，<code>Connect()</code> 里 <code>new SerialPort("COM3", 9600, Parity.None, 8, StopBits.One)</code> 并 <code>Open()</code>，<code>DataReceived</code> 里把字节喂给帧解析器，<code>RaiseData</code> 抛出点位。
+3. 注册进 <code>Bootstrapper</code> 替换 <code>SimulatedDevice</code>。
+4. 用任意"串口调试助手"开 COM4，发一帧 <code>AA 55 02 00 1E 3C 9E</code>（示意帧）。
+5. 运行 DAQ Monitor，<code>dotnet run</code>，看 MainWindow 是否出现点位。</p>
+<p><strong>✅ 答案要点</strong>：
+- <code>SerialPort</code> 来自 🟩 <code>System.IO.Ports</code>（.NET 8 需 <code>dotnet add package System.IO.Ports</code>）。
+- 必须用 <code>DataReceived</code> 事件 + 字节缓冲解决<strong>半包/粘包</strong>（见 M1 帧解析器），不能"收到就当一帧"。
+- 收不到先查：COM 号对不对、<code>DataReceived</code> 在某些机器不触发 → 改用 <code>BaseStream.ReadAsync</code> 循环读。
+- 跑通 = 你<strong>已经会写工业串口程序了</strong>，和连真仪表代码一致。</p>
+<h3 id="sec-3-13">练习 2：用 Modbus 从站模拟器读"假电表"</h3>
+<p><strong>目标</strong>：练 M2 主站。
+1. 下载 <code>diagslave</code>，命令行 <code>diagslave -m tcp -p 502 -a 1</code> 起一个 TCP 从站（站号 1）。
+2. DAQ Monitor 用 NModbus <code>TcpClient</code> 连 <code>127.0.0.1:502</code>，读保持寄存器 0 起 5 个值。
+3. 在 diagslave 里改寄存器值，看软件是否同步变化。</p>
+<p><strong>✅ 答案要点</strong>：注意地址偏移（手册 40001 → 代码 0）；NModbus 是 🟧 第三方包；这就是真实智能电表的读法。</p>
+<h3 id="sec-3-14">练习 3：画出"你家的通信拓扑"</h3>
+<p>画一张图：电脑 →（USB-485）→ 智能电表 →（RS485 总线）→ PLC →（网线）→ 你的 DAQ Monitor。标注每个环节的接口、协议、参数。<strong>这是面试常考的"你懂不懂现场"题。</strong></p>
+<hr />
+<h2 id="sec-2-6">六、📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>关联 M0</strong>：M0 教的"后台线程 + 事件 + 并发"在这里直接用到——<code>SerialPort.DataReceived</code> 是<strong>后台线程回调</strong>，你处理字节时绝不能跨线程碰 UI（复习 M0 Day7 的 <code>Dispatcher</code>/批量原则）。</li>
+<li><strong>关联 M1→M2→M3</strong>：三者是<strong>同一件事的不同对端</strong>——都是"上位机往下位机要数据"。串口是"传输方式"，Modbus 是"对话语言"，PLC 是"对端设备类型"。学会一个，另外两个只是换 <code>Device</code> 实现。</li>
+<li><strong>关联 M9（DI）</strong>：为什么我们抽象 <code>IDevice</code>？因为这样<strong>硬件可替换</strong>——今天 <code>SimulatedDevice</code>，明天 <code>SerialDevice</code>，后天 <code>ModbusDevice</code>，UI 和采集层一行都不用改。这就是"面向接口"的真实价值，也是你能在"没硬件"时照样开发的原因。</li>
+<li><strong>关联 M7（上云）</strong>：OPC UA / MQTT 的"对端"也可以本地模拟（Prosys / Mosquitto），思路和 T2 虚拟串口一模一样。</li>
+</ul>
+<hr />
+<h2 id="sec-2-7">七、📚 延伸阅读（外链，解决"还不懂"的地方）</h2>
+<ul>
+<li><strong>串口基础 + com0com 虚拟串口</strong>：https://sourceforge.net/projects/com0com/ —— M1 零硬件闭环，Win10/11 需测试模式签名，教程见站内搜索"com0com windows 11"</li>
+<li><strong>VSPD 虚拟串口（商业可试用）</strong>：https://www.eltima.com/products/vspd/ —— 比 com0com 安装简单</li>
+<li><strong>Modbus 官方协议</strong>：https://modbus.org/specs.php —— 想啃原始帧格式看这个</li>
+<li><strong>diagslave Modbus 从站模拟器</strong>：http://www.modbusdriver.com/diagslave.html —— M2 练手</li>
+<li><strong>QModMaster（开源主/从站工具）</strong>：https://sourceforge.net/projects/qmodmaster/ —— 调试 Modbus 神器</li>
+<li><strong>NetToPLCSim（西门子仿真透传）</strong>：https://github.com/mesta1/NetToPLCSim —— M3 无真机练手</li>
+<li><strong>Prosys OPC UA Simulation Server</strong>：https://www.prosysopc.com/products/opc-ua-simulation-server/ —— M7 本地 OPC UA 服务器</li>
+<li><strong>Eclipse Mosquitto（MQTT Broker）</strong>：https://mosquitto.org/ —— M7 本地 MQTT</li>
+<li><strong>西门子 S7-1200 文档中心</strong>：https://support.industry.siemens.com/cs/ —— 真 PLC 资料</li>
+<li><strong>RS485 应用笔记（终端电阻/布线）</strong>：搜索"TI RS485 设计指南"或"ADI RS485 故障排查" —— 硬件抗干扰权威</li>
+</ul>
+<hr />
+<h2 id="sec-2-8">打卡</h2>
+<ul>
+<li>[ ] 看懂"上位机/下位机/串口/Modbus/PLC"的关系图</li>
+<li>[ ] 能向别人讲清 RS232 vs RS485、4–20mA 为什么抗干扰</li>
+<li>[ ] T1：用 SimulatedDevice 跑通 DAQ Monitor 全链路</li>
+<li>[ ] T2：虚拟串口 / Modbus 从站 / PLCSIM 至少选一个跑通</li>
+<li>[ ] 背下"连不上的排查清单"</li>
+<li>[ ] 🏗️ 练习 1/2/3 至少完成 1 个并跑绿</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="practice-ladder.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">练习阶梯 · 从简单到企业级</div></a>
+  <a class="next" href="links.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">附录 · 外部链接索引</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

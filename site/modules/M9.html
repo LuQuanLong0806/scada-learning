@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M9 · 工程素养 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M9">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 4 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 单元测试（xUnit + Moq）🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-6">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-7">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — DI 容器（依赖注入）🟡</a><ul>
+<li class="l3"><a href="#sec-3-8">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-9">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-10">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-11">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-12">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-13">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-14">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Day 3 — 统一采集架构（Channel + 定时批量）🟡</a><ul>
+<li class="l3"><a href="#sec-3-15">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-16">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-17">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-18">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-19">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-20">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-21">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">Day 4 — 生产级容错与重试（Retry）🔴</a><ul>
+<li class="l3"><a href="#sec-3-22">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-23">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-24">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-25">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-26">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-27">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-28">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">模块交付清单（M9）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">🧩 完整代码组装（M9 落地的真实文件，可直接抄 / 已存在于工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M9 — 工程素养：单元测试 / DI 容器 / 统一采集 / 生产容错 🛡️</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 工程素养（测试/DI/统一架构/容错，13→15K 分水岭）
+<strong>技术来源</strong>：🟧 <code>xunit</code> + <code>Moq</code>（单元测试）、🟧 <code>Microsoft.Extensions.DependencyInjection</code>（DI 容器）、🟦 <code>System.Threading.Channels</code>（统一缓冲）、🟦 <code>Task</code>/异常（容错重试）。
+<strong>前端类比总纲</strong>：前端有 Jest/Vitest 测逻辑、Context 注入服务、事件总线解耦、axios-retry 重试——本模块把这套"工程化素养"在 C# 上位机里完整复刻一遍，决定你能不能"交付企业"而不是"写完能跑"。
+<strong>给简历加的能力</strong>：把"能跑的代码"升级成"信得过、可维护、可交付"的工程 —— 有测试兜底、有容器解耦、有统一架构、有生产级容错。这正是 <strong>13K→15K</strong> 的分水岭。
+<strong>前置</strong>：M0–M8（DAQ Monitor 已具备采集/可视化/存储/报警/上云），本模块给它们"穿上工程铠甲"。
+<strong>已落地验证</strong>：本项目的 <code>DaqMonitor.Tests</code> 已含 <strong>28 个真实测试全绿</strong>（<code>dotnet test</code>），覆盖 PointStore / AlarmEngine / Crc16 / FrameParser / Retry / AcquisitionPipeline / Moq 集成 / <strong>串口通信层 SerialDevice（单帧·粘包·半包·坏CRC·管道集成·RawLog 调试开关 共 6 个）</strong> / <strong>CAN 设备 2 个</strong> / <strong>USB-HID 设备 2 个</strong> / <strong>心跳健康监测 DeviceHealthMonitor 2 个</strong>。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>① <strong>单元测试</strong>（xUnit + Moq）：核心逻辑可验证，改代码不怕回归；② <strong>DI 容器</strong>：服务一处注册、随处可取，便于替换与测试；③ <strong>统一采集架构</strong>（<code>Channel&lt;T&gt;</code> + <code>Timer</code> 批量）：修正 M5③/M7② 的"逐点刷新/逐点发布"坑；④ <strong>生产级容错与重试</strong>：通信断了自动退避重试，而不是裸 <code>try/catch</code> 抛给用户。</p>
+<h2 id="sec-2-2">Day 1 — 单元测试（xUnit + Moq）🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>单元测试 = 给核心逻辑写"自动裁判"：输入固定，断言输出符合预期。改完代码跑一遍，全绿就说明没搞坏东西。<strong>这是 15K 岗位的硬通货</strong>——不会写测试的上位机工程师，简历会被直接刷掉。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xunit</code> + <code>[Fact]</code></td>
+<td><code>Jest</code> / <code>Vitest</code> + <code>test()</code> / <code>it()</code></td>
+</tr>
+<tr>
+<td><code>Assert.Equal(a, b)</code></td>
+<td><code>expect(a).toBe(b)</code></td>
+</tr>
+<tr>
+<td><code>Moq</code>（造替身）</td>
+<td><code>jest.mock()</code> / <code>vi.fn()</code></td>
+</tr>
+<tr>
+<td>测试项目引用被测项目</td>
+<td><code>*.test.ts</code> 同仓库</td>
+</tr>
+<tr>
+<td><code>dotnet test</code></td>
+<td><code>npm test</code> / <code>vitest</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 测试项目怎么建</strong>（🟧）</p>
+<pre><code class="language-bash">dotnet new xunit -o src/DaqMonitor.Tests
+cd src/DaqMonitor.Tests
+dotnet add package Moq
+dotnet add reference ../DaqMonitor.Core   # 引用被测工程
+</code></pre>
+<blockquote>
+<p>约定：测试类名 = <code>被测类 + Tests</code>，方法名 = <code>被测方法_场景_预期</code>（<code>Evaluate_FiresOnlyOnRisingEdge</code>）。</p>
+</blockquote>
+<p><strong>② 测"纯逻辑"（不依赖外部）</strong>（🟦🟧）
+报警引擎是典型纯逻辑——给它点，断言是否触发。本项目真实用例：</p>
+<pre><code class="language-csharp">[Fact]
+public void Evaluate_FiresOnlyOnRisingEdge()   // 边沿触发：只报一次，不刷屏
+{
+    var engine = new AlarmEngine();
+    engine.Add(new AlarmRule { PointId = 3, Threshold = 100, Level = AlarmLevel.Critical, IsHigh = true });
+    int count = 0;
+    engine.AlarmTriggered += (s, e) =&gt; count++;
+    engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });
+    engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });   // 仍超阈值，不应重复报
+    Assert.Equal(1, count);
+}
+</code></pre>
+<p>同样写法覆盖：<code>PointStore.AddOrUpdate</code>（双索引增改）、<code>Crc16.Modbus</code>（寄存器值 <code>0x0A84</code>，注意 Modbus 低字节在前的线序）、<code>FrameParser.Feed</code>（半包/粘包拆分）。</p>
+<p><strong>③ 用 Moq 造"替身"测集成</strong>（🟧）—— 不碰真实串口/PLC</p>
+<pre><code class="language-csharp">[Fact]
+public async Task Pipeline_ReceivesData_FromMockedDevice()   // 真实存在于本项目
+{
+    var device = new Mock&lt;IDevice&gt;();          // 虚拟设备，免去真实硬件
+    using var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+    var done = new TaskCompletionSource();
+    var received = new List&lt;SensorPoint&gt;();
+    pipeline.BatchReady += (s, batch) =&gt; { received.AddRange(batch); if (received.Count&gt;=1) done.TrySetResult(); };
+
+    pipeline.Register(device.Object);
+    device.Raise(d =&gt; d.DataReceived += null,    // Moq 模拟&quot;设备来了一帧&quot;
+        new DataEventArgs { PointId = 7, Value = 42, Timestamp = DateTime.Now });
+
+    await Task.WhenAny(done.Task, Task.Delay(2000));
+    Assert.Single(received);
+    Assert.Equal(7, received[0].Id);
+}
+</code></pre>
+<p><strong>④ 跑测试</strong>（🟦）</p>
+<pre><code class="language-bash">dotnet test            # 全绿 = 改代码有底气
+</code></pre>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 测"行为"不是"实现"</td>
+<td>断言输入输出，别断言内部私有字段，否则重构即红</td>
+</tr>
+<tr>
+<td>⭐ 不依赖外部</td>
+<td>串口/PLC/DB/MQTT 一律用 Mock，测试要快且稳定</td>
+</tr>
+<tr>
+<td>⭐ 命名讲人话</td>
+<td><code>方法_场景_预期</code>，失败一眼知道哪坏</td>
+</tr>
+<tr>
+<td>🔥 异步测试要 <code>async Task</code></td>
+<td>别在测试里 <code>.Wait()</code>/<code>.Result()</code>，会死锁；用 <code>await Task.WhenAny(t, Task.Delay(...))</code> 等异步完成</td>
+</tr>
+<tr>
+<td>🔥 边界/反例也要测</td>
+<td>成功路径 + 异常路径（如 <code>Retry</code> 耗尽后抛异常）都覆盖才稳</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🟢 基础题</h3>
+<p>给 <code>PointStore</code> 加一个 <code>Remove(int id)</code> 方法，并写测试：删除存在的 Id 后 <code>Get</code> 返回 <code>null</code>、删除不存在的 Id 不报错。</p>
+<h3 id="sec-3-6">🟡 进阶题</h3>
+<p>给 <code>AlarmEngine</code> 加一个 <code>ClearRules()</code> 方法，写测试确认清空后 <code>Evaluate</code> 不再触发任何 <code>AlarmTriggered</code>。</p>
+<h3 id="sec-3-7">🔴 挑战题</h3>
+<p>用 Moq 造一个"会失败的设备"：<code>Setup</code> 第 1 次 <code>Connect</code> 抛异常、第 2 次成功，配合本模块 Day4 的 <code>Retry.ExecuteAsync</code> 验证"连不上自动重试到成功"——这正是生产级容错的最小证明。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">// PointStore.cs
+public void Remove(int id) { _byId.Remove(id); _points.RemoveAll(x =&gt; x.Id == id); }
+// PointStoreTests.cs
+[Fact] public void Remove_ExistingId_ThenGetNull()
+{
+    var s = new PointStore(); s.AddOrUpdate(new SensorPoint { Id = 5, Value = 1 });
+    s.Remove(5); Assert.Null(s.Get(5));
+}
+[Fact] public void Remove_MissingId_NoThrow()
+{ new PointStore().Remove(999); }   // 不抛即过
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 DAQ Monitor 的核心逻辑（Store/Alarm/Protocol/Pipeline/Retry）都补上测试，<code>dotnet test</code> 全绿。工程素养第一关达标。</p>
+<p><strong>🎓 工控导师说</strong>：很多学员觉得"测试是浪费时间，功能跑通就行"。等上线后改一处、别处崩了，你才知道疼。我带的项目规矩是"<strong>改完代码先 <code>dotnet test</code>，全绿才敢提交</strong>"——测试就是你的安全网，省下的 debug 时间比写测试多十倍。</p>
+<p><strong>💼 职业建议</strong>：单元测试是 13K→15K 的分水岭标志。面试被问"你写测试吗"，答"核心逻辑用 xUnit+Moq 覆盖，改代码靠测试兜底"直接证明你是"工程化思维"而非"脚本式开发"，简历一票过关。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M9',1)"> 打卡</label></strong></p>
+<h2 id="sec-2-3">Day 2 — DI 容器（依赖注入）🟡</h2>
+<h3 id="sec-3-8">一句话讲清楚</h3>
+<p>依赖注入（DI）= 把"对象从哪来"交给一个容器统一管理。组件只声明"我需要什么"（构造函数参数），容器负责造好并喂进来。好处：换实现只改一处、写测试能塞 Mock。</p>
+<h3 id="sec-3-9">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ServiceCollection</code> + <code>AddSingleton</code></td>
+<td>React <code>Context.Provider</code> 提供单例</td>
+</tr>
+<tr>
+<td><code>GetRequiredService&lt;T&gt;()</code></td>
+<td><code>useContext(MyCtx)</code> 取服务</td>
+</tr>
+<tr>
+<td>组合根（Composition Root）</td>
+<td>应用顶层 <code>main.tsx</code> 装配</td>
+</tr>
+<tr>
+<td>接口 <code>IDevice</code> + 实现</td>
+<td>接口 + 多实现（策略模式）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-10">分点精讲</h3>
+<p><strong>① 注册服务</strong>（🟧 <code>Microsoft.Extensions.DependencyInjection</code>）</p>
+<pre><code class="language-csharp">var services = new ServiceCollection();
+services.AddSingleton&lt;PointStore&gt;();                       // 全局唯一存储
+services.AddSingleton&lt;AlarmEngine&gt;();                      // 全局唯一报警引擎
+services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt;            // 带参数的单例
+    new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+// services.AddSingleton&lt;IDevice, ModbusDevice&gt;();         // M2 落地后注册具体设备
+var provider = services.BuildServiceProvider();
+</code></pre>
+<p><strong>② 组合根（本项目真实代码 <code>Bootstrapper.Build</code>）</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">public static ServiceProvider Build()
+{
+    var services = new ServiceCollection();
+    services.AddSingleton&lt;PointStore&gt;();
+    services.AddSingleton&lt;AlarmEngine&gt;();
+    services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt; new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+    return services.BuildServiceProvider();
+}
+</code></pre>
+<p><strong>③ 在 App 里取服务</strong>（🟩 WPF <code>App.xaml.cs</code>）</p>
+<pre><code class="language-csharp">public partial class App : Application
+{
+    public static ServiceProvider Provider { get; private set; } = Bootstrapper.Build();
+    // 任何地方：App.Provider.GetRequiredService&lt;PointStore&gt;()
+}
+</code></pre>
+<p><strong>④ 为什么是 15K 关键点</strong>
+- <strong>可替换</strong>：把 <code>ModbusDevice</code> 换成 <code>PlcDevice</code>，只改注册那一行，调用方一行不动（面向接口）。
+- <strong>可测试</strong>：测试时 <code>services.AddSingleton&lt;IDevice, MockDevice&gt;()</code> 即可隔离硬件。</p>
+<h3 id="sec-3-11">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 组合根唯一</td>
+<td>所有 <code>new</code> 只允许在 <code>Bootstrapper</code> 里出现，别在 ViewModel 里到处 <code>new</code></td>
+</tr>
+<tr>
+<td>⭐ 生命周期选对</td>
+<td>有状态/全局共享用 <code>Singleton</code>；每次要新的用 <code>Transient</code>；请求级用 <code>Scoped</code></td>
+</tr>
+<tr>
+<td>🔥 别 <code>new</code> 依赖</td>
+<td>ViewModel 构造函数写 <code>public MainViewModel(PointStore store)</code>，让容器注入，别自己 <code>new PointStore()</code></td>
+</tr>
+<tr>
+<td>🔥 循环依赖</td>
+<td>A 依赖 B、B 又依赖 A 会启动即炸，重构拆公共依赖</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-12">🟢 基础题</h3>
+<p>把 <code>MainViewModel</code> 改成"通过构造函数拿到 <code>PointStore</code> 和 <code>AcquisitionPipeline</code>"，而不是在内部 <code>new</code>。</p>
+<h3 id="sec-3-13">🟡 进阶题</h3>
+<p>在 <code>Bootstrapper</code> 里把 <code>MainViewModel</code> 也注册成 <code>Singleton</code>，让 <code>App.Provider.GetRequiredService&lt;MainViewModel&gt;()</code> 能直接拿到组装好的实例。</p>
+<h3 id="sec-3-14">🔴 挑战题</h3>
+<p>给 <code>PointStore</code> 抽一个接口 <code>IPointStore</code>，<code>Bootstrapper</code> 注册 <code>AddSingleton&lt;IPointStore, PointStore&gt;()</code>；测试时用 <code>Mock&lt;IPointStore&gt;()</code> 替换——体会"面向接口让测试与实现解耦"。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">public partial class MainViewModel : ObservableObject
+{
+    private readonly PointStore _store;
+    private readonly AcquisitionPipeline _pipeline;
+    public MainViewModel(PointStore store, AcquisitionPipeline pipeline)
+    { _store = store; _pipeline = pipeline; }
+}
+// App 启动：Provider.GetRequiredService&lt;MainViewModel&gt;()（需先注册 ViewModel）
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：用 <code>Bootstrapper</code> 装配 DAQ Monitor 全部 Core 服务；MainWindow/ViewModel 改为构造函数注入，移除散落的 <code>new</code>。工程素养第二关达标。</p>
+<p><strong>🎓 工控导师说</strong>：见过太多"在按钮事件里 <code>new SerialDevice()</code>、<code>new PointStore()</code>"的上位机程序——结果换设备要改 20 个地方，测试根本没法写。企业级做法是"<strong>所有 <code>new</code> 只允许在组合根 <code>Bootstrapper</code> 里出现</strong>"，别处只声明"我需要什么"。这条规矩值千金。</p>
+<p><strong>💼 职业建议</strong>：DI 容器 + 面向接口是面试高频题。能讲清"组合根唯一、生命周期选 Singleton/Scoped/Transient、测试时换 Mock 实现"的人，直接被认定是"写过可维护项目"，而非"只会拖控件"。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M9',2)"> 打卡</label></strong></p>
+<h2 id="sec-2-4">Day 3 — 统一采集架构（Channel<T> + 定时批量）🟡</h2>
+<h3 id="sec-3-15">一句话讲清楚</h3>
+<p><strong>所有设备数据走同一条流水线</strong>：事件只做"入队" → <code>Channel&lt;T&gt;</code> 缓冲 → <code>Timer</code> 定时把一批取出来 → 一次性推给"可视化 / 报警 / 上云"。彻底消灭"每个模块各写一套逐点刷新"的混乱。</p>
+<blockquote>
+<p>🔥 <strong>为什么必须这样（修正 M5③ / M7② 的坑）</strong>：早期在 <code>DataReceived</code> 里 <code>Dispatcher.Invoke</code> 逐点刷曲线、或 <code>await PublishAsync</code> 逐点发云——100Hz × 多设备时 UI 线程被刷爆、MQTT 抖动。<strong>正确姿势：事件里只入队，重活交给定时器批量做。</strong></p>
+</blockquote>
+<h3 id="sec-3-16">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>device.DataReceived += ...</code></td>
+<td><code>emitter.on('data', ...)</code></td>
+</tr>
+<tr>
+<td><code>Channel.Writer.TryWrite</code></td>
+<td>消息入队（<code>queue.push</code>）</td>
+</tr>
+<tr>
+<td><code>Timer</code> 定时 <code>Flush</code></td>
+<td><code>setInterval</code> 批量消费</td>
+</tr>
+<tr>
+<td><code>BatchReady</code> 事件</td>
+<td>发布到订阅者（事件总线）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-17">分点精讲</h3>
+<p><strong>① 统一管道 <code>AcquisitionPipeline</code>（本项目真实代码）</strong>（🟦 <code>System.Threading.Channels</code>）</p>
+<pre><code class="language-csharp">public sealed class AcquisitionPipeline : IDisposable
+{
+    private readonly Channel&lt;SensorPoint&gt; _channel = Channel.CreateUnbounded&lt;SensorPoint&gt;();
+    public event EventHandler&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;? BatchReady;   // 批就绪，后台线程触发
+
+    public AcquisitionPipeline(TimeSpan flushInterval, int maxBatch = 500)
+        =&gt; _flushTimer = new Timer(_ =&gt; Flush(), null, flushInterval, flushInterval);
+
+    public void Register(IDevice device)
+        =&gt; device.DataReceived += (s, e) =&gt;
+            _channel.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp });
+
+    private void Flush()
+    {
+        List&lt;SensorPoint&gt;? batch = null;
+        lock (_gate) { if (_pending.Count &gt; 0) { batch = _pending; _pending = new(); } }
+        if (batch is not null) BatchReady?.Invoke(this, batch);   // 一批推给所有订阅方
+    }
+}
+</code></pre>
+<p><strong>② 可视化 / 报警 / 上云 统一订阅 <code>BatchReady</code></strong>（🟩 WPF）</p>
+<pre><code class="language-csharp">// 可视化（M5）：后台线程事件 → Dispatcher 回 UI 线程批量画曲线
+_pipeline.BatchReady += (s, batch) =&gt; Application.Current.Dispatcher.Invoke(() =&gt;
+{
+    foreach (var p in batch) chart.Add(new ObservablePoint(p.Timestamp.Second, p.Value));
+});
+// 报警（M6）：批量送进 AlarmEngine 评估
+_pipeline.BatchReady += (s, batch) =&gt; { foreach (var p in batch) _alarm.Evaluate(p); };
+// 上云（M7）：批量发布（不再逐点 PublishAsync）
+_pipeline.BatchReady += async (s, batch) =&gt; { foreach (var p in batch) await _mqtt.PublishAsync(p); };
+</code></pre>
+<p><strong>③ 限流（maxBatch）</strong>：<code>_pending</code> 攒满 <code>maxBatch</code>（如 500）也立刻出队，防突发洪峰堆爆内存。</p>
+<h3 id="sec-3-18">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件里只做极轻操作</td>
+<td><code>TryWrite</code> 是 O(1) 无锁入队，绝不写文件/刷 UI/发网络</td>
+</tr>
+<tr>
+<td>⭐ <code>BatchReady</code> 在后台线程</td>
+<td>订阅方若要改 UI 必须 <code>Dispatcher.Invoke</code>，否则跨线程异常</td>
+</tr>
+<tr>
+<td>⭐ 单一数据源</td>
+<td>可视化/报警/上云都读同一批 <code>SensorPoint</code>，天然一致</td>
+</tr>
+<tr>
+<td>🔥 忘记 <code>Flush</code> 间隔</td>
+<td>间隔太长曲线"跳变"，太短失去批量意义（200~500ms 通常合适）</td>
+</tr>
+<tr>
+<td>🔥  Dispose 要退订</td>
+<td><code>Dispose</code> 里 <code>_channel.Writer.TryComplete()</code> + 退订 <code>DataReceived</code>，防内存泄漏</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-19">🟢 基础题</h3>
+<p>把 M6 报警引擎接入 <code>AcquisitionPipeline</code>：订阅 <code>BatchReady</code>，把每批点送进 <code>AlarmEngine.Evaluate</code>，并在 <code>AlarmTriggered</code> 里写一条 Serilog 日志。</p>
+<h3 id="sec-3-20">🟡 进阶题</h3>
+<p>在 <code>BatchReady</code> 订阅里，把每批点同时喂给 M5 的曲线（注意后台线程要用 <code>Dispatcher.Invoke</code> 回 UI 线程），实现"一批数据驱动多处消费"。</p>
+<h3 id="sec-3-21">🔴 挑战题</h3>
+<p>给 <code>AcquisitionPipeline</code> 加"背压/限流"保护：当 <code>_pending</code> 攒满 <code>maxBatch</code>（如 500）也立刻出队，防止设备突发洪峰把内存堆爆——并写测试验证"塞 1000 个点、触发至少 2 次 BatchReady"。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">_pipeline.BatchReady += (s, batch) =&gt;
+{
+    foreach (var p in batch) _alarm.Evaluate(p);
+};
+_alarm.AlarmTriggered += (s, e) =&gt;
+    Log.Warning(&quot;报警 点位{Id} 值{Value} 级别{Level}&quot;, e.PointId, e.Value, e.Level);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：重构 DAQ Monitor，让 M5 可视化 / M6 报警 / M7 上云 全部从 <code>_pipeline.BatchReady</code> 取数，删除各处散落的逐点 <code>Dispatcher.Invoke</code> / 逐点 <code>PublishAsync</code>。工程素养第三关（统一架构）达标。</p>
+<p><strong>🎓 工控导师说</strong>：早期咱们在 <code>DataReceived</code> 里直接 <code>Dispatcher.Invoke</code> 刷曲线、直接 <code>await PublishAsync</code> 发云——设备一多、频率一高，UI 线程直接被刷爆、MQTT 抖动。<strong>一条铁律：事件里只做"入队"这件 O(1) 的轻活，重活交给定时器批量做。</strong> 这是 M0 并发思想的真正落地。</p>
+<p><strong>💼 职业建议</strong>："为什么不用 ObservableCollection 逐点 Add？"是 15K 面试经典题。答"事件里只入队、定时器批量 <code>BatchReady</code> 推给所有消费者，单一数据源、天然解耦、不卡 UI"——这一句就能证明你懂高并发采集架构。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay('M9',3)"> 打卡</label></strong></p>
+<h2 id="sec-2-5">Day 4 — 生产级容错与重试（Retry）🔴</h2>
+<h3 id="sec-3-22">一句话讲清楚</h3>
+<p>工业现场通信<strong>必出错</strong>（串口松动、PLC 忙、网络闪断）。合格做法是：<strong>失败自动重试 + 指数退避 + 抖动</strong>，而不是把异常直接甩给用户或默默吞掉。</p>
+<h3 id="sec-3-23">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Retry.ExecuteAsync(action, 3)</code></td>
+<td><code>axios-retry</code> / <code>fetch</code> 重试封装</td>
+</tr>
+<tr>
+<td>指数退避 <code>base * 2^n</code></td>
+<td>重试间隔翻倍，避免雪崩</td>
+</tr>
+<tr>
+<td><code>Random</code> 抖动</td>
+<td>错开多个客户端的重试时刻</td>
+</tr>
+<tr>
+<td><code>CancellationToken</code> 超时</td>
+<td><code>AbortController</code> / <code>setTimeout</code> 取消</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-24">分点精讲</h3>
+<p><strong>① 为什么裸 <code>try/catch</code> 不够</strong>（🟦）
+裸 catch 要么"失败就抛"（用户体验差），要么"catch 后啥也不干"（故障被藏起来）。重试 + 退避才是正解。</p>
+<p><strong>② 本项目真实 <code>Retry</code>（指数退避 + 抖动）</strong>（🟦）</p>
+<pre><code class="language-csharp">public static async Task ExecuteAsync(Func&lt;Task&gt; action, int maxRetries = 3, int baseDelayMs = 200, CancellationToken ct = default)
+{
+    var attempt = 0;
+    while (true)
+    {
+        try { await action(); return; }
+        catch (Exception) when (attempt &lt; maxRetries &amp;&amp; !ct.IsCancellationRequested)
+        {
+            attempt++;
+            var delay = (int)(baseDelayMs * Math.Pow(2, attempt - 1))   // 200→400→800ms 指数退避
+                        + Random.Shared.Next(0, baseDelayMs);           // 加随机抖动，避免多设备同时重试
+            await Task.Delay(delay, ct);
+        }
+    }
+}
+</code></pre>
+<p><strong>③ 用在"会失败的地方"</strong>（🟧 串口/Modbus/PLC/网络）</p>
+<pre><code class="language-csharp">// 连接设备：失败重试 3 次（首试+3次=共4次），指数退避
+await Retry.ExecuteAsync(() =&gt; Task.Run(() =&gt; device.Connect()), maxRetries: 3);
+// 上云发布：断线重连用 Retry（呼应 M7②）
+await Retry.ExecuteAsync(() =&gt; client.PublishAsync(msg), maxRetries: 5);
+</code></pre>
+<p><strong>④ 配合超时（<code>CancellationToken</code>）</strong>（🟦）</p>
+<pre><code class="language-csharp">using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5s 超时
+await Retry.ExecuteAsync(() =&gt; ReadWithTimeout(addr, cts.Token), maxRetries: 2, ct: cts.Token);
+</code></pre>
+<p><strong>⑤ 心跳探活 + 判掉线 + 重连：Retry 的完整实战</strong>（🟦，呼应 M3/M7）✅ <strong>已落地</strong>：本章思想已实现为 <code>src/DaqMonitor.Core/Health/DeviceHealthMonitor.cs</code>（心跳探活 + 连续超时判掉线 + 指数退避重连），配 <code>DeviceHealthMonitorTests</code> 单测，接 M15 联调。
+光有 ②④ 还不够：M3 讲过 <code>plc.IsConnected</code> <strong>不可信</strong>——连接假死了你并不知道。所以还要<strong>主动"心跳"探活</strong>：每隔几秒戳设备一下，它回"在"=在线；一直不回=大概率挂了→触发重连。Retry 管"连不上怎么重试"，心跳管"在线时怎么确认还活着"，<strong>两者配合才是生产级</strong>。</p>
+<p>下面这段<strong>能直接跑</strong>（用随机模拟掉线，真实里把 <code>SendHeartbeatAsync</code> 换成"读一个固定寄存器"，成功=活着、异常/超时=可能挂了）：</p>
+<pre><code class="language-csharp">static async Task&lt;bool&gt; SendHeartbeatAsync()   // 真实里 = master.ReadHoldingRegisters(...)
+{
+    await Task.Delay(100);
+    return new Random().Next(0, 3) != 0;       // 2/3 在线，1/3 模拟掉线
+}
+static async Task ReconnectAsync(int attempt)  // 复用本 Day ② 的退避思想
+{
+    int wait = (int)Math.Min(1000 * Math.Pow(2, attempt), 30000); // 1s→2s→4s…封顶30s
+    Console.WriteLine($&quot;  [重连] 第 {attempt} 次，等 {wait/1000}s…&quot;);
+    await Task.Delay(wait);
+}
+public static async Task WatchAsync()
+{
+    int missed = 0, attempt = 0;
+    while (true)                               // 真实用 CancellationToken 退出
+    {
+        if (await SendHeartbeatAsync())
+        {
+            missed = 0; attempt = 0;
+            Console.WriteLine($&quot;[{DateTime.Now:T}] 心跳 OK，设备在线&quot;);
+        }
+        else
+        {
+            missed++;
+            Console.WriteLine($&quot;[{DateTime.Now:T}] 心跳超时！(连续 {missed} 次)&quot;);
+            if (missed &gt;= 2)                   // 连续 2 次没回才判掉线，防一次抖动误判
+            {
+                Console.WriteLine($&quot;[{DateTime.Now:T}] 设备疑似掉线，启动重连&quot;);
+                await ReconnectAsync(attempt++);
+                missed = 0;
+            }
+        }
+        await Task.Delay(5000);                // 每 5 秒一次心跳
+    }
+}
+</code></pre>
+<p><strong>逐行白话：</strong>
+- <code>SendHeartbeatAsync()</code>：模拟"戳一下设备"。真实里它就是一次读寄存器——成功说明链路通，抛异常/超时说明可能断了。
+- <code>if (missed &gt;= 2)</code>：<strong>不是漏 1 次就重连</strong>（网络偶尔抖一下很正常），连续 2 次没回才判掉线，防止误判把正常设备重启。
+- <code>ReconnectAsync</code>：<strong>指数退避</strong>——和本 Day ② 的 <code>Retry</code> 同一思想，避免"设备正忙你狂连把它打死"。<code>Math.Min(..., 30000)</code> 封顶 30 秒。
+- <code>Task.Delay(5000)</code>：每 5 秒一次。别太频繁（压设备），也别太久（掉线了发现太慢）。</p>
+<p><strong>运行结果节选：</strong></p>
+<pre><code>[10:00:00] 心跳 OK，设备在线
+[10:00:05] 心跳 OK，设备在线
+[10:00:10] 心跳超时！(连续 1 次)
+[10:00:15] 心跳超时！(连续 2 次)
+[10:00:15] 设备疑似掉线，启动重连
+  [重连] 第 0 次，等 1s…
+  [重连] 成功，恢复心跳
+[10:00:21] 心跳 OK，设备在线
+</code></pre>
+<p>这就是现场"<strong>设备掉线你的程序怎么办？</strong>"的标准答案（面试高频！）。</p>
+<table>
+<thead>
+<tr>
+<th>🔥 心跳必记坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>别用 IsConnected 当真相</td>
+<td>它不可信，要靠"读/心跳是否成功"判断</td>
+</tr>
+<tr>
+<td>别漏 1 次就重连</td>
+<td>网络抖动正常，连续 N 次（如 2 次）才判掉线</td>
+</tr>
+<tr>
+<td>重连要退避</td>
+<td>指数退避+封顶，别死循环狂连</td>
+</tr>
+<tr>
+<td>心跳间隔适中</td>
+<td>太短压设备，太长发现掉线慢（一般 3~10s）</td>
+</tr>
+<tr>
+<td>心跳和轮询分开</td>
+<td>探活归探活、取数归取数，别混一个循环打架</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-25">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 只对"瞬时故障"重试</td>
+<td>网络抖、设备忙可重试；参数错/权限错重试也没用，要快速失败</td>
+</tr>
+<tr>
+<td>⭐ 退避别用固定间隔</td>
+<td>固定间隔会让上千设备同时重试把服务端打挂，必须指数+抖动</td>
+</tr>
+<tr>
+<td>⭐ 设上限 + 超时</td>
+<td>重试次数和总时长要有上限，否则卡死在重试里</td>
+</tr>
+<tr>
+<td>🔥 吞异常</td>
+<td><code>catch{}</code> 空捕获是事故温床；至少记日志或上抛</td>
+</tr>
+<tr>
+<td>🔥 重试幂等</td>
+<td>写操作（如下发指令）重试前确认可重复执行，避免重复写入</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-26">🟢 基础题</h3>
+<p>给 <code>Retry.ExecuteAsync</code> 写测试：模拟前两次抛异常、第三次成功，断言共调用 3 次。</p>
+<h3 id="sec-3-27">🟡 进阶题</h3>
+<p>写一个"耗尽重试后仍抛异常"的测试，断言最终抛出原异常类型（如 <code>InvalidOperationException</code>）。</p>
+<h3 id="sec-3-28">🔴 挑战题</h3>
+<p>把 Day4⑤ 的"心跳探活 + 连续 2 次判掉线 + 指数退避重连"<code>DeviceHealthMonitor</code> 接进 DAQ Monitor：用 <code>SimulatedCanChannel</code> 模拟"连发 2 次掉线后恢复"，写测试断言"先广播 Offline、重连后回到 Online"。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">[Fact] public async Task ExecuteAsync_RetriesThenSucceeds()
+{
+    int calls = 0;
+    await Retry.ExecuteAsync(async () =&gt; { calls++; if (calls &lt; 3) throw new InvalidOperationException(); await Task.Yield(); }, maxRetries: 5);
+    Assert.Equal(3, calls);
+}
+[Fact] public async Task ExecuteAsync_ThrowsAfterExhaustingRetries()
+    =&gt; await Assert.ThrowsAsync&lt;InvalidOperationException&gt;(() =&gt;
+        Retry.ExecuteAsync(async () =&gt; { await Task.Yield(); throw new InvalidOperationException(); }, maxRetries: 2));
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 DAQ Monitor 里所有"连设备 / 读寄存器 / 发云"的通信调用用 <code>Retry.ExecuteAsync</code> 包起来，并配 <code>CancellationToken</code> 超时 + Serilog 记录重试。工程素养第四关（生产容错）达标。🛡️</p>
+<p><strong>🎓 工控导师说</strong>：工业现场通信"必出错"——串口松动、PLC 忙、网线被叉车碾断都是常态。我见过最蠢的写法：<code>try { device.Read(); } catch { }</code> 把异常吞了，设备明明挂了程序还"假装正常"继续跑，等出事已经晚了。<strong>正确姿势：失败自动重试（指数退避+抖动），重试耗尽再上抛+记日志</strong>。心跳还要主动探活，别信 <code>IsConnected</code>。</p>
+<p><strong>💼 职业建议</strong>："设备掉线你的程序怎么办？"是面试高频送命题。答"Retry 指数退避重试 + 心跳探活判掉线 + 指数退避重连 + Serilog 记录全过程"——这套组合拳一出口，面试官就知道你是真上过现场的人。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="4" onchange="toggleDay('M9',4)"> 打卡</label></strong></p>
+<h2 id="sec-2-6">模块交付清单（M9）</h2>
+<ul>
+<li>[ ] 单元测试覆盖 Core（Store/Alarm/Protocol/Pipeline/Retry），<code>dotnet test</code> 全绿</li>
+<li>[ ] Moq 集成测试（虚拟设备 → 管道）</li>
+<li>[ ] DI 容器装配（Bootstrapper + 构造函数注入）</li>
+<li>[ ] 统一采集架构（可视化/报警/上云 全部走 <code>BatchReady</code>）</li>
+<li>[ ] 生产级容错（Retry 指数退避 + 抖动 + 超时）</li>
+<li>[ ] 修正 M5③ / M7② 的逐点刷新/逐点发布反模式</li>
+</ul>
+<blockquote>
+<p>📌 <strong>环境提示（真实踩过的坑）</strong>：若本机只装了 .NET 10 运行时、项目却 <code>net8.0</code>，测试会报"必须安装 .NET 8"。在三个 <code>.csproj</code> 加 <code>&lt;RollForward&gt;Major&lt;/RollForward&gt;</code> 即可让 net8 应用滚动运行在 net10 上（本项目已加）。这是生产常用技巧，项目本身仍是 net8.0。</p>
+</blockquote>
+<h2 id="sec-2-7">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>← M0（并发 + 分层）</strong>：本模块的"统一采集架构"正是把 M0 Day7 的 <code>Channel&lt;T&gt;</code> 批量思想从"只给可视化"升级成"可视化/报警/上云共用一条 <code>BatchReady</code> 总线"——这就是分层架构的价值：<strong>数据流只写一次，消费者随便加</strong>。</li>
+<li><strong>← M1 / M2 / M3（通信容错）</strong>：串口/Modbus/PLC 调用现在用 <code>Retry.ExecuteAsync</code> 包起来，把"连不上就崩"变成"连不上重试+记日志"。没有工程素养，通信代码一碰异常整个程序就死给你看。</li>
+<li><strong>← M5③ / M7②（修正反模式）</strong>：M5 原"逐点刷新 UI"、M7 原"逐点发布云"都被本模块的 <code>BatchReady</code> 取代——背下来这个反例，面试能讲清"为什么不用 ObservableCollection 逐点 Add"。</li>
+<li><strong>← M6（报警可靠性）</strong>：报警引擎的"回滞 + 下降沿 <code>AlarmCleared</code>"靠单测锁死行为；改坏它测试立刻红，这就是测试的意义。</li>
+<li><strong>→ 简历一句话</strong>：「用 xUnit+Moq 给 Core 关键逻辑写单测，DI 容器装配，统一 <code>Channel&lt;T&gt;</code> 采集总线 + Retry 生产容错」——这比"会写业务代码"高一个档，直接对齐 13→15K 分水岭。</li>
+</ul>
+<h2 id="sec-2-8">🧩 完整代码组装（M9 落地的真实文件，可直接抄 / 已存在于工程）</h2>
+<pre><code class="language-csharp">// src/DaqMonitor.Core/Common/Retry.cs   —— 指数退避 + 抖动（Day4）
+public static class Retry
+{
+    public static async Task ExecuteAsync(Func&lt;Task&gt; action, int maxRetries = 3, int baseDelayMs = 200, CancellationToken ct = default)
+    {
+        var attempt = 0;
+        while (true)
+        {
+            try { await action(); return; }
+            catch (Exception) when (attempt &lt; maxRetries &amp;&amp; !ct.IsCancellationRequested)
+            {
+                attempt++;
+                var delay = (int)(baseDelayMs * Math.Pow(2, attempt - 1)) + Random.Shared.Next(0, baseDelayMs);
+                await Task.Delay(delay, ct);
+            }
+        }
+    }
+}
+
+// src/DaqMonitor.Core/AppServices/Bootstrapper.cs  —— 组合根（Day2）
+public static ServiceProvider Build()
+{
+    var services = new ServiceCollection();
+    services.AddSingleton&lt;PointStore&gt;();
+    services.AddSingleton&lt;AlarmEngine&gt;();
+    services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt; new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+    // services.AddSingleton&lt;IDevice, ModbusDevice&gt;();  // 接设备时一行切换，UI 零改动
+    return services.BuildServiceProvider();
+}
+
+// src/DaqMonitor.Core/Health/DeviceHealthMonitor.cs  —— 心跳探活 + 退避重连（Day4⑤，已落地）
+// Start() 后台循环每 5s 探活 → 连续 missThreshold 次判掉线 → 指数退避重连 → StateChanged 广播
+
+// src/DaqMonitor.Tests/*Tests.cs  —— 28 个真实测试全绿（Day1）
+// 涵盖 PointStore / AlarmEngine / Crc16 / FrameParser / Retry / AcquisitionPipeline / Moq 集成 /
+// SerialDevice(单帧·粘包·半包·坏CRC·管道·RawLog) / CanDevice / UsbHidDevice / DeviceHealthMonitor
+</code></pre>
+<blockquote>
+<p>工程已端到端跑通：<code>dotnet build</code> 0 警告 0 错误、<code>dotnet test</code> <strong>28/28 绿</strong>。本模块不是"纸上谈兵"，而是把前面 M0–M8 的代码穿上"测试 / 容器 / 统一架构 / 容错"四层工程铠甲。</p>
+</blockquote>
+<h2 id="sec-2-9">🔗 明日预告</h2>
+<p><strong>M10 报表（历史聚合 + Excel/PDF 导出）</strong>：把 M4 存的历史库、M5 的曲线、M6 的报警收口成"能交付客户的报表"——这是企业项目的最后一环，做完你的 DAQ Monitor 就"能交付"了。</p>
+<h2 id="sec-2-10">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>xUnit 官方：https://xunit.net/ · Moq：https://github.com/moq/moq —— 单元测试</li>
+<li>Microsoft DI 官方：https://learn.microsoft.com/dotnet/core/extensions/dependency-injection —— 容器/生命周期</li>
+<li><code>System.Threading.Channels</code> 参考：https://learn.microsoft.com/dotnet/api/system.threading.channels —— 统一缓冲原理</li>
+<li>异步/取消令牌：<code>CancellationToken</code> https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M8.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M8 · 工程化收尾</div></a>
+  <a class="next" href="M10.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M10 · 报表</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

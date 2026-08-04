@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>依赖与授权 · 免费开源清单 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="license">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🟢 一、本项目实际用到的依赖（全部免费）</a><ul>
+<li class="l3"><a href="#sec-3-1">已装进 DAQMonitor 工程（实测 dotnet list package）</a></li>
+<li class="l3"><a href="#sec-3-2">后续模块会装、同样全免费</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">🔴 二、工业常见的「付费框架」与「免费替代」对照</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">🛠️ 三、自定义组件的边界：哪些该自己写，哪些用现成</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">✅ 四、给你的定心丸</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">依赖与授权 · 免费开源清单（及付费框架的免费替代）</h1>
+<blockquote>
+<p><strong>一句话结论</strong>：DAQMonitor 这条学习路线<strong>全程零付费</strong>——我们刻意选的全部是 MIT/Apache/BSD 等开源协议或微软官方免费的库。你学完就能零成本做企业项目，不用担心"没买授权不能用"。
+工业现场确实有一批<strong>商业控件/库</strong>很流行，但它们都有<strong>免费替代</strong>；本文把常见付费项 + 免费替代 + "哪些该自己写"一次说清。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🟢 一、本项目实际用到的依赖（全部免费）</h2>
+<h3 id="sec-3-1">已装进 DAQMonitor 工程（实测 <code>dotnet list package</code>）</h3>
+<table>
+<thead>
+<tr>
+<th>包</th>
+<th>用途</th>
+<th>授权</th>
+<th>是否付费</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Microsoft.Extensions.DependencyInjection</code></td>
+<td>DI 容器 / 组合根</td>
+<td>微软自研免费</td>
+<td>❌ 免费</td>
+</tr>
+<tr>
+<td><code>ClosedXML</code></td>
+<td>Excel 报表导出（M10）</td>
+<td>MIT</td>
+<td>❌ 免费</td>
+</tr>
+<tr>
+<td><code>xunit</code> + <code>Moq</code> + <code>Microsoft.NET.Test.Sdk</code></td>
+<td>单元测试（M9）</td>
+<td>MIT / 免费</td>
+<td>❌ 免费</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">后续模块会装、同样全免费</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>包</th>
+<th>授权</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1 串口</td>
+<td><code>System.IO.Ports</code>（BCL 自带，不装包）</td>
+<td>微软免费</td>
+</tr>
+<tr>
+<td>M2 Modbus</td>
+<td><code>NModbus</code></td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>M3 PLC</td>
+<td><code>S7.Net</code></td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>M4 持久化</td>
+<td><code>Microsoft.EntityFrameworkCore</code> + <code>SQLite</code></td>
+<td>MIT / 公有领域</td>
+</tr>
+<tr>
+<td>M5 可视化</td>
+<td><code>LiveCharts</code>(LiveCharts2)</td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>M7 上云</td>
+<td><code>OPCFoundation.UA-.NETStandard</code> / <code>MQTTnet</code></td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>M8 UI</td>
+<td><code>HandyControl</code></td>
+<td>MIT</td>
+</tr>
+<tr>
+<td>M13 国产</td>
+<td><code>HslCommunication</code></td>
+<td>国产开源（个人/商用免费）</td>
+</tr>
+<tr>
+<td>日志</td>
+<td><code>Serilog</code> + <code>Serilog.Sinks.File</code></td>
+<td>Apache-2.0</td>
+</tr>
+<tr>
+<td>自动更新</td>
+<td><code>Squirrel.Windows</code> / ClickOnce（VS 自带）</td>
+<td>免费</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-2">🔴 二、工业常见的「付费框架」与「免费替代」对照</h2>
+<table>
+<thead>
+<tr>
+<th>付费项（行业常见）</th>
+<th>典型产品</th>
+<th>免费替代（我们路线怎么覆盖）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WPF/WinForms 控件套件</strong></td>
+<td>DevExpress、Telerik UI、ComponentOne、Infragistics</td>
+<td><code>HandyControl</code> + <code>MaterialDesignInXamlToolkit</code> + <strong>自绘自定义控件</strong>（本项目已手写 <code>GaugeControl</code>/<code>StatusDot</code>）</td>
+</tr>
+<tr>
+<td><strong>机器视觉库</strong></td>
+<td>Halcon、VisionPro（很贵）</td>
+<td><code>OpenCvSharp</code> / <code>EmguCV</code> / <code>YOLO</code>(OnnxRuntime) —— 加分项，非必</td>
+</tr>
+<tr>
+<td><strong>采集卡驱动/SDK</strong></td>
+<td>NI-DAQmx（需 NI 硬件 + 授权）</td>
+<td>研华/凌华/国产板卡自带<strong>免费驱动</strong>；或用 <strong>Modbus/TCP 走网卡</strong>绕开采集卡（我们的主线就是这思路）</td>
+</tr>
+<tr>
+<td><strong>报表组件</strong></td>
+<td>Crystal Reports、ActiveReports、FastReport(商业版)</td>
+<td><code>ClosedXML</code>（已用）+ <code>QuestPDF</code>(开源) + Microsoft <code>ReportViewer</code>(RDLC 免费)</td>
+</tr>
+<tr>
+<td><strong>商业 OPC 服务器</strong></td>
+<td>Kepware、Matrikon(部分收费)</td>
+<td><code>OPC Foundation UA .NETStandard</code>（官方开源）+ 各 PLC 厂免费 OPC 服务</td>
+</tr>
+<tr>
+<td><strong>数值/算法运行时</strong></td>
+<td>MATLAB Runtime</td>
+<td><code>Math.NET Numerics</code>（开源免费）</td>
+</tr>
+<tr>
+<td><strong>虚拟串口（调试用）</strong></td>
+<td>VSPD（商业，可试用）</td>
+<td><code>com0com</code>（开源免费，本项目硬件替代方案已讲）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>看清一点</strong>：付费控件大多是"开箱即用的美观套件 + 官方支持"。但<strong>核心功能（表格/图表/报表/通信）免费库都能做</strong>，且自己写的控件<strong>无授权费、可深度定制、出 bug 能进源码调试</strong>——这正是我们"边做边用自定义控件"的底层理由。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">🛠️ 三、自定义组件的边界：哪些该自己写，哪些用现成</h2>
+<table>
+<thead>
+<tr>
+<th>该<strong>自己写/自绘</strong>（无好免费件 或 强定制）</th>
+<th>该<strong>用现成免费库</strong>（重复造轮子不值）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>行业专用仪表（压力表/温度计/流量表）</td>
+<td>通用图表曲线 → <code>LiveCharts</code></td>
+</tr>
+<tr>
+<td>设备状态灯/脉冲动画 → 本项目 <code>StatusDot</code></td>
+<td>大数据表格 → <code>DataGrid</code>(WPF 自带)</td>
+</tr>
+<tr>
+<td>工程量刻度表/指针表 → 本项目 <code>GaugeControl</code></td>
+<td>Excel/PDF 报表 → <code>ClosedXML</code>/<code>QuestPDF</code></td>
+</tr>
+<tr>
+<td>自研协议报文查看器</td>
+<td>日志框架 → <code>Serilog</code></td>
+</tr>
+<tr>
+<td>LED 数码管、工艺流程动画</td>
+<td>通信协议栈 → <code>NModbus</code>/<code>S7.Net</code>/<code>HslCommunication</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>经验法则</strong>：凡是"和业务强相关、要长成公司产品一部分"的控件，自己写（一次性投入，永久免费+可控）；凡是"通用基础设施"，用成熟免费库（省时间+少 bug）。</p>
+<hr />
+<h2 id="sec-2-4">✅ 四、给你的定心丸</h2>
+<ol>
+<li><strong>简历项目 DAQMonitor 用的全是免费件</strong>，面试被问"你们用什么控件"——答"HandyControl + 自研 WPF 自定义控件（继承 Control + 依赖属性）"，比"买了 DevExpress"更显功底。</li>
+<li><strong>上岗后若公司买了 DevExpress/Telerik</strong>，你已有自绘基础，换商用套件只是"换个 API"，上手极快。</li>
+<li><strong>需要对接付费硬件（NI 卡/视觉相机）时</strong>，先看厂商有没有免费驱动/SDK——绝大多数都有，别一上来就买库。</li>
+</ol>
+<blockquote>
+<p>相关：自定义控件的"开发 / 复用 / 扩展 / 换肤 / 派生"多场景，见 <code>M14_WinForm与自定义控件_深度版.md</code> 的「🧩 多场景应用」章节；调试/排查能力已集成进 DAQMonitor 工程的「诊断/调试」面板。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="docs.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">文档能力 · 设计/协议/操作/测试文档</div></a>
+  <a class="next" href="wpf.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">WPF / XAML 入门速查（前端类比版）</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M3 · PLC 通信(西门子 S7) · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M3">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 连接 PLC + 读 DB 块 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）</a></li>
+<li class="l3"><a href="#sec-3-5">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 写 PLC + 结构体映射 + 多设备统一 🟡</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-11">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-12">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-13">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-14">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（PlcDevice 可直接抄进工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">模块交付清单（M3）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M3 — PLC 通信（西门子 S7）⭐ 13K 硬通货</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · PLC(S7) 直连（JD 主干必会）
+<strong>技术来源</strong>：🟧 第三方 NuGet <code>S7.Net Plus</code>（<code>dotnet add package S7.Net</code>）。
+<strong>给简历加的能力</strong>：直连 PLC 读写 DB 块 —— 工业现场<strong>最核心</strong>、面试最加分的对接。
+<strong>前置</strong>：M1（串口/字节）/ M2（寄存器/轮询/重试）。
+<strong>前端类比总纲</strong>：PLC 像"一台永远在跑的后端服务"，DB 块是它的数据库表，上位机是"前端客户端"，S7 协议就是你们的"私有 API"。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">模块目标</h2>
+<p>用 S7.Net 连接一台西门子 S7-1200 / 1500 PLC，读取 DB 块里的温度 / 压力点位，写入 DAQ Monitor。学完你能讲清：<strong>为什么 <code>IsConnected</code> 不可信、错误码怎么判、连不上怎么一步步排查</strong>——这三点是现场和面试的生死线。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — 连接 PLC + 读 DB 块 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>PLC 把工艺数据存在"DB 数据块"里，上位机用 S7 协议直接读 / 写指定 DB 的偏移地址，像直接读一个结构体字段。它比 Modbus 高级的地方在于：PLC 帮你按<strong>类型</strong>（Real/Bool/Int）解码，不用自己拼字节。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>S7 概念</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PLC IP + Rack/Slot</td>
+<td>数据库 host + schema</td>
+</tr>
+<tr>
+<td>DB 块号 + 偏移</td>
+<td>表名 + 字段偏移</td>
+</tr>
+<tr>
+<td><code>ReadBytes</code></td>
+<td>按字节读一行</td>
+</tr>
+<tr>
+<td><code>Read(VarType.Real)</code></td>
+<td>ORM 把列映射成强类型字段</td>
+</tr>
+<tr>
+<td><code>LastErrorCode</code></td>
+<td>HTTP 状态码（≠ 连接状态）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 连接 + 读字节</strong>（🟧）</p>
+<pre><code class="language-csharp">using S7.Net;
+
+var plc = new Plc(CpuType.S71200, &quot;192.168.0.1&quot;, 0, 1); // Rack=0, Slot=1
+plc.Open();
+if (plc.IsConnected)
+{
+    byte[] buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
+    float temp = S7.GetRealAt(buf, 0);                      // 一个 float
+    Console.WriteLine($&quot;温度={temp}&quot;);
+}
+</code></pre>
+<p><strong>② 直接读强类型变量</strong>（🟧）</p>
+<pre><code class="language-csharp">var temp = (float)plc.Read(DataType.DataBlock, 1, 0, VarType.Real, 1);
+var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
+</code></pre>
+<h3 id="sec-3-4">🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）</h3>
+<p>和串口/Modbus 不同，<strong>S7.Net 很多失败「不抛异常」，而是返回错误状态</strong>——这是新手最容易栽的地方：
+- <strong><code>plc.IsConnected</code> 不可全信</strong>：<code>Open()</code> 成功只代表「握手成功」，线中途掉了 <code>IsConnected</code> 可能还是 <code>true</code>。正确做法：每次读后<strong>检查 <code>plc.LastErrorCode</code></strong>（0 = OK，非 0 = 出错），或读之前 <code>ReadStatus()</code> 探活。
+- <strong>读失败要判错误码再决定重试</strong>：
+  <code>csharp
+  var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+  if (plc.LastErrorCode != 0)            // 非 0 即出错
+  {
+      Log.Warning("读 DB1 失败 错误码{Code}", plc.LastErrorCode);
+      // 用 M9 的 Retry 退避重连，别裸 throw
+  }</code>
+- <strong>常见错误码</strong>：<code>0x0005</code> 地址/长度非法（DB 号或偏移写错）、<code>0x000A</code> 对象不存在（DB 没下载/被删除）、<code>0x7000+</code> 通信层错误（断线/PLC 停止）。
+- <strong>类比修正</strong>：之前说「DB块号+偏移 = 表名+字段偏移」<strong>不够准</strong>——DB 块是「结构化变量容器」，更像「一个 <code>class</code> 实例」，<code>DB1.DBW2</code> 是「实例的字段」，不是裸字节表。读字节后用 <code>S7.GetRealAt(buf,0)</code> 这种<strong>带类型的解码方法</strong>才是正道（类比 ORM 把行映射成强类型对象）。</p>
+<h3 id="sec-3-5">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ DB 号 / 偏移必须与 TIA 一致</td>
+<td>PLC 侧定义 DB1.0=温度(Real)，代码才能对上</td>
+</tr>
+<tr>
+<td>⭐ 优化块访问</td>
+<td>西门子"优化访问"DB 不能用绝对偏移，要勾掉或用符号访问</td>
+</tr>
+<tr>
+<td>🔥 连不上</td>
+<td>检查 IP / 子网 / 防火墙 / PLC 是否允许 PUT/GET 通信</td>
+</tr>
+<tr>
+<td>🔥 读错类型</td>
+<td>Real 读成 Int = 全错值；用 <code>S7.GetRealAt</code> 等辅助方法</td>
+</tr>
+<tr>
+<td>🔥 频繁 Open</td>
+<td>保持长连接，断线再重连，别每次读都 Open</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🟢 基础题</h3>
+<p>连接模拟 PLC（PLCSIM + NetToPLCSim），读 DB1 偏移 0 的 Real 并打印。</p>
+<h3 id="sec-3-7">🟡 进阶题</h3>
+<p>读 DB1 偏移 0 的 Real（温度）和偏移 4 的 Bit（运行信号），拼成一个 <code>Model</code> 对象打印。</p>
+<h3 id="sec-3-8">🔴 挑战题</h3>
+<p>写一个 <code>ReadWithCheck(Plc plc)</code> 方法：读前 <code>ReadStatus()</code> 探活，读后判 <code>LastErrorCode</code>，非 0 时返回 <code>null</code> 并打日志（不抛异常），模拟"生产中读失败但系统不崩"。</p>
+<p><strong>✅ 答案（挑战题骨架）</strong></p>
+<pre><code class="language-csharp">float? ReadTempSafe(Plc plc)
+{
+    if (plc.ReadStatus() != 0) { Log.Warn(&quot;PLC 离线&quot;); return null; }
+    var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+    if (plc.LastErrorCode != 0) { Log.Warn(&quot;读失败 {Code}&quot;, plc.LastErrorCode); return null; }
+    return S7.GetRealAt(buf, 0);
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：建 <code>PlcDevice : DeviceBase</code>（参考工程里 <code>CanDevice</code>/<code>UsbHidDevice</code> 的同套路），<code>Connect()</code> 里 <code>Open()</code>，<code>Read(addr)</code> 读 DB 变量并映射成点；后台轮询。DAQ Monitor 现在能直连 PLC。（代码见文末「完整代码组装」，接进工程待下一轮落地。）</p>
+<p><strong>🎓 工控导师说</strong>：我带过一学员，现场连 PLC 死活连不上，折腾一下午。最后发现是 PLC 的"允许 PUT/GET 通信"没勾——<strong>TIA Portal 里这个选项默认是关的</strong>。连不上的排查顺序永远是：①网线/PN口灯亮？②IP 同网段？③防火墙？④PUT/GET 勾了？⑤Rack/Slot 对（1200 是 0/1，1500 常是 0/1）？⑥DB 块下载了？一步步来，别瞎猜。</p>
+<p><strong>💼 职业建议</strong>：PLC 对接是 13K 硬通货。面试被问"你连过 PLC 吗"，不仅要答"用 S7.Net"，更要答出"<strong>IsConnected 不可信，靠 LastErrorCode 判错 + 重试重连</strong>"——这句话直接证明你踩过坑、有现场经验。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M3',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 写 PLC + 结构体映射 + 多设备统一 🟡</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>上位机下发设定值到 PLC（写 DB），并用"结构体映射"把一批点位一次读出来，再用 M0 Day 5 的 <code>IDevice</code> 统一调度多设备——这是 DAQ Monitor "多设备接入"达标的临门一脚。</p>
+<h3 id="sec-3-10">分点精讲</h3>
+<p><strong>① 写 DB</strong>（🟧）</p>
+<pre><code class="language-csharp">plc.Write(DataType.DataBlock, 1, 4, 1.0f);   // 写 Real 设定值
+plc.Write(&quot;DB1.DBW2&quot;, 100);                  // 也可用符号 / 绝对地址
+</code></pre>
+<p><strong>② 一次读多个点位 + 映射</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">byte[] buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 12);
+var model = new
+{
+    Temp  = S7.GetRealAt(buf, 0),
+    Press = S7.GetRealAt(buf, 4),
+    Run   = S7.GetBitAt(buf, 8, 0)
+};
+</code></pre>
+<p><strong>③ 接入统一接口</strong>（呼应 M0 Day 5）</p>
+<pre><code class="language-csharp">IDevice dev = new PlcDevice(&quot;192.168.0.1&quot;);
+dev.DataReceived += (s, e) =&gt; Console.WriteLine($&quot;点{e.PointId}={e.Value}&quot;);
+dev.Connect();
+</code></pre>
+<h3 id="sec-3-11">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 写生产 PLC 要授权</td>
+<td>现场写 PLC 可能直接动设备，必须走审批 / 测试环境</td>
+</tr>
+<tr>
+<td>⭐ 统一接口价值</td>
+<td>UI 不关心串口 / Modbus / PLC，全用 <code>IDevice</code> —— 简历亮点</td>
+</tr>
+<tr>
+<td>🔥 读取频率</td>
+<td>PLC 扫描周期有限，轮询别太猛（&lt;50ms 易压力设备）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-12">🟢 基础题</h3>
+<p>写 DB1 偏移 4 一个 Real 设定值 1.0。</p>
+<h3 id="sec-3-13">🟡 进阶题</h3>
+<p>读 DB1 前 12 字节映射成 Temp/Press/Run 三个字段并打印。</p>
+<h3 id="sec-3-14">🔴 挑战题</h3>
+<p>在 DAQ Monitor 里同时挂 <code>SerialDevice</code> + <code>PlcDevice</code>，用 <code>List&lt;IDevice&gt;</code> 统一轮询（参考 <code>AcquisitionPipeline</code>），验证"多设备接入"达标——写出轮询调度骨架。</p>
+<p><strong>✅ 答案（挑战题骨架）</strong></p>
+<pre><code class="language-csharp">var devices = new List&lt;IDevice&gt; { new SerialDevice(1, &quot;COM3&quot;, ...), new PlcDevice(&quot;192.168.0.1&quot;) };
+foreach (var d in devices) { d.Connect(); d.DataReceived += OnData; }
+// AcquisitionPipeline 按设备统一轮询，UI 零感知背后是串口还是 PLC
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：<code>PlcDevice</code> 完成 <code>Write</code>；配合 <code>AcquisitionPipeline</code> 把 <code>PlcDevice</code> 和已有 <code>SerialDevice</code>/<code>ModbusDevice</code> 统一调度 —— 至此"多设备接入"达标（M0–M3 串联）。</p>
+<p><strong>🎓 工控导师说</strong>：现场最怕"实习生手一抖把设定值 1.0 写成 100.0 写进 PLC，产线直接超压"。<strong>写 PLC 前必须 double check 地址和量纲</strong>，最好加一层"写前确认 + 写后回读校验"。这是保命习惯。</p>
+<p><strong>💼 职业建议</strong>：能讲"多设备统一 IDevice 调度 + 写 PLC 的回读校验"的候选人，在工控岗极其稀缺——因为这需要既懂架构又懂现场风险。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M3',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day5 <code>IDevice</code> 接口 → 这里最经典的落地</strong>：<code>PlcDevice</code> 实现统一接口，UI 不关心背后是串口/Modbus/PLC —— <strong>这就是「面向接口」的价值，也是 15K 面试必讲的点</strong>。</li>
+<li><strong>M1 字节解码 → 这里 <code>S7.GetRealAt</code></strong>：本质一样是「字节 → 强类型」，只是 PLC 帮你按 DB 结构解。</li>
+<li><strong>M2 轮询/重试 → 这里同样适用</strong>：PLC 扫描周期有限，轮询别 &lt;50ms；通信错用 M9 的 <code>Retry</code> 退避。</li>
+<li><strong>前瞻 M9</strong>：多设备统一调度最终由 <code>AcquisitionPipeline</code> 收口，别各自写轮询循环；心跳重连见 M9 Day4 + M15。</li>
+</ul>
+<h2 id="sec-2-5">🧩 完整代码组装（PlcDevice 可直接抄进工程）</h2>
+<pre><code class="language-csharp">// DaqMonitor.Core/Devices/PlcDevice.cs
+using S7.Net;
+using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Devices;
+
+public class PlcDevice : DeviceBase
+{
+    private readonly string _ip;
+    private Plc? _plc;
+
+    public PlcDevice(int id, string name, string ip) : base(id, name) =&gt; _ip = ip;
+
+    public override void Connect()
+    {
+        _plc = new Plc(CpuType.S71200, _ip, 0, 1);
+        _plc.Open();
+        State = _plc.IsConnected ? DeviceState.Online : DeviceState.Offline;
+    }
+
+    public override void Disconnect()
+    {
+        _plc?.Close();
+        _plc = null;
+        State = DeviceState.Offline;
+    }
+
+    // 约定：addr = DB号*10000 + 偏移，例如 DB1.0 =&gt; 10000；DB1.4 =&gt; 10004
+    public override double Read(int addr)
+    {
+        if (_plc is null) return double.NaN;
+        int db = addr / 10000;
+        int off = addr % 10000;
+        var buf = _plc.ReadBytes(DataType.DataBlock, db, off, 4);
+        if (_plc.LastErrorCode != 0) return double.NaN;   // 不抛，交给心跳重连
+        RaiseData(addr, S7.GetRealAt(buf, 0));
+        return S7.GetRealAt(buf, 0);
+    }
+
+    public override void Write(int addr, double v)
+    {
+        if (_plc is null) return;
+        int db = addr / 10000;
+        int off = addr % 10000;
+        _plc.Write(DataType.DataBlock, db, off, (float)v);
+    }
+}
+</code></pre>
+<blockquote>
+<p>接进工程：在 <code>Bootstrapper</code> 里 <code>services.AddSingleton&lt;IDevice&gt;(_ =&gt; new PlcDevice(2, "PLC-01", "192.168.0.1"));</code>，UI 与采集层一行不用改。参考 <code>CanDevice.cs</code> 的注册方式。</p>
+</blockquote>
+<h2 id="sec-2-6">🔗 明日预告</h2>
+<p><strong>M4 数据持久化（EF Core + SQLite）</strong>：把今天采到的 PLC 点位<strong>存进历史库</strong>，支持按时间/点位查询、导出 CSV——让系统从"只看实时"升级成"能查历史"。</p>
+<h2 id="sec-2-7">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>S7.Net Plus 仓库 + Wiki：https://github.com/killnine/s7netplus</li>
+<li>PLCSIM + NetToPLCSim（无真机练手）：https://github.com/mesta1/NetToPLCSim</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：PLCSIM+NetToPLCSim 仿真练手 + PLC/DB块科普</li>
+</ul>
+<h2 id="sec-2-8">模块交付清单（M3）</h2>
+<ul>
+<li>[ ] S7.Net 连接 PLC（Rack/Slot）</li>
+<li>[ ] 读 DB 字节 / 变量 + 类型辅助方法</li>
+<li>[ ] 写 DB 下发设定值（含回读校验习惯）</li>
+<li>[ ] 结构体批量映射</li>
+<li>[ ] 多设备统一 <code>IDevice</code> 调度（M0–M3 串联）</li>
+<li>[ ] <code>LastErrorCode</code> 判错 + 不抛异常 （接 M9 重试）</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M2.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M2 · Modbus RTU/TCP</div></a>
+  <a class="next" href="M4.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M4 · 数据持久化</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

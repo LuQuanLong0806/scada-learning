@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M7 · OPC UA / MQTT 上云 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M7">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — MQTT 发布订阅 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-6">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-7">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — OPC UA 客户端（对接 SCADA） 🟡</a><ul>
+<li class="l3"><a href="#sec-3-8">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-9">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-10">🔬 掰开揉碎：OPC UA 别用 .Result 同步阻塞（本项目已改为异步）</a></li>
+<li class="l3"><a href="#sec-3-11">🔬 掰开揉碎：MQTT 是「双向」的（上位机常要接收云端下发）</a></li>
+<li class="l3"><a href="#sec-3-12">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-13">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-14">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-15">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🧩 完整代码组装（MqttPublisher 批量发布，对齐工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">模块交付清单（M7）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M7 — OPC UA / MQTT 上云（15K 加分项）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学（加分项）· 上云 OPC UA/MQTT（15K 加分，主流岗位常要）
+<strong>技术来源</strong>：🟧 第三方 NuGet <code>MQTTnet</code>（MQTT）、<code>OPCFoundation.NetStandard.Opc.Ua.Client</code>（OPC UA）。
+<strong>给简历加的能力</strong>：把数据推到云端 / 对接 SCADA —— 这是 13K→15K 的分水岭，体现"会联网"。
+<strong>前置</strong>：M0–M6（有完整采集/存储/报警链路）。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。</p>
+<h2 id="sec-2-2">Day 1 — MQTT 发布订阅 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>MQTT = 物联网的"微信群"：设备往"主题(topic)"发消息，订阅同一主题的人都能收到。上位机把采集数据发到 <code>factory/line1/temp</code> 这种主题，云端/大屏订阅即可。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>MQTT</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Broker</td>
+<td>消息服务器（如 RabbitMQ/NATS）</td>
+</tr>
+<tr>
+<td>Topic</td>
+<td>频道 / 事件名</td>
+</tr>
+<tr>
+<td>Publish</td>
+<td><code>emitter.emit('topic', data)</code></td>
+</tr>
+<tr>
+<td>Subscribe</td>
+<td><code>emitter.on('topic', cb)</code></td>
+</tr>
+<tr>
+<td>QoS</td>
+<td>送达保证级别</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 连接 + 发布</strong>（🟧）</p>
+<pre><code class="language-csharp">using MQTTnet;
+using MQTTnet.Client;
+
+var factory = new MqttFactory();
+var client = factory.CreateMqttClient();
+await client.ConnectAsync(new MqttClientOptionsBuilder()
+    .WithTcpServer(&quot;broker.emqx.io&quot;, 1883).Build());
+
+var msg = new MqttApplicationMessageBuilder()
+    .WithTopic(&quot;factory/line1/temp&quot;)
+    .WithPayload($&quot;{{\&quot;point\&quot;:1,\&quot;value\&quot;:{value},\&quot;ts\&quot;:\&quot;{DateTime.Now:o}\&quot;}}&quot;)
+    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+    .Build();
+await client.PublishAsync(msg);
+</code></pre>
+<p><strong>② 批量发布（事件→入队→定时批量，呼应 M9）</strong>（🟧）</p>
+<blockquote>
+<p>🔥 <strong>修正说明</strong>：早期版本在 <code>DataReceived</code> 里 <code>await client.PublishAsync(...)</code> 逐点发布 —— 高频下会阻塞采集线程、MQTT 抖动。正确做法：从 <strong>M9 的统一采集管道 <code>BatchReady</code></strong> 批量发布。</p>
+</blockquote>
+<pre><code class="language-csharp">// 订阅统一管道的“批量就绪”事件（M9 的 AcquisitionPipeline 已把多设备数据聚合成批）
+_pipeline.BatchReady += async (s, batch) =&gt;
+{
+    foreach (var p in batch)
+    {
+        var m = new MqttApplicationMessageBuilder()
+            .WithTopic($&quot;factory/line1/point{p.Id}&quot;)
+            .WithPayload($&quot;{{\&quot;v\&quot;:{p.Value},\&quot;t\&quot;:\&quot;{p.Timestamp:o}\&quot;}}&quot;)   // JSON 载荷，云端好解析
+            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
+            .Build();
+        await client.PublishAsync(m);   // 后台线程 await，不卡 UI
+    }
+};
+</code></pre>
+<blockquote>
+<p>📌 断线重连用 <strong>M9 的 <code>Retry</code></strong>（指数退避 + 抖动）：连接失败自动重试，而不是裸 <code>try/catch</code> 抛给用户。</p>
+</blockquote>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 用 JSON 载荷</td>
+<td>云端好解析，字段对齐你的 <code>SensorPoint</code>（含 <code>Timestamp</code>）</td>
+</tr>
+<tr>
+<td>⭐ QoS</td>
+<td>AtLeastOnce 至少一次，关键数据别用 AtMostOnce</td>
+</tr>
+<tr>
+<td>🔥 别逐点发布</td>
+<td>必须从 <code>BatchReady</code> 批量发布（见上），别在 <code>DataReceived</code> 里逐点 <code>PublishAsync</code></td>
+</tr>
+<tr>
+<td>🔥 断线重连</td>
+<td>Broker 会掉，用 M9 的 <code>Retry</code> 自动重连，别裸 <code>try/catch</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🟢 基础题</h3>
+<p>连公共 MQTT Broker（<code>broker.emqx.io:1883</code>），向 <code>test/daq</code> 主题发布一条 JSON 消息。</p>
+<h3 id="sec-3-6">🟡 进阶题</h3>
+<p>把发布改成"批量"：订阅 M9 的 <code>AcquisitionPipeline.BatchReady</code>，每批点一次性发布（每点一个 topic），用 <code>AtLeastOnce</code> QoS。</p>
+<h3 id="sec-3-7">🔴 挑战题</h3>
+<p>加"双向"：订阅 <code>factory/line1/cmd</code> 接收云端下发的设定值命令，反序列化成 <code>Command</code> 后调用 M3 的 <code>PlcDevice.Write</code> 下发给 PLC —— 构成「云端→上位机→设备」闭环。</p>
+<p><strong>✅ 答案（基础题核心，topic 改 <code>test/daq</code>）</strong></p>
+<pre><code class="language-csharp">await client.PublishAsync(new MqttApplicationMessageBuilder()
+    .WithTopic(&quot;test/daq&quot;)
+    .WithPayload($&quot;{{\&quot;point\&quot;:1,\&quot;value\&quot;:{value}}}&quot;).Build());
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加 <code>Cloud/MqttPublisher.cs</code>，订阅 <code>AcquisitionPipeline.BatchReady</code> 批量发布到配置的主题；用 M9 的 <code>Retry</code> 做断线重连。上云能力达标（15K 亮点）。</p>
+<p><strong>🎓 工控导师说</strong>：上云第一个踩的坑是"逐点 Publish 把 Broker 打挂"。工厂 100Hz × 50 设备 = 每秒 5000 条，MQTT Broker 不是为这个设计的。正确：<strong>攒批 + 合理 QoS + 断线退避重连</strong>。还有，上云前务必确认网络隔离——生产网和办公网通常不通，别在客户现场才发现连不上外网。</p>
+<p><strong>💼 职业建议</strong>：OPC UA/MQTT 是 15K 分水岭。面试不用精通，但要能讲清"MQTT 是发布订阅的物联网协议、OPC UA 解决跨厂商互通、上云要批量+重连"。这三点讲出，面试官就信你能做联网项目。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M7',1)"> 打卡</label></strong></p>
+<h2 id="sec-2-3">Day 2 — OPC UA 客户端（对接 SCADA） 🟡</h2>
+<h3 id="sec-3-8">一句话讲清楚</h3>
+<p>OPC UA 是工业互联的"世界语"：上位机作为客户端连 OPC UA 服务器（PLC/SCADA 暴露的），读/写"节点(Node)"，跨厂商互通 —— 工厂级集成标配。</p>
+<h3 id="sec-3-9">分点精讲</h3>
+<p><strong>① 连接 + 读节点</strong>（🟧）</p>
+<pre><code class="language-csharp">using Opc.Ua;
+using Opc.Ua.Client;
+
+var cfg = new ApplicationConfiguration { ApplicationName = &quot;DAQMonitor&quot;, ... };
+var ep = new ConfiguredEndpoint(null, new EndpointDescription(&quot;opc.tcp://localhost:4840&quot;));
+using var session = Session.Create(cfg, ep, false, &quot;DAQMonitor&quot;, 60000, null, null).Result;
+var node = session.ReadNode(&quot;ns=2;s=Line1.Temp&quot;);   // 按节点名读
+var val = session.ReadValue(&quot;ns=2;s=Line1.Temp&quot;).Value;
+</code></pre>
+<h3 id="sec-3-10">🔬 掰开揉碎：OPC UA 别用 <code>.Result</code> 同步阻塞（本项目已改为异步）</h3>
+<p>上面 ① 的 <code>Session.Create(...).Result</code> 是<strong>反模式</strong>，真项目要改：
+- <strong>为什么危险</strong>：<code>.Result</code> 会「阻塞当前线程等结果」。如果在 UI 线程调，UI 卡死；更隐蔽的是<strong>死锁</strong>——当异步方法内部要 <code>await</code> 回 UI 线程（WPF 的 <code>SynchronizationContext</code>），而 UI 线程正被 <code>.Result</code> 卡着等它，两边互等 = 永久死锁。
+- <strong>正确写法（异步）</strong>：
+  <code>csharp
+  var session = await Session.Create(cfg, ep, false, "DAQMonitor", 60000, null, null);
+  var val = await session.ReadValueAsync("ns=2;s=Line1.Temp");</code>
+  全程 <code>async/await</code>，不阻塞任何线程。M9 讲过 <code>async Task</code> 测试，这里同理。</p>
+<h3 id="sec-3-11">🔬 掰开揉碎：MQTT 是「双向」的（上位机常要接收云端下发）</h3>
+<p>讲义只发了（Publish），真实上云是<strong>双向</strong>——云端/大屏给上位机下发「设定值」「启停指令」：</p>
+<pre><code class="language-csharp">// 订阅「云端下发」主题，接收控制命令（呼应 M3 给 PLC 写设定值）
+await client.SubscribeAsync(&quot;factory/line1/cmd&quot;);
+client.ApplicationMessageReceivedAsync += (s, e) =&gt;
+{
+    var cmd = JsonSerializer.Deserialize&lt;Command&gt;(e.ApplicationMessage.ConvertPayloadToString());
+    // 把命令转成给 PLC/设备的写操作（接 M3 的 Write）
+};
+</code></pre>
+<blockquote>
+<p>记住：<strong>Publish = 上报数据，Subscribe = 接收指令</strong>，上位机通常两者都要。</p>
+</blockquote>
+<p><strong>② 订阅（主动推送）</strong>（🟧）</p>
+<pre><code class="language-csharp">var sub = new Subscription(session.DefaultSubscription) { PublishingInterval = 500 };
+sub.AddItem(new MonitoredItem { StartNodeId = &quot;ns=2;s=Line1.Temp&quot; });
+sub.ItemChanged += (s, e) =&gt; Console.WriteLine($&quot;值={e.NotificationValue}&quot;);
+session.AddSubscription(sub); sub.Create();
+</code></pre>
+<h3 id="sec-3-12">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 节点路径 <code>ns=2;s=...</code></td>
+<td>命名空间+标识符，需服务器方给，别瞎猜</td>
+</tr>
+<tr>
+<td>⭐ 用订阅而非轮询</td>
+<td>服务端推送更高效，少打扰设备</td>
+</tr>
+<tr>
+<td>🔥 证书</td>
+<td>OPC UA 默认要证书，测试可关安全策略(生产不可)</td>
+</tr>
+<tr>
+<td>🔥 这是加分项</td>
+<td>不要求精通，能讲清"OPC UA 解决跨厂商互通"即可</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-13">🟢 基础题</h3>
+<p>（若有本地 OPC UA 模拟服务器）连上并读一个节点值。</p>
+<h3 id="sec-3-14">🟡 进阶题</h3>
+<p>把 ① 的 <code>.Result</code> 改成全程 <code>await</code> 的异步客户端（消除死锁风险），并读出 <code>ns=2;s=Line1.Temp</code> 的值。</p>
+<h3 id="sec-3-15">🔴 挑战题</h3>
+<p>用 OPC UA 订阅（而非轮询）<code>Line1.Temp</code>，值变化时 <code>ItemChanged</code> 事件里把数据喂进 DAQ Monitor 的 <code>PointStore</code> —— 让 OPC UA 服务器也成为一个 <code>IDevice</code> 数据源。</p>
+<p><strong>✅ 答案（进阶题核心）</strong></p>
+<pre><code class="language-csharp">var session = await Session.Create(cfg, ep, false, &quot;DAQMonitor&quot;, 60000, null, null);
+var val = await session.ReadValueAsync(&quot;ns=2;s=Line1.Temp&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加 <code>Cloud/OpcUaClient.cs</code>（按需），能作为客户端订阅 SCADA 节点。M7 整体达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M7',2)"> 打卡</label></strong></p>
+<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day7 异步 / M9 容错 → 这里全用得上</strong>：OPC UA 用 <code>await</code>（别 <code>.Result</code>），MQTT 断线用 M9 的 <code>Retry</code> 退避重连。</li>
+<li><strong>M3 PLC 写设定值 → 这里云端下发接上</strong>：MQTT 订阅收到的命令，转成给 PLC/设备的写操作，构成「云端→上位机→设备」闭环。</li>
+<li><strong>M9 统一管道 → 这里批量发布</strong>：MQTT 发布从 <code>BatchReady</code> 取批，别在 <code>DataReceived</code> 逐点 <code>PublishAsync</code>。</li>
+</ul>
+<h2 id="sec-2-5">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>MQTTnet 仓库：https://github.com/dotnet/MQTTnet · MQTT 协议概念：https://mqtt.org/</li>
+<li>OPC 基金会：https://opcfoundation.org/ · OPC UA .NET 栈：https://github.com/OPCFoundation/UA-.NETStandard</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+<li>📎 <strong>没有硬件？看 <code>硬件替代方案与讲解_深度版.md</code></strong>：本地 OPC UA 模拟服务器(Prosys) / MQTT Broker(Mosquitto) 零成本练手</li>
+</ul>
+<h2 id="sec-2-6">🧩 完整代码组装（MqttPublisher 批量发布，对齐工程）</h2>
+<pre><code class="language-csharp">// DaqMonitor.Core/Cloud/MqttPublisher.cs
+public class MqttPublisher
+{
+    private readonly IMqttClient _client;
+    private readonly AcquisitionPipeline _pipeline;
+    public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
+    { _client = client; _pipeline = pipeline; }
+
+    public void Start()
+    {
+        _pipeline.BatchReady += async (s, batch) =&gt;   // 从 M9 统一管道批量取
+        {
+            foreach (var p in batch)
+                await _client.PublishAsync(new MqttApplicationMessageBuilder()
+                    .WithTopic($&quot;factory/line1/point{p.Id}&quot;)
+                    .WithPayload($&quot;{{\&quot;v\&quot;:{p.Value},\&quot;t\&quot;:\&quot;{p.Timestamp:o}\&quot;}}&quot;)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce).Build());
+        };
+    }
+}
+// 断线重连用 M9 的 Retry.ExecuteAsync(() =&gt; client.ConnectAsync(...), maxRetries: 5)
+</code></pre>
+<h2 id="sec-2-7">🔗 明日预告</h2>
+<p><strong>M8 工程化收尾</strong>：系统能跑了，但怎么"交付"？——MVVM 重构、配置文件、安装包、README。把玩具变成能装到客户机器上的产品。</p>
+<h2 id="sec-2-8">模块交付清单（M7）</h2>
+<ul>
+<li>[ ] MQTTnet 连接 Broker + 发布 JSON</li>
+<li>[ ] 断线重连 + QoS</li>
+<li>[ ] 数据上云接入 DataReceived</li>
+<li>[ ] OPC UA 客户端（连接/读/订阅，了解即可）</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M6.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M6 · 报警引擎 + 日志</div></a>
+  <a class="next" href="M8.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M8 · 工程化收尾</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<UserControl x:Class="DaqMonitor.UI.Diagnostics.DiagnosticsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="320" d:DesignWidth="420">
+  <!--
+    诊断面板：这是「边做边用自定义控件」的第二个例子 —— 用 UserControl 把“统计 + 日志”组合成一个可复用面板。
+    和 GaugeControl(继承 Control + 控件模板) 不同：UserControl 适合“页面级组合复用”，Control 适合“基础件/换肤复用”。
+    M14 会讲两者取舍。DataContext 继承自父窗口(MainViewModel)，所以直接绑它的属性即可。
+  -->
+  <StackPanel Margin="12" Orientation="Vertical">
+    <TextBlock Text="🔧 诊断 / 调试面板" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+    <Border Background="#f4f8ff" BorderBrush="#d5e2ff" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+      <TextBlock Text="{Binding DiagnosticsSummary}" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"/>
+    </Border>
+    <TextBlock Text="最近日志（环形缓冲，最多 200 条）" FontSize="12" Foreground="#67708a" Margin="0,0,0,4"/>
+    <ListBox ItemsSource="{Binding DiagnosticsLog}" Height="200"
+             FontFamily="Consolas" FontSize="11" BorderBrush="#d5e2ff">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </StackPanel>
+</UserControl>

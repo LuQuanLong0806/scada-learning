@@ -1,0 +1,261 @@
+# M11 — TCP Socket 自定义协议通信
+
+> **优先级定位**：🟡 缓学 · TCP/Socket 私有协议（JD 也提 Socket/TCP-IP，但串口/Modbus/PLC 已覆盖主场景）
+> **技术来源**：🟩 .NET 类库 `System.Net.Sockets`（BCL，装好 .NET 就有，**不装包**）；复杂私有协议框架可用 🟧 SuperSocket。
+> **给简历加的能力**：通过 TCP 对接"非 Modbus 的私有协议设备"——大量仪表、网关、PLC 网关、自研下位机都用私有 TCP，这是 JD 里「Socket / TCP-IP 必会」的真本事。
+> **前置**：M0（并发/事件）、M1（串口字节流解析）。M11 把 M1 的"字节流 → 帧解析 → 事件"整套思维原样搬到 TCP。
+> **前端类比总纲**：TCP 像"裸 WebSocket 的底层 socket"——有连接、有字节流、但没有"一条消息"边界，要自己切帧；这正是 Node `net.Socket` 的体验。
+
+---
+
+## 模块目标
+写出一个 `TcpDevice` 实现 `IDevice`：连接 TCP → 收字节流 → 按自定义帧解析（处理**粘包/拆包**）→ 通过 `DataReceived` 事件抛业务数据 → 进 DAQ Monitor。证明"换通信介质不改采集层"。
+
+---
+
+## Day 1 — TCP 基础 + 第一个回显 + 粘包拆包 🟡
+
+### 一句话讲清楚
+TCP 是一条"字节河流"，**只保证顺序、不保证边界**。你发 100 字节，对方可能一次收 100、也可能先收 30 再收 70；你发两条 50 字节，对方可能一次收 100（**粘包**）。所以必须自己定义"一帧从哪到哪"。
+
+### 前端类比秒懂
+| TCP 概念 | 前端类比 | 说明 |
+|---|---|---|
+| `TcpClient` / `NetworkStream` | Node `net.Socket` / 浏览器 `WebSocket` | 建立连接通道 |
+| IP:Port | `http://host:port` | 地址 + 端口 |
+| 字节流（无消息边界） | TCP 原始 `socket` vs `ws`（ws 有帧） | **TCP 没有"一条消息"概念** |
+| 粘包/拆包 | 自己用 `\n` 分隔的 `socket.on('data')` | 必须自己切帧 |
+| 长度前缀帧 | WebSocket 的 payload-length | 先读长度再读体 |
+| 回 UI 线程 | `requestAnimationFrame` 回主线程 | 后台线程不能直接改 UI |
+
+### 分点精讲
+**① 建立连接 + 异步读写**（🟩）
+```csharp
+using System.Net.Sockets;
+using System.Text;
+
+var client = new TcpClient();
+await client.ConnectAsync("127.0.0.1", 502);     // 连设备
+NetworkStream ns = client.GetStream();
+
+// 发：把业务数据按"帧"封好再发
+byte[] frame = BuildFrame(0x03, Encoding.ASCII.GetBytes("READ"));
+await ns.WriteAsync(frame, 0, frame.Length);
+
+// 收：先读长度，再读体（见 ④）
+```
+
+**② 后台线程持续收 + 抛事件**（🟩 + 🟦，复用 M0 的事件模式）
+```csharp
+// 与 M0/M1 同款：收到解析好的业务点，就触发 DataReceived
+public event EventHandler<SensorPoint>? DataReceived;
+
+async Task RecvLoop(CancellationToken ct)
+{
+    var buf = new byte[4096];
+    while (!ct.IsCancellationRequested)
+    {
+        int n = await ns.ReadAsync(buf, 0, buf.Length, ct);
+        if (n == 0) break;                        // 对端断开
+        _accumulator.Write(buf, 0, n);            // 累积到缓冲区
+        foreach (var pt in TryParseFrames(_accumulator))   // 切帧
+            DataReceived?.Invoke(this, pt);
+    }
+}
+```
+
+**③ 为什么必须"累积 + 切帧"**（🟦 思维）
+TCP 把你的 `Write` 当成"往河里倒水"，对面 `Read` 舀上来的水量不确定。所以：
+- 不能"Read 一次 = 一帧"；
+- 必须有个**累积缓冲区**（`MemoryStream` 或环形缓冲），每次 Read 后尝试从缓冲区里**尽可能多地**切出完整帧。
+
+**④ 两种主流切帧法**（🟧 私有协议设计）
+- **长度前缀法（推荐）**：帧头 `AA 55` + `长度(2字节)` + `命令` + `数据` + `校验`。先读固定头，拿到长度，再精确读"长度"个体。
+- **分隔符法**：用 `\r\n` 或 `|` 分隔（如文本协议），按分隔符 Split。简单但数据里不能出现分隔符。
+
+**⑤ 心跳 + 断线重连**（🟦，呼应 M9 容错）
+- 每 5s 发 `0x00` 心跳；超时未收到响应 → 标记断线 → 指数退避重连（M9 的 `Retry` 直接复用）。
+
+### 🔬 掰开揉碎：粘包到底怎么回事
+假设你连发两帧 `[AA55 03 ..][AA55 04 ..]`：
+- 理想：对面两次 Read 各收一帧。
+- 现实：可能一次 Read 收到 `[AA55 03 .. AA55 04 ..]`（**粘包**），也可能 `[AA55 03 ..AA]` + `[55 04 ..]`（**拆包**）。
+- **唯一正确做法**：把所有收到的字节塞进累积缓冲，按"头 + 长度"算法循环切帧；切不完整的就留在缓冲等下次。缓冲区不会被"一次 Read"骗到。
+
+### ⭐ 重点 / 🔥 坑
+| | 内容 |
+|---|---|
+| ⭐ 重点 | TCP 无消息边界 → 必须自管累积缓冲 + 切帧 |
+| ⭐ 重点 | 长度前缀法 > 分隔符法（工业首选） |
+| 🔥 坑 | "Read 一次当一帧"——90% 新手 bug 来源 |
+| 🔥 坑 | 对端断开时 `Read` 返回 **0** 而不是抛异常，不处理就死循环 |
+| 🔥 坑 | 中文/多字节用 `Encoding.UTF8` 一致；切帧按**字节**不是按字符 |
+| 🔥 坑 | 后台线程直接改 UI 会抛（见 Day2 / M0） |
+
+### 🟢 基础题
+用 `TcpListener` 写一个回显服务端，`TcpClient` 连上后发 "HELLO" 收到原样返回。
+
+### 🟡 进阶题
+在回显服务端基础上，给客户端加一个"后台线程每秒发一条 `AA 55 <len> <cmd> <data> <sum>`"，服务端按长度前缀切帧后回显"收到帧数"。
+
+### 🔴 挑战题
+写一个 `TryParseFrames(MemoryStream buf)` 静态方法：支持**粘包**（一次塞两帧）和**拆包**（一帧被拆成两次 Read 才到齐）；用 `LoopbackTcpChannel` 模拟这两种情况并写测试断言两帧都被正确切出。
+
+**✅ 答案（挑战题骨架）**
+```csharp
+static IEnumerable<byte[]> TryParseFrames(MemoryStream buf)
+{
+    buf.Position = 0;
+    while (buf.Length - buf.Position >= 4)            // 至少够读头+长度
+    {
+        buf.Read(header, 0, 4);                        // AA 55 lenHi lenLo
+        int bodyLen = (header[2] << 8) | header[3];
+        if (buf.Length - buf.Position < bodyLen) break; // 不够一帧，等下次
+        var body = new byte[bodyLen]; buf.Read(body, 0, bodyLen);
+        yield return body;
+    }
+    // 把 buf 里"未消费完的半包"截留，下次继续
+    var left = buf.Length - buf.Position;
+    var keep = new MemoryStream(); buf.CopyTo(keep); buf.SetLength(0); keep.CopyTo(buf);
+}
+```
+
+**🏗️ 项目任务**：实现 `TcpDevice : IDevice`，用长度前缀帧解析，触发 `DataReceived`，在 `Bootstrapper` 注册，DAQ Monitor 点"启动采集"能收到 TCP 模拟器发的点。
+
+**🎓 工控导师说**：调试 TCP 设备，第一招永远是"先用网络调试助手（如 SSCOM 的 TCP 模式 / Hercules）手动连、手动发，确认设备回了啥"，**再写代码**。我见过太多人代码里 `Read` 一次当一帧，设备明明回了，他那边死活解析不出——就是栽在粘包上。累积缓冲 + 切帧，刻进骨头里。
+
+**💼 职业建议**："TCP 粘包怎么处理？"是上位机面试必考题。答"TCP 是字节流无边界，必须自管累积缓冲 + 长度前缀（或分隔符）切帧，绝不 Read 一次当一帧"——这一句直接证明你真写过 Socket 通信，不是只会 `HttpClient`。
+
+**✅ 打卡[ ]**
+
+---
+
+## Day 2 — 私有协议帧设计 + 接入 DAQMonitor 🟡
+
+### 一句话讲清楚
+真实设备手册会给"通信协议"：帧格式、命令字、数据域含义、校验算法。你的 job 是把手册翻成"封帧函数 + 解析函数"。
+
+### 前端类比秒懂
+| 协议设计 | 前端类比 |
+|---|---|
+| 封帧函数 `BuildFrame` | 构造一个带类型字段的 JSON 请求体 |
+| 解帧函数 | 解析后端返回的带约定结构的数据 |
+| 校验和 | 请求签名 / 数据完整性校验 |
+
+### 分点精讲
+**① 典型私有帧**
+```
+[头 AA55][长度 2B][命令 1B][数据 N B][校验 1B][尾 0D]
+```
+- 校验：和校验（所有字节相加取低 8 位）或 CRC8（比 M2 的 CRC16 轻）。
+- 数据域：按手册拆成"通道号 + 原始值"，再交给 M12 的工程量转换。
+
+**② 封帧 / 解帧对称**
+```csharp
+byte[] BuildFrame(byte cmd, byte[] payload)
+{
+    var ms = new MemoryStream();
+    ms.Write(new byte[] { 0xAA, 0x55 });
+    ms.Write(BitConverter.GetBytes((short)(payload.Length + 1)));
+    ms.Write(new[] { cmd });
+    ms.Write(payload);
+    ms.Write(new[] { Checksum(ms.ToArray()) });
+    return ms.ToArray();
+}
+```
+
+**③ 接进 DAQMonitor（零改采集层）**
+- `TcpDevice` 实现 `IDevice`；`Bootstrapper` 里 `services.AddSingleton<IDevice, TcpDevice>()` 一行切换，UI/管道/报警**完全不用动**——这就是 M0 面向接口的价值。
+
+### 🔬 掰开揉碎：校验到底防什么
+串口/网线传输偶尔会"翻转一位"（电磁干扰）。校验和/CRC 就是"收完一帧算一遍，对不上就丢"——**宁可丢一帧，也不让错误数据进报警/报表**。M2 的 Modbus CRC16、M1 的串口 CRC、本模块的和校验，本质都是同一件事：用一点算力换数据可信。
+
+### ⭐ 重点 / 🔥 坑
+| | 内容 |
+|---|---|
+| ⭐ 重点 | 封帧/解帧对称：发的格式 = 收的格式 |
+| 🔥 坑 | 校验覆盖的范围要和对方一致（含头还是不含头） |
+| 🔥 坑 | 字节序：多字节长度/数值用 `BitConverter` 时要确认大小端 |
+| 🔥 坑 | 心跳和取数分清：探活归探活，别和正常数据帧混在一起 |
+
+### 🟢 基础题
+写一个 `Checksum(byte[] data)` 和校验（所有字节相加取低 8 位），并用它给一帧 `[AA 55 02 01 0A]` 算出校验字节。
+
+### 🟡 进阶题
+把 `BuildFrame` 和 `TryParseFrames` 串起来：构造一帧 → 塞进缓冲 → 切出来 → 断言命令字和数据一致（端到端自洽测试）。
+
+### 🔴 挑战题
+给 `TcpDevice` 加"断线自动重连"：捕获 `IOException`/`SocketException` 后用 M9 的 `Retry.ExecuteAsync` 指数退避重连，并重订阅 `RecvLoop`；写测试模拟"连接断开后恢复"断言能继续收数。
+
+**✅ 答案（基础题）**
+```csharp
+byte Checksum(byte[] d) { int s = 0; foreach (var b in d) s += b; return (byte)(s & 0xFF); }
+// [AA 55 02 01 0A] → 0xAA+0x55+0x02+0x01+0x0A = 0x112 → 低 8 位 = 0x12
+```
+
+**🏗️ 项目任务**：把 `TcpDevice` 接进 DAQ Monitor：在 `Bootstrapper` 注册，UI 点启动后能收到 TCP 模拟器（你 Day1 写的回显/发帧端）发来的点。
+
+**🎓 工控导师说**：私有协议最坑的不是"怎么写"，而是"两边对不上"——你算 CRC 含头、对方不含头，调三天调不通。我的习惯是：**先拿一个已知样本帧（设备手册给的示例），把你的解帧函数跑一遍，逐字节核对**，确认解析对了再写业务逻辑。别凭空猜协议。
+
+**💼 职业建议**：能独立"读懂一份私有协议文档 → 写出封帧/解帧 → 接进采集系统"的人，在上位机岗非常稀缺。这是 M11 给你的"可写进简历"的硬实力，面试时带一台模拟器现场 demo 最炸。
+
+**✅ 打卡[ ]**
+
+---
+
+## 📌 温故知新 / 跨模块联动
+- **M0 并发**：`RecvLoop` 跑在 `Task`/后台线程，UI 不卡（同 M0 Day7）。
+- **M1 串口**：串口也是"字节流 + 事件"，M1 的解析函数**直接复用**到 TCP——区别只是"水从串口来还是从网口来"。
+- **M9 容错**：心跳超时 → 用 M9 的 `Retry` 重连；切帧缓冲思路与 M1 的 `FrameParser` 同源。
+- **M12**：解出的原始值交给 M12 工程量转换才变成真实物理量。
+
+## 🧩 完整代码组装（TcpDevice 可直接抄进工程）
+```csharp
+// DaqMonitor.Core/Devices/TcpDevice.cs
+using System.Net.Sockets;
+using DaqMonitor.Core.Models;
+
+public class TcpDevice : DeviceBase
+{
+    private readonly string _host; private readonly int _port;
+    private TcpClient? _client; private NetworkStream? _ns;
+    private readonly MemoryStream _acc = new();
+
+    public TcpDevice(int id, string name, string host, int port) : base(id, name)
+        => (_host, _port) = (host, port);
+
+    public override void Connect()
+    {
+        _client = new TcpClient(); _client.Connect(_host, _port);
+        _ns = _client.GetStream(); State = DeviceState.Online;
+        _ = RecvLoop(CancellationToken.None);
+    }
+    public override void Disconnect() { _ns?.Close(); _client?.Close(); State = DeviceState.Offline; }
+
+    private async Task RecvLoop(CancellationToken ct)
+    {
+        var buf = new byte[4096];
+        while (_ns is { } ns && !ct.IsCancellationRequested)
+        {
+            int n = await ns.ReadAsync(buf, 0, buf.Length, ct);
+            if (n == 0) break;
+            _acc.Write(buf, 0, n);
+            foreach (var body in TryParseFrames(_acc))
+                RaiseData(Id, body[0]);   // 简化：首字节当值，真实按协议拆
+        }
+    }
+    // TryParseFrames 见 Day1 挑战题骨架
+}
+```
+> 接进工程：在 `Bootstrapper` 里 `services.AddSingleton<IDevice>(_ => new TcpDevice(3, "TCP-01", "127.0.0.1", 502));`，UI 与采集层一行不用改。
+
+## 🔗 明日预告
+**M12 工程量转换 与 企业数据库（SQL Server / MySQL）**：今天解出的"原始字节值"还不能直接显示给人看——要标定成真实温度/压力，还要能存进企业最常见的 SQL Server/MySQL。这就是 M12 要解决的。
+
+## 📚 延伸阅读
+- Microsoft Learn · [TcpClient 类](https://learn.microsoft.com/zh-cn/dotnet/api/system.net.sockets.tcpclient)
+- Microsoft Learn · [NetworkStream](https://learn.microsoft.com/zh-cn/dotnet/api/system.net.sockets.networkstream)
+- SuperSocket（国产 TCP 框架）· [GitHub](https://github.com/kerryjiang/SuperSocket)
+
+## 📎 关联附录
+- 工程量转换见 **M12**；多设备接入见 **M1/M2/M3/M13**；断线重连见 **M9**。

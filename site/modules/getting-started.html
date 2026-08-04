@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>实操入门 · 从零搭建企业级工程 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="getting-started">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">0. 先建立心智模型（前端类比）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">1. 文件夹怎么命名（你最关心的"项目文件夹名称"）</a><ul>
+<li class="l3"><a href="#sec-3-1">1.1 三条铁律</a></li>
+<li class="l3"><a href="#sec-3-2">1.2 为什么这么分？（企业真实项目的理由）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">2. 从空文件夹，用命令行一步步建出来（照抄即可）</a><ul>
+<li class="l3"><a href="#sec-3-3">2.1 想要某个第三方能力？dotnet add package</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">3. git 初始化 + 忽略编译产物（必做，否则仓库会炸）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">4. 三板斧：build / run / test（每天都会用）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">5. ✏️ 练习（从最简单的动手）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">实操入门 · 从零搭建企业级工程（给前端转上位机、零 .NET 基础）</h1>
+<blockquote>
+<p>你问"做练习要从做简单的做起，比如项目文件夹名称、如何创建等等操作"。
+这页就是<strong>最简单、最先要会</strong>的东西：怎么起名字、怎么用命令行把一个工程从空文件夹敲出来、怎么确认它能跑。
+学完这一页，你能在 10 分钟内从零还原出 DAQMonitor 的骨架。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">0. 先建立心智模型（前端类比）</h2>
+<table>
+<thead>
+<tr>
+<th>前端世界</th>
+<th>.NET 上位机世界</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>npm</code> / <code>pnpm</code></td>
+<td><code>dotnet</code> CLI</td>
+<td>包管理 + 脚手架 + 构建都在一个命令里</td>
+</tr>
+<tr>
+<td><code>package.json</code></td>
+<td><code>.csproj</code></td>
+<td>工程描述文件（依赖、目标框架、输出类型）</td>
+</tr>
+<tr>
+<td><code>node_modules/</code></td>
+<td><code>bin/</code> + <code>obj/</code></td>
+<td>编译产物，<strong>不要手改、不要提交 git</strong></td>
+</tr>
+<tr>
+<td>一个 <code>src/</code> 目录装所有代码</td>
+<td>一个 <code>.sln</code> 解决方桉 + 多个 <code>.csproj</code> 子工程</td>
+<td>上位机讲究<strong>分层</strong>（Core / UI / Tests 各管各的）</td>
+</tr>
+<tr>
+<td><code>npm run dev</code></td>
+<td><code>dotnet run</code></td>
+<td>启动应用</td>
+</tr>
+<tr>
+<td><code>npm test</code></td>
+<td><code>dotnet test</code></td>
+<td>跑测试</td>
+</tr>
+<tr>
+<td><code>npm run build</code></td>
+<td><code>dotnet build</code></td>
+<td>编译</td>
+</tr>
+</tbody>
+</table>
+<p>🟦 <strong>C# 语法天生物</strong> · 🟩 <strong>.NET 类库（BCL）随框架</strong> · 🟧 <strong>第三方 NuGet（要 <code>dotnet add package</code>）</strong></p>
+<hr />
+<h2 id="sec-2-2">1. 文件夹怎么命名（你最关心的"项目文件夹名称"）</h2>
+<p>企业级工程不是"随便建个文件夹塞代码"。命名守三条规定：</p>
+<h3 id="sec-3-1">1.1 三条铁律</h3>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+<th>反例（别这样）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 用英文 + PascalCase</td>
+<td>类名/工程名首字母大写驼峰，见名知意</td>
+<td><code>daqmonitor</code> / <code>数据采集</code> / <code>myApp</code></td>
+</tr>
+<tr>
+<td>② 不用空格、不用中文做<strong>代码工程名</strong></td>
+<td>中文文件夹能建，但命令行、CI、NuGet 包名容易出幺蛾子</td>
+<td><code>上位机项目/</code> 当解决方案名</td>
+</tr>
+<tr>
+<td>③ 分层用子目录</td>
+<td><code>src/</code> 下每个可独立编译的单位一个文件夹</td>
+<td>所有 <code>.cs</code> 平铺在一个目录</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>本项目的真实约定</strong>（你就照这个来）：
+<code>F:\00_project\上位机学习\            ← 资料根目录（中文没关系，只是放资料）
+  DAQMonitor\                        ← 解决方案根（英文，正经工程名）
+    DaqMonitor.sln                   ← 解决方案文件（统领下面所有子工程）
+    src\
+      DaqMonitor.Core\               ← 核心层：领域模型/设备接口/管道/报警/协议
+      DaqMonitor.UI\                 ← 界面层：WPF 主窗口
+      DaqMonitor.Tests\              ← 测试层：xUnit 单元测试</code>
+命名规律：<strong><code>DaqMonitor.</code> + 层名</strong>，和命名空间（namespace）一一对应。</p>
+</blockquote>
+<h3 id="sec-3-2">1.2 为什么这么分？（企业真实项目的理由）</h3>
+<ul>
+<li><strong>Core 不依赖 UI</strong>：好处是——没有界面的服务器/服务/测试也能直接用 Core。你的报警引擎、采集管道在后台服务里照样跑。</li>
+<li><strong>Tests 只依赖 Core</strong>：测试不碰界面，跑得快、能上 CI（GitHub Actions / Jenkins 自动跑）。</li>
+<li><strong>UI 依赖 Core</strong>：界面是"壳"，换 WPF→Blazor→控制台都不影响核心逻辑。</li>
+</ul>
+<p>这就是面试时能讲清楚的"<strong>分层架构 / 依赖方向单一</strong>"——13K 与 8K 的分水岭之一。</p>
+<hr />
+<h2 id="sec-2-3">2. 从空文件夹，用命令行一步步建出来（照抄即可）</h2>
+<p>打开终端（PowerShell / CMD / Git Bash 都行），进到你想放工程的地方：</p>
+<pre><code class="language-bash"># ① 建解决方案根目录并进入
+mkdir DAQMonitor &amp;&amp; cd DAQMonitor
+
+# ② 建解决方案文件（.sln 是把子工程&quot;捆&quot;在一起的清单）
+dotnet new sln -n DaqMonitor
+
+# ③ 建三个子工程（classlib=类库, wpf=WPF 界面, xunit=测试）
+dotnet new classlib -o src/DaqMonitor.Core -n DaqMonitor.Core
+dotnet new wpf      -o src/DaqMonitor.UI   -n DaqMonitor.UI
+dotnet new xunit    -o src/DaqMonitor.Tests -n DaqMonitor.Tests
+
+# ④ 把子工程&quot;挂&quot;到解决方案里
+dotnet sln add src/DaqMonitor.Core/DaqMonitor.Core.csproj
+dotnet sln add src/DaqMonitor.UI/DaqMonitor.UI.csproj
+dotnet sln add src/DaqMonitor.Tests/DaqMonitor.Tests.csproj
+
+# ⑤ 建依赖方向：UI 依赖 Core，Tests 依赖 Core（Core 谁都不依赖）
+dotnet add src/DaqMonitor.UI/DaqMonitor.UI.csproj    reference src/DaqMonitor.Core/DaqMonitor.Core.csproj
+dotnet add src/DaqMonitor.Tests/DaqMonitor.Tests.csproj reference src/DaqMonitor.Core/DaqMonitor.Core.csproj
+</code></pre>
+<p>🟩 以上全是 .NET SDK 自带的命令，不需要装任何第三方包。</p>
+<p>跑完你会得到和本项目一模一样的骨架。<strong>此时你已经完成了"企业级工程的地基"——这比写第一行业务代码都重要。</strong></p>
+<h3 id="sec-3-3">2.1 想要某个第三方能力？<code>dotnet add package</code></h3>
+<p>比如核心层要用依赖注入（Microsoft 官方库，🟧 要装）：</p>
+<pre><code class="language-bash">dotnet add src/DaqMonitor.Core/DaqMonitor.Core.csproj package Microsoft.Extensions.DependencyInjection
+</code></pre>
+<hr />
+<h2 id="sec-2-4">3. git 初始化 + 忽略编译产物（必做，否则仓库会炸）</h2>
+<pre><code class="language-bash">git init
+</code></pre>
+<p>新建 <code>.gitignore</code>（直接要 .NET 官方的，别手敲）：</p>
+<pre><code class="language-bash">dotnet new gitignore        # 自动生成一份标准 .NET .gitignore
+</code></pre>
+<p>它会忽略 <code>bin/</code>、<code>obj/</code>、<code>*.user</code> 等。<strong>不忽略这些，你的 git 仓库会塞满编译垃圾。</strong></p>
+<p>提交一次地基：</p>
+<pre><code class="language-bash">git add .
+git commit -m &quot;chore: 搭建 DAQMonitor 分层骨架(Core/UI/Tests)&quot;
+</code></pre>
+<hr />
+<h2 id="sec-2-5">4. 三板斧：build / run / test（每天都会用）</h2>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>像前端的什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dotnet build</code></td>
+<td>编译整个解决方案</td>
+<td><code>npm run build</code></td>
+</tr>
+<tr>
+<td><code>dotnet run --project src/DaqMonitor.UI</code></td>
+<td>启动 WPF 界面</td>
+<td><code>npm run dev</code></td>
+</tr>
+<tr>
+<td><code>dotnet test</code></td>
+<td>跑全部单元测试</td>
+<td><code>npm test</code></td>
+</tr>
+</tbody>
+</table>
+<p>✅ <strong>验收标准（你学每一步都要能回答）</strong>：
+- <code>dotnet build</code> → 0 错误 0 警告
+- <code>dotnet test</code> → 全部绿灯
+- <code>dotnet run</code> → 弹出 DAQ Monitor 窗口，点"启动采集"能看到点位跳动 + 偶发报警</p>
+<blockquote>
+<p>⚠️ 本机只装了 .NET 10 运行时，工程目标框架是 <code>net8.0</code>。我们在 <code>.csproj</code> 里加了 <code>&lt;RollForward&gt;Major&lt;/RollForward&gt;</code>，让 net8 程序滚动到 net10 运行。<strong>这是真实生产常用技巧</strong>，不是绕弯子。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-6">5. ✏️ 练习（从最简单的动手）</h2>
+<p><strong>练习 1（命名）</strong>：给下面这些起名，按"英文名 + PascalCase + 分层"规范：
+- 一个做"Modbus 串口通信"的类库 → <code>________</code>
+- 它的测试工程 → <code>________</code>
+- 一个"历史数据库"层 → <code>________</code></p>
+<details><summary>✅ 答案</summary>
+
+- `DaqMonitor.Modbus`（或 `DaqMonitor.Communication`）
+- `DaqMonitor.Modbus.Tests`
+- `DaqMonitor.History`（或 `DaqMonitor.Persistence`）
+
+规律：`DaqMonitor.` + 职责名；测试统一加 `.Tests` 后缀。
+</details>
+
+<p><strong>练习 2（创建）</strong>：在 <code>F:\00_project\上位机学习\</code> 下，<strong>不复制</strong>本项目，自己用第 2 节的命令从空文件夹敲出一个 <code>Playground</code> 解决方案（含一个 classlib + 一个 xunit），跑通 <code>dotnet test</code>。</p>
+<p><strong>练习 3（验证地基）</strong>：打开本项目 <code>DAQMonitor/</code>，依次运行 <code>dotnet build</code> 和 <code>dotnet test</code>，确认 28 个测试全绿。把输出截图/贴到打卡表。</p>
+<p>🏗️ <strong>项目任务</strong>：把你练习 2 建的 <code>Playground</code> 删掉（保持资料目录干净），保留本项目作为唯一工程地基。下一步进 <code>练习阶梯_从简单到企业级.md</code>，按模块往上叠能力。</p>
+<div class="pager">
+  <a class="prev" href="M16.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M16 · 工业总线 CAN + USB-HID</div></a>
+  <a class="next" href="practice-ladder.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">练习阶梯 · 从简单到企业级</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M12 · 工程量转换 + 企业数据库 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M12">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 工程量转换 / 量程标定 🟢</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：标定为啥用两点法</a></li>
+<li class="l3"><a href="#sec-3-5">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 企业数据库 SQL Server / MySQL（换库零改业务）🟡</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：为什么 SQL Server 是上位机标配</a></li>
+<li class="l3"><a href="#sec-3-13">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-14">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-15">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-16">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（EngineeringConverter 可直接抄进工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">📎 关联</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M12 — 工程量转换 与 企业数据库（SQL Server / MySQL）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟢 再学 · 工程量标定 + 企业级数据库（具体项目才用到）
+<strong>技术来源</strong>：🟦 C# 语法（线性变换）；🟧 <code>Microsoft.EntityFrameworkCore.SqlServer</code> / <code>.MySql</code> / <code>Dapper</code>；🟩 <code>System.Data</code>（ADO.NET）。
+<strong>给简历加的能力</strong>：① 把"原始计数 / 4-20mA"换算成真实工程量（温度/压力）；② 用企业最常见的 SQL Server / MySQL 持久化（JD 要求"至少一种"，我们 M4 只用了 SQLite，得补）。
+<strong>前置</strong>：M4（EF Core + SQLite）、M0（C# 数学/类型）、M11（解出的原始值喂进来）。
+<strong>前端类比总纲</strong>：工程量转换像 <code>d3.scaleLinear().domain([0,4095]).range([0,100])</code> 的坐标映射；换数据库像"ORM 换驱动"，业务代码一行不动。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">模块目标</h2>
+<p>给 <code>SensorPoint</code> 加 <code>EngValue</code>；写出 <code>EngineeringConverter</code> 做量程标定；把 M4 的仓储接口指向 SQL Server / MySQL（改连接串 + 加包，<strong>业务代码零改</strong>）。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — 工程量转换 / 量程标定 🟢</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>下位机给你的是"原始整数"（如 0~4095 的 ADC 值、或 4-20mA 对应的 6400~32000）。你要用线性公式 <code>工程量 = a × 原始值 + b</code> 把它映射成"真实物理量 + 单位"。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>量程（下限~上限）</td>
+<td>坐标轴 <code>domain</code>(min,max)</td>
+</tr>
+<tr>
+<td>线性映射</td>
+<td><code>d3.scaleLinear().domain([0,4095]).range([0,100])</code></td>
+</tr>
+<tr>
+<td>两点标定</td>
+<td>已知两组 (x,y) 求斜率截距</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 线性标定公式</strong>（🟦）</p>
+<pre><code class="language-csharp">// 已知：原始 rawLo→工程量 engLo，原始 rawHi→工程量 engHi
+double a = (engHi - engLo) / (rawHi - rawLo);
+double b = engLo - a * rawLo;
+double EngValue(double raw) =&gt; a * raw + b;
+</code></pre>
+<p><strong>② 4-20mA 为什么不是 0-20mA</strong>（🟦 工程常识）
+- 4mA 对应量程下限，<strong>低于 4mA 即断线/故障</strong>——工业标准"活零位"，用电流判断接线是否断。
+- 0mA 无法区分"值是 0"还是"线断了"。
+<strong>③ 两点标定自动求系数</strong>（🟦）
+- 现场用标准信号源打两个点（如 4mA→0℃、20mA→100℃），代入公式求 a,b，存配置。
+<strong>④ 在 SensorPoint 落地</strong></p>
+<pre><code class="language-csharp">public class SensorPoint {
+    public double Raw { get; set; }
+    public double EngValue { get; set; }   // 标定后
+    public string Unit { get; set; } = &quot;℃&quot;;
+}
+</code></pre>
+<h3 id="sec-3-4">🔬 掰开揉碎：标定为啥用两点法</h3>
+<ul>
+<li>传感器有<strong>零点误差</strong>和<strong>增益误差</strong>，单点校准只能消一个。两点（下限 + 上限）同时消掉偏移(b)和斜率(a)，最稳。</li>
+<li>量程反向（如液位越低值越大）只是 a 为负，公式通用。</li>
+<li><strong>除零防护</strong>：<code>rawHi == rawLo</code> 时公式会崩，真实代码要 <code>if (rawHi == rawLo) throw</code> 或给默认系数。</li>
+</ul>
+<h3 id="sec-3-5">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td><code>EngValue = a*raw + b</code>，a,b 来自两点标定</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>除零（rawHi==rawLo）、Int16 溢出、单位写错（℃ vs ℉）</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>4-20mA 断线判定别漏（值 &lt; 4mA 报故障）</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>标定时"原始值"和"工程量"单位要一致（别把 mA 当 ℃ 算）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🟢 基础题</h3>
+<p>ADC 0~4095 对应 0~10MPa，写 <code>EngValue(2048)</code> 应 ≈5MPa。</p>
+<h3 id="sec-3-7">🟡 进阶题</h3>
+<p>写 <code>EngineeringConverter</code> 类，构造时传入 <code>(rawLo, rawHi, engLo, engHi)</code>，提供 <code>ToEng(double raw)</code> 和反向 <code>ToRaw(double eng)</code>（下发设定值用，见 M3 写 PLC）。</p>
+<h3 id="sec-3-8">🔴 挑战题</h3>
+<p>实现"量程反向"场景：液位 0~5m 对应原始值 4095~0（a 为负）。用同一个 <code>EngineeringConverter</code> 测 <code>ToEng(2048)</code> 应为约 2.5m，验证公式通用性。</p>
+<p><strong>✅ 答案（基础题）</strong>
+a = 10/4095，b = 0，<code>EngValue(2048) = 10×2048/4095 ≈ 5.003</code>。</p>
+<p><strong>🏗️ 项目任务</strong>：在 <code>SensorPoint</code> 加 <code>EngValue/Unit</code>，<code>TcpDevice</code>/<code>SimulatedDevice</code> 采集时填充。DAQ Monitor 点表里同时显示"原始值 / 工程量"。</p>
+<p><strong>🎓 工控导师说</strong>：标定系数千万别写死在代码里！我见过一台设备换传感器后，工程师忘了改 a、b 常量，显示温度整体偏了 8℃，产线工艺全错。系数必须来自<strong>配置 / 数据库 / 设备描述文件</strong>，换硬件只改配置不动代码。</p>
+<p><strong>💼 职业建议</strong>：工程量转换是"工程师基本功"。面试官看你代码里 <code>value * 0.1</code> 直接当温度，就知道你没理解标定；写成 <code>EngineeringConverter</code> 可配置，才是企业写法。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M12',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 企业数据库 SQL Server / MySQL（换库零改业务）🟡</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>M4 用 SQLite 是"轻量入门"。真实工厂 90% 用 <strong>SQL Server</strong>（微软系上位机标配）或 <strong>MySQL</strong>。好消息：EF Core 是<strong>面向提供程序</strong>的，换库 = 换连接串 + 加一个 NuGet 包，业务代码一行不动。</p>
+<h3 id="sec-3-10">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>换库动作</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UseSqlServer</code> 换 <code>UseMySql</code></td>
+<td>把 Prisma 的 <code>provider</code> 从 postgres 改成 mysql</td>
+</tr>
+<tr>
+<td>业务代码零改</td>
+<td>ORM 屏蔽差异，Repository 不变</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-11">分点精讲</h3>
+<p><strong>① EF Core 换提供程序</strong>（🟧）</p>
+<pre><code class="language-xml">&lt;!-- 把 M4 的 Sqlite 包换成 --&gt;
+&lt;PackageReference Include=&quot;Microsoft.EntityFrameworkCore.SqlServer&quot; /&gt;
+</code></pre>
+<pre><code class="language-csharp">// Program / Bootstrapper 里只改这一行：
+options.UseSqlServer(&quot;Server=.;Database=DAQ;Trusted_Connection=true;&quot;);
+// 原来 UseSqlite(...) 换成 UseSqlServer(...) 即可
+</code></pre>
+<p><strong>② Dapper 轻量批量写</strong>（🟧，高频点位写入更快）</p>
+<pre><code class="language-csharp">using Dapper;
+await using var conn = new SqlConnection(cs);
+await conn.ExecuteAsync(
+  &quot;INSERT INTO Points(Chan,Raw,Eng,Unit,Ts) VALUES(@Chan,@Raw,@Eng,@Unit,@Ts)&quot;,
+  points);   // points 是 IEnumerable&lt;SensorPoint&gt;
+</code></pre>
+<p><strong>③ 三选一</strong>：EF Core（ORM 方便）→ Dapper（高频写快、SQL 可控）→ ADO.NET <code>SqlBulkCopy</code>（海量批量最快）。</p>
+<h3 id="sec-3-12">🔬 掰开揉碎：为什么 SQL Server 是上位机标配</h3>
+<ul>
+<li>工厂 IT 基础设施清一色 Windows + SQL Server，运维、备份、权限都现成。</li>
+<li>和 C#/.NET 同属微软生态，部署、驱动、文档一条龙，坑最少。</li>
+<li>MySQL 在跨平台/成本敏感场景常见；<strong>会换提供程序 = 不挑客户环境</strong>。</li>
+</ul>
+<h3 id="sec-3-13">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>EF Core 面向提供程序，换库 = 换连接串 + 加包</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>不同库的类型映射差异（如 <code>datetime</code>/<code>uniqueidentifier</code>）</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>连接串里密码别硬编码，走配置 / 环境变量</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>高频写用攒批（M4 Day1 的 10 倍性能差）或 Dapper/SqlBulkCopy</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-14">🟢 基础题</h3>
+<p>把 M4 的 <code>AppDb</code> 从 <code>UseSqlite</code> 改成 <code>UseSqlServer</code>（仅改一行），并在本机 SQL Server LocalDB 建库跑通一条插入。</p>
+<h3 id="sec-3-15">🟡 进阶题</h3>
+<p>用 Dapper 把"最近 1 秒采集的 100 个点"一次 <code>ExecuteAsync</code> 批量插入，对比 M4 的逐条 <code>SaveChanges</code> 体会速度差。</p>
+<h3 id="sec-3-16">🔴 挑战题</h3>
+<p>写一段<strong>数据库无关</strong>代码：依赖 <code>IHistoryRepository</code> 接口，运行时按配置决定用 SQLite / SQL Server / MySQL 实现（M9 的 DI 注册切换）——验证"业务代码零改"。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">protected override void OnConfiguring(DbContextOptionsBuilder b)
+    =&gt; b.UseSqlServer(&quot;Server=(localdb)\\mssqllocaldb;Database=DAQ;Trusted_Connection=true;&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 DAQ Monitor 的 <code>HistoryRepository</code> 背后 DbContext 指向 SQL Server（或 MySQL），DAQ Monitor 历史库从 SQLite 平滑迁移，UI/报表零改动。</p>
+<p><strong>🎓 工控导师说</strong>：客户现场最怕"你的程序依赖某个特定数据库，结果他们 IT 标准用的是另一个"。<strong>凡是把数据访问藏在 Repository 接口后面、用 DI 注入实现的项目，到哪都能活</strong>。反之把 <code>UseSqlite</code> 写死在业务里，换库就是重写。</p>
+<p><strong>💼 职业建议</strong>：JD 几乎都写"熟悉 SQL Server / MySQL 至少一种"。你能讲"EF Core 面向提供程序、换库只改连接串、业务零改 + 高频写用 Dapper 攒批"，面试官立刻放心——你懂企业数据库工程。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M12',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>M4</strong>：SQLite → 这里换成 SQL Server/MySQL，证明"仓储接口 + EF 提供程序"让换库无痛。</li>
+<li><strong>M9 DI</strong>：<code>IDbContext</code>/<code>IHistoryRepository</code> 接口注入，换库 = 换实现，UI 不知情。</li>
+<li><strong>M11</strong>：M11 解出的 <code>Raw</code> 由本模块的 <code>EngineeringConverter</code> 变成 <code>EngValue</code>。</li>
+</ul>
+<h2 id="sec-2-5">🧩 完整代码组装（EngineeringConverter 可直接抄进工程）</h2>
+<pre><code class="language-csharp">// DaqMonitor.Core/Models/EngineeringConverter.cs
+public class EngineeringConverter
+{
+    private readonly double _a, _b;
+    public EngineeringConverter(double rawLo, double rawHi, double engLo, double engHi)
+    {
+        if (rawHi == rawLo) throw new ArgumentException(&quot;量程不能为 0&quot;);
+        _a = (engHi - engLo) / (rawHi - rawLo);
+        _b = engLo - _a * rawLo;
+    }
+    public double ToEng(double raw) =&gt; _a * raw + _b;
+    public double ToRaw(double eng) =&gt; (eng - _b) / _a;   // 反向：下发设定值
+}
+// 用法：var c = new EngineeringConverter(6400, 32000, 0, 100); // 4-20mA → 0~100℃
+//       double temp = c.ToEng(rawFromDevice);
+</code></pre>
+<blockquote>
+<p>M4 的 <code>HistoryRepository</code> 仅把 <code>UseSqlite</code> 换成 <code>UseSqlServer</code>/<code>UseMySql</code> 即可接企业库（见 Day2 ①）。</p>
+</blockquote>
+<h2 id="sec-2-6">🔗 明日预告</h2>
+<p><strong>M13 多品牌 PLC 与国产库（HslCommunication）</strong>：今天存的是"通用点"，但真工厂设备五花八门——西门子/三菱/欧姆龙。M13 用一套国产 Hsl 库通吃它们，让你不再局限于西门子。</p>
+<h2 id="sec-2-7">📚 延伸阅读</h2>
+<ul>
+<li>EF Core · <a href="https://learn.microsoft.com/zh-cn/ef/core/providers/">数据库提供程序</a></li>
+<li>Dapper · <a href="https://github.com/DapperLib/Dapper">GitHub</a></li>
+<li>SQL Server · <a href="https://learn.microsoft.com/zh-cn/dotnet/api/system.data.sqlclient.sqlbulkcopy">SqlBulkCopy</a></li>
+</ul>
+<h2 id="sec-2-8">📎 关联</h2>
+<ul>
+<li>标定后的 <code>EngValue</code> 由 <strong>M11 TCP / M1 串口</strong> 的 <code>Raw</code> 喂入；持久化复用 <strong>M4</strong> 仓储。</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M11.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M11 · TCP Socket 自定义协议</div></a>
+  <a class="next" href="M13.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M13 · 多品牌 PLC + 国产库</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

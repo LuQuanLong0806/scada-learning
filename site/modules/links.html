@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>附录 · 外部链接索引 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="links">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🟦 C# 语言 / .NET 基础（M0 用）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">🟩 .NET 类库 BCL（M0/M1/M5/M6 用）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">🟧 第三方 NuGet（各模块用）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠 调试/虚拟设备工具（动手练）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📚 综合/进阶（建立全局认知）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">外部链接索引（帮助理解难点的官方文档 / 精选教程）</h1>
+<blockquote>
+<p>每个模块的讲义末尾都有「📚 延伸阅读」段，这里汇总全部链接并标注「解决什么不懂」。
+所有链接均为官方文档或权威仓库，<strong>稳定可点</strong>。建议遇到卡点时直接点开对应条目，不用来回搜。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🟦 C# 语言 / .NET 基础（M0 用）</h2>
+<ul>
+<li>C# 官方文档总入口：https://learn.microsoft.com/dotnet/csharp/ —— 语法、类型、异步全在这儿</li>
+<li>异步编程 async/await 官方指南：https://learn.microsoft.com/dotnet/csharp/async —— <strong>必看</strong>，搞懂「为什么后台线程不能改 UI」</li>
+<li><code>System.Threading.Channels</code> 参考：https://learn.microsoft.com/dotnet/api/system.threading.channels —— M5/M9 统一采集缓冲的原理</li>
+<li>.NET 官方 GitHub（运行时/类库源码）：https://github.com/dotnet/runtime —— 想看 <code>SerialPort</code> 等底层实现时翻</li>
+<li>WPF 官方文档：https://learn.microsoft.com/dotnet/desktop/wpf/ —— XAML / 绑定 / 命令总入口</li>
+</ul>
+<h2 id="sec-2-2">🟩 .NET 类库 BCL（M0/M1/M5/M6 用）</h2>
+<ul>
+<li><code>SerialPort</code> 类参考：https://learn.microsoft.com/dotnet/api/system.io.ports.serialport —— M1 全文对照</li>
+<li><code>IProgress&lt;T&gt;</code> / 进度报告：https://learn.microsoft.com/dotnet/api/system.iprogress-1 —— 后台任务回报 UI 的标准姿势</li>
+<li><code>Dispatcher</code> / WPF 线程模型：https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcher —— M0 Day7 / M5 跨线程改 UI 的原理</li>
+<li><code>ObservableCollection&lt;T&gt;</code>：https://learn.microsoft.com/dotnet/api/system.collections.objectmodel.observablecollection-1 —— M5 图表绑定的数据源</li>
+</ul>
+<h2 id="sec-2-3">🟧 第三方 NuGet（各模块用）</h2>
+<ul>
+<li><strong>Modbus</strong>：NModbus 仓库 https://github.com/NModbus/NModbus · Modbus 官方协议规范 https://modbus.org/specs —— M2 帧结构/功能码/异常码权威出处</li>
+<li><strong>PLC(S7)</strong>：S7.Net Plus 仓库 https://github.com/killnine/s7netplus · 示例 https://github.com/killnine/s7netplus/wiki —— M3 连接/读DB/错误模型</li>
+<li><strong>EF Core</strong>：官方文档 https://learn.microsoft.com/ef/core/ · 迁移入门 https://learn.microsoft.com/ef/core/managing-schemas/migrations —— M4 变更追踪/迁移/索引全在这儿</li>
+<li><strong>SQLite</strong>：https://www.sqlite.org/index.html · EF SQLite 提供器 https://learn.microsoft.com/ef/core/providers/sqlite —— M4 单文件数据库</li>
+<li><strong>LiveCharts2</strong>：官方文档 https://livecharts.dev/ · GitHub https://github.com/beto-rodriguez/LiveCharts2 —— M5 曲线/仪表盘/绑定</li>
+<li><strong>Serilog</strong>：官方 https://serilog.net/ · Sinks 列表 https://github.com/serilog/serilog —— M6 结构化日志/滚动文件</li>
+<li><strong>MQTTnet</strong>：仓库 https://github.com/dotnet/MQTTnet · MQTT 协议概念 https://mqtt.org/ —— M7 发布订阅</li>
+<li><strong>OPC UA</strong>：OPC 基金会 https://opcfoundation.org/ · OPC UA .NET 栈 https://github.com/OPCFoundation/UA-.NETStandard —— M7 节点寻址/会话</li>
+<li><strong>CommunityToolkit.Mvvm</strong>（MVVM + 源生成器）：https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/ —— M8 <code>[ObservableProperty]</code>/<code>[RelayCommand]</code> 生成了什么</li>
+<li><strong>源生成器原理</strong>：https://learn.microsoft.com/dotnet/csharp/roslyn-sdk/ —— 想懂 M8 源生成器怎么工作的进阶读</li>
+<li><strong>Microsoft DI</strong>：https://learn.microsoft.com/dotnet/core/extensions/dependency-injection —— M9 容器/生命周期</li>
+<li><strong>xUnit</strong>：https://xunit.net/ · <strong>Moq</strong>：https://github.com/moq/moq —— M9 单元测试</li>
+<li><strong>ClosedXML</strong>（Excel 导出）：https://github.com/ClosedXML/ClosedXML · <strong>QuestPDF</strong>（PDF）：https://github.com/QuestPDF/QuestPDF —— M10 报表导出</li>
+<li><strong>Prism</strong>（企业常用 MVVM 框架，P1 拓展）：https://github.com/PrismLibrary/Prism —— 对比 M8 自研 Bootstrapper</li>
+<li><strong>HslCommunication</strong>（国产全能通信库，P1 拓展）：https://github.com/dathlin/HslCommunication —— 国内工厂最常用，覆盖多品牌 PLC+Modbus</li>
+</ul>
+<h2 id="sec-2-4">🛠 调试/虚拟设备工具（动手练）</h2>
+<ul>
+<li>com0com 虚拟串口：https://sourceforge.net/projects/com0com/ —— M1 无硬件闭环</li>
+<li>VSPD 虚拟串口（商业，可试用）：https://www.eltima.com/serial-port-terminal/</li>
+<li>PLCSIM + NetToPLCSim（西门子仿真）：https://github.com/mesta1/NetToPLCSim —— M3 接真 PLC 前的仿真</li>
+<li>Modbus 从站模拟器（如 QModMaster / Modbus Slave）：https://sourceforge.net/projects/qmodmaster/ —— M2 练手</li>
+</ul>
+<h2 id="sec-2-5">📚 综合/进阶（建立全局认知）</h2>
+<ul>
+<li>微软「现代桌面应用架构」：https://learn.microsoft.com/dotnet/architecture/ —— MVVM/DI/测试的整体范式</li>
+<li>.NET 设计模式（接口/策略/观察者）：https://learn.microsoft.com/dotnet/standard/modern-web-apps-azure/architectural-principles —— M0 接口/M6 观察者/M9 DI 的理论根基</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="hardware.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">附录 · 硬件替代方案与讲解</div></a>
+  <a class="next" href="job.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">真实岗位调研 · 13-15K 技能对照</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

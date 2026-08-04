@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>真实岗位调研 · 13-15K 技能对照 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="job">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、真实 JD 高频要求（按出现频次排序）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、企业常用技术框架 / 库（真实项目技术栈汇总）</a><ul>
+<li class="l3"><a href="#sec-3-1">UI 与 MVVM</a></li>
+<li class="l3"><a href="#sec-3-2">工业通信</a></li>
+<li class="l3"><a href="#sec-3-3">数据 / 日志 / 报表</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、对照我们的 M0–M9(+M10) 路线</a><ul>
+<li class="l3"><a href="#sec-3-4">✅ 已强覆盖（达标，甚至超出一般 JD）</a></li>
+<li class="l3"><a href="#sec-3-5">⚠️ 部分覆盖（要补细节）</a></li>
+<li class="l3"><a href="#sec-3-6">❌ 缺失（真实岗位常见，我们没）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、缺口补强计划（按 ROI 排序）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、一句话结论</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">真实企业 13~15K 上位机岗位调研 · 技能对照（2026-07-23）</h1>
+<blockquote>
+<p>数据来源：BOSS 直聘 / 猎聘 真实 JD（15-28K、10-15K、8-16K、13-28K 等落在 13-15K 区间的岗位）+ 国内企业开源上位机项目技术栈。
+目的：用真实招聘反推技能清单，对照 <code>M0–M14</code> 学习路线，标出缺口。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、真实 JD 高频要求（按出现频次排序）</h2>
+<table>
+<thead>
+<tr>
+<th>技能</th>
+<th>出现情况</th>
+<th>等级</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C# 精通</strong></td>
+<td>全部 JD 必提</td>
+<td>🔴必会</td>
+<td>部分岗位还要 C/C++（如华威科要求 C/C++/C# 三者）</td>
+</tr>
+<tr>
+<td><strong>WinForm + WPF</strong></td>
+<td>几乎全部</td>
+<td>🔴必会</td>
+<td>WPF 是加分/主流，WinForm 老项目常见，双修最稳</td>
+</tr>
+<tr>
+<td><strong>多线程 / 异步 / 委托事件</strong></td>
+<td>全部</td>
+<td>🔴必会</td>
+<td>采集不卡 UI 的命脉，与 M0 Day7 一致</td>
+</tr>
+<tr>
+<td><strong>串口 RS232/485</strong></td>
+<td>全部</td>
+<td>🔴必会</td>
+<td>最底层通信，M1 覆盖</td>
+</tr>
+<tr>
+<td><strong>Modbus RTU / TCP</strong></td>
+<td>高频</td>
+<td>🔴必会</td>
+<td>工业第一协议，M2 覆盖</td>
+</tr>
+<tr>
+<td><strong>Socket / TCP-IP</strong></td>
+<td>高频</td>
+<td>🔴必会</td>
+<td>网络基础</td>
+</tr>
+<tr>
+<td><strong>PLC 通信（西门子 S7 等）</strong></td>
+<td>高频</td>
+<td>🔴必会</td>
+<td>S7.Net / HslCommunication，M3 覆盖</td>
+</tr>
+<tr>
+<td><strong>数据库（SQL Server/MySQL/SQLite/Access 至少一种）</strong></td>
+<td>全部</td>
+<td>🔴必会</td>
+<td>ADO.NET + EF，M4 覆盖</td>
+</tr>
+<tr>
+<td><strong>MVVM 架构</strong></td>
+<td>多次点名</td>
+<td>🔴必会</td>
+<td>M0/M8 覆盖</td>
+</tr>
+<tr>
+<td><strong>自定义控件</strong></td>
+<td>多次强调</td>
+<td>🟠重要</td>
+<td>"熟练使用自定义控件"——我们偏薄弱</td>
+</tr>
+<tr>
+<td><strong>WebApi / Webservice / MQTT</strong></td>
+<td>高频</td>
+<td>🟠重要</td>
+<td>上云/对接 MES，M7 覆盖 MQTT</td>
+</tr>
+<tr>
+<td><strong>Ini / XML / JSON 配置</strong></td>
+<td>多次</td>
+<td>🟠重要</td>
+<td>配置文件读写，M8 提了但没细练</td>
+</tr>
+<tr>
+<td><strong>面向对象 / 分层 / DI</strong></td>
+<td>多次</td>
+<td>🔴必会</td>
+<td>M9 的 DI + 分层架构正好对齐</td>
+</tr>
+<tr>
+<td><strong>文档编写能力</strong></td>
+<td>多个 JD 明确</td>
+<td>🟠重要</td>
+<td>"设计文档/上下位机协议/操作说明/测试报告"——我们几乎没练</td>
+</tr>
+<tr>
+<td><strong>运动控制卡（固高/雷赛/凌华）</strong></td>
+<td>设备类岗位</td>
+<td>🟡加分</td>
+<td>DAQ/监控类不一定需要</td>
+</tr>
+<tr>
+<td><strong>机器视觉（Halcon/VisionPro/OpenCV/YOLO）</strong></td>
+<td>多个优先</td>
+<td>🟡加分</td>
+<td>非必，有则大幅加分</td>
+</tr>
+</tbody>
+</table>
+<p><strong>代表性 JD 证据：</strong>
+- BOSS 直聘·江松科技（15-28K）：C# + WinForm/WPF + 多线程 + SQL Server/ADO.NET + PLC 通讯 + 运动控制卡 + 视觉优先
+- BOSS 直聘·拓斯达（10-15K）：C# + WinForm/WPF + CS 两层/三层 + ModbusTCP/RTU/Socket/WebApi/MQTT + MySQL/SQL Server + 视觉优先
+- 猎聘·华威科（13-28K）：C/C++/C# + QT/MFC + 硬件 SDK 调用 + SQL + 工业协议(Modbus/Ethernet/TCP/IP/RS485)
+- 猎聘·上海某（8-16K）：C# + .NET Framework + WinForm/WPF + MVVM + 多线程 + 串口 + TCP/IP/RS232/485/Profinet/CAN + git + 数据库</p>
+<hr />
+<h2 id="sec-2-2">二、企业常用技术框架 / 库（真实项目技术栈汇总）</h2>
+<h3 id="sec-3-1">UI 与 MVVM</h3>
+<table>
+<thead>
+<tr>
+<th>库</th>
+<th>用途</th>
+<th>NuGet</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prism</strong> (DryIoc/Unity)</td>
+<td>MVVM + 模块化 + DI + 导航 + 事件聚合</td>
+<td><code>Prism.DryIoc</code></td>
+<td>工业上位机首选框架，比自研 Bootstrapper 更"企业标准"</td>
+</tr>
+<tr>
+<td><strong>CommunityToolkit.Mvvm</strong></td>
+<td>轻量 MVVM 工具包（[ObservableProperty]/[RelayCommand]）</td>
+<td><code>CommunityToolkit.Mvvm</code></td>
+<td>微软官方，简化属性/命令</td>
+</tr>
+<tr>
+<td><strong>HandyControl</strong></td>
+<td>现代化 WPF 控件库（80+ 控件、主题）</td>
+<td><code>HandyControl</code></td>
+<td>告别丑界面，国内最流行</td>
+</tr>
+<tr>
+<td><strong>MaterialDesignInXAML</strong></td>
+<td>Material 风格控件</td>
+<td><code>MaterialDesignThemes</code></td>
+<td>美观 HMI</td>
+</tr>
+<tr>
+<td><strong>LiveCharts / LiveChartsCore</strong></td>
+<td>实时曲线 / 仪表盘 / 趋势</td>
+<td><code>LiveCharts2</code></td>
+<td>M5 已用</td>
+</tr>
+<tr>
+<td><strong>OxyPlot</strong></td>
+<td>专业历史趋势绘图</td>
+<td><code>OxyPlot.Wpf</code></td>
+<td>报表/历史分析常用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">工业通信</h3>
+<table>
+<thead>
+<tr>
+<th>库</th>
+<th>用途</th>
+<th>NuGet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NModbus</strong></td>
+<td>Modbus RTU/TCP</td>
+<td><code>NModbus</code></td>
+</tr>
+<tr>
+<td><strong>S7netplus</strong></td>
+<td>西门子 S7 PLC</td>
+<td><code>S7netplus</code></td>
+</tr>
+<tr>
+<td><strong>HslCommunication</strong></td>
+<td>国产全能：多品牌 PLC + Modbus + TCP/串口</td>
+<td><code>HslCommunication</code> ⭐国内工厂最常用</td>
+</tr>
+<tr>
+<td><strong>OPCFoundation UA-.NETStandard</strong></td>
+<td>OPC UA 客户端/服务器</td>
+<td><code>OPCFoundation.NetStandard.Opc.Ua</code></td>
+</tr>
+<tr>
+<td><strong>MQTTnet</strong></td>
+<td>MQTT 客户端/代理</td>
+<td><code>MQTTnet</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">数据 / 日志 / 报表</h3>
+<table>
+<thead>
+<tr>
+<th>库</th>
+<th>用途</th>
+<th>NuGet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EF Core</strong></td>
+<td>ORM（我们已用）</td>
+<td><code>Microsoft.EntityFrameworkCore.Sqlite</code></td>
+</tr>
+<tr>
+<td><strong>SqlSugar</strong></td>
+<td>国产轻量 ORM（工业项目常见）</td>
+<td><code>SqlSugar</code></td>
+</tr>
+<tr>
+<td><strong>Dapper</strong></td>
+<td>轻量 SQL 映射</td>
+<td><code>Dapper</code></td>
+</tr>
+<tr>
+<td><strong>NLog / Serilog</strong></td>
+<td>日志</td>
+<td><code>NLog</code> / <code>Serilog</code></td>
+</tr>
+<tr>
+<td><strong>ClosedXML</strong></td>
+<td>导出格式化 Excel 报表</td>
+<td><code>ClosedXML</code> ⭐报表缺口补这里</td>
+</tr>
+<tr>
+<td><strong>QuestPDF</strong></td>
+<td>生成 PDF 报表</td>
+<td><code>QuestPDF</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">三、对照我们的 M0–M9(+M10) 路线</h2>
+<h3 id="sec-3-4">✅ 已强覆盖（达标，甚至超出一般 JD）</h3>
+<ul>
+<li>C# / .NET 8 / WPF / MVVM（M0, M8）</li>
+<li>多线程 / 并发 / <code>Channel&lt;T&gt;</code> 批量（M0 Day7, M9）</li>
+<li>串口 / Modbus / PLC 至少两种（M1–M3）</li>
+<li>数据库 EF Core + SQLite（M4）</li>
+<li>实时可视化 LiveCharts（M5）</li>
+<li>报警引擎（M6）</li>
+<li>OPC UA / MQTT 上云（M7）</li>
+<li><strong>工程素养：单元测试 xUnit+Moq / DI / 生产容错重试（M9）</strong> —— 比多数 JD 还要求高，是 15K 亮点</li>
+<li>分层架构 / 面向接口（贯穿）</li>
+</ul>
+<h3 id="sec-3-5">⚠️ 部分覆盖（要补细节）</h3>
+<ul>
+<li><strong>自定义控件</strong>：JD 多次强调，我们没专门做 → 建议补一节</li>
+<li><strong>配置化（Ini/XML/JSON 实操）</strong>：M8 提了概念，没动手练 → 补读写练习</li>
+<li><strong>文档能力</strong>：JD 明确要求"设计/协议/操作/测试"四类文档，我们完全没练 → 重要缺口</li>
+<li><strong>真实设备调试</strong>：目前 <code>SimulatedDevice</code>，需 M1–M3 接真硬件补实战</li>
+</ul>
+<h3 id="sec-3-6">❌ 缺失（真实岗位常见，我们没）</h3>
+<ul>
+<li><strong>报表（Excel/PDF 导出）</strong> → 即前面提的 <strong>M10</strong>（ClosedXML / QuestPDF）</li>
+<li><strong>Prism 框架</strong> → 比自研 Bootstrapper 更企业标准，建议 M8/M9 补一讲</li>
+<li><strong>HslCommunication 国产库</strong> → 国内工厂比 NModbus+S7.Net 更常用，建议 M2/M3 加一节</li>
+<li><strong>运动控制卡（固高/雷赛/凌华）</strong> → 设备控制类岗位要，DAQ/监控类不一定</li>
+<li><strong>机器视觉（Halcon/VisionPro/OpenCV）</strong> → 加分项，非必</li>
+</ul>
+<blockquote>
+<p><strong>📌 状态更新（2026-07-23 补强后）</strong>：原「❌ 缺失 / ⚠️ 部分覆盖」中，以下<strong>已全部补齐</strong>——
+- 报表 → <strong>M10</strong>（已建，ClosedXML + QuestPDF 思路）
+- 配置化实操（Ini/XML/JSON）、自动更新/部署、第三方 UI 库 HandyControl → <strong>M8 Day3</strong>
+- 自定义控件 → <strong>M14</strong>（WinForm + 自绘）
+- 文档能力（设计/协议/操作/测试）→ <strong>文档能力附录</strong>
+- 新增 <strong>M11 TCP Socket 自定义协议</strong>、<strong>M12 工程量转换 + 企业数据库(SQL Server/MySQL)</strong>、<strong>M13 多品牌 PLC + HslCommunication 国产库</strong>、<strong>M14 WinForm + 自定义控件</strong>
+仍未覆盖（按岗位按需）：<strong>Prism 框架</strong>（M8/M9 已讲 DI+自研组合根，可后续加讲）、<strong>运动控制卡 / 机器视觉</strong>（行业加分，非监控类岗位不强制）。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">四、缺口补强计划（按 ROI 排序）</h2>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>补强项</th>
+<th>对应动作</th>
+<th>是否影响"独立做项目"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>报表 M10（Excel/PDF）</td>
+<td>写 M10 讲义 + DAQMonitor 加可跑报表</td>
+<td>✅ 直接影响</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>文档能力（设计/协议/操作文档）</td>
+<td>每个模块末加"产出文档"练习</td>
+<td>✅ 面试/交付硬要求</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>配置化实操（Ini/XML/JSON）</td>
+<td>M8 加动手读写练习</td>
+<td>✅ 企业标配</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>Prism 框架</td>
+<td>M8/M9 补一讲 + 可选重构 Bootstrapper</td>
+<td>⚠️ 提升"企业味"</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>HslCommunication 国产库</td>
+<td>M2/M3 加一节替代/补充</td>
+<td>⚠️ 贴近国内现场</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>自定义控件</td>
+<td>加一节（如自绘仪表/趋势控件）</td>
+<td>⚠️ JD 常点名</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>运动控制卡</td>
+<td>仅设备控制类岗位需要，按需</td>
+<td>❌ 监控类不需要</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>机器视觉</td>
+<td>加分项，按需（Halcon/VisionPro）</td>
+<td>❌ 非必</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-5">五、一句话结论</h2>
+<p>我们的 M0–M9 路线已经覆盖了 <strong>13~15K 岗位的"主干必会项"</strong>（C# + WPF + 通信 + 数据库 + 并发 + 上云 + 工程素养），且<strong>工程素养（测试/DI/容错）甚至超出一般 JD</strong>。
+真正要补的"临门一脚"是 <strong>P0 三件套：报表(M10) + 文档能力 + 配置化实操</strong>；再往上冲 15K 上限，加 <strong>Prism + HslCommunication + 自定义控件（P1）</strong> 就够了。运动控制卡 / 机器视觉是行业加分，非监控类岗位不强制。</p>
+<div class="pager">
+  <a class="prev" href="links.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">附录 · 外部链接索引</div></a>
+  <a class="next" href="audit.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">质量复核 · 15K 完整性复核</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M15 · 工程协作与联调 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M15">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 4 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — Git 版本管理（初级岗 100% 要求）🟢</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-5">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-6">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-7">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 敏捷开发流程（团队怎么协作）🟢</a><ul>
+<li class="l3"><a href="#sec-3-8">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-9">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-10">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-11">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-12">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-13">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-14">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Day 3 — 硬件调试工具（示波器 / 逻辑分析仪 / 协议分析仪 / 串口助手）🟡</a><ul>
+<li class="l3"><a href="#sec-3-15">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-16">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-17">🔬 掰开揉碎：为什么"看波形"比"猜"快 100 倍</a></li>
+<li class="l3"><a href="#sec-3-18">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-19">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-20">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-21">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">Day 4 — 联调定位：上位机 ↔ 下位机"万能排查清单"🔴</a><ul>
+<li class="l3"><a href="#sec-3-22">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-23">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-24">🔬 掰开揉碎：RawLog 为什么是联调神器</a></li>
+<li class="l3"><a href="#sec-3-25">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-26">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-27">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-28">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🧩 完整代码组装（联调落地的真实文件）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">📎 关联</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">模块交付清单（M15）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M15 — 工程协作与联调（Git + 敏捷 + 硬件调试工具 + 联调定位）⚫</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟢 再学（软技能）· 工程协作与联调（入职自然学，初级岗也要求）
+<strong>技术来源</strong>：🟦 Git / 敏捷（方法论，不装包）；🟩 串口助手/示波器/逻辑分析仪（工具，部分免费）；🟦 C# <code>SerialDevice.RawLog</code>（联调落地，已落工程）。
+<strong>给简历加的能力</strong>：企业招"初级"第一条硬要求往往不是某个协议，而是<strong>你能不能在团队里干活</strong>——会用 Git、懂敏捷、会用调试工具、能和下位机联调定位问题。这是"能不能交付企业"的门槛。
+<strong>前端类比总纲</strong>：Git 像前端的 git 工作流（分支/PR/冲突）；敏捷像 Scrum 站会；调试工具像 Chrome DevTools 的 Network/Performance 面板——看"信号"而非猜。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">模块目标</h2>
+<ol>
+<li>用 Git 管理 DAQMonitor 代码（init/add/commit/branch/PR），养成"先建分支再写码"习惯。</li>
+<li>理解敏捷（Scrum/看板）：站着开会、迭代、燃尽图、用户故事——面试能聊、入职能上手。</li>
+<li>会用 4 类调试工具（串口助手 / 示波器 / 逻辑分析仪 / 协议分析仪）看信号、抓报文。</li>
+<li>掌握上位机↔下位机联调定位的"万能排查清单"，设备不回数据时不抓瞎。</li>
+</ol>
+<hr />
+<h2 id="sec-2-2">Day 1 — Git 版本管理（初级岗 100% 要求）🟢</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>Git = 代码的时光机和合并器。3 个人同时改 <code>SerialDevice.cs</code>，没有 Git 后保存的覆盖先保存的；有 Git 每个人的改动分开记录、能合并、能回退、能看出"谁在哪天改了啥、为什么改"。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>Git</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git commit</code></td>
+<td>给代码拍快照，能回退</td>
+</tr>
+<tr>
+<td><code>branch</code></td>
+<td>开一条独立时间线，互不干扰</td>
+</tr>
+<tr>
+<td><code>PR / merge</code></td>
+<td>把功能分支合回主线，Code Review</td>
+</tr>
+<tr>
+<td><code>.gitignore</code></td>
+<td>不跟踪 <code>node_modules</code>/构建产物</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 在你的 DAQMonitor 上动手（先跑起来）</strong>
+打开终端（<code>/f/00_project/上位机学习/DAQMonitor</code> 目录下）：</p>
+<pre><code class="language-bash"># ① 初始化仓库（只需一次）
+git init
+git add .
+git commit -m &quot;init: DAQ Monitor 工程基线&quot;
+
+# ② 以后每次写新功能，先开分支（关键习惯！）
+git checkout -b feature/can-device      # 从当前分支切出&quot;功能分支&quot;
+# ... 写代码 ...
+git add src/DaqMonitor.Core/Devices/CanDevice.cs
+git commit -m &quot;feat: 新增 CAN 设备，实现 IDevice&quot;
+
+# ③ 回到主分支合并
+git checkout main
+git merge feature/can-device
+</code></pre>
+<p><strong>运行后你会看到</strong>：<code>git log</code> 里多出一条带作者、时间、说明的提交记录；<code>git status</code> 告诉你哪些文件改了还没存。</p>
+<p><strong>② 逐行白话（每个命令在干嘛）</strong>
+| 命令 | 大白话 |
+|---|---|
+| <code>git init</code> | 在当前文件夹建一个".git 隐藏仓库"，开始记账 |
+| <code>git add .</code> | 把当前所有改动<strong>暂存</strong>（放进"待提交篮"） |
+| <code>git commit -m "..."</code> | 把篮子里的改动<strong>打包存盘</strong>，并写一句"这次干了啥" |
+| <code>git checkout -b xxx</code> | 新建并切换到分支 xxx（分支=一条独立时间线） |
+| <code>git merge xxx</code> | 把 xxx 分支的改动合并回当前分支 |
+| <code>git status</code> | 看当前哪些文件改了/暂存了/没跟踪 |</p>
+<p><strong>③ 面试/入职必懂的 3 个概念</strong>
+- <strong>分支(Branch)</strong>：不同功能各开一条线，互不干扰；做完再合回 <code>main</code>。避免"大家都在主线上乱改"。
+- <strong>冲突(Conflict)</strong>：两人改了同一行，Git 不会瞎合并，会标 <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> 让你人工决定留哪段。
+- <strong>.gitignore</strong>：告诉 Git"这些文件别跟踪"（如 <code>bin/</code>、<code>obj/</code>、<code>.user</code>）。我们的工程应加一个：</p>
+<pre><code class="language-gitignore">bin/
+obj/
+*.user
+.vs/
+</code></pre>
+<blockquote>
+<p>🟦 语法提醒：<code>bin/</code>、<code>obj/</code> 是编译产物，每次 build 都会变，跟踪它们只会制造垃圾提交。</p>
+</blockquote>
+<h3 id="sec-3-4">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>先开分支再写码；commit 信息写"干了啥+为什么"</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>把 <code>bin/obj</code> 提交进仓库 → 冲突地狱</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>长期不提交、一次提交几万字改动 → 回退困难</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td><code>git push</code> 前先 <code>pull</code> 解决冲突，别硬推 <code>-f</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🟢 基础题</h3>
+<p>给 DAQMonitor 加 <code>.gitignore</code>（含上面 4 行），<code>git add</code> 并提交，提交说明写 <code>chore: 加 .gitignore</code>。</p>
+<h3 id="sec-3-6">🟡 进阶题</h3>
+<p>新建分支 <code>feature/usbhid</code>，在分支上随便改一行注释并提交；切回 <code>main</code>，<code>git merge feature/usbhid</code>，观察合并结果。</p>
+<h3 id="sec-3-7">🔴 挑战题</h3>
+<p>故意制造一次冲突：在 <code>main</code> 和 <code>feature/x</code> 各改 <code>SerialDevice.cs</code> 同一行的不同内容，合并时解决冲突并提交——体会"冲突不可怕，人工决策即可"。</p>
+<p><strong>✅ 答案（基础题自检）</strong>
+<code>git log --oneline</code> 能看到这两条提交；<code>git branch</code> 能看到两个分支名。</p>
+<p><strong>🏗️ 项目任务</strong>：把整个 DAQMonitor 工程用 Git 管理起来，建 <code>main</code> + 至少一个 <code>feature/*</code> 分支，至少有 3 次有意义的提交（对应你加过的设备/控件）。</p>
+<p><strong>🎓 工控导师说</strong>：我见过最惨的事故——一个学员三个月没提交，硬盘坏了，代码全没。Git 不要等"项目做完"才用，<strong>第一天就 <code>git init</code></strong>。提交频率：一个功能点一提交，信息写清"为什么改"，将来回退/查 bug 救命。</p>
+<p><strong>💼 职业建议</strong>：Git 是初级岗的"一票否决项"——不会 Git 基本拿不到 offer。面试常被现场考 <code>rebase</code>/<code>merge</code> 区别、<code>reset --hard</code> 危险在哪，把这些基础答顺，软技能关直接过。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M15',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 敏捷开发流程（团队怎么协作）🟢</h2>
+<h3 id="sec-3-8">一句话讲清楚</h3>
+<p>传统做法：花 3 个月写需求文档 → 写代码 → 交付，结果客户说"我要的不是这个"。敏捷做法：把大项目切成 2 周一个<strong>迭代(Sprint)</strong>，每个迭代都交付一个<strong>能跑的小功能</strong>，客户尽早看到、尽早改方向。</p>
+<h3 id="sec-3-9">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>敏捷概念</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>迭代 Sprint</td>
+<td>一个开发周期（2 周）</td>
+</tr>
+<tr>
+<td>用户故事</td>
+<td>一个需求卡（As a ... I want ... so that ...）</td>
+</tr>
+<tr>
+<td>看板</td>
+<td>Trello/飞书 任务板</td>
+</tr>
+<tr>
+<td>站会</td>
+<td>每日 10 分钟同步进度</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-10">分点精讲</h3>
+<p><strong>① 上位机团队里你每天/每迭代会碰到什么</strong>
+| 概念 | 上位机场景举例 |
+|---|---|
+| <strong>用户故事(User Story)</strong> | "作为工艺员，我想在历史曲线上框选时间段导出 Excel" → 这就是 M10 的一个故事 |
+| <strong>看板(Kanban)</strong> | 任务卡在「待办→进行中→测试→完成」四列流动；你手上的卡别超过 2 张 |
+| <strong>每日站会(Daily)</strong> | 早上 10 分钟：昨天做了啥、今天做啥、有啥卡住（卡住=联调不通、设备不回数据等） |
+| <strong>迭代评审</strong> | 每 2 周给客户/主管演示这轮做的采集+报警，当场收反馈 |
+| <strong>燃尽图</strong> | 横轴时间、纵轴剩余任务量，理想是一条下坡线；一直平=进度危险 |</p>
+<p><strong>② 对你的直接用处</strong>
+- <strong>面试</strong>：被问"了解敏捷吗"——能讲出"迭代/看板/站会/用户故事"，比背定义强。
+- <strong>入职</strong>：主管丢给你一个用户故事卡，你知道把它从待办推到完成，并在站会报进度。
+- <strong>自学本项目</strong>：把 DAQ Monitor 的 M0–M10 当成 10 个用户故事，每个做完"演示给自己看"，就是微型敏捷。</p>
+<h3 id="sec-3-11">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>用户故事 = "角色+想要+价值"，不是技术任务</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>把敏捷当"每天开会"——核心是"小步快跑+尽早反馈"</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>看板卡堆积不流动 = 进度红灯</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-12">🟢 基础题</h3>
+<p>把 DAQ Monitor 的"实时曲线(M5)"写成一张用户故事卡：<code>作为操作员，我想看温度实时曲线，以便发现异常趋势</code>。</p>
+<h3 id="sec-3-13">🟡 进阶题</h3>
+<p>把上面故事拆成 3 个任务（建 VM / 接 Channel / 绑 LiveCharts），画一个 4 列看板（文字即可），把任务从「待办」推到「完成」，标注每个任务对应哪个模块。</p>
+<h3 id="sec-3-14">🔴 挑战题</h3>
+<p>给你一个真实需求"操作员要能导出昨天下午 2–4 点温度 CSV"，拆成用户故事 + 任务卡 + 估算（用"故事点"而非小时），并写一次"站会汇报"的口播稿。</p>
+<p><strong>✅ 答案（基础题示范）</strong>
+<code>作为操作员，我想看温度实时曲线，以便发现异常趋势</code>（角色=操作员，想要=实时曲线，价值=发现异常）。</p>
+<p><strong>🏗️ 项目任务</strong>：把你正在做的 DAQ Monitor 各模块当成用户故事，用看板管理自己的学习进度——这本身就是"工程化素养"的软技能落地。</p>
+<p><strong>🎓 工控导师说</strong>：别把敏捷当形式主义。它的精华就一句："<strong>别憋大招，小步交付、尽早让客户看到、错了早改</strong>"。我管项目时，凡是"闷头写三个月一次性交付"的，十有八九返工；"两周一演示"的，方向永远偏不了多远。</p>
+<p><strong>💼 职业建议</strong>：面试被问"敏捷了解吗"，千万别只说"知道"。讲一个你<strong>怎么用</strong>（哪怕是自学项目用看板管进度），比背定义强十倍——这证明你"真在团队语境里工作过"。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M15',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">Day 3 — 硬件调试工具（示波器 / 逻辑分析仪 / 协议分析仪 / 串口助手）🟡</h2>
+<h3 id="sec-3-15">一句话讲清楚</h3>
+<p>苏州初级 JD 原句："熟悉示波器或逻辑分析仪基本使用"。这是"硬件知识"的门槛，不要求你会设计电路，但要知道<strong>怎么用工具看信号、抓数据</strong>。</p>
+<h3 id="sec-3-16">分点精讲</h3>
+<p><strong>① 四件套分别看什么</strong>
+| 工具 | 看什么 | 上位机里什么场景用 |
+|---|---|---|
+| <strong>串口助手</strong>（如 SSCOM、友善串口助手、Putty） | 串口收发的<strong>原始字节</strong> | M1 联调：发 <code>01 03 00 00 00 01</code> 看设备回啥；验证 CRC |
+| <strong>示波器</strong> | 电信号的<strong>电压随时间波形</strong> | 看 RS485 的 A/B 差分波形、波特率对不对、有没有干扰毛刺 |
+| <strong>逻辑分析仪</strong>（如 Saleae、DSLogic） | 多路数字信号的<strong>高低电平时序</strong> | 抓 SPI/I2C/CAN/串口 的时序，看波特率、起始位、帧间隔 |
+| <strong>协议分析仪</strong>（如 CANalyst、Bus Hound） | 把原始波形<strong>解码成协议报文</strong> | M16 的 CAN：直接看到 <code>ID=0x100, DLC=8, 数据=...</code> 而不是波形 |</p>
+<p><strong>② 串口助手实战（你现在就能用虚拟串口练）</strong></p>
+<pre><code class="language-text">【操作】
+1. 用 com0com 建一对虚拟串口 COM3↔COM4
+2. 打开两个 SSCOM 窗口，分别连 COM3 和 COM4
+3. COM3 发 01 03 00 00 00 01 CRC  →  COM4 收到同样的字节
+4. 把 M1 的 SerialDevice 连 COM3，用另一个窗口当&quot;假设备&quot;回数据
+</code></pre>
+<p><strong>这就是没有真实硬件时的联调替身</strong>——你之前学的"硬件替代方案"里 T2 层就是这个。</p>
+<p><strong>③ 示波器/逻辑分析仪能帮你定位的典型问题</strong>
+- <strong>波特率不对</strong>：波形每个 bit 太宽/太窄 → 设备实际 9600 你配了 19200，收到的全是乱码。
+- <strong>没共地</strong>：RS485 收不到 → A/B 电压差接近 0，示波器上看不到摆幅。
+- <strong>半双工冲突</strong>：你发的时候设备也在发，逻辑分析仪看到两根线同时拉高 → 总线打架。</p>
+<h3 id="sec-3-17">🔬 掰开揉碎：为什么"看波形"比"猜"快 100 倍</h3>
+<p>代码里 <code>Read</code> 返回乱码，你改波特率试了 5 种还是乱——这时示波器一看，bit 宽度明显是 19200 的节奏，你配的却是 9600，<strong>一秒定位</strong>。调试的本质是"把看不见的信号变成看得见的波形/报文"，工具就是你的眼睛。</p>
+<h3 id="sec-3-18">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>串口助手先手动连、能收发再上代码</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>没共地导致 RS485 收不到（示波器看 A/B 摆幅）</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>逻辑分析仪采样率不够，抓不到高频信号</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-19">🟢 基础题</h3>
+<p>用 com0com 建虚拟串口，开两个串口助手互发 <code>A1 B2 C3</code>，确认能收到（记录现象）。</p>
+<h3 id="sec-3-20">🟡 进阶题</h3>
+<p>列出"设备不回数据"时，你会先用哪个工具、看什么？（答案参考 Day 4 排查清单）</p>
+<h3 id="sec-3-21">🔴 挑战题</h3>
+<p>描述一个"用逻辑分析仪定位 RS485 半双工冲突"的实验步骤：怎么接线、抓哪两根线、看到什么现象说明总线打架。</p>
+<p><strong>✅ 答案（基础题）</strong>
+COM3 发 <code>A1 B2 C3</code>，COM4 窗口收到完全相同的字节，证明虚拟串口链路通——这就是 M1 联调的"外部眼睛"。</p>
+<p><strong>🏗️ 项目任务</strong>：装好 com0com + 一个串口助手，用虚拟串口把 M1 的 <code>SerialDevice</code> 和"假设备窗口"连起来跑通一次联调（零硬件）。</p>
+<p><strong>🎓 工控导师说</strong>：新手联调最爱"改代码试"，老手联调先"拿工具看"。我一上来就甩示波器/逻辑分析仪，5 分钟定位的问题，新手能瞎改一天。工具不贵（Saleae 几百块）、学习成本低，<strong>但它是你从"会写代码"到"能解决现场问题"的分水岭</strong>。</p>
+<p><strong>💼 职业建议</strong>：JD 点名"示波器/逻辑分析仪"不是要你当硬件工程师，而是要你"<strong>会用工具看信号、定位通信问题</strong>"。面试被问"设备不回数据你怎么查"，答出"先串口助手手动连、再示波器看波形/逻辑分析仪看时序"就是满分。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay('M15',3)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-5">Day 4 — 联调定位：上位机 ↔ 下位机"万能排查清单"🔴</h2>
+<h3 id="sec-3-22">一句话讲清楚</h3>
+<p>真实项目里 80% 的时间花在"为什么设备不回数据 / 数据不对"。这一节给你一张<strong>可照做的清单</strong>，而不是靠玄学。</p>
+<h3 id="sec-3-23">分点精讲</h3>
+<p><strong>① 排查顺序（从软件到硬件，从近到远）</strong></p>
+<pre><code>① 物理层：线接了吗？串口是 COM3 还是 COM4？USB 驱动装了没？
+   → 看设备管理器有没有黄色感叹号
+② 参数层：波特率/数据位/停止位/校验 和设备的说明书一致吗？
+   → 串口助手先手动连，能发能收再上代码
+③ 协议层：你发的帧格式对吗？功能码/地址/CRC 对吗？
+   → 逻辑分析仪/协议分析仪抓一帧，逐字节核对 M2 的帧结构
+④ 代码层：Write 之后等待时间够吗？ReadTimeout 设了吗？DataReceived 跨线程更新 UI 了吗？
+   → 加日志（M6 的 Serilog）打印&quot;发出去的是 XX，收到的是 YY&quot;
+⑤ 业务层：数值解析对吗？(hi&lt;&lt;8)|lo？大小端？工程量标定公式对吗？
+   → 拿一个已知值（如 25.0℃）反向验证
+</code></pre>
+<p><strong>② 把清单变成你项目的"调试开关"</strong>（已落地）
+DAQMonitor 的 <code>SerialDevice</code> 已加 <code>RawLog</code> 开关（接 M6 日志升级）：</p>
+<pre><code class="language-csharp">// 在 SerialDevice 收发处
+if (_rawLog) _logger.Debug(&quot;TX {Bytes}&quot;, Convert.ToHexString(buffer));
+var rx = _port.ReadExisting();
+if (_rawLog) _logger.Debug(&quot;RX {Bytes}&quot;, Convert.ToHexString(Encoding.ASCII.GetBytes(rx)));
+</code></pre>
+<p><strong>运行后你会看到</strong>：日志里清清楚楚"我发了啥、收到了啥"，联调时一眼定位是发错还是收错。</p>
+<p><strong>③ 真实联调案例（讲透一个）</strong></p>
+<blockquote>
+<p>现象：上位机读温度，一直显示 0。
+按清单走：
+- ① 线接了，COM 对 → 过
+- ② 串口助手手动发 <code>01 03 00 00 00 01 XX XX</code>，设备回了 <code>01 03 02 00 FA ...</code> → 参数层过
+- ③ 抓帧：回的 <code>00 FA</code> = 250，说明协议层对 → 过
+- ④ 代码日志：发出去的对、收到的对 → 过
+- ⑤ <strong>业务层 bug</strong>：代码写成了 <code>value = hi | lo</code>（没左移 8 位），250 当成了 <code>0x00 | 0xFA = 250</code> 看似对，但另一点位是 <code>hi&lt;&lt;8|lo</code> 忘了 → 修正为 <code>(hi&lt;&lt;8)|lo</code> 后正常。
+结论：问题在"字节拼数值"，不在通信。</p>
+</blockquote>
+<h3 id="sec-3-24">🔬 掰开揉碎：RawLog 为什么是联调神器</h3>
+<p>没有日志时，你只能"猜"是发错了还是收错了；加了 <code>RawLog</code>，收发字节直接打印，<strong>问题立刻二分</strong>：发的不对→协议层；收的不对→设备/链路；收发都对但值错→业务层(字节拼值/标定)。一张日志顶你半天瞎改。</p>
+<h3 id="sec-3-25">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>排查顺序：物理→参数→协议→代码→业务，从近到远</td>
+</tr>
+<tr>
+<td>⭐ 重点</td>
+<td>先串口助手手动通，再上代码</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>跳过物理层直接改代码，结果线根本没插</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>只信"代码逻辑对"，不拿已知值反向验证业务层</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-26">🟢 基础题</h3>
+<p>在 DAQMonitor 的 <code>SerialDevice</code> 加 <code>RawLog</code> 开关 + 打印收发字节（接 M6，已实现并配单测 <code>RawLog_Fires_OnSendAndReceive</code>）。</p>
+<h3 id="sec-3-27">🟡 进阶题</h3>
+<p>模拟"读到的温度总是 65535"：写出 2 个可能原因（提示：① 收到全 1 是设备离线返回；② 大小端搞反）并各给一句排查动作。</p>
+<h3 id="sec-3-28">🔴 挑战题</h3>
+<p>按 Day4① 的五步清单，写一份"DAQMonitor 接一台新 Modbus 仪表"的联调 SOP 文档（以 M15 文档能力模板为准）——从开箱到出数，每一步用什么工具、看什么。</p>
+<p><strong>✅ 答案（进阶题）</strong>
+① 检查设备是否在线/地址是否存在（协议层）；② 把 <code>BitConverter</code> 的字节序换成 <code>BinaryPrimitives.ReverseEndianness</code> 或交换 hi/lo 再试。</p>
+<p><strong>🏗️ 项目任务</strong>：把"温度总是 0 / 65535"两个排查案例写进你工程的联调笔记；给 <code>SerialDevice</code> 的 <code>RawLog</code> 配一个开关配置项，默认关、联调时开。</p>
+<p><strong>🎓 工控导师说</strong>：现场最忌"改代码试"。正确姿势永远是"<strong>先拿工具看，再定位层级，最后改对应那一层</strong>"。我带的徒弟，前三个月强制写"联调排查记录"，半年后个个能独立扛现场——因为排查清单刻进肌肉记忆了。</p>
+<p><strong>💼 职业建议</strong>："设备不回数据你怎么查？"是上位机面试最高频的实战题。答出"物理→参数→协议→代码→业务 五步 + 串口助手先手动通 + RawLog 二分定位"，面试官会认定你是"真上过现场、能独立解决问题"的人，这比会十个协议都加分。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="4" onchange="toggleDay('M15',4)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-6">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>M1</strong>（串口）：Day 3 的串口助手就是 M1 联调的"外部眼睛"。</li>
+<li><strong>M2</strong>（Modbus）：Day 4 协议层排查直接用到 M2 的帧结构（功能码/CRC/字节序）。</li>
+<li><strong>M6</strong>（日志）：Day 4 的 <code>RawLog</code> 开关是 M6 Serilog 的真实落地（已在 <code>SerialDevice</code> 实现，配单测）。</li>
+<li><strong>M16</strong>（CAN/USB）：那些总线的联调同样用 Day 3 的"协议分析仪/逻辑分析仪"思路。</li>
+</ul>
+<h2 id="sec-2-7">🧩 完整代码组装（联调落地的真实文件）</h2>
+<pre><code class="language-csharp">// src/DaqMonitor.Core/Devices/SerialDevice.cs（RawLog 调试开关，已落地）
+private readonly Action&lt;string&gt;? _rawLog;
+public SerialDevice(int id, string name, ISerialChannel ch, Action&lt;string&gt;? rawLog = null)
+    : base(id, name) =&gt; (_ch, _rawLog) = (ch, rawLog);
+
+// 收发处：
+_rawLog?.Invoke($&quot;TX {Convert.ToHexString(frame)}&quot;);
+var rx = _ch.Read();
+_rawLog?.Invoke($&quot;RX {Convert.ToHexString(rx)}&quot;);
+
+// src/DaqMonitor.Tests/SerialDeviceTests.cs
+[Fact] public void RawLog_Fires_OnSendAndReceive()
+{
+    var logs = new List&lt;string&gt;();
+    var dev = new SerialDevice(1, &quot;T&quot;, new LoopbackSerialChannel(), logs.Add);
+    dev.Write(1, 25);
+    Assert.Contains(logs, l =&gt; l.StartsWith(&quot;TX&quot;));
+    Assert.Contains(logs, l =&gt; l.StartsWith(&quot;RX&quot;));
+}
+</code></pre>
+<blockquote>
+<p>配合 <code>DeviceHealthMonitor</code>（M9/M16）的心跳探活，DAQMonitor 已具备"出错有日志、掉线能重连"的企业级联调能力。</p>
+</blockquote>
+<h2 id="sec-2-8">🔗 明日预告</h2>
+<p><strong>M16 更多工业总线（CAN + USB-HID）</strong>：前面都是串口/Modbus/PLC，但汽车/半导体/仪器常用 CAN 和 USB-HID。M16 把它们也接进你的 IDevice 体系。</p>
+<h2 id="sec-2-9">📎 关联</h2>
+<ul>
+<li>本模块工程动作（已落地）：<code>.gitignore</code>、DAQMonitor 的 <code>SerialDevice</code> 已加 <code>RawLog</code> 调试开关（接 M6）；心跳健康监测 <code>DeviceHealthMonitor</code> 已实现并配单测（见 M9/M16）。</li>
+<li>真实 JD 依据：智联初级(文档)、猎聘初级(Git/敏捷/示波器逻辑分析仪)、上海初级(ORM/C#)。</li>
+</ul>
+<h2 id="sec-2-10">模块交付清单（M15）</h2>
+<ul>
+<li>[ ] DAQMonitor 已用 Git 管理，有 <code>.gitignore</code> + 至少 2 次提交</li>
+<li>[ ] 能口述敏捷的迭代/看板/站会/用户故事</li>
+<li>[ ] 用虚拟串口 + 串口助手完成一次 M1 联调替身</li>
+<li>[x] DAQMonitor 的 <code>SerialDevice</code> 有 <code>RawLog</code> 调试开关（已落地）</li>
+<li>[ ] 写完"温度总是 0 / 65535"两个排查练习</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M14.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M14 · WinForm + 自定义控件</div></a>
+  <a class="next" href="M16.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M16 · 工业总线 CAN + USB-HID</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

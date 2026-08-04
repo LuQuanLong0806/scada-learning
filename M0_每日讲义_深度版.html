@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAQ Monitor · M0 深度讲义</title>
+
+<style>
+:root{--blue:#2f6fed;--green:#1f9d55;--orange:#e07b00;--ink:#1f2430;--muted:#67708a;--line:#e6e9f0;--bg:#f7f8fb;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;}
+.topbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.topbar h1{font-size:16px;margin:0 0 8px;font-weight:700;}
+.progress{display:flex;align-items:center;gap:12px;}
+.barwrap{flex:1;height:14px;background:#eef1f7;border-radius:8px;overflow:hidden;}
+#bar{height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .3s;}
+#ptext{font-size:13px;color:var(--muted);white-space:nowrap;}
+.legend{background:#fff;border-bottom:1px solid var(--line);padding:10px 18px;font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.badge{padding:2px 8px;border-radius:12px;font-weight:600;font-size:12px;}
+.b-syntax{background:#e8f0ff;color:var(--blue);}
+.b-bcl{background:#e6f6ec;color:var(--green);}
+.b-nuget{background:#fdf0e0;color:var(--orange);}
+.legend code{background:#f0f2f7;padding:1px 5px;border-radius:4px;font-size:12px;}
+.mnem{width:100%;color:var(--muted);font-size:12px;margin-top:2px;}
+.layout{display:flex;align-items:flex-start;}
+.sidebar{position:sticky;top:110px;width:260px;flex:none;max-height:calc(100vh - 120px);overflow:auto;padding:16px 12px;border-right:1px solid var(--line);background:#fff;}
+.navlist{list-style:none;margin:0;padding:0;font-size:13px;}
+.nav-h2>a{font-weight:700;color:var(--ink);text-decoration:none;}
+.navsub{list-style:none;margin:4px 0 8px 12px;padding:0;}
+.nav-h3>a{color:var(--muted);text-decoration:none;}
+.navlist a:hover{color:var(--blue);}
+.content{flex:1;min-width:0;padding:24px 32px 80px;max-width:940px;}
+.content h1{font-size:24px;}
+.content h2{font-size:21px;margin-top:38px;padding-top:10px;border-top:2px solid var(--line);}
+.content h3{font-size:17px;margin-top:26px;color:var(--blue);}
+.content table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;}
+.content th,.content td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+.content th{background:#f1f4fa;}
+.content blockquote{border-left:4px solid var(--blue);background:#f4f8ff;margin:14px 0;padding:10px 16px;color:#33405c;border-radius:0 6px 6px 0;}
+.content code{background:#eef1f7;padding:1px 5px;border-radius:4px;font-size:13px;}
+.content pre{background:#1f2430;color:#e6e9f0;padding:14px;border-radius:8px;overflow:auto;}
+.content pre code{background:none;color:inherit;padding:0;font-size:12.5px;line-height:1.55;}
+.cb{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--green);font-weight:600;margin-left:6px;}
+.cb input{width:16px;height:16px;cursor:pointer;}
+.content ul li{margin:4px 0;}
+.foot{color:var(--muted);font-size:12px;text-align:center;padding:20px;}
+@media(max-width:820px){.sidebar{display:none;}.content{padding:18px;}}
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <h1>📘 DAQ Monitor · M0 每日讲义（深度版）· 打卡看板</h1>
+  <div class="progress">
+    <div class="barwrap"><div id="bar"></div></div>
+    <div id="ptext">已打卡 0 / 8 天 （0%）</div>
+  </div>
+</div>
+
+<div class="legend">
+  <b>📖 看之前先认 3 类东西（不然会云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code> 才能用
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="layout">
+  <aside class="sidebar"><ul class="navlist">
+
+<li class="nav-h2"><a href="#sec-2-1">M0 目录（8 天）</a><ul class="navsub">
+</ul>
+<li class="nav-h2"><a href="#sec-2-2">Day 1 — 环境搭建 + 第一个 C# 程序（C# ≈ 带类型的 TS）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-5">✏️ 练习</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-3">Day 2 — 类型系统：值类型 / 引用类型 / 可空 / struct / enum</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-6">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-7">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-8">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-9">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-10">✏️ 练习</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-4">Day 3 — 集合与 LINQ（对标数组 / filter / map，但更强）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-11">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-12">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-13">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-15">✏️ 练习</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-5">Day 4 — 类 / 属性 / 封装 / static</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-16">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-17">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-18">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-19">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-20">✏️ 练习</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-6">Day 5 — 继承 / 接口 / 泛型</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-21">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-22">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-23">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-24">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-25">✏️ 练习</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-7">Day 6 — 委托 / 事件 / Lambda（对标回调 / EventEmitter）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-26">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-27">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-28">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-29">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="nav-h3"><a href="#sec-3-30">✏️ 练习</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-8">Day 7 — 多线程 / async-await / 锁（重头戏 ⭐⭐⭐）</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-31">一句话讲清楚</a></li>
+<li class="nav-h3"><a href="#sec-3-32">前端类比秒懂</a></li>
+<li class="nav-h3"><a href="#sec-3-33">分点精讲</a></li>
+<li class="nav-h3"><a href="#sec-3-34">⚠️ 前端转 C# 多线程四大坑</a></li>
+<li class="nav-h3"><a href="#sec-3-35">✏️ 课后练习（综合大题，直接对标工业场景）</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-9">Day 8 — 周复习 + 立起 WPF 工程</a><ul class="navsub">
+<li class="nav-h3"><a href="#sec-3-36">复习地图（一条主线串起来）</a></li>
+<li class="nav-h3"><a href="#sec-3-37">⭐ 自测小测（答案见各 Day）</a></li>
+</ul>
+<li class="nav-h2"><a href="#sec-2-10">附录：M0 交付物 &amp; 埋下的 5 个企业级地基</a><ul class="navsub">
+</ul></li></ul></aside>
+  <main class="content">
+<h1>DAQ Monitor · M0 每日讲义（深度版）：C#/.NET 系统热身 + 工程骨架</h1>
+<blockquote>
+<p><strong>这份讲义怎么读</strong>：每个知识点都是 5 段式 —— ①一句话讲清楚 → ②前端类比表（秒懂）→ ③分点代码精讲 → ④⚠️重点/易踩坑表 → ⑤课后练习+答案+项目任务。目标不是"看过"，是"能写业务代码"。</p>
+<p><strong>技术来源标注</strong>（全程）：🟦 C# 语法（不装包）/ 🟩 .NET 类库 BCL（默认随 .NET，不装包）/ 🟧 第三方 NuGet（要 <code>dotnet add package</code>）。口诀：<strong>语法天生物 · BCL 随 .NET · 第三方要装包</strong>。</p>
+<p><strong>技术栈说明</strong>：本项目用 <strong>WPF</strong>（不是 WinForms）。凡遇到界面代码，我给 WPF 写法，并标注 WinForms 差异（面试两种都可能问）。</p>
+<p><strong>符号</strong>：⭐ 面试/考试高频　🔥 新手必踩坑　🏗️ 落到 DAQ Monitor 项目的任务</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">M0 目录（8 天）</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>主题</th>
+<th>上位机为什么要学</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Day 1</td>
+<td>环境 + 第一个程序（C# ≈ 强类型 TS）</td>
+<td>打通工具链，建立语言直觉</td>
+</tr>
+<tr>
+<td>Day 2</td>
+<td>类型系统：值/引用/可空/struct/enum</td>
+<td>一个"点位"天生就是 struct</td>
+</tr>
+<tr>
+<td>Day 3</td>
+<td>集合与 LINQ</td>
+<td>每秒几百个点，靠 LINQ 处理</td>
+</tr>
+<tr>
+<td>Day 4</td>
+<td>类/属性/封装/static</td>
+<td>设备=类，配置=属性</td>
+</tr>
+<tr>
+<td>Day 5</td>
+<td>继承/接口/泛型</td>
+<td>多设备共用一套接口（架构核心）</td>
+</tr>
+<tr>
+<td>Day 6</td>
+<td>委托/事件/Lambda</td>
+<td>"数据到了→通知 UI"的解耦机制</td>
+</tr>
+<tr>
+<td><strong>Day 7</strong></td>
+<td><strong>多线程 / async-await / 锁</strong>（重头戏）</td>
+<td>采集在后台、UI 在前台，必须并发</td>
+</tr>
+<tr>
+<td>Day 8</td>
+<td>周复习 + 立起 WPF 工程</td>
+<td>把前 7 天串成真实项目骨架</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-2">Day 1 — 环境搭建 + 第一个 C# 程序（C# ≈ 带类型的 TS）</h2>
+<p><strong>📌 技术来源</strong>：🟦 C# 语法（<code>using</code>/<code>class</code>/<code>var</code>/字符串插值）+ 🟩 BCL（<code>Console</code>）</p>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>C# 就是"编译期强类型 + 真正面向对象"的 TypeScript，跑在 .NET 上（≈ TS 跑在 Node 上）。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# / .NET</th>
+<th>前端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.NET Runtime</td>
+<td>Node.js Runtime</td>
+<td>代码的运行环境</td>
+</tr>
+<tr>
+<td>BCL（基础类库）</td>
+<td>Node 内置模块（fs/http…）</td>
+<td>官方自带，不用装</td>
+</tr>
+<tr>
+<td>NuGet 包</td>
+<td>npm 包</td>
+<td>第三方库</td>
+</tr>
+<tr>
+<td>Visual Studio 2022</td>
+<td>VS Code</td>
+<td>IDE（VS 更重、更强）</td>
+</tr>
+<tr>
+<td><code>dotnet run</code></td>
+<td><code>npm start</code></td>
+<td>编译并运行</td>
+</tr>
+<tr>
+<td><code>.csproj</code></td>
+<td><code>package.json</code></td>
+<td>工程/依赖配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 程序入口</strong>：🟦 传统写法要 <code>static void Main()</code>，但 .NET 6+ 支持"顶级语句"，可以像 JS 一样直接写：</p>
+<pre><code class="language-csharp">// Program.cs —— 顶级语句，不用写 class/Main
+Console.WriteLine(&quot;DAQ Monitor 启动&quot;);
+</code></pre>
+<p><strong>② 变量声明</strong>：🟦 <code>var</code> 是类型推断（≠ JS 的 <code>var</code>，更像 TS 的 <code>let</code>）：</p>
+<pre><code class="language-csharp">var name = &quot;DAQ&quot;;      // 推断为 string，之后不能赋别的类型
+string title = &quot;监控&quot;; // 显式类型，等价于 TS: let title: string
+int port = 502;        // 值类型，默认 0，不能是 undefined
+</code></pre>
+<p>⚠️ C# 没有 <code>undefined</code>，只有 <code>null</code>；而且默认变量<strong>不能为 null</strong>（要可空得写 <code>int?</code>）——这是比 JS 安全的地方。</p>
+<p><strong>③ 字符串插值</strong>：🟦 用 <code>$"..."</code>，等价于 JS 反引号模板：</p>
+<pre><code class="language-csharp">var v = 25.6;
+Console.WriteLine($&quot;温度 = {v} ℃&quot;);   // JS: `温度 = ${v} ℃`
+Console.WriteLine($&quot;{name} v1.0&quot;);
+</code></pre>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 一切皆类型</td>
+<td>变量必须有明确类型（<code>var</code> 只是让编译器帮你推断，不是"任意类型"）</td>
+</tr>
+<tr>
+<td>⭐ 无 undefined</td>
+<td>只有 <code>null</code>，且非可空类型默认不能为 null</td>
+</tr>
+<tr>
+<td>🔥 <code>var</code> ≠ JS var</td>
+<td>C# <code>var</code> 是块级 + 类型固定，别用 JS 直觉理解</td>
+</tr>
+<tr>
+<td>🔥 大小写敏感</td>
+<td><code>Console</code> 不是 <code>console</code>，类名/方法名首字母大写（PascalCase）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">✏️ 练习</h3>
+<p>新建 console 项目，输出"DAQ Monitor 启动"，再用 <code>var name="DAQ"</code> 拼一句含变量+版本号的话。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">Console.WriteLine(&quot;DAQ Monitor 启动&quot;);
+var name = &quot;DAQ&quot;;
+var version = 1.0;
+Console.WriteLine($&quot;{name} Monitor 启动，版本 {version}&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：确认 <code>dotnet --version</code> 输出 <code>8.x</code>；在 <code>DAQMonitor/src</code> 下规划 <code>DaqMonitor.Core</code> / <code>DaqMonitor.UI</code> 两个目录（真正建工程在 Day 8）。今天目标：<strong>环境通、跑出第一行</strong>。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay(1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 类型系统：值类型 / 引用类型 / 可空 / struct / enum</h2>
+<p><strong>📌 技术来源</strong>：🟦 C# 类型系统（全部内置语法，不装包）</p>
+<h3 id="sec-3-6">一句话讲清楚</h3>
+<p>值类型 = "复印件"（赋值就拷一份，互不影响）；引用类型 = "共享文档链接"（赋值只是多一个人拿到同一份地址）。</p>
+<h3 id="sec-3-7">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端</th>
+<th>赋值行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>值类型 <code>int/double/bool/struct/enum</code></td>
+<td>primitive <code>number/boolean</code></td>
+<td>拷贝值本身</td>
+</tr>
+<tr>
+<td>引用类型 <code>string/class/数组/List&lt;T&gt;</code></td>
+<td>object/array</td>
+<td>共享地址</td>
+</tr>
+<tr>
+<td>可空 <code>int?</code></td>
+<td><code>number \| null</code></td>
+<td>允许为 null</td>
+</tr>
+<tr>
+<td><code>struct</code></td>
+<td>无直接对应（≈ 轻量 object 但按值拷贝）</td>
+<td>值类型</td>
+</tr>
+<tr>
+<td><code>enum</code></td>
+<td><code>enum</code>（TS 有）</td>
+<td>命名常量</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-8">分点精讲</h3>
+<p><strong>① 值 vs 引用，看这段就懂</strong>：</p>
+<pre><code class="language-csharp">int a = 5;
+int b = a;      // 拷贝
+b = 99;
+// a 仍是 5（互不影响）
+
+int[] arr1 = { 1, 2, 3 };
+int[] arr2 = arr1;   // 共享地址
+arr2[0] = 99;
+// arr1[0] 也变成 99！（同一份数据）
+</code></pre>
+<p><strong>② 可空类型</strong>：🟦 加 <code>?</code> 表示可为 null：</p>
+<pre><code class="language-csharp">int age = null;    // ❌ 编译报错，非可空不能为 null
+int? age2 = null;  // ✅ 可空
+int real = age2 ?? 0;   // ?? 是空合并（JS 也有）：null 就取 0
+Console.WriteLine(age2?.ToString());  // ?. 空条件调用（JS 也有）
+</code></pre>
+<p><strong>③ struct —— 上位机点位的天然载体</strong>：🟦 轻量值类型，适合"坐标/点位/寄存器"这类小数据：</p>
+<pre><code class="language-csharp">public struct SensorPoint
+{
+    public int Id;          // 点位编号
+    public double Value;    // 数值
+    public DateTime Time;   // 采集时刻
+}
+</code></pre>
+<p><strong>④ enum —— 状态/功能码用它</strong>：🟦 命名常量，比 magic number 可读：</p>
+<pre><code class="language-csharp">public enum DeviceState { Offline, Connecting, Online }
+public enum AlarmLevel  { Normal, Warning, Critical }
+
+var s = DeviceState.Online;
+if (s == DeviceState.Online) Console.WriteLine(&quot;设备在线&quot;);
+</code></pre>
+<h3 id="sec-3-9">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 值 vs 引用</td>
+<td>面试必考。判断标准：<code>struct/基础数值/enum</code> 是值，<code>class/string/数组/集合</code> 是引用</td>
+</tr>
+<tr>
+<td>⭐ string 特殊</td>
+<td>虽是引用类型，但<strong>不可变</strong>，行为像值（拼接产生新对象）</td>
+</tr>
+<tr>
+<td>🔥 struct 传参被拷贝</td>
+<td>把 struct 传进方法里改，改的是副本！要改原值传 <code>ref</code> 或改用 <code>class</code></td>
+</tr>
+<tr>
+<td>🔥 非可空默认不能 null</td>
+<td>忘了写 <code>?</code> 会编译报错，别慌，这是保护你</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-10">✏️ 练习</h3>
+<p>定义 <code>enum AlarmLevel { Normal, Warning, Critical }</code> 和 <code>struct Alarm { int PointId; AlarmLevel Level; double Value; }</code>，并创建一个"点位 3、Critical、值 200"的报警。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public enum AlarmLevel { Normal, Warning, Critical }
+public struct Alarm
+{
+    public int PointId;
+    public AlarmLevel Level;
+    public double Value;
+}
+
+var alarm = new Alarm { PointId = 3, Level = AlarmLevel.Critical, Value = 200 };
+Console.WriteLine($&quot;点位{alarm.PointId} 报警 {alarm.Level} 值={alarm.Value}&quot;);
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core</code> 建 <code>Models/</code> 目录，写下核心类型骨架：<code>SensorPoint</code>、<code>DeviceState</code>、<code>AlarmLevel</code>、<code>Alarm</code>。后面模块往里填字段。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay(2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">Day 3 — 集合与 LINQ（对标数组 / filter / map，但更强）</h2>
+<p><strong>📌 技术来源</strong>：🟦 集合语法 + 🟩 BCL（<code>List&lt;T&gt;</code>/<code>Dictionary&lt;K,V&gt;</code>/<code>LINQ</code>）</p>
+<h3 id="sec-3-11">一句话讲清楚</h3>
+<p>LINQ 就是"能写在代码里的 SQL"：像 <code>filter/map</code> 一样链式处理集合，还多了 <code>OrderBy/GroupBy/Sum</code> 这些数据库级操作。</p>
+<h3 id="sec-3-12">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# LINQ</th>
+<th>前端数组方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.Where(p =&gt; ...)</code></td>
+<td><code>.filter(p =&gt; ...)</code></td>
+<td>过滤</td>
+</tr>
+<tr>
+<td><code>.Select(p =&gt; ...)</code></td>
+<td><code>.map(p =&gt; ...)</code></td>
+<td>投影/转换</td>
+</tr>
+<tr>
+<td><code>.OrderBy(p =&gt; ...)</code></td>
+<td><code>.sort(...)</code></td>
+<td>升序（<code>OrderByDescending</code> 降序）</td>
+</tr>
+<tr>
+<td><code>.FirstOrDefault(...)</code></td>
+<td><code>.find(...)</code></td>
+<td>找第一个（找不到返回默认值/null）</td>
+</tr>
+<tr>
+<td><code>.Any(...)</code> / <code>.All(...)</code></td>
+<td><code>.some()</code> / <code>.every()</code></td>
+<td>存在/全部满足</td>
+</tr>
+<tr>
+<td><code>.Count()</code> / <code>.Sum()</code> / <code>.Average()</code></td>
+<td><code>.length</code> / <code>reduce</code></td>
+<td>聚合</td>
+</tr>
+<tr>
+<td><code>.GroupBy(...)</code></td>
+<td>无原生（要手写）</td>
+<td>分组（LINQ 杀手锏）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-13">分点精讲</h3>
+<p><strong>① 两大集合</strong>：</p>
+<pre><code class="language-csharp">// 🟩 List&lt;T&gt; ≈ TS 数组，但类型固定、性能高
+List&lt;SensorPoint&gt; points = new();     // new() 是简写，等价 new List&lt;SensorPoint&gt;()
+points.Add(new SensorPoint { Id = 1, Value = 10 });
+
+// 🟩 Dictionary&lt;K,V&gt; ≈ JS Map，按键 O(1) 查
+Dictionary&lt;int, SensorPoint&gt; byId = new();
+byId[1] = new SensorPoint { Id = 1, Value = 10 };
+var p = byId[1];               // 按 Id 取
+bool ok = byId.TryGetValue(2, out var p2);  // 安全取（不存在不报错）
+</code></pre>
+<p><strong>② LINQ 实战</strong>（上位机日常）：</p>
+<pre><code class="language-csharp">var points = new List&lt;SensorPoint&gt;
+{
+    new() { Id = 1, Value = 10 },  new() { Id = 2, Value = 50 },
+    new() { Id = 3, Value = 120 }, new() { Id = 4, Value = 200 },
+    new() { Id = 5, Value = 30 },
+};
+
+// 找出值 &gt; 100 的点，只取 Id
+var hotIds = points.Where(p =&gt; p.Value &gt; 100)
+                   .Select(p =&gt; p.Id)
+                   .ToList();          // 结果: [3, 4]
+
+// 按值降序排前 3
+var top3 = points.OrderByDescending(p =&gt; p.Value).Take(3).ToList();
+
+// 平均值 / 最大值
+double avg = points.Average(p =&gt; p.Value);
+double max = points.Max(p =&gt; p.Value);
+
+// 是否有超限的点
+bool hasAlarm = points.Any(p =&gt; p.Value &gt; 150);
+</code></pre>
+<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 延迟执行(lazy)</td>
+<td><code>Where/Select</code> <strong>不立即计算</strong>，直到 <code>.ToList()/.Count()/foreach</code> 才真跑</td>
+</tr>
+<tr>
+<td>🔥 遍历时改集合</td>
+<td><code>foreach</code> 里 <code>Add/Remove</code> 会抛异常。先 <code>.ToList()</code> 固化再改</td>
+</tr>
+<tr>
+<td>🔥 重复枚举</td>
+<td>一个 LINQ 查询被多次遍历会重复计算，需固化就 <code>.ToList()</code> 存起来</td>
+</tr>
+<tr>
+<td>⭐ 方法链 vs 查询语法</td>
+<td><code>points.Where(...).Select(...)</code>（推荐，和前端链式一致）；也可 <code>from p in points where ... select p</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-15">✏️ 练习</h3>
+<p>给 5 个点（值 10/50/120/200/30），用 LINQ：①找出值 &gt;100 的 Id 列表；②算全部点的平均值；③按值降序排列。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">var hot = points.Where(p =&gt; p.Value &gt; 100).Select(p =&gt; p.Id).ToList(); // [3,4]
+var avg = points.Average(p =&gt; p.Value);                                // 82
+var sorted = points.OrderByDescending(p =&gt; p.Value).ToList();          // 200,120,50,30,10
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 写 <code>PointStore</code> 类：内部用 <code>List&lt;SensorPoint&gt;</code> + <code>Dictionary&lt;int,SensorPoint&gt;</code> 双索引（列表用于遍历/统计，字典用于按 Id 快查），提供 <code>AddOrUpdate/Get/GetAll</code>，并用 LINQ 写 <code>GetAlarms(threshold)</code> 返回超阈值的点（Day 7 报警直接复用）。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay(3)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-5">Day 4 — 类 / 属性 / 封装 / static</h2>
+<p><strong>📌 技术来源</strong>：🟦 <code>class</code> / 属性 / 访问修饰符 / <code>static</code></p>
+<h3 id="sec-3-16">一句话讲清楚</h3>
+<p>类是"设备的蓝图"，属性是"带 getter/setter 的字段"（C# 一等公民），封装是"用 private 挡住不该被外部乱改的数据"。</p>
+<h3 id="sec-3-17">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>class Device {}</code></td>
+<td><code>class Device {}</code></td>
+<td>ES6 也有 class</td>
+</tr>
+<tr>
+<td><code>public double Value { get; set; }</code></td>
+<td>getter/setter</td>
+<td>C# 语法更简洁，是标准写法</td>
+</tr>
+<tr>
+<td><code>private</code> / <code>public</code> / <code>internal</code></td>
+<td><code>#private</code>（新）/ 约定 <code>_</code></td>
+<td>C# 是<strong>编译期</strong>访问控制</td>
+</tr>
+<tr>
+<td><code>static</code></td>
+<td><code>static</code></td>
+<td>属于类而非实例</td>
+</tr>
+<tr>
+<td>构造函数 <code>public Device(int id){}</code></td>
+<td><code>constructor(id){}</code></td>
+<td>初始化</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-18">分点精讲</h3>
+<p><strong>① 属性（Property）—— 不是字段</strong>：🟦 <code>{ get; set; }</code> 自动属性，还能加逻辑：</p>
+<pre><code class="language-csharp">public class Device
+{
+    public int Id { get; }               // 只读（只有 get），构造时赋值
+    public string Name { get; set; } = &quot;未命名&quot;;  // 可读写 + 默认值
+
+    private double _value;
+    public double Value                  // 带逻辑的属性
+    {
+        get =&gt; _value;
+        set
+        {
+            if (value &lt; -273) throw new ArgumentException(&quot;温度不合理&quot;);
+            _value = value;
+        }
+    }
+
+    public Device(int id) =&gt; Id = id;    // 构造函数（表达式体写法）
+}
+</code></pre>
+<blockquote>
+<p>⚠️ 前端习惯把数据直接塞字段(<code>this.value=x</code>)，C# 规范是<strong>用属性暴露状态</strong>——因为 WPF 数据绑定只认属性。</p>
+</blockquote>
+<p><strong>② 访问修饰符</strong>：</p>
+<pre><code class="language-csharp">public class Foo
+{
+    public int A;      // 任何地方可访问
+    private int _b;    // 只有本类内
+    internal int C;    // 同一个程序集（项目）内
+    protected int D;   // 本类 + 子类
+}
+</code></pre>
+<p><strong>③ static —— 工具方法/常量</strong>：🟦 属于类，不用 new：</p>
+<pre><code class="language-csharp">public static class Crc16   // 后面算 Modbus 校验会用到
+{
+    public static ushort Compute(byte[] data) { /* ... */ return 0; }
+}
+// 调用：Crc16.Compute(bytes);  ≈ 你用过的 Math.max()
+</code></pre>
+<h3 id="sec-3-19">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 属性 vs 字段</td>
+<td>面试常问。字段是变量，属性是带存取逻辑的"方法伪装"，WPF 绑定必须用属性</td>
+</tr>
+<tr>
+<td>⭐ 只读属性</td>
+<td><code>{ get; }</code> + 构造赋值，防止外部乱改 Id</td>
+</tr>
+<tr>
+<td>🔥 static 不能访问实例成员</td>
+<td>static 方法里不能直接用 <code>this.xxx</code>（没有实例）</td>
+</tr>
+<tr>
+<td>🔥 静态字段是全局共享</td>
+<td>所有实例共用一份，慎用（多线程下要加锁，见 Day 7）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-20">✏️ 练习</h3>
+<p>写 <code>class Thermometer</code>：只读 <code>Id</code>、可读写 <code>Temperature</code>、构造传 Id，加方法 <code>bool IsOverheat(double limit) =&gt; Temperature &gt; limit;</code></p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public class Thermometer
+{
+    public int Id { get; }
+    public double Temperature { get; set; }
+    public Thermometer(int id) =&gt; Id = id;
+    public bool IsOverheat(double limit) =&gt; Temperature &gt; limit;
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 抽象 <code>DeviceBase</code> 基类：含 <code>Id/Name/State</code> 属性（State 用 Day 2 的 <code>DeviceState</code> 枚举，<code>protected set</code> 只允许子类改）与 <code>Connect()/Disconnect()</code> 方法占位。这是 Day 5「IDevice 统一接口」的地基。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="4" onchange="toggleDay(4)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-6">Day 5 — 继承 / 接口 / 泛型</h2>
+<p><strong>📌 技术来源</strong>：🟦 继承（<code>:</code>）/ 接口（<code>interface</code>）/ 泛型（<code>&lt;T&gt;</code>）</p>
+<h3 id="sec-3-21">一句话讲清楚</h3>
+<p>接口 = "契约"（规定能做什么，不管怎么做），继承 = "复用父类"，泛型 = "写一次适配任意类型"。上位机靠<strong>面向接口</strong>让 UI 不关心设备是串口还是 PLC。</p>
+<h3 id="sec-3-22">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端 (TS)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interface IDevice {}</code></td>
+<td><code>interface IDevice {}</code></td>
+<td>TS 也有，几乎一样</td>
+</tr>
+<tr>
+<td><code>class A : Base, IX</code></td>
+<td><code>class A extends Base implements IX</code></td>
+<td>单继承 + 多接口</td>
+</tr>
+<tr>
+<td><code>abstract class</code></td>
+<td><code>abstract class</code></td>
+<td>不能直接 new</td>
+</tr>
+<tr>
+<td><code>&lt;T&gt;</code> 泛型</td>
+<td><code>&lt;T&gt;</code> 泛型</td>
+<td>概念一致</td>
+</tr>
+<tr>
+<td><code>virtual</code> / <code>override</code></td>
+<td>方法重写</td>
+<td>C# 要显式标 <code>virtual</code>/<code>override</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-23">分点精讲</h3>
+<p><strong>① 接口 —— 上位机架构核心</strong>：🟦</p>
+<pre><code class="language-csharp">public interface IDevice
+{
+    int Id { get; }
+    DeviceState State { get; }
+    void Connect();
+    void Disconnect();
+    double Read(int addr);            // 读寄存器
+    void Write(int addr, double v);   // 写寄存器
+}
+</code></pre>
+<blockquote>
+<p>UI 只依赖 <code>IDevice</code>，明天接串口、后天接 PLC，UI 代码一行不用改——这就是解耦的价值。</p>
+</blockquote>
+<p><strong>② 抽象基类 + 继承 + 多态</strong>：🟦</p>
+<pre><code class="language-csharp">public abstract class DeviceBase : IDevice
+{
+    public int Id { get; }
+    public DeviceState State { get; protected set; } = DeviceState.Offline;
+    protected DeviceBase(int id) =&gt; Id = id;
+
+    public abstract void Connect();      // 子类必须实现
+    public abstract void Disconnect();
+    public abstract double Read(int addr);
+    public abstract void Write(int addr, double v);
+}
+
+// 具体设备（M1/M3 实现），这里先占位
+public class SerialDevice : DeviceBase
+{
+    public SerialDevice(int id) : base(id) { }
+    public override void Connect()  =&gt; State = DeviceState.Online;
+    public override void Disconnect() =&gt; State = DeviceState.Offline;
+    public override double Read(int addr) =&gt; 0;      // M1 填真实串口逻辑
+    public override void Write(int addr, double v) { }
+}
+</code></pre>
+<p><strong>③ 泛型 —— 写一次适配任意类型</strong>：🟦</p>
+<pre><code class="language-csharp">public class RingBuffer&lt;T&gt;       // 环形缓冲，后面存历史数据用
+{
+    private readonly Queue&lt;T&gt; _q = new();
+    private readonly int _max;
+    public RingBuffer(int max) =&gt; _max = max;
+    public void Add(T item)
+    {
+        _q.Enqueue(item);
+        if (_q.Count &gt; _max) _q.Dequeue();   // 超量丢最旧
+    }
+    public IEnumerable&lt;T&gt; Items =&gt; _q;
+}
+// 用法：var buf = new RingBuffer&lt;SensorPoint&gt;(100);
+</code></pre>
+<h3 id="sec-3-24">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 接口 vs 抽象类</td>
+<td>面试高频！<strong>接口=能做什么(可多实现)</strong>，<strong>抽象类=是什么(单继承+可含实现)</strong>。设备用接口解耦</td>
+</tr>
+<tr>
+<td>⭐ 多态</td>
+<td>用 <code>IDevice d</code> 引用不同子类，调 <code>d.Read()</code> 自动走各自实现</td>
+</tr>
+<tr>
+<td>🔥 virtual/override 要配对</td>
+<td>父类方法不标 <code>virtual</code>，子类不能 <code>override</code></td>
+</tr>
+<tr>
+<td>🔥 接口不含字段</td>
+<td>只能有属性/方法（C# 8+ 可有默认实现，但别滥用）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-25">✏️ 练习</h3>
+<p>定义 <code>interface IReadable { double Read(int addr); }</code>，让 Day 4 的 <code>Thermometer</code> 实现它（Read 返回当前温度）。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public interface IReadable { double Read(int addr); }
+public class Thermometer : IReadable
+{
+    public int Id { get; }
+    public double Temperature { get; set; }
+    public Thermometer(int id) =&gt; Id = id;
+    public double Read(int addr) =&gt; Temperature;   // 简化：忽略 addr
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 正式定义 <code>IDevice</code> 接口，让 <code>DeviceBase</code> 实现它；建 <code>Devices/</code> 目录放接口与基类。DAQ Monitor 从"Day1 按钮"进化成"可插拔多设备框架"。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="5" onchange="toggleDay(5)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-7">Day 6 — 委托 / 事件 / Lambda（对标回调 / EventEmitter）</h2>
+<p><strong>📌 技术来源</strong>：🟦 委托 <code>delegate</code> / 事件 <code>event</code> / Lambda + 🟩 BCL（<code>Action</code>/<code>Func</code>/<code>EventHandler&lt;T&gt;</code>）</p>
+<h3 id="sec-3-26">一句话讲清楚</h3>
+<p>委托 = "把方法当变量传"（≈ 回调函数），事件 = "基于委托的发布订阅"（≈ <code>addEventListener</code>）。上位机用它实现"后台采到数据 → 自动通知 UI 刷新"。</p>
+<h3 id="sec-3-27">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C#</th>
+<th>前端</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Action</code></td>
+<td><code>() =&gt; void</code></td>
+<td>无返回的委托</td>
+</tr>
+<tr>
+<td><code>Action&lt;int&gt;</code></td>
+<td><code>(x:number) =&gt; void</code></td>
+<td>带参无返回</td>
+</tr>
+<tr>
+<td><code>Func&lt;int,int&gt;</code></td>
+<td><code>(x:number) =&gt; number</code></td>
+<td>带返回</td>
+</tr>
+<tr>
+<td><code>event</code></td>
+<td><code>EventEmitter</code> / <code>addEventListener</code></td>
+<td>发布订阅</td>
+</tr>
+<tr>
+<td><code>d.X += handler</code></td>
+<td><code>emitter.on('x', handler)</code></td>
+<td>订阅</td>
+</tr>
+<tr>
+<td><code>d.X -= handler</code></td>
+<td><code>emitter.off('x', handler)</code></td>
+<td>退订（重要！）</td>
+</tr>
+<tr>
+<td>Lambda <code>p =&gt; p.V &gt; 1</code></td>
+<td>箭头函数 <code>p =&gt; p.v &gt; 1</code></td>
+<td>几乎一样</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-28">分点精讲</h3>
+<p><strong>① Action / Func —— 内置委托，99% 不用自己写 delegate</strong>：🟩</p>
+<pre><code class="language-csharp">Action sayHi = () =&gt; Console.WriteLine(&quot;hi&quot;);        // 无参无返回
+Action&lt;string&gt; log = msg =&gt; Console.WriteLine(msg);  // 带参
+Func&lt;int, int, int&gt; add = (a, b) =&gt; a + b;           // 带返回
+sayHi();  log(&quot;采集启动&quot;);  int s = add(1, 2);   // s=3
+</code></pre>
+<p><strong>② 事件 —— 设备层→UI 层单向通知</strong>：🟦🟩</p>
+<pre><code class="language-csharp">// 事件参数（携带数据）
+public class DataEventArgs : EventArgs
+{
+    public int PointId { get; init; }
+    public double Value { get; init; }
+}
+
+public abstract class DeviceBase
+{
+    // 声明事件（EventHandler&lt;T&gt; 是 BCL 标准委托）
+    public event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+
+    // 受保护的触发方法，供子类采到数据时调用
+    protected void RaiseData(int pointId, double value)
+        =&gt; DataReceived?.Invoke(this, new DataEventArgs { PointId = pointId, Value = value });
+}
+
+// 订阅方（比如 UI）
+device.DataReceived += OnData;          // 订阅 ≈ addEventListener
+void OnData(object? s, DataEventArgs e) =&gt; Console.WriteLine($&quot;点{e.PointId}={e.Value}&quot;);
+// 销毁时：device.DataReceived -= OnData;   // 退订，防内存泄漏
+</code></pre>
+<h3 id="sec-3-29">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件为什么解耦</td>
+<td>设备不认识 UI，只管"喊一声"(<code>Invoke</code>)，谁订阅谁收到，UI 可随时增减</td>
+</tr>
+<tr>
+<td>🔥 忘了 -= 退订</td>
+<td>对象销毁前不 <code>-=</code>，会导致<strong>内存泄漏</strong>（企业级必查项，面试常问）</td>
+</tr>
+<tr>
+<td>🔥 <code>?.Invoke</code> 判空</td>
+<td>没人订阅时事件为 null，直接 <code>Invoke</code> 会崩，要写 <code>DataReceived?.Invoke(...)</code></td>
+</tr>
+<tr>
+<td>🔥 跨线程触发事件改 UI</td>
+<td>后台线程触发的事件里<strong>不能直接改 UI</strong>，要 <code>Dispatcher.Invoke</code>（见 Day 7）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-30">✏️ 练习</h3>
+<p>给 <code>Thermometer</code> 加 <code>event EventHandler&lt;DataEventArgs&gt; ValueChanged</code>，在 <code>Temperature</code> 的 set 里触发。</p>
+<p><strong>✅ 答案</strong></p>
+<pre><code class="language-csharp">public class Thermometer
+{
+    private double _t;
+    public event EventHandler&lt;DataEventArgs&gt;? ValueChanged;
+    public int Id { get; }
+    public Thermometer(int id) =&gt; Id = id;
+    public double Temperature
+    {
+        get =&gt; _t;
+        set
+        {
+            _t = value;
+            ValueChanged?.Invoke(this, new DataEventArgs { PointId = Id, Value = value });
+        }
+    }
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 Core 的 <code>IDevice</code>/<code>DeviceBase</code> 加 <code>event EventHandler&lt;DataEventArgs&gt; DataReceived</code> + <code>RaiseData</code>。让"采集→通知 UI"的架构闭环，这是 Day 7 + 后续实时刷新的地基。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="6" onchange="toggleDay(6)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-8">Day 7 — 多线程 / async-await / 锁（重头戏 ⭐⭐⭐）</h2>
+<p><strong>📌 技术来源</strong>：🟦 <code>async</code>/<code>await</code>/<code>lock</code>/<code>Task</code>/<code>Thread</code> 语法 + 🟩 BCL（<code>Task</code>/<code>Thread</code>/<code>ConcurrentQueue</code>/<code>SemaphoreSlim</code>）</p>
+<h3 id="sec-3-31">一句话讲清楚</h3>
+<p>多线程 = 多个工人同时干活，锁 = 抢厕所时排队（同一时刻只放一个人进去改数据）。<strong>前端 JS 是单线程没这问题，C# 是真多线程——两个线程同时改一个变量，数据就乱了，这就是锁存在的意义。</strong></p>
+<h3 id="sec-3-32">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# 概念</th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Thread</code></td>
+<td><code>Web Worker</code></td>
+<td>最底层的新线程，干独立任务</td>
+</tr>
+<tr>
+<td><code>Task</code></td>
+<td><code>Promise</code></td>
+<td>更高级的异步，<strong>推荐用这个</strong></td>
+</tr>
+<tr>
+<td><code>async/await</code></td>
+<td><code>async/await</code></td>
+<td>几乎一样，但 C# 有坑（见下）</td>
+</tr>
+<tr>
+<td><code>lock</code></td>
+<td>前端没有！</td>
+<td>保护共享数据不被同时改</td>
+</tr>
+<tr>
+<td><code>ConcurrentQueue</code></td>
+<td>前端没有！</td>
+<td>自带锁的线程安全队列</td>
+</tr>
+<tr>
+<td><code>SemaphoreSlim</code></td>
+<td>前端没有！</td>
+<td>更高级的限流锁</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>核心区别</strong>：前端单线程，异步只是"排队等结果"，不会真并行改数据；C# 是真并行，多个线程能同时执行、同时读写内存，所以需要锁。</p>
+</blockquote>
+<h3 id="sec-3-33">分点精讲</h3>
+<p><strong>① Thread —— 最基础的多线程</strong>：🟩</p>
+<pre><code class="language-csharp">// 前端类比：new Worker('worker.js')
+Thread t = new Thread(() =&gt;
+{
+    Console.WriteLine($&quot;后台线程 Id={Thread.CurrentThread.ManagedThreadId}&quot;);
+});
+t.IsBackground = true;   // 后台线程：主程序退出它也退出（否则程序关不掉）
+t.Start();
+Console.WriteLine($&quot;主线程 Id={Thread.CurrentThread.ManagedThreadId}&quot;);
+// ⚠️ 输出顺序不固定！多线程执行顺序不可预测
+</code></pre>
+<p><strong>② Task —— 现代 C# 推荐（≈ Promise）</strong>：🟩</p>
+<pre><code class="language-csharp">// ① 启动一个后台任务（前端：new Promise(...)）
+Task task = Task.Run(() =&gt;
+{
+    Thread.Sleep(2000);   // 真的暂停这个线程 2 秒
+    Console.WriteLine(&quot;Task 完成&quot;);
+});
+
+// ② 带返回值
+Task&lt;int&gt; calc = Task.Run(() =&gt; { Thread.Sleep(500); return 42; });
+int result = await calc;   // ✅ 用 await 拿结果（推荐）
+// int r2 = calc.Result;   // ❌ .Result/.Wait() 会阻塞线程，UI 里用会死锁！
+</code></pre>
+<p><strong>③ async/await —— 最像前端的写法</strong>：🟦</p>
+<pre><code class="language-csharp">// ✅ 正确：返回 Task，用 await
+public async Task&lt;string&gt; GetDataAsync()
+{
+    string data = await Task.Run(() =&gt;
+    {
+        Thread.Sleep(2000);
+        return &quot;数据已就绪&quot;;
+    });
+    return data;
+}
+
+// WPF 按钮点击（async 事件处理器）
+private async void BtnStart_Click(object sender, RoutedEventArgs e)
+{
+    StatusText.Text = &quot;加载中...&quot;;
+    string data = await GetDataAsync();  // UI 不卡顿！await 期间界面还能动
+    StatusText.Text = data;
+}
+</code></pre>
+<blockquote>
+<p>⚠️ <code>async void</code> <strong>只能用在事件处理器</strong>（如 <code>Click</code>）。其他任何地方一律 <code>async Task</code>，否则异常会被吞掉、程序静默崩溃。</p>
+</blockquote>
+<p><strong>④ ⚠️ 为什么需要锁 —— 经典竞态 Bug</strong>：🟦</p>
+<pre><code class="language-csharp">// ❌ 没锁：结果不是 10000！
+private int _count = 0;
+for (int i = 0; i &lt; 10000; i++)
+    Task.Run(() =&gt; _count++);   // 上万个线程同时 ++
+// 结果可能是 8234、9567... 随机
+</code></pre>
+<p><strong>为什么？</strong> <code>_count++</code> 不是原子操作，实际分三步：①读值→②+1→③写回。两个线程同时读到 5，各自 +1 都写回 6，就丢了一次 +1。</p>
+<pre><code class="language-csharp">// ✅ 加锁就对了：一定是 10000
+private int _count = 0;
+private readonly object _lock = new object();   // 锁对象，随便 new 一个
+for (int i = 0; i &lt; 10000; i++)
+    Task.Run(() =&gt;
+    {
+        lock (_lock)   // 同一刻只有一个线程能进
+        {
+            _count++;
+        }              // 出了 lock，别的线程才能进
+    });
+</code></pre>
+<p><strong>⑤ 生产者-消费者（上位机最高频场景）</strong>：🟩</p>
+<blockquote>
+<p>串口每秒收 100 条（生产者），UI 慢慢刷新（消费者），中间用<strong>线程安全队列</strong>缓冲。</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.Concurrent;
+
+// ConcurrentQueue 自带锁，不用手动 lock（前端类比：自动管理的消息队列）
+private ConcurrentQueue&lt;SensorPoint&gt; _queue = new();
+
+// 生产者：后台采集线程
+private void OnDataReceived(SensorPoint p) =&gt; _queue.Enqueue(p);   // 线程安全
+
+// 消费者：WPF DispatcherTimer 定时刷 UI
+private void UiTimer_Tick(object? s, EventArgs e)
+{
+    while (_queue.TryDequeue(out var p))   // 一条条取
+    {
+        DataGrid.Items.Add(p);
+        if (DataGrid.Items.Count &gt; 200)
+            DataGrid.Items.RemoveAt(0);    // 只留最近 200 条，防内存爆
+    }
+}
+</code></pre>
+<h3 id="sec-3-34">⚠️ 前端转 C# 多线程四大坑</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跨线程改 UI</td>
+<td>后台线程直接改 <code>TextBlock.Text</code> 会抛异常</td>
+<td>WPF：<code>Dispatcher.Invoke(() =&gt; txt.Text = "x")</code>；WinForms：<code>Invoke(...)</code></td>
+</tr>
+<tr>
+<td>死锁</td>
+<td>两线程互等对方的锁 / <code>await</code> 里用 <code>.Result</code></td>
+<td>锁顺序一致；UI 里永远 <code>await</code>，别用 <code>.Result/.Wait()</code></td>
+</tr>
+<tr>
+<td><code>async void</code> 吞异常</td>
+<td>异常静默丢失、程序莫名崩</td>
+<td>只在事件处理器用 <code>async void</code>，其他用 <code>async Task</code></td>
+</tr>
+<tr>
+<td>竞态条件</td>
+<td>多线程同时读写同一变量</td>
+<td><code>lock</code> 或用 <code>ConcurrentQueue</code>/<code>Interlocked</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-35">✏️ 课后练习（综合大题，直接对标工业场景）</h3>
+<p>写一个<strong>数据采集模拟器</strong>（WPF）：
+1. 后台线程（生产者）每 100ms 生成一条模拟数据（温度+压力+时间戳）；
+2. 用 <code>ConcurrentQueue</code> 做缓冲区；
+3. UI 用 <code>DispatcherTimer</code>（消费者）每 500ms 从队列取数显示到 <code>DataGrid</code>；
+4. 数据超 200 条自动删最旧，保持 ≤200 行；
+5. 实时显示队列积压条数。
+要求：必须用 <code>Task.Run</code> + <code>ConcurrentQueue</code> + <code>Dispatcher.Invoke</code> 更新 UI。</p>
+<p><strong>✅ 答案（核心骨架）</strong></p>
+<pre><code class="language-csharp">public partial class MainWindow : Window
+{
+    private readonly ConcurrentQueue&lt;Reading&gt; _queue = new();
+    private readonly DispatcherTimer _uiTimer = new();
+    private CancellationTokenSource? _cts;
+
+    public record Reading(double Temp, double Pressure, DateTime Time);
+
+    public MainWindow()
+    {
+        InitializeComponent();
+        _uiTimer.Interval = TimeSpan.FromMilliseconds(500);
+        _uiTimer.Tick += UiTimer_Tick;
+    }
+
+    private void BtnStart_Click(object sender, RoutedEventArgs e)
+    {
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        // 生产者：后台任务
+        Task.Run(async () =&gt;
+        {
+            var rnd = new Random();
+            while (!token.IsCancellationRequested)
+            {
+                _queue.Enqueue(new Reading(20 + rnd.NextDouble() * 10,
+                                           100 + rnd.NextDouble() * 5, DateTime.Now));
+                await Task.Delay(100, token);   // 每 100ms 一条
+            }
+        }, token);
+        _uiTimer.Start();
+    }
+
+    private void UiTimer_Tick(object? s, EventArgs e)   // 消费者（已在 UI 线程）
+    {
+        while (_queue.TryDequeue(out var r))
+        {
+            DataGrid.Items.Add(r);
+            if (DataGrid.Items.Count &gt; 200) DataGrid.Items.RemoveAt(0);
+        }
+        BacklogText.Text = $&quot;积压：{_queue.Count} 条&quot;;
+    }
+
+    private void BtnStop_Click(object sender, RoutedEventArgs e)
+    {
+        _cts?.Cancel();
+        _uiTimer.Stop();
+    }
+}
+</code></pre>
+<blockquote>
+<p>💡 <code>DispatcherTimer.Tick</code> 本身就在 UI 线程，所以这里不用再 <code>Dispatcher.Invoke</code>；但如果你是在 <code>Task.Run</code> 后台里直接改 UI，就<strong>必须</strong> <code>Dispatcher.Invoke(() =&gt; ...)</code>。</p>
+</blockquote>
+<p><strong>🏗️ 项目任务</strong>：给 DAQ Monitor 加一个"模拟采集"后台线程 + <code>ConcurrentQueue</code> 缓冲 + <code>DispatcherTimer</code> 刷新，把上面骨架接到项目里，形成真实的"后台采集→前台展示"并发闭环。这是 M6 实时监控的核心地基。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="7" onchange="toggleDay(7)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-9">Day 8 — 周复习 + 立起 WPF 工程</h2>
+<p><strong>📌 技术来源</strong>：🟦 前 7 天综合 + 🟩 <strong>WPF</strong>（<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，随 .NET，非 NuGet）</p>
+<h3 id="sec-3-36">复习地图（一条主线串起来）</h3>
+<p>变量/类型(Day1-2) → 集合/LINQ 处理数据(Day3) → 类/属性封装设备(Day4) → 接口/泛型架构(Day5) → 事件解耦通知(Day6) → 多线程/异步/锁并发(Day7)。这条线后面贯穿 M1~M8。</p>
+<h3 id="sec-3-37">⭐ 自测小测（答案见各 Day）</h3>
+<ol>
+<li><code>int?</code> 和 <code>int</code> 区别？</li>
+<li>LINQ 延迟执行是什么意思？为什么有时要 <code>.ToList()</code>？</li>
+<li>接口 vs 抽象类怎么选？</li>
+<li>事件订阅为什么要 <code>-=</code>？</li>
+<li><code>_count++</code> 多线程下为什么会丢数据？怎么修？</li>
+<li>后台线程能直接改 WPF 界面吗？不能的话怎么办？</li>
+<li>WPF 用 NuGet 装吗？（答：不，<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，属 🟩 生态）</li>
+</ol>
+<p><strong>🏗️ 项目任务（今日落地真实工程）</strong></p>
+<pre><code class="language-bash">dotnet new sln -n DaqMonitor
+dotnet new classlib -n DaqMonitor.Core
+dotnet new wpf -n DaqMonitor.UI
+dotnet sln add src/DaqMonitor.Core src/DaqMonitor.UI
+dotnet add src/DaqMonitor.UI reference src/DaqMonitor.Core
+</code></pre>
+<ul>
+<li>MainWindow 放"启动采集"按钮 + <code>DataGrid</code> + 状态栏；</li>
+<li>把 Day2-7 写的 Core 类型（<code>SensorPoint</code>/<code>DeviceState</code>/<code>Alarm</code>/<code>IDevice</code>/<code>DeviceBase</code>/<code>PointStore</code>/事件）搬进 <code>DaqMonitor.Core</code>；</li>
+<li>接入 Day 7 的"模拟采集+队列+定时刷新"，点按钮就能看到数据实时滚动。</li>
+<li>工程骨架即成型，<code>git commit</code> 一次，作品集第一版诞生。</li>
+</ul>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="8" onchange="toggleDay(8)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-10">附录：M0 交付物 &amp; 埋下的 5 个企业级地基</h2>
+<ul>
+<li><strong>本地工程</strong>：<code>DAQMonitor/src</code> → <code>DaqMonitor.Core</code>（领域模型+设备接口+点位存储）+ <code>DaqMonitor.UI</code>（WPF）。</li>
+<li>从 Day 8 起它就是<strong>真实项目</strong>，后续模块往里加"串口/Modbus/PLC/存储/图表"，最终 = 能拿去面试的工业数据采集监控系统（13K~15K 作品集）。</li>
+<li>本模块已提前埋下 <strong>5 个企业级地基</strong>：
+  1. <strong>分层</strong>（Core/UI 分离）
+  2. <strong>接口解耦</strong>（IDevice，UI 不认识具体设备）
+  3. <strong>事件通知</strong>（DataReceived，采集→UI 单向推送）
+  4. <strong>双索引存储</strong>（PointStore：List 遍历 + Dictionary 快查）
+  5. <strong>并发模型</strong>（后台采集 + ConcurrentQueue + DispatcherTimer，真实工业架构）</li>
+</ul>
+<blockquote>
+<p>后面 M1~M8 大多是"往这套地基里填空"，你会越来越快。</p>
+</blockquote>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage）。</div>
+  </main>
+</div>
+
+<script>
+var TOTAL = 8;
+function key(n){return 'm0deep_day_'+n;}
+function toggleDay(n){
+  var cb=document.querySelector('.daycb[data-day="'+n+'"]');
+  if(cb.checked){localStorage.setItem(key(n),'1');}
+  else{localStorage.removeItem(key(n));}
+  syncAll();
+}
+function syncAll(){
+  var done=0;
+  document.querySelectorAll('.daycb').forEach(function(cb){
+    var n=cb.getAttribute('data-day');
+    var on=localStorage.getItem(key(n))==='1';
+    cb.checked=on; if(on)done++;
+  });
+  var pct=Math.round(done/TOTAL*100);
+  document.getElementById('bar').style.width=pct+'%';
+  document.getElementById('ptext').textContent='已打卡 '+done+' / '+TOTAL+' 天 （'+pct+'%）';
+  document.title='M0深度讲义 '+done+'/'+TOTAL+' · '+pct+'%';
+}
+window.onload=function(){syncAll();};
+</script>
+
+</body>
+</html>

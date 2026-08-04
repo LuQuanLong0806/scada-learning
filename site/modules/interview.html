@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>面试高频知识点 · 速记卡 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="interview">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、上位机基础</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、并发与异步（必考）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、串口 / 通信（必考）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、数据与工程量</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、报警 / 上云 / 控件</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、工程素养（13K→15K 分水岭）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、简历怎么讲（把项目讲成自己的）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">面试高频知识点 · 速记卡（手机刷版）</h1>
+<blockquote>
+<p><strong>用法</strong>：通勤/排队时翻这一页，每条都是上位机 13–15K 面试高频题。先盖住答案自问，再对。配 <code>site/index.html</code> 各模块页做延伸。
+<strong>心法</strong>：面试官不在乎你背多少，在乎你能不能<strong>讲清"为什么"</strong>——下面每条我都给了"为什么"，这才是 8K→13K 的分水岭。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、上位机基础</h2>
+<p><strong>Q1：上位机是什么？和 PLC 的区别？</strong>
+- 上位机 = 运行在电脑/工控机上的软件，负责<strong>监控、采集、存储、展示、下发</strong>；PLC 在设备侧做<strong>实时控制</strong>。上位机通过串口/Modbus/PLC 协议和 PLC 通信。
+- 为什么问：确认你懂"上位机在系统里的位置"，不是只会写界面。</p>
+<p><strong>Q2：为什么用 WPF 而不是 WinForms？MVVM 是什么？</strong>
+- WinForms 拖控件、事件里写逻辑，界面和代码耦合；WPF 用 <strong>XAML + 数据绑定 + 命令</strong>，天然 <strong>MVVM</strong>：View(界面) / ViewModel(状态与逻辑) / Model(数据) 分离。
+- MVVM 好处：可测试（VM 不依赖 UI）、可换肤、团队分工。
+- 类比前端：<code>Binding ≈ v-model</code>，<code>Event/Command ≈ addEventListener</code>，<code>ViewModel ≈ 组件的 reactive state</code>。</p>
+<p><strong>Q3：.NET / C# 版本怎么选？</strong>
+- 学用 <strong>.NET 8（LTS）</strong>：长期支持、岗位主流。本项目用 .NET 8 + WPF，RollForward=Major 可跑在更新的运行时。</p>
+<hr />
+<h2 id="sec-2-2">二、并发与异步（必考）</h2>
+<p><strong>Q4：后台采集怎么做到不卡界面？</strong>
+- UI 线程只负责渲染；采集放<strong>后台线程</strong>（Task/后台 Timer/Channel 消费者）。数据通过 <code>Channel&lt;T&gt;</code> 批量交给 UI 刷新，不在 UI 线程做重活。
+- 本项目：<code>AcquisitionPipeline</code> 用 <code>Channel&lt;T&gt;</code> + Timer 每 200ms 批量出队 → <code>BatchReady</code> 事件 → ViewModel 切回 UI 线程刷新。</p>
+<p><strong>Q5：Task 和 Thread 区别？async/await 是什么？</strong>
+- <code>Thread</code> 是操作系统线程；<code>Task</code> 是"任务"，由线程池调度更轻量。<code>async/await</code> 让异步代码写起来像同步，不阻塞线程。
+- 坑：<code>async</code> 方法里别用 <code>.Result</code>/<code>.Wait()</code> 同步阻塞——UI 线程会<strong>死锁</strong>（本项目 M7 早期就踩过，已改 <code>await</code>）。</p>
+<p><strong>Q6：Channel<T> 是什么？为什么用它而不是 ObservableCollection 直接 Add？</strong>
+- <code>Channel&lt;T&gt;</code> 是<strong>高性能生产者-消费者队列</strong>，解耦"采样的线程"和"消费的线程"，天然线程安全、背压可控。
+- 直接往 <code>ObservableCollection</code> Add 会跨线程异常或卡 UI；Channel 把数据"攒一批"再给 UI，流畅且不崩。</p>
+<hr />
+<h2 id="sec-2-3">三、串口 / 通信（必考）</h2>
+<p><strong>Q7：RS232 和 RS485 区别？</strong>
+- 232：点对点、全双工、距离短（~15m）、抗干扰弱。
+- 485：<strong>差分信号、半双工、可一主多从（总线）、距离长（~1200m）、抗干扰强</strong>——工业现场主流。
+- 坑：485 半双工要注意收发切换；长距离要<strong>终端电阻 + 良好接地</strong>，否则数据乱。</p>
+<p><strong>Q8：波特率、数据位、停止位、校验位是什么？</strong>
+- 双方必须一致才能通。常见 9600/8/N/1（9600 波特、8 数据位、无校验、1 停止位）。
+- "连不上"第一件事：<strong>核对这四项 + 串口号 + 是否被别的软件占用</strong>。</p>
+<p><strong>Q9：Modbus RTU 和 TCP 区别？</strong>
+- RTU：跑在串口上，帧 = 从站地址 + 功能码 + 数据 + <strong>CRC16</strong>；TCP：跑在网口，帧前加 <strong>MBAP 头</strong>（6 字节），用 <strong>CRC 换成 TCP 校验</strong>（一般不算 CRC）。
+- 功能码：<strong>03 读保持寄存器、06 写单个、16(0x10) 写多个、01 读线圈</strong>。</p>
+<p><strong>Q10：保持寄存器地址偏移怎么算？（高频坑）</strong>
+- 设备手册写 "40001" 是<strong>引用地址</strong>；协议里功能码 03 的"寄存器地址"通常从 <strong>0</strong> 开始 → 40001 对应地址 <strong>0</strong>，40002 对应 <strong>1</strong>。很多新人直接填 40001 导致读不到。</p>
+<p><strong>Q11：粘包 / 半包怎么处理？（重点中的重点）</strong>
+- 串口/TCP 是<strong>字节流</strong>，不保证"一次发一次收"。可能两帧粘一起，也可能一帧分两次到。
+- 解法：<strong>定义帧边界 + 缓存重组</strong>。本项目 <code>FrameParser</code>：以 <code>0xAA 0x55</code> 头 + 长度域定位一帧；不足一帧先存缓冲区，够了再解析；多帧一次到则循环拆。
+- 必须校验 <strong>CRC</strong>，坏帧丢弃（本项目 5 个串口测试就覆盖了单帧/粘包/半包/坏CRC）。</p>
+<p><strong>Q12：PLC（西门子 S7）通信要点？</strong>
+- 用 <code>S7.Net</code> 连 PLC，读 <strong>DB 块</strong>（数据块）。注意 DB 块要"非优化访问"才能按偏移读；常见错误 <code>LastErrorCode</code> 要查表。
+- 多品牌：三菱用 <strong>MC 协议</strong>、欧姆龙用 <strong>FINS</strong>；国内常用 <strong>HslCommunication</strong> 一把梭多协议。</p>
+<hr />
+<h2 id="sec-2-4">四、数据与工程量</h2>
+<p><strong>Q13：工程量转换 / 量程标定是什么？</strong>
+- 设备给的是<strong>原始值</strong>（如 0–4095 的 AD 值、或 4–20mA 电流），要换算成<strong>工程量</strong>（温度℃、压力 MPa）。
+- 线性：<code>工程量 = (原始值 - rawMin) / (rawMax - rawMin) * (engMax - engMin) + engMin</code>。4–20mA 时 rawMin 对应 4mA。
+- 为什么重要：DAQ 上位机天天做，漏了数据就没有"人话"。</p>
+<p><strong>Q14：EF Core 和 ADO.NET / Dapper 区别？企业用什么库？</strong>
+- EF Core：ORM，写 LINQ 就能存查，开发快；Dapper：轻量 SQL 映射，性能好、可控；ADO.NET 最底层。
+- 企业现场 <strong>SQL Server / MySQL</strong> 最常用（本项目用 SQLite 演示，M12 补了 SQL Server/MySQL + Dapper/ADO.NET）。</p>
+<hr />
+<h2 id="sec-2-5">五、报警 / 上云 / 控件</h2>
+<p><strong>Q15：报警为什么要用"回滞（hysteresis）"？</strong>
+- 阈值在边界抖动时，纯比较会让报警<strong>反复触发/消除</strong>（"跳变"）。回滞：超过上限才报，要<strong>回落到下限以下</strong>才解除。本项目 <code>AlarmEngine</code> 已实现。</p>
+<p><strong>Q16：OPC UA 和 MQTT 区别？</strong>
+- OPC UA：工业标准、<strong>强类型、安全、适合厂内 SCADA/MES</strong> 对接。MQTT：物联网轻量发布订阅，<strong>适合上云、跨网络</strong>。本项目 M7 两者都讲。</p>
+<p><strong>Q17：自定义控件 vs UserControl？</strong>
+- UserControl：组合现有控件，快但难换肤/难复用。自定义控件（继承 <code>Control</code> + <code>Generic.xaml</code> + 依赖属性）：可换肤、可主题、可跨项目。
+- <strong>坑</strong>：少写 <code>[assembly: ThemeInfo(...)]</code> 控件不报错但<strong>一片空白</strong>。本项目 <code>GaugeControl</code>/<code>StatusDot</code> 就是正宗写法。</p>
+<hr />
+<h2 id="sec-2-6">六、工程素养（13K→15K 分水岭）</h2>
+<p><strong>Q18：为什么用接口（IDevice）和依赖注入？</strong>
+- <code>IDevice</code> 把"设备"抽象成插座；换串口/Modbus/PLC/模拟设备只改<strong>组合根一行</strong>，UI 和采集层零改动（本项目已用测试证明：换 SerialDevice 不碰 UI）。
+- DI（依赖注入）让对象由容器装配，解耦、好测试。</p>
+<p><strong>Q19：单元测试怎么测"无界面"的逻辑？</strong>
+- 用 <strong>xunit + Moq</strong>：Moq 造假设备（<code>Mock&lt;IDevice&gt;</code>）喂数据，验证管道/存储/报警。本项目 <strong>28 个测试全绿</strong>，含无界面集成冒烟 + CAN/USB/心跳监测。</p>
+<p><strong>Q20：生产环境怎么容错？</strong>
+- 断线<strong>自动重连</strong>、失败<strong>指数退避重试</strong>、采集循环不因为单点异常挂掉。本项目 M9 已落地 Retry 策略。</p>
+<p><strong>Q21："连不上"怎么系统排查？（排障能力，面试很看重）</strong>
+- ① 物理层：线/供电/接地/终端电阻；② 配置层：串口号/波特率/站号/IP/端口；③ 协议层：用<strong>调试助手/抓包</strong>看报文对不对、CRC 对不对；④ 软件层：日志（本项目有 <code>DiagnosticsService</code> + Serilog）、异常堆栈。
+- 口诀：<strong>先物理、再配置、后协议、最后看日志</strong>。</p>
+<hr />
+<h2 id="sec-2-7">七、简历怎么讲（把项目讲成自己的）</h2>
+<p><strong>Q22：你的项目架构一句话怎么说？</strong>
+- "DAQMonitor 是分层工业采集监控系统：Core 领域层（IDevice 抽象 + Channel<T> 并发管道 + 报警引擎 + 报表 + 心跳健康监测）+ UI（WPF/MVVM + 自研控件 + 诊断面板）+ Tests（28 测试）。换设备 UI 零改动，支持串口/Modbus/PLC/CAN/USB-HID 接入。"</p>
+<p><strong>Q23：你遇到最难的点是什么？怎么解的？</strong>
+- 准备一个真实例子：比如"粘包导致数据错乱" → 用帧头+长度+CRC 重组解决；或"UI 卡顿" → 用 Channel 批量刷新解决。能讲清<strong>问题→思路→代码→验证</strong>就赢。</p>
+<blockquote>
+<p>💡 手机刷完这页，回到 <code>site/index.html</code> 点对应模块卡补细节。两份作品（DAQMonitor + CommLab）面试时一份讲架构、一份讲协议与调试，覆盖拉满。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="proj2.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">项目二 · CommLab 协议调试助手（规划）</div></a>
+  <a style="visibility:hidden"></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

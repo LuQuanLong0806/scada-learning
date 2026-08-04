@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M8 · 工程化收尾 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M8">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 3 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — MVVM 重构 + 配置化</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：[ObservableProperty] 到底生成了什么（源生成器 Source Generator）</a></li>
+<li class="l3"><a href="#sec-3-5">🔬 掰开揉碎：DI 生命周期怎么选（WPF + EF Core 场景）</a></li>
+<li class="l3"><a href="#sec-3-6">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-7">✏️ 练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 异常处理 + 安装包 + README + 简历</a><ul>
+<li class="l3"><a href="#sec-3-8">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-9">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-10">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-11">✏️ 练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Day 3 — 配置实操 + 自动更新 + 第三方 UI 库（企业标配）</a><ul>
+<li class="l3"><a href="#sec-3-12">① 配置格式三选一（动手）</a></li>
+<li class="l3"><a href="#sec-3-13">② 自动更新 / 部署（🟧 ClickOnce / Squirrel）</a></li>
+<li class="l3"><a href="#sec-3-14">③ 第三方 UI 库 HandyControl（🟧，国内最流行）</a></li>
+<li class="l3"><a href="#sec-3-15">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-16">✏️ 练习 + 🏗️</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">模块交付清单（M8）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M8 — 工程化收尾（MVVM + 安装包 + 简历）🏁</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 工程化收尾（配置化/MVVM/打包/简历，把项目收口成作品）</p>
+<p><strong>技术来源</strong>：🟧 <code>CommunityToolkit.Mvvm</code>（MVVM）、🟧 安装包（MSIX / ClickOnce）、🟦 <code>IConfiguration</code> 配置化。
+<strong>给简历加的能力</strong>：把"能跑的项目"打磨成"能交付的作品" —— 架构清晰、可配置、能安装、讲得清。
+<strong>前置</strong>：M0–M7（DAQ Monitor 已具备采集/可视化/存储/报警/上云）。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>① 用 MVVM 重构 UI（解耦界面与逻辑）；② 配置化（设备/报警/上云参数进 <code>appsettings.json</code>）；③ 全局异常处理；④ 打包成可安装程序；⑤ 写 README + 简历描述。</p>
+<h2 id="sec-2-2">Day 1 — MVVM 重构 + 配置化</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>MVVM = 把 UI(XAML) 和逻辑(ViewModel) 用"绑定"解耦：ViewModel 只管数据和命令，界面自动跟着变。配置化 = 把易变的参数挪到外部文件，改配置不改代码。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>MVVM</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View (XAML)</td>
+<td>模板 / JSX</td>
+</tr>
+<tr>
+<td>ViewModel</td>
+<td>组件逻辑 / store</td>
+</tr>
+<tr>
+<td><code>INotifyPropertyChanged</code></td>
+<td>响应式 <code>ref</code> / <code>reactive</code></td>
+</tr>
+<tr>
+<td><code>[RelayCommand]</code></td>
+<td>事件处理函数</td>
+</tr>
+<tr>
+<td><code>appsettings.json</code></td>
+<td><code>.env</code> 配置</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① ViewModel（CommunityToolkit.Mvvm）</strong>（🟧🟦）</p>
+<pre><code class="language-csharp">using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+public partial class MainViewModel : ObservableObject
+{
+    [ObservableProperty] private string _status = &quot;就绪&quot;;
+    [ObservableProperty] private double _currentValue;
+
+    [RelayCommand]
+    private async Task StartAsync()
+    {
+        Status = &quot;采集中...&quot;;
+        // 调设备/引擎，结果自动反映到界面
+    }
+}
+</code></pre>
+<p><strong>② XAML 绑定</strong>（🟩 WPF）</p>
+<pre><code class="language-xml">&lt;TextBlock Text=&quot;{Binding Status}&quot; /&gt;
+&lt;Button Command=&quot;{Binding StartCommand}&quot; Content=&quot;启动&quot; /&gt;
+</code></pre>
+<p><strong>③ 配置化</strong>（🟦 <code>IConfiguration</code> + 🟧 <code>Microsoft.Extensions.Configuration.Json</code>）</p>
+<pre><code class="language-json">// appsettings.json
+{
+  &quot;Devices&quot;: [
+    { &quot;Type&quot;: &quot;Modbus&quot;, &quot;Ip&quot;: &quot;192.168.1.10&quot;, &quot;Port&quot;: 502, &quot;Points&quot;: [0,1,2] },
+    { &quot;Type&quot;: &quot;Plc&quot;, &quot;Ip&quot;: &quot;192.168.0.1&quot;, &quot;Rack&quot;: 0, &quot;Slot&quot;: 1 }
+  ],
+  &quot;Alarms&quot;: [ { &quot;PointId&quot;: 3, &quot;Threshold&quot;: 100, &quot;Level&quot;: &quot;Critical&quot; } ],
+  &quot;Mqtt&quot;: { &quot;Broker&quot;: &quot;broker.emqx.io&quot;, &quot;Port&quot;: 1883, &quot;TopicPrefix&quot;: &quot;factory/line1&quot; }
+}
+</code></pre>
+<pre><code class="language-csharp">var cfg = new ConfigurationBuilder().AddJsonFile(&quot;appsettings.json&quot;).Build();
+var devices = cfg.GetSection(&quot;Devices&quot;).Get&lt;List&lt;DeviceConfig&gt;&gt;();
+</code></pre>
+<h3 id="sec-3-4">🔬 掰开揉碎：<code>[ObservableProperty]</code> 到底生成了什么（源生成器 Source Generator）</h3>
+<p>手写 <code>INotifyPropertyChanged</code> 又臭又长（每个属性要 <code>OnPropertyChanged</code>）。<code>CommunityToolkit.Mvvm</code> 用 <strong>Roslyn 源生成器</strong>在<strong>编译期</strong>帮你生成样板代码：
+- 你写：<code>[ObservableProperty] private double _currentValue;</code>
+- 编译后自动生成：<code>public double CurrentValue { get =&gt; _currentValue; set { _currentValue = value; OnPropertyChanged(); } }</code> + 实现 <code>INotifyPropertyChanged</code>。
+- <code>[RelayCommand]</code> 同理生成 <code>StartCommand</code> 属性和 <code>ICommand</code> 实现。
+- <strong>为什么比手写好</strong>：零样板、不会漏写 <code>OnPropertyChanged</code>、编译期就检查类型。<strong>进阶阅读</strong>：源生成器原理 https://learn.microsoft.com/dotnet/csharp/roslyn-sdk/</p>
+<h3 id="sec-3-5">🔬 掰开揉碎：DI 生命周期怎么选（WPF + EF Core 场景）</h3>
+<p><code>AddSingleton / AddScoped / AddTransient</code> 选错会出诡异 bug：
+- <strong>Singleton（全局唯一）</strong>：<code>PointStore</code>、<code>AlarmEngine</code>、<code>AcquisitionPipeline</code>——整个程序就一份，所有窗口/线程共享。
+- <strong>Scoped（一次作用域一份）</strong>：<strong><code>DbContext</code> 必须用 Scoped</strong>（或每次 <code>new</code>）。原因见 M4「变更追踪缓存」——一个 DbContext 用太久缓存膨胀、并发冲突。在 WPF 里常手动开 <code>using var scope = provider.CreateScope()</code> 包住一次数据库操作。
+- <strong>Transient（每次都新建）</strong>：轻量无状态工具类用，别给有状态的服务用（会各自一份、不共享）。
+- <strong>循环依赖</strong>：A 构造函数要 B、B 又要 A → 启动即炸，拆出公共依赖到第三个类。</p>
+<h3 id="sec-3-6">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ MVVM 不是必须但加分</td>
+<td>13K+ 岗位普遍要求，面试常问</td>
+</tr>
+<tr>
+<td>⭐ 配置不写死</td>
+<td>IP/阈值进文件，现场改配置不动代码</td>
+</tr>
+<tr>
+<td>🔥 命令异步</td>
+<td><code>[RelayCommand]</code> 方法用 <code>async Task</code>，别 <code>async void</code></td>
+</tr>
+<tr>
+<td>🔥 配置缺失</td>
+<td>读不到配置要给默认值 + 日志告警</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-7">✏️ 练习</h3>
+<p>把 DAQ Monitor 主窗口的"启动"按钮逻辑抽成 <code>MainViewModel</code> 的 <code>[RelayCommand]</code>，状态用 <code>[ObservableProperty]</code>。</p>
+<p><strong>✅ 答案</strong>（见上方 ①）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 全 UI 迁移到 MVVM；设备/报警/MQTT 配置读 <code>appsettings.json</code>。工程素养达标。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M8',1)"> 打卡</label></strong></p>
+<h2 id="sec-2-3">Day 2 — 异常处理 + 安装包 + README + 简历</h2>
+<h3 id="sec-3-8">一句话讲清楚</h3>
+<p>企业级 = "出问题不崩、能装、讲得清"。全局异常兜底、打包成 exe/msix、写好 README 和简历描述，作品才算完整。</p>
+<h3 id="sec-3-9">分点精讲</h3>
+<p><strong>① 全局异常兜底</strong>（🟦，呼应 M6）</p>
+<pre><code class="language-csharp">AppDomain.CurrentDomain.UnhandledException += (s, e) =&gt;
+    Log.Fatal((Exception)e.ExceptionObject, &quot;未处理异常&quot;);
+System.Windows.Application.Current.DispatcherUnhandledException += (s, e) =&gt;
+    { Log.Error(e.Exception, &quot;UI异常&quot;); e.Handled = true; };
+</code></pre>
+<p><strong>② 打包（MSIX / ClickOnce）</strong>（🟧）
+- VS 右键项目 → 发布 → 创建安装包(MSIX)；或 DotNet 用 <code>Microsoft.NET.Sdk.WindowsDesktop</code> 的打包工程。
+- 目标：双击安装、有开始菜单图标、能卸载。</p>
+<p><strong>③ README 模板</strong>（🟦文档）</p>
+<pre><code class="language-markdown"># DAQ Monitor
+工业数据采集监控系统（C#/.NET 8 + WPF）
+## 功能
+- 多设备接入：串口 / Modbus / PLC(S7)
+- 实时曲线 + 仪表盘
+- 历史库(SQLite) + 查询/导出
+- 报警引擎 + Serilog 日志
+- MQTT 上云
+## 运行
+dotnet restore &amp;&amp; dotnet run --project src/DaqMonitor.UI
+</code></pre>
+<p><strong>④ 简历描述（15K 写法）</strong></p>
+<blockquote>
+<p>独立开发工业数据采集监控系统：基于 .NET 8 + WPF(MVVM)，对接串口/Modbus/西门子PLC 多源设备，采用后台采集+ConcurrentQueue 缓冲+Dispatcher 刷新避免卡顿；实现实时曲线/仪表盘、SQLite 历史库与 CSV 导出、阈值报警引擎与 Serilog 日志、MQTT 上云；分层架构(领域/设备/持久化/UI) + 面向接口设计，支持配置化与一键安装。</p>
+</blockquote>
+<h3 id="sec-3-10">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 简历写"架构决策"</td>
+<td>写"为什么用接口/事件/锁"，不是罗列技术名</td>
+</tr>
+<tr>
+<td>⭐ 能演示</td>
+<td>准备虚拟串口/模拟 PLC 的演示链路，面试现场跑</td>
+</tr>
+<tr>
+<td>🔥 安装包签名</td>
+<td>企业分发常要证书签名，练习可先免签</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-11">✏️ 练习</h3>
+<p>写一段你的简历"项目描述"（按上方 ④ 改造成你自己的话）。</p>
+<p><strong>✅ 答案</strong>（见上方 ④，按个人经历改写）。</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加全局异常处理；用 VS 发布 MSIX 安装包；补全 README；把简历描述沉淀到项目根 <code>RESUME.md</code>。🏁 全部模块达标！</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M8',2)"> 打卡</label></strong></p>
+<h2 id="sec-2-4">Day 3 — 配置实操 + 自动更新 + 第三方 UI 库（企业标配）</h2>
+<blockquote>
+<p>前面 Day1 讲了"配置化思想 + appsettings.json 读取"，但没动手写文件。本节补齐 <strong>Ini / XML / JSON 三种格式的读写实操</strong>，再加 <strong>自动更新/部署</strong> 与 <strong>HandyControl 第三方控件库</strong>——这三项 JD 都点名。</p>
+</blockquote>
+<h3 id="sec-3-12">① 配置格式三选一（动手）</h3>
+<p><strong>JSON（推荐，🟧 <code>System.Text.Json</code> / <code>Microsoft.Extensions.Configuration.Json</code>）</strong></p>
+<pre><code class="language-csharp">// 读
+var json = File.ReadAllText(&quot;appsettings.json&quot;);
+var cfg = JsonSerializer.Deserialize&lt;AppConfig&gt;(json);
+// 写（改了配置落盘）
+File.WriteAllText(&quot;appsettings.json&quot;,
+    JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
+</code></pre>
+<p><strong>INI（老设备软件最爱，🟦 手写解析或 🟧 <code>ini-parser</code>）</strong></p>
+<pre><code class="language-csharp">// 简单 INI 结构：[Section] Key=Value
+// 推荐用 NuGet `ini-parser`：
+var ini = new IniFileParser.IniDataParser();
+var data = ini.ReadFile(&quot;config.ini&quot;);
+string ip = data[&quot;Device&quot;][&quot;Ip&quot;];
+data[&quot;Device&quot;][&quot;Ip&quot;] = &quot;192.168.1.20&quot;;
+ini.WriteFile(&quot;config.ini&quot;, data);
+</code></pre>
+<p><strong>XML（工控老系统常见，🟩 <code>System.Xml</code>）</strong></p>
+<pre><code class="language-csharp">var doc = new XmlDocument();
+doc.Load(&quot;config.xml&quot;);
+var ip = doc.SelectSingleNode(&quot;//Device/Ip&quot;)?.InnerText;
+</code></pre>
+<h3 id="sec-3-13">② 自动更新 / 部署（🟧 ClickOnce / Squirrel）</h3>
+<ul>
+<li><strong>ClickOnce</strong>：VS 发布时勾选"自动更新"，用户下次启动自动拉新版本，企业内网分发最省心。</li>
+<li><strong>Squirrel.Windows</strong>：把应用打包成 <code>Setup.exe</code>，启动时检查远程 RELEASES 文件，有新版静默下载替换。</li>
+<li><strong>文件比对更新</strong>：简单方案——启动时比对本地 vs 服务器 <code>version.txt</code>，不一致则下载增量包。</li>
+<li>简历可写："实现自动更新（Squirrel/ClickOnce），降低现场运维成本"。</li>
+</ul>
+<h3 id="sec-3-14">③ 第三方 UI 库 HandyControl（🟧，国内最流行）</h3>
+<pre><code class="language-xml">&lt;PackageReference Include=&quot;HandyControl&quot; /&gt;
+</code></pre>
+<ul>
+<li>80+ 现成控件：仪表盘 <code>Gauge</code>、轮播、Loading、MessageBox、主题切换。</li>
+<li>一行换肤；告别 WinForms 时代丑界面。</li>
+<li>对比：LiveCharts(M5 图表) 管"数据可视化"，HandyControl 管"整体控件/美观 HMI"，两者互补。</li>
+<li>简历可写："使用 HandyControl 构建现代化工业 HMI 界面"。</li>
+</ul>
+<h3 id="sec-3-15">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 配置三格式都会</td>
+<td>JSON 通用、INI 老设备、XML 工控老系统</td>
+</tr>
+<tr>
+<td>⭐ 自动更新是企业标配</td>
+<td>别只交 exe，要能"升级"</td>
+</tr>
+<tr>
+<td>🔥 配置写回注意编码/权限</td>
+<td>程序目录可能无写权限，配置放 <code>AppData</code></td>
+</tr>
+<tr>
+<td>🔥 HandyControl 仅 WPF</td>
+<td>WinForm 用其它库(DotNetBar 等)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-16">✏️ 练习 + 🏗️</h3>
+<ul>
+<li>✏️ 用 <code>System.Text.Json</code> 把设备配置读出来改 IP 再写回。</li>
+<li>🏗️ 项目任务：DAQ Monitor 加"设置"页，JSON 存配置到 <code>AppData</code>；评估接入 HandyControl 换肤。<label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay('M8',3)"> 打卡</label></li>
+</ul>
+<h2 id="sec-2-5">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 接口/事件 → 这里 MVVM 是它们的「UI 版」</strong>：ViewModel 用接口/命令解耦界面，思想同源。</li>
+<li><strong>M9 DI 容器 → 这里 <code>Bootstrapper</code> 是组合根</strong>：M8 的配置 + M9 的注入合起来，才是「可配置、可测试、可交付」的完整工程素养。</li>
+<li><strong>全模块收口</strong>：M1–M7 的能力，经 M8(MVVM/配置/异常/打包) + M9(测试/DI/容错) + M10(报表) 打磨，才成为一个「能演示、讲得清、有测试兜底」的简历作品。</li>
+</ul>
+<h2 id="sec-2-6">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>CommunityToolkit.Mvvm 文档（源生成器）：https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/</li>
+<li>Microsoft DI 官方：https://learn.microsoft.com/dotnet/core/extensions/dependency-injection</li>
+<li>MSIX 打包：https://learn.microsoft.com/windows/msix/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-7">模块交付清单（M8）</h2>
+<ul>
+<li>[ ] MVVM 重构（CommunityToolkit.Mvvm）</li>
+<li>[ ] 配置化（appsettings.json）</li>
+<li>[ ] 全局异常处理 + 日志</li>
+<li>[ ] MSIX / ClickOnce 安装包</li>
+<li>[ ] README + 简历描述（RESUME.md）</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M7.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M7 · OPC UA / MQTT 上云</div></a>
+  <a class="next" href="M9.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M9 · 工程素养</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

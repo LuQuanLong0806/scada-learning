@@ -1,0 +1,33 @@
+using System.Globalization;
+using System.Windows;
+using System.Windows.Data;
+using DaqMonitor.UI.ViewModels;
+
+namespace DaqMonitor.UI;
+
+/// <summary>把 bool 取反，给按钮的 IsEnabled 用。</summary>
+public class InverseBoolConverter : IValueConverter
+{
+    public object Convert(object value, System.Type _, object __, CultureInfo ___)
+        => value is bool b ? !b : true;
+    public object ConvertBack(object _, System.Type __, object ___, CultureInfo ____) => Binding.DoNothing;
+}
+
+/// <summary>把采集状态显示成文字。</summary>
+public class RunningTextConverter : IValueConverter
+{
+    public object Convert(object value, System.Type _, object __, CultureInfo ___)
+        => value is bool b && b ? "采集中" : "已停止";
+    public object ConvertBack(object _, System.Type __, object ___, CultureInfo ____) => Binding.DoNothing;
+}
+
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        // 在 XAML 里用到的两个 Converter 需要事先放进资源
+        Resources.Add("InverseBool", new InverseBoolConverter());
+        Resources.Add("RunningText", new RunningTextConverter());
+        InitializeComponent();
+    }
+}

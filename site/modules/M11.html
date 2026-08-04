@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M11 · TCP Socket 自定义协议 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M11">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — TCP 基础 + 第一个回显 + 粘包拆包 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：粘包到底怎么回事</a></li>
+<li class="l3"><a href="#sec-3-5">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 私有协议帧设计 + 接入 DAQMonitor 🟡</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：校验到底防什么</a></li>
+<li class="l3"><a href="#sec-3-13">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-14">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-15">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-16">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（TcpDevice 可直接抄进工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">📎 关联附录</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M11 — TCP Socket 自定义协议通信</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟡 缓学 · TCP/Socket 私有协议（JD 也提 Socket/TCP-IP，但串口/Modbus/PLC 已覆盖主场景）
+<strong>技术来源</strong>：🟩 .NET 类库 <code>System.Net.Sockets</code>（BCL，装好 .NET 就有，<strong>不装包</strong>）；复杂私有协议框架可用 🟧 SuperSocket。
+<strong>给简历加的能力</strong>：通过 TCP 对接"非 Modbus 的私有协议设备"——大量仪表、网关、PLC 网关、自研下位机都用私有 TCP，这是 JD 里「Socket / TCP-IP 必会」的真本事。
+<strong>前置</strong>：M0（并发/事件）、M1（串口字节流解析）。M11 把 M1 的"字节流 → 帧解析 → 事件"整套思维原样搬到 TCP。
+<strong>前端类比总纲</strong>：TCP 像"裸 WebSocket 的底层 socket"——有连接、有字节流、但没有"一条消息"边界，要自己切帧；这正是 Node <code>net.Socket</code> 的体验。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">模块目标</h2>
+<p>写出一个 <code>TcpDevice</code> 实现 <code>IDevice</code>：连接 TCP → 收字节流 → 按自定义帧解析（处理<strong>粘包/拆包</strong>）→ 通过 <code>DataReceived</code> 事件抛业务数据 → 进 DAQ Monitor。证明"换通信介质不改采集层"。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — TCP 基础 + 第一个回显 + 粘包拆包 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>TCP 是一条"字节河流"，<strong>只保证顺序、不保证边界</strong>。你发 100 字节，对方可能一次收 100、也可能先收 30 再收 70；你发两条 50 字节，对方可能一次收 100（<strong>粘包</strong>）。所以必须自己定义"一帧从哪到哪"。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>TCP 概念</th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TcpClient</code> / <code>NetworkStream</code></td>
+<td>Node <code>net.Socket</code> / 浏览器 <code>WebSocket</code></td>
+<td>建立连接通道</td>
+</tr>
+<tr>
+<td>IP:Port</td>
+<td><code>http://host:port</code></td>
+<td>地址 + 端口</td>
+</tr>
+<tr>
+<td>字节流（无消息边界）</td>
+<td>TCP 原始 <code>socket</code> vs <code>ws</code>（ws 有帧）</td>
+<td><strong>TCP 没有"一条消息"概念</strong></td>
+</tr>
+<tr>
+<td>粘包/拆包</td>
+<td>自己用 <code>\n</code> 分隔的 <code>socket.on('data')</code></td>
+<td>必须自己切帧</td>
+</tr>
+<tr>
+<td>长度前缀帧</td>
+<td>WebSocket 的 payload-length</td>
+<td>先读长度再读体</td>
+</tr>
+<tr>
+<td>回 UI 线程</td>
+<td><code>requestAnimationFrame</code> 回主线程</td>
+<td>后台线程不能直接改 UI</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 建立连接 + 异步读写</strong>（🟩）</p>
+<pre><code class="language-csharp">using System.Net.Sockets;
+using System.Text;
+
+var client = new TcpClient();
+await client.ConnectAsync(&quot;127.0.0.1&quot;, 502);     // 连设备
+NetworkStream ns = client.GetStream();
+
+// 发：把业务数据按&quot;帧&quot;封好再发
+byte[] frame = BuildFrame(0x03, Encoding.ASCII.GetBytes(&quot;READ&quot;));
+await ns.WriteAsync(frame, 0, frame.Length);
+
+// 收：先读长度，再读体（见 ④）
+</code></pre>
+<p><strong>② 后台线程持续收 + 抛事件</strong>（🟩 + 🟦，复用 M0 的事件模式）</p>
+<pre><code class="language-csharp">// 与 M0/M1 同款：收到解析好的业务点，就触发 DataReceived
+public event EventHandler&lt;SensorPoint&gt;? DataReceived;
+
+async Task RecvLoop(CancellationToken ct)
+{
+    var buf = new byte[4096];
+    while (!ct.IsCancellationRequested)
+    {
+        int n = await ns.ReadAsync(buf, 0, buf.Length, ct);
+        if (n == 0) break;                        // 对端断开
+        _accumulator.Write(buf, 0, n);            // 累积到缓冲区
+        foreach (var pt in TryParseFrames(_accumulator))   // 切帧
+            DataReceived?.Invoke(this, pt);
+    }
+}
+</code></pre>
+<p><strong>③ 为什么必须"累积 + 切帧"</strong>（🟦 思维）
+TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</code> 舀上来的水量不确定。所以：
+- 不能"Read 一次 = 一帧"；
+- 必须有个<strong>累积缓冲区</strong>（<code>MemoryStream</code> 或环形缓冲），每次 Read 后尝试从缓冲区里<strong>尽可能多地</strong>切出完整帧。</p>
+<p><strong>④ 两种主流切帧法</strong>（🟧 私有协议设计）
+- <strong>长度前缀法（推荐）</strong>：帧头 <code>AA 55</code> + <code>长度(2字节)</code> + <code>命令</code> + <code>数据</code> + <code>校验</code>。先读固定头，拿到长度，再精确读"长度"个体。
+- <strong>分隔符法</strong>：用 <code>\r\n</code> 或 <code>|</code> 分隔（如文本协议），按分隔符 Split。简单但数据里不能出现分隔符。</p>
+<p><strong>⑤ 心跳 + 断线重连</strong>（🟦，呼应 M9 容错）
+- 每 5s 发 <code>0x00</code> 心跳；超时未收到响应 → 标记断线 → 指数退避重连（M9 的 <code>Retry</code> 直接复用）。</p>
+<h3 id="sec-3-4">🔬 掰开揉碎：粘包到底怎么回事</h3>
+<p>假设你连发两帧 <code>[AA55 03 ..][AA55 04 ..]</code>：
+- 理想：对面两次 Read 各收一帧。
+- 现实：可能一次 Read 收到 <code>[AA55 03 .. AA55 04 ..]</code>（<strong>粘包</strong>），也可能 <code>[AA55 03 ..AA]</code> + <code>[55 04 ..]</code>（<strong>拆包</strong>）。
+- <strong>唯一正确做法</strong>：把所有收到的字节塞进累积缓冲，按"头 + 长度"算法循环切帧；切不完整的就留在缓冲等下次。缓冲区不会被"一次 Read"骗到。</p>
+<h3 id="sec-3-5">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>TCP 无消息边界 → 必须自管累积缓冲 + 切帧</td>
+</tr>
+<tr>
+<td>⭐ 重点</td>
+<td>长度前缀法 &gt; 分隔符法（工业首选）</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>"Read 一次当一帧"——90% 新手 bug 来源</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>对端断开时 <code>Read</code> 返回 <strong>0</strong> 而不是抛异常，不处理就死循环</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>中文/多字节用 <code>Encoding.UTF8</code> 一致；切帧按<strong>字节</strong>不是按字符</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>后台线程直接改 UI 会抛（见 Day2 / M0）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🟢 基础题</h3>
+<p>用 <code>TcpListener</code> 写一个回显服务端，<code>TcpClient</code> 连上后发 "HELLO" 收到原样返回。</p>
+<h3 id="sec-3-7">🟡 进阶题</h3>
+<p>在回显服务端基础上，给客户端加一个"后台线程每秒发一条 <code>AA 55 &lt;len&gt; &lt;cmd&gt; &lt;data&gt; &lt;sum&gt;</code>"，服务端按长度前缀切帧后回显"收到帧数"。</p>
+<h3 id="sec-3-8">🔴 挑战题</h3>
+<p>写一个 <code>TryParseFrames(MemoryStream buf)</code> 静态方法：支持<strong>粘包</strong>（一次塞两帧）和<strong>拆包</strong>（一帧被拆成两次 Read 才到齐）；用 <code>LoopbackTcpChannel</code> 模拟这两种情况并写测试断言两帧都被正确切出。</p>
+<p><strong>✅ 答案（挑战题骨架）</strong></p>
+<pre><code class="language-csharp">static IEnumerable&lt;byte[]&gt; TryParseFrames(MemoryStream buf)
+{
+    buf.Position = 0;
+    while (buf.Length - buf.Position &gt;= 4)            // 至少够读头+长度
+    {
+        buf.Read(header, 0, 4);                        // AA 55 lenHi lenLo
+        int bodyLen = (header[2] &lt;&lt; 8) | header[3];
+        if (buf.Length - buf.Position &lt; bodyLen) break; // 不够一帧，等下次
+        var body = new byte[bodyLen]; buf.Read(body, 0, bodyLen);
+        yield return body;
+    }
+    // 把 buf 里&quot;未消费完的半包&quot;截留，下次继续
+    var left = buf.Length - buf.Position;
+    var keep = new MemoryStream(); buf.CopyTo(keep); buf.SetLength(0); keep.CopyTo(buf);
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：实现 <code>TcpDevice : IDevice</code>，用长度前缀帧解析，触发 <code>DataReceived</code>，在 <code>Bootstrapper</code> 注册，DAQ Monitor 点"启动采集"能收到 TCP 模拟器发的点。</p>
+<p><strong>🎓 工控导师说</strong>：调试 TCP 设备，第一招永远是"先用网络调试助手（如 SSCOM 的 TCP 模式 / Hercules）手动连、手动发，确认设备回了啥"，<strong>再写代码</strong>。我见过太多人代码里 <code>Read</code> 一次当一帧，设备明明回了，他那边死活解析不出——就是栽在粘包上。累积缓冲 + 切帧，刻进骨头里。</p>
+<p><strong>💼 职业建议</strong>："TCP 粘包怎么处理？"是上位机面试必考题。答"TCP 是字节流无边界，必须自管累积缓冲 + 长度前缀（或分隔符）切帧，绝不 Read 一次当一帧"——这一句直接证明你真写过 Socket 通信，不是只会 <code>HttpClient</code>。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M11',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 私有协议帧设计 + 接入 DAQMonitor 🟡</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>真实设备手册会给"通信协议"：帧格式、命令字、数据域含义、校验算法。你的 job 是把手册翻成"封帧函数 + 解析函数"。</p>
+<h3 id="sec-3-10">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>协议设计</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>封帧函数 <code>BuildFrame</code></td>
+<td>构造一个带类型字段的 JSON 请求体</td>
+</tr>
+<tr>
+<td>解帧函数</td>
+<td>解析后端返回的带约定结构的数据</td>
+</tr>
+<tr>
+<td>校验和</td>
+<td>请求签名 / 数据完整性校验</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-11">分点精讲</h3>
+<p><strong>① 典型私有帧</strong></p>
+<pre><code>[头 AA55][长度 2B][命令 1B][数据 N B][校验 1B][尾 0D]
+</code></pre>
+<ul>
+<li>校验：和校验（所有字节相加取低 8 位）或 CRC8（比 M2 的 CRC16 轻）。</li>
+<li>数据域：按手册拆成"通道号 + 原始值"，再交给 M12 的工程量转换。</li>
+</ul>
+<p><strong>② 封帧 / 解帧对称</strong></p>
+<pre><code class="language-csharp">byte[] BuildFrame(byte cmd, byte[] payload)
+{
+    var ms = new MemoryStream();
+    ms.Write(new byte[] { 0xAA, 0x55 });
+    ms.Write(BitConverter.GetBytes((short)(payload.Length + 1)));
+    ms.Write(new[] { cmd });
+    ms.Write(payload);
+    ms.Write(new[] { Checksum(ms.ToArray()) });
+    return ms.ToArray();
+}
+</code></pre>
+<p><strong>③ 接进 DAQMonitor（零改采集层）</strong>
+- <code>TcpDevice</code> 实现 <code>IDevice</code>；<code>Bootstrapper</code> 里 <code>services.AddSingleton&lt;IDevice, TcpDevice&gt;()</code> 一行切换，UI/管道/报警<strong>完全不用动</strong>——这就是 M0 面向接口的价值。</p>
+<h3 id="sec-3-12">🔬 掰开揉碎：校验到底防什么</h3>
+<p>串口/网线传输偶尔会"翻转一位"（电磁干扰）。校验和/CRC 就是"收完一帧算一遍，对不上就丢"——<strong>宁可丢一帧，也不让错误数据进报警/报表</strong>。M2 的 Modbus CRC16、M1 的串口 CRC、本模块的和校验，本质都是同一件事：用一点算力换数据可信。</p>
+<h3 id="sec-3-13">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>封帧/解帧对称：发的格式 = 收的格式</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>校验覆盖的范围要和对方一致（含头还是不含头）</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>字节序：多字节长度/数值用 <code>BitConverter</code> 时要确认大小端</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>心跳和取数分清：探活归探活，别和正常数据帧混在一起</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-14">🟢 基础题</h3>
+<p>写一个 <code>Checksum(byte[] data)</code> 和校验（所有字节相加取低 8 位），并用它给一帧 <code>[AA 55 02 01 0A]</code> 算出校验字节。</p>
+<h3 id="sec-3-15">🟡 进阶题</h3>
+<p>把 <code>BuildFrame</code> 和 <code>TryParseFrames</code> 串起来：构造一帧 → 塞进缓冲 → 切出来 → 断言命令字和数据一致（端到端自洽测试）。</p>
+<h3 id="sec-3-16">🔴 挑战题</h3>
+<p>给 <code>TcpDevice</code> 加"断线自动重连"：捕获 <code>IOException</code>/<code>SocketException</code> 后用 M9 的 <code>Retry.ExecuteAsync</code> 指数退避重连，并重订阅 <code>RecvLoop</code>；写测试模拟"连接断开后恢复"断言能继续收数。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">byte Checksum(byte[] d) { int s = 0; foreach (var b in d) s += b; return (byte)(s &amp; 0xFF); }
+// [AA 55 02 01 0A] → 0xAA+0x55+0x02+0x01+0x0A = 0x112 → 低 8 位 = 0x12
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：把 <code>TcpDevice</code> 接进 DAQ Monitor：在 <code>Bootstrapper</code> 注册，UI 点启动后能收到 TCP 模拟器（你 Day1 写的回显/发帧端）发来的点。</p>
+<p><strong>🎓 工控导师说</strong>：私有协议最坑的不是"怎么写"，而是"两边对不上"——你算 CRC 含头、对方不含头，调三天调不通。我的习惯是：<strong>先拿一个已知样本帧（设备手册给的示例），把你的解帧函数跑一遍，逐字节核对</strong>，确认解析对了再写业务逻辑。别凭空猜协议。</p>
+<p><strong>💼 职业建议</strong>：能独立"读懂一份私有协议文档 → 写出封帧/解帧 → 接进采集系统"的人，在上位机岗非常稀缺。这是 M11 给你的"可写进简历"的硬实力，面试时带一台模拟器现场 demo 最炸。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M11',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>M0 并发</strong>：<code>RecvLoop</code> 跑在 <code>Task</code>/后台线程，UI 不卡（同 M0 Day7）。</li>
+<li><strong>M1 串口</strong>：串口也是"字节流 + 事件"，M1 的解析函数<strong>直接复用</strong>到 TCP——区别只是"水从串口来还是从网口来"。</li>
+<li><strong>M9 容错</strong>：心跳超时 → 用 M9 的 <code>Retry</code> 重连；切帧缓冲思路与 M1 的 <code>FrameParser</code> 同源。</li>
+<li><strong>M12</strong>：解出的原始值交给 M12 工程量转换才变成真实物理量。</li>
+</ul>
+<h2 id="sec-2-5">🧩 完整代码组装（TcpDevice 可直接抄进工程）</h2>
+<pre><code class="language-csharp">// DaqMonitor.Core/Devices/TcpDevice.cs
+using System.Net.Sockets;
+using DaqMonitor.Core.Models;
+
+public class TcpDevice : DeviceBase
+{
+    private readonly string _host; private readonly int _port;
+    private TcpClient? _client; private NetworkStream? _ns;
+    private readonly MemoryStream _acc = new();
+
+    public TcpDevice(int id, string name, string host, int port) : base(id, name)
+        =&gt; (_host, _port) = (host, port);
+
+    public override void Connect()
+    {
+        _client = new TcpClient(); _client.Connect(_host, _port);
+        _ns = _client.GetStream(); State = DeviceState.Online;
+        _ = RecvLoop(CancellationToken.None);
+    }
+    public override void Disconnect() { _ns?.Close(); _client?.Close(); State = DeviceState.Offline; }
+
+    private async Task RecvLoop(CancellationToken ct)
+    {
+        var buf = new byte[4096];
+        while (_ns is { } ns &amp;&amp; !ct.IsCancellationRequested)
+        {
+            int n = await ns.ReadAsync(buf, 0, buf.Length, ct);
+            if (n == 0) break;
+            _acc.Write(buf, 0, n);
+            foreach (var body in TryParseFrames(_acc))
+                RaiseData(Id, body[0]);   // 简化：首字节当值，真实按协议拆
+        }
+    }
+    // TryParseFrames 见 Day1 挑战题骨架
+}
+</code></pre>
+<blockquote>
+<p>接进工程：在 <code>Bootstrapper</code> 里 <code>services.AddSingleton&lt;IDevice&gt;(_ =&gt; new TcpDevice(3, "TCP-01", "127.0.0.1", 502));</code>，UI 与采集层一行不用改。</p>
+</blockquote>
+<h2 id="sec-2-6">🔗 明日预告</h2>
+<p><strong>M12 工程量转换 与 企业数据库（SQL Server / MySQL）</strong>：今天解出的"原始字节值"还不能直接显示给人看——要标定成真实温度/压力，还要能存进企业最常见的 SQL Server/MySQL。这就是 M12 要解决的。</p>
+<h2 id="sec-2-7">📚 延伸阅读</h2>
+<ul>
+<li>Microsoft Learn · <a href="https://learn.microsoft.com/zh-cn/dotnet/api/system.net.sockets.tcpclient">TcpClient 类</a></li>
+<li>Microsoft Learn · <a href="https://learn.microsoft.com/zh-cn/dotnet/api/system.net.sockets.networkstream">NetworkStream</a></li>
+<li>SuperSocket（国产 TCP 框架）· <a href="https://github.com/kerryjiang/SuperSocket">GitHub</a></li>
+</ul>
+<h2 id="sec-2-8">📎 关联附录</h2>
+<ul>
+<li>工程量转换见 <strong>M12</strong>；多设备接入见 <strong>M1/M2/M3/M13</strong>；断线重连见 <strong>M9</strong>。</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M10.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M10 · 报表</div></a>
+  <a class="next" href="M12.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M12 · 工程量转换 + 企业数据库</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

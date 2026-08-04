@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M4 · 数据持久化 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M4">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — ORM 概念 + 建模 + 写入 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</a></li>
+<li class="l3"><a href="#sec-3-5">🔬 掰开揉碎：迁移（Migration）是干什么的</a></li>
+<li class="l3"><a href="#sec-3-6">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-7">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-8">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-9">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 查询 + 导出 CSV + 仓储模式 🟡</a><ul>
+<li class="l3"><a href="#sec-3-10">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-12">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-13">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-14">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-15">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（HistoryRepository 可直接抄进工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">模块交付清单（M4）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M4 — 数据持久化（EF Core + SQLite）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 数据持久化 EF Core（JD 主干必会·数据库）
+<strong>技术来源</strong>：🟧 第三方 NuGet <code>Microsoft.EntityFrameworkCore.Sqlite</code>（<code>dotnet add package Microsoft.EntityFrameworkCore.Sqlite</code>）。
+<strong>给简历加的能力</strong>：历史库 + 查询 / 导出 —— 上位机不只是"看实时"，还要"存下来查历史"（13K 岗位 JD 几乎都点名 SQL Server/MySQL/SQLite 至少一种）。
+<strong>前置</strong>：M0（类 / LINQ / 属性）、M3（点数据）。
+<strong>前端类比总纲</strong>：EF Core 就是你后端用过的 Prisma/TypeORM —— 写 C# 类，它自动建表、存对象、查行，不用手搓 SQL。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">模块目标</h2>
+<p>把采集到的 <code>SensorPoint</code> 历史存进 SQLite，支持按时间 / 点位查询，并能导出 CSV。学完你能讲清：<strong>DbContext 为什么用完即弃、高频写入怎么攒批、迁移是干什么的</strong>——这三点决定你写的存储层是"玩具"还是"企业级"。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — ORM 概念 + 建模 + 写入 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>EF Core 是"对象 ↔ 数据库"的桥梁（ORM）：你写 C# 类，它自动建表、把对象存进去、把行读成对象，不用手搓 SQL。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>EF Core</th>
+<th>前端后端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DbContext</code></td>
+<td>数据库连接池 / Prisma Client</td>
+</tr>
+<tr>
+<td>实体类 <code>SensorRecord</code></td>
+<td>数据模型 schema</td>
+</tr>
+<tr>
+<td><code>SaveChanges()</code></td>
+<td><code>prisma.user.create()</code> 提交</td>
+</tr>
+<tr>
+<td><code>IQueryable</code> / LINQ</td>
+<td>Prisma query / SQL</td>
+</tr>
+<tr>
+<td>Code First 迁移</td>
+<td>用代码定义表结构</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 实体 + DbContext</strong>（🟧）</p>
+<pre><code class="language-csharp">public class SensorRecord
+{
+    public int Id { get; set; }              // 自增主键
+    public int PointId { get; set; }
+    public double Value { get; set; }
+    public DateTime Time { get; set; }
+}
+
+public class AppDb : DbContext
+{
+    public DbSet&lt;SensorRecord&gt; Records =&gt; Set&lt;SensorRecord&gt;();
+    protected override void OnConfiguring(DbContextOptionsBuilder b)
+        =&gt; b.UseSqlite(&quot;Data Source=daq.db&quot;);   // 单文件数据库
+}
+</code></pre>
+<p><strong>② 写入</strong>（🟧）</p>
+<pre><code class="language-csharp">using var db = new AppDb();
+db.Records.Add(new SensorRecord { PointId = 1, Value = 25.6, Time = DateTime.Now });
+db.SaveChanges();                          // 提交事务
+</code></pre>
+<h3 id="sec-3-4">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</h3>
+<p>很多人 <code>SaveChanges()</code> 调得好好的，但被面试官问「它怎么知道哪些改了」就懵。拆开讲：
+- <strong>DbContext 是个「工作单元 + 缓存」</strong>：你 <code>db.Records.Add(x)</code> 或改 <code>r.Value=99</code>，它并<strong>不立刻写库</strong>，而是把实体记进内部「追踪缓存」并标记状态（Added/Modified/Deleted）。
+- <strong><code>SaveChanges()</code> 才一次性比对、生成 SQL、提交事务</strong>。这就是为什么你改了属性不调 <code>SaveChanges</code> 数据库没变化。
+- <strong>为什么要「短生命周期」</strong>：追踪缓存会一直持有实体引用，一个 DbContext 用一辈子 = 缓存无限膨胀 + 并发写冲突。<strong>正确</strong>：每次操作 <code>new AppDb()</code> 用完 <code>Dispose</code>（<code>using</code>），或 DI 里用 <code>Scoped</code>（一次请求/一次批量任务一个实例）。
+- <strong>高频写入策略</strong>：每秒几千条别每条 <code>SaveChanges</code>（每次都开事务，慢 10 倍）。攒一批（如每秒 500 条）一次 <code>AddRange</code>+<code>SaveChanges</code>；或用 SQLite 的 WAL 模式（<code>PRAGMA journal_mode=WAL</code>）提升并发读写。</p>
+<h3 id="sec-3-5">🔬 掰开揉碎：迁移（Migration）是干什么的</h3>
+<ul>
+<li><strong>问题</strong>：你改了 <code>SensorRecord</code> 加个字段，数据库表结构不会自动变。手动改表易错、不可复现。</li>
+<li><strong>迁移 = 把「模型变化」记成一份</strong>可版本化的脚本<strong>，一路 <code>Up</code>/<code>Down</code></strong>：
+  <code>bash
+  dotnet tool install --global dotnet-ef        # 装 CLI（一次性）
+  dotnet add package Microsoft.EntityFrameworkCore.Design
+  dotnet ef migrations add Init                 # 生成第一版迁移（建表）
+  dotnet ef database update                     # 把迁移应用到数据库
+  # 以后改模型 → dotnet ef migrations add AddColumnX → update</code></li>
+<li><strong>为什么 15K 必须会</strong>：企业项目表结构随需求变，靠迁移才能「代码和库结构同步、可回滚、可部署到客户机自动建库」。本项目为演示用了 Code First 运行时建库，真项目请用迁移。</li>
+</ul>
+<h3 id="sec-3-6">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ DbContext 用完即弃</td>
+<td>用 <code>using</code> 短生命周期，别做成全局单例后长期不释放</td>
+</tr>
+<tr>
+<td>⭐ 异步 API</td>
+<td>生产用 <code>SaveChangesAsync</code> / <code>ToListAsync</code>，避免堵 UI 线程</td>
+</tr>
+<tr>
+<td>🔥 小数精度</td>
+<td><code>double</code> 映射到 REAL，金额/精确量用 <code>decimal</code></td>
+</tr>
+<tr>
+<td>🔥 并发写</td>
+<td>多设备同时写要串行化或用连接池，避免"数据库锁定"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-7">🟢 基础题</h3>
+<p>建 <code>SensorRecord</code> 实体 + <code>AppDb</code>，插入 3 条记录并查询打印。</p>
+<h3 id="sec-3-8">🟡 进阶题</h3>
+<p>插入 100 条随机温度（1~100℃），用 LINQ 查出平均值 &gt; 50 的条数。</p>
+<h3 id="sec-3-9">🔴 挑战题</h3>
+<p>写一个 <code>BulkInsert(IEnumerable&lt;SensorRecord&gt; batch)</code>，用 <code>AddRange</code> + 单次 <code>SaveChanges</code> 批量提交，并测量「单条循环 SaveChanges」vs「攒批一次 SaveChanges」的耗时差距（体会 10 倍性能差）。</p>
+<p><strong>✅ 答案（挑战题核心）</strong></p>
+<pre><code class="language-csharp">public void BulkInsert(IEnumerable&lt;SensorRecord&gt; batch)
+{
+    using var db = new AppDb();
+    db.Records.AddRange(batch);   // 一次加一批
+    db.SaveChanges();              // 一次事务提交 —— 比每条 SaveChanges 快约 10 倍
+}
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core</code> 加 <code>Persistence/AppDb.cs</code> 与 <code>SensorRecord</code>；建 <code>HistoryRepository</code> 封装"批量写入 + 查询"（参考工程里已有的 <code>Store/PointStore.cs</code> 双索引思路）。DAQ Monitor 的 <code>DataReceived</code> 事件里把点存库。（EF 历史库接进工程为下一轮落地项。）</p>
+<p><strong>🎓 工控导师说</strong>：现场一个真实事故——某系统每秒 2000 条数据，每条都 <code>SaveChanges()</code>，结果数据库 CPU 跑满、写入积压、界面卡死。改成"每 500ms 攒一批 <code>AddRange</code> 提交"，CPU 直接掉到 5%。<strong>工业写入第一原则：攒批，别逐条提交。</strong></p>
+<p><strong>💼 职业建议</strong>：数据库是 13K 必考。面试被问"EF Core 怎么优化写入"，答"短生命周期 DbContext + 攒批 AddRange + WAL 模式 + 异步 SaveChanges"这四点是满分答案，直接区分"用过"和"懂原理"。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M4',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 查询 + 导出 CSV + 仓储模式 🟡</h2>
+<h3 id="sec-3-10">一句话讲清楚</h3>
+<p>存进去是为了查：按点位 / 时间段捞历史，再导出 CSV 给 Excel 分析 —— 这是"数据价值"闭环。</p>
+<h3 id="sec-3-11">分点精讲</h3>
+<p><strong>① LINQ 查询</strong>（🟧🟦，呼应 M0 Day 3）</p>
+<pre><code class="language-csharp">var today = db.Records
+    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; DateTime.Now.AddHours(-1))
+    .OrderBy(r =&gt; r.Time)
+    .ToList();
+
+double avg = db.Records.Where(r =&gt; r.PointId == 1).Average(r =&gt; r.Value);
+</code></pre>
+<p><strong>② 导出 CSV</strong>（🟦）</p>
+<pre><code class="language-csharp">var sb = new StringBuilder();
+sb.AppendLine(&quot;PointId,Value,Time&quot;);
+foreach (var r in today)
+    sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Time:yyyy-MM-dd HH:mm:ss}&quot;);
+File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
+</code></pre>
+<p><strong>③ 仓储模式（解耦数据访问）</strong>（🟦）</p>
+<pre><code class="language-csharp">public class HistoryRepository
+{
+    private readonly AppDb _db;
+    public HistoryRepository(AppDb db) =&gt; _db = db;
+    public void AddRange(IEnumerable&lt;SensorRecord&gt; rs) { _db.Records.AddRange(rs); _db.SaveChanges(); }
+    public List&lt;SensorRecord&gt; Query(int pointId, DateTime from, DateTime to)
+        =&gt; _db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToList();
+}
+</code></pre>
+<h3 id="sec-3-12">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 仓储模式</td>
+<td>UI 不直接碰 DbContext，便于测试和替换数据库</td>
+</tr>
+<tr>
+<td>⭐ 批量写</td>
+<td>别每条 <code>SaveChanges</code>，攒一批再提交，性能差 10 倍</td>
+</tr>
+<tr>
+<td>🔥 时区</td>
+<td>存 <code>DateTime</code> 注意 Kind（UTC/Local），导出格式要统一</td>
+</tr>
+<tr>
+<td>🔥 库文件被占用</td>
+<td>程序运行时别手动删 <code>daq.db</code>，会锁</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-13">🟢 基础题</h3>
+<p>写 <code>HistoryRepository.Query</code> 按点位 + 时间段查询，返回列表。</p>
+<h3 id="sec-3-14">🟡 进阶题</h3>
+<p>加 <code>ExportCsv(path)</code> 方法，把查询结果写成 CSV。</p>
+<h3 id="sec-3-15">🔴 挑战题</h3>
+<p>写一个 <code>GetHourlyAverage(pointId, date)</code>：用 LINQ <code>GroupBy(r =&gt; r.Time.Hour)</code> 算出当天每小时的平均温度（M10 报表的预演）。</p>
+<p><strong>✅ 答案（挑战题核心）</strong></p>
+<pre><code class="language-csharp">var hourly = db.Records
+    .Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time.Date == date)
+    .GroupBy(r =&gt; r.Time.Hour)
+    .Select(g =&gt; new { Hour = g.Key, Avg = g.Average(r =&gt; r.Value) })
+    .OrderBy(x =&gt; x.Hour).ToList();
+</code></pre>
+<p><strong>🏗️ 项目任务</strong>：<code>HistoryRepository</code> 接入 DAQ Monitor，后台定时（如每 5 秒）把缓冲的点批量入库；UI 加"导出 CSV"按钮。至此"数据持久化"达标，M10 报表直接复用这份历史数据。</p>
+<p><strong>🎓 工控导师说</strong>：客户最爱说"把昨天下午 2 点到 4 点的温度曲线导出来"。如果你的查询写成"全表捞回内存再 filter"，几十万条数据直接把程序撑爆。<strong>正确做法：查询条件下推到数据库（<code>Where</code> 翻译成 SQL），只取需要的字段和时间段</strong>——这是 LINQ to Entities 的本职。</p>
+<p><strong>💼 职业建议</strong>：仓储模式（Repository）是面试常考点，答出"UI 不依赖具体 DbContext、便于单测替换（用 InMemory 库或 Mock）"就到位了——这正对应我们 <code>DaqMonitor.Tests</code> 里用 Moq 测存储的思路。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M4',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 Day3 LINQ → 这里 <code>Where/OrderBy/Average</code> 直接复用</strong>：查询语法完全一致，只是数据源从内存集合变成数据库（<code>IQueryable</code> 会翻译成 SQL）。</li>
+<li><strong>M9 DI 生命周期 → 这里 <code>Scoped</code> 的由来</strong>：为什么 DbContext 在 DI 里用 <code>AddDbContext</code>（本质 Scoped）而非 Singleton，正是上面「变更追踪缓存」那节讲的。</li>
+<li><strong>前瞻 M10 报表</strong>：本模块存的 <code>SensorRecord</code> 历史，就是 M10 聚合报表的「米」。</li>
+</ul>
+<h2 id="sec-2-5">🧩 完整代码组装（HistoryRepository 可直接抄进工程）</h2>
+<pre><code class="language-csharp">// DaqMonitor.Core/Persistence/AppDb.cs
+public class SensorRecord
+{
+    public int Id { get; set; }
+    public int PointId { get; set; }
+    public double Value { get; set; }
+    public DateTime Time { get; set; }
+}
+public class AppDb : DbContext
+{
+    public DbSet&lt;SensorRecord&gt; Records =&gt; Set&lt;SensorRecord&gt;();
+    protected override void OnConfiguring(DbContextOptionsBuilder b)
+        =&gt; b.UseSqlite(&quot;Data Source=daq.db&quot;);
+}
+
+// DaqMonitor.Core/Persistence/HistoryRepository.cs
+public class HistoryRepository
+{
+    private readonly AppDb _db;
+    public HistoryRepository(AppDb db) =&gt; _db = db;
+    public void BulkInsert(IEnumerable&lt;SensorRecord&gt; batch)
+    { _db.Records.AddRange(batch); _db.SaveChanges(); }
+    public List&lt;SensorRecord&gt; Query(int pointId, DateTime from, DateTime to)
+        =&gt; _db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToList();
+    public void ExportCsv(string path, List&lt;SensorRecord&gt; rows)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(&quot;PointId,Value,Time&quot;);
+        foreach (var r in rows) sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Time:yyyy-MM-dd HH:mm:ss}&quot;);
+        File.WriteAllText(path, sb.ToString());
+    }
+}
+</code></pre>
+<h2 id="sec-2-6">🔗 明日预告</h2>
+<p><strong>M5 实时可视化（LiveCharts）</strong>：把 M0 的"滚动数字"升级成<strong>动态曲线 + 仪表盘</strong>——这才是上位机界面该有的样子，也是面试演示最吸睛的部分。</p>
+<h2 id="sec-2-7">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>EF Core 官方文档（变更追踪/迁移/索引全有）：https://learn.microsoft.com/ef/core/</li>
+<li>迁移入门：https://learn.microsoft.com/ef/core/managing-schemas/migrations</li>
+<li>SQLite 官方：https://www.sqlite.org/index.html</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-8">模块交付清单（M4）</h2>
+<ul>
+<li>[ ] EF Core + SQLite 建模（Code First）</li>
+<li>[ ] DbContext 短生命周期 + 变更追踪理解</li>
+<li>[ ] 批量写入（攒批提交 + WAL）</li>
+<li>[ ] LINQ 历史查询（点位 / 时间段）</li>
+<li>[ ] CSV 导出</li>
+<li>[ ] 仓储模式解耦</li>
+<li>[ ] 迁移 Migration（企业级必会）</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M3.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M3 · PLC 通信(西门子 S7)</div></a>
+  <a class="next" href="M5.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M5 · 实时可视化</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

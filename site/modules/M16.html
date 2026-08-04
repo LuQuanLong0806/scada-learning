@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M16 · 工业总线 CAN + USB-HID · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M16">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — CAN 总线（Controller Area Network）🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：CAN 的"ID 即语义"思维</a></li>
+<li class="l3"><a href="#sec-3-5">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — USB-HID 通信（仪器最爱）🟡</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：VID/PID 是 HID 的"身份证"</a></li>
+<li class="l3"><a href="#sec-3-13">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-14">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-15">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-16">🔴 挑战题</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（CAN/USB 设备，已真写进 DAQMonitor 工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🔗 明日预告（路线收尾）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">模块交付清单（M16）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M16 — 更多工业总线（CAN + USB-HID）🟡</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟢 再学 · 工业总线扩展 CAN/USB-HID（汽车/锂电等特定行业才用）
+<strong>技术来源</strong>：🟧 <code>HidLibrary</code>（USB-HID）；🟦 自研 <code>ICanChannel</code>/<code>IHidChannel</code> 抽象（复用 M9 面向接口）；真实 CAN 用厂商 DLL（PCAN/Vector/周立功）。
+<strong>给简历加的能力</strong>：CAN 和 USB-HID 是汽车/半导体/仪器极常见的通信方式（天津/苏州 JD 点名）。把它们也接进 <code>IDevice</code>，DAQ Monitor 从"串口/Modbus/PLC"扩展到"CAN/USB 也能插"。
+<strong>前置</strong>：M1（串口字节流+模拟通道）、M2（字节拼值）、M9（面向接口/DI）、M12（工程量）。
+<strong>前端类比总纲</strong>：CAN 像"群聊广播（按话题 ID 订阅）"、USB-HID 像"填表交表（固定长度 Report）"——比起串口"自由写信"更结构化。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">模块目标</h2>
+<ol>
+<li>搞懂 CAN 总线：它和 Modbus 有什么不同、帧结构、为什么汽车/设备爱用。</li>
+<li>用 <code>IDevice</code> 接口写一个 <code>CanDevice</code>（先给可测的 <code>SimulatedCanChannel</code>，再给真实 API 形态）。</li>
+<li>搞懂 USB-HID：为什么仪器走 HID 而不是虚拟串口、怎么用 <code>HidLibrary</code> 收发。</li>
+<li>写一个 <code>UsbHidDevice</code> 同样实现 <code>IDevice</code>，接进 DAQ Monitor。</li>
+</ol>
+<hr />
+<h2 id="sec-2-2">Day 1 — CAN 总线（Controller Area Network）🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>Modbus 是"你问一个寄存器、我回一个值"的<strong>主从问答</strong>。CAN 是"总线上所有节点都能随时广播一帧<strong>带 ID 的消息</strong>，谁关心这个 ID 谁就收"的<strong>多主广播</strong>。就像公司群聊（CAN，谁都能发、按话题 ID 订阅）vs 私聊点名（Modbus，主叫从答）。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>CAN 概念</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>广播一帧带 ID</td>
+<td>向一个 topic/事件名 emit</td>
+</tr>
+<tr>
+<td>按 ID 订阅</td>
+<td><code>emitter.on('topicId', handler)</code></td>
+</tr>
+<tr>
+<td>多主</td>
+<td>任何节点都能发，无需中央服务器</td>
+</tr>
+<tr>
+<td>差分双绞线</td>
+<td>WebSocket over 可靠传输层</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 为什么工业/汽车爱用 CAN</strong>
+| 特性 | 好处（企业为什么选它） |
+|---|---|
+| <strong>多主</strong> | 刹车系统和仪表盘都能主动发，不用等"主机"轮询 |
+| <strong>ID 优先级</strong> | 两个节点同时发，ID 小的自动赢（非破坏性仲裁），关键报文不丢 |
+| <strong>强校验</strong> | 每帧有 15 位 CRC + 应答位，错帧自动重发，抗干扰 |
+| <strong>双绞线差分</strong> | 和 RS485 一样抗干扰，厂里电机乱转也不易误码 |</p>
+<p><strong>② CAN 帧结构（重点：和数据怎么对应）</strong>
+标准帧（11 位 ID）简化版：</p>
+<pre><code>[ SOF ][ ID(11bit) ][ RTR ][ IDE ][ DLC(4bit,数据长度) ][ 数据(0~8字节) ][ CRC(15bit) ][ ACK ][ EOF ]
+</code></pre>
+<blockquote>
+<p>和 M2 的 Modbus 帧对比记忆：Modbus 有"从站地址+功能码+寄存器地址"；CAN 只有"<strong>ID + 数据</strong>"，<strong>没有地址</strong>——靠 ID 区分"这是哪路信号"。比如 <code>ID=0x100</code> 约定是"电机温度"，数据 <code>0x00 0xFA</code>=250 就是 25.0℃（÷10，工程量，见 M12）。</p>
+</blockquote>
+<p><strong>③ 最小可跑代码（先模拟，不用硬件）</strong>
+我们仿照 M1 的 <code>LoopbackSerialChannel</code>，给 CAN 做一个<strong>可单元测试的模拟通道</strong>：</p>
+<pre><code class="language-csharp">// CanChannel.cs —— 抽象 CAN 收发，真实/模拟都实现它
+public interface ICanChannel
+{
+    void Open();
+    void Send(ulong id, byte[] data);                 // 广播一帧
+    event Action&lt;ulong, byte[]&gt;? FrameReceived;        // 收到一帧（按 ID 订阅）
+}
+
+// 模拟通道：Send 立刻回一个假的温度帧，方便测试
+public class SimulatedCanChannel : ICanChannel
+{
+    public event Action&lt;ulong, byte[]&gt;? FrameReceived;
+    public void Open() { }
+    public void Send(ulong id, byte[] data)
+        =&gt; FrameReceived?.Invoke(0x100, new byte[] { 0x00, 0xFA }); // 假装设备回 250
+}
+</code></pre>
+<p><strong>运行结果（测试里）</strong>：调用 <code>Send(0x200, ...)</code> 后，<code>FrameReceived</code> 触发，<code>id=0x100</code>、<code>data=[0x00,0xFA]</code>。这就是"设备回了温度"，无需真实 CAN 卡。</p>
+<p><strong>④ 接进你的项目（DeviceBase 那套）</strong></p>
+<pre><code class="language-csharp">// CanDevice.cs —— 实现你项目已有的 IDevice
+public class CanDevice : DeviceBase
+{
+    private readonly ICanChannel _ch;
+    public CanDevice(int id, string name, ICanChannel ch) : base(id, name) =&gt; _ch = ch;
+
+    public override void Connect() { _ch.Open(); _ch.FrameReceived += OnFrame; State = DeviceState.Online; }
+    public override void Disconnect() { _ch.FrameReceived -= OnFrame; State = DeviceState.Offline; }
+
+    private void OnFrame(ulong id, byte[] data)
+    {
+        if (id == 0x100)                              // ID=0x100 → 点位1
+        {
+            int raw = (data[0] &lt;&lt; 8) | data[1];      // 大端：高字节在前
+            RaiseData(1, raw / 10.0);                // 触发 UI 刷新（M0 Day6 事件）
+        }
+    }
+    public override double Read(int addr) =&gt; 0;      // CAN 是广播，通常靠事件收
+    public override void Write(int addr, double value) { }
+}
+</code></pre>
+<blockquote>
+<p>🟦 注意 <code>(data[0] &lt;&lt; 8) | data[1]</code> 就是 M2 Day1 讲过的"两个字节拼一个大于 255 的数"，<strong>跨模块复用</strong>，不是新知识点。</p>
+</blockquote>
+<p><strong>⑤ 真实硬件长什么样（知道形态即可，真跑要买卡）</strong></p>
+<pre><code class="language-csharp">// 真实通道形态（以 PCAN 为例，需装驱动/DLL）
+public class PcanChannel : ICanChannel
+{
+    public void Open() =&gt; PcanBasic.Initialize(TPCANHandle.PCAN_USBBUS1, TPCANBaudrate.PCAN_BAUD_500K);
+    public void Send(ulong id, byte[] data) { /* 调厂商 API 发帧 */ }
+    public event Action&lt;ulong, byte[]&gt;? FrameReceived; // 在厂商回调里 Invoke
+}
+</code></pre>
+<blockquote>
+<p>企业里接 CAN <strong>几乎都用厂商 DLL</strong>（周立功/PCAN/Vector），不同卡 API 不同，但都包成我们上面的 <code>ICanChannel</code>——这就是 M9"面向接口"的价值：<strong>换卡不换业务代码</strong>。</p>
+</blockquote>
+<h3 id="sec-3-4">🔬 掰开揉碎：CAN 的"ID 即语义"思维</h3>
+<p>Modbus 你脑子里要想"寄存器 40001 是温度"；CAN 你要想"ID 0x100 是温度"。<strong>ID 就是信号的名字</strong>，和数据内容解耦。好处：加一路新信号只要约定一个新 ID，不用和设备协商"下一个空闲寄存器地址"——这对多节点系统极友好。</p>
+<h3 id="sec-3-5">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>CAN = 多主广播 + ID 区分信号，无地址</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>字节序：(data[0]&lt;&lt;8)</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>ID 冲突：两个节点用同一 ID 广播会互相干扰</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>真实 CAN 要终端电阻/波特率一致，否则通信失败</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🟢 基础题</h3>
+<p>写一个 xUnit 测试：用 <code>SimulatedCanChannel</code> 构造 <code>CanDevice</code>，触发 <code>Send</code>，断言"点位1 收到 25.0"。</p>
+<h3 id="sec-3-7">🟡 进阶题</h3>
+<p>改 <code>SimulatedCanChannel</code> 让它回 <code>0x01 0x2C</code>（=300），算算点位1应该是多少℃？（答案：30.0℃）</p>
+<h3 id="sec-3-8">🔴 挑战题</h3>
+<p>给 <code>CanDevice</code> 支持"多 ID 映射"：用配置 <code>Dictionary&lt;ulong, int&gt;</code> 把不同 CAN ID 映射到不同点位号（而不是硬编码 0x100→点位1），写测试验证两个 ID 分别进不同点位。</p>
+<p><strong>✅ 答案（进阶题）</strong>
+300/10.0 = 30.0。</p>
+<p><strong>🏗️ 项目任务</strong>：把 <code>CanDevice</code> 接进 DAQ Monitor（真实工程已有文件，见文末），UI 实时表能显示 CAN 来的温度点。</p>
+<p><strong>🎓 工控导师说</strong>：CAN 总线最经典的新手坑是"忘了终端电阻"——总线两端各要一个 120Ω 电阻，没它信号反射、通信时好时坏，示波器上看波形全是毛刺。还有波特率，所有节点必须一致（250k/500k/1M），差一点都不通。<strong>现场查 CAN 不通，先量终端电阻、再对波特率</strong>，比改代码快。</p>
+<p><strong>💼 职业建议</strong>：CAN 在汽车/半导体/锂电设备里是标配。简历写"熟悉 CAN 总线通信、能用 IDevice 抽象接入 DAQ 系统"，对投这类行业的岗位是明确加分——它们 JD 常点和 Modbus/TCP 并列点名 CAN。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M16',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — USB-HID 通信（仪器最爱）🟡</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>大量实验室/医疗仪器（流量计、注射泵、扫码枪、电子天平）走 USB-HID：<strong>免驱</strong>（系统原生支持）、即插即用、用 VID/PID 固定识别。JD 点名的"USB"通常指它。</p>
+<h3 id="sec-3-10">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>虚拟串口 CDC</td>
+<td>需要装驱动、端口号会变</td>
+</tr>
+<tr>
+<td>USB-HID</td>
+<td>系统原生支持，按 VID/PID 认设备</td>
+</tr>
+<tr>
+<td>Report 固定长度</td>
+<td>填一张固定格式的表交上去</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-11">分点精讲</h3>
+<p><strong>① 为什么仪器走 USB-HID 而不是虚拟串口</strong>
+| 方式 | 痛点 | HID 的优势 |
+|---|---|---|
+| 虚拟串口(CDC) | 每次换 USB 口可能变 COM 号；要装驱动 | <strong>免驱</strong>（操作系统原生支持 HID） |
+| 网口 | 仪器通常不会给你配 IP | HID 即插即用，VID/PID 固定识别 |</p>
+<p><strong>② HID 通信模型（和串口的区别）</strong>
+- 串口：你 <code>Write(bytes)</code> 一串任意长度，对面 <code>Read</code> 一串。
+- HID：<strong>固定报文大小</strong>（如 64 字节/包），你填一个 <code>Report</code>（报告），设备回一个 <code>Report</code>。像"填表交表"而非"自由写信"。</p>
+<p><strong>③ 最小可跑代码（用 HidLibrary，真实库）</strong></p>
+<pre><code class="language-bash">dotnet add package HidLibrary
+</code></pre>
+<pre><code class="language-csharp">// UsbHidDevice.cs —— 同样实现你项目的 IDevice
+public class UsbHidDevice : DeviceBase
+{
+    private readonly HidDevice _hid;
+    public UsbHidDevice(int id, string name, int vid, int pid) : base(id, name)
+        =&gt; _hid = HidDevices.Enumerate(vid, pid).FirstOrDefault()
+           ?? throw new InvalidOperationException(&quot;未找到 HID 设备&quot;);
+
+    public override void Connect()
+    {
+        _hid.Open();
+        _hid.Inserted += (s, e) =&gt; State = DeviceState.Online;
+        _hid.Removed += (s, e) =&gt; State = DeviceState.Offline;
+        _hid.ReadReport(OnReport);          // 异步等报告
+        State = DeviceState.Online;
+    }
+    public override void Disconnect() =&gt; _hid.Close();
+
+    private void OnReport(HidReport report)
+    {
+        var d = report.Data;                // 固定长度字节数组
+        if (d[0] == 0x01)                   // 约定：报告ID=1 是温度
+            RaiseData(1, (d[1] &lt;&lt; 8) | d[2] / 10.0);
+        _hid.ReadReport(OnReport);          // 继续等下一包（循环）
+    }
+    public override double Read(int addr) =&gt; 0;
+    public override void Write(int addr, double value)
+    {
+        var outBuf = new byte[_hid.Capabilities.FeatureReportLength];
+        outBuf[0] = 0x02; outBuf[1] = (byte)value;  // 发控制命令
+        _hid.Write(outBuf);
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>HidDevices.Enumerate(vid,pid)</code>：按"厂商ID+产品ID"找到那台仪器（不用管它插哪个 USB 口）。
+- <code>ReadReport(OnReport)</code>：异步等仪器"交表"，收到就进 <code>OnReport</code>。
+- <code>report.Data</code>：那一包固定长度的字节，<code>d[0]</code> 是报告类型，<code>d[1]d[2]</code> 是数值。
+- <code>Write(outBuf)</code>：给仪器发一包控制指令（如"开始采样"）。</p>
+<p><strong>④ 没有真实仪器怎么练（沿用 T2 替代方案）</strong>
+- 用 <strong>HID 调试助手</strong>（如"USB HID 调试工具"）当"假仪器"，手动发 <code>01 00 FA</code> 看上位机收到 25.0。
+- 或写 <code>SimulatedHidChannel</code>（同 Day1 的 <code>SimulatedCanChannel</code> 套路），测试里回包。</p>
+<h3 id="sec-3-12">🔬 掰开揉碎：VID/PID 是 HID 的"身份证"</h3>
+<p>串口靠"COM3 这个端口号"找设备——换了个 USB 口变 COM4 就找不到了。HID 靠 <strong>VID（厂商ID）+ PID（产品ID）</strong> 在全球唯一标识一台设备，插哪个口都一样能认。这就是为什么仪器爱用 HID：<strong>稳定识别、免驱、即插即用</strong>。</p>
+<h3 id="sec-3-13">⭐ 重点 / 🔥 坑</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 重点</td>
+<td>HID 免驱、用 VID/PID 找设备、固定长度 Report</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>Report 长度必须按设备 Capabilities 填，错了写不进</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>异步 ReadReport 要"收到后继续 ReadReport"维持循环</td>
+</tr>
+<tr>
+<td>🔥 坑</td>
+<td>d[0] 报告类型约定别和设备文档冲突</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-14">🟢 基础题</h3>
+<p>列出 USB-HID 和串口在"你怎么找到设备"上的区别（提示：HID 用 VID/PID，串口用 COM 号）。</p>
+<h3 id="sec-3-15">🟡 进阶题</h3>
+<p>在 <code>OnReport</code> 里，<code>d[0]==0x01</code> 表示温度。若仪器改约定 <code>d[0]==0x02</code> 是压力(单位 0.1kPa)，写一行把压力转成 kPa 的 <code>RaiseData</code> 调用。</p>
+<h3 id="sec-3-16">🔴 挑战题</h3>
+<p>写 <code>SimulatedHidChannel</code> 模拟仪器：构造时存一组"假报告"，<code>ReadReport</code> 回调里回包；用 xUnit 验证 <code>UsbHidDevice</code> 能正确解出温度和压力两个点——零硬件测通整条链路。</p>
+<p><strong>✅ 答案（进阶题）</strong>
+<code>if (d[0] == 0x02) RaiseData(2, ((d[1]&lt;&lt;8)|d[2]) / 10.0);</code></p>
+<p><strong>🏗️ 项目任务</strong>：把 <code>UsbHidDevice</code> 接进 DAQ Monitor（真实工程已有文件，见文末），用 <code>SimulatedHidChannel</code> 跑通测试，证明"USB 仪器也能进采集系统"。</p>
+<p><strong>🎓 工控导师说</strong>：USB-HID 最爽的是"免驱即插即用"——但坑在 <strong>Report 长度</strong>。设备规定 64 字节一包，你发 65 字节直接失败，发 63 字节可能被补零或拒收。永远先读 <code>Capabilities.FeatureReportLength</code> 再填缓冲，别凭感觉写长度。</p>
+<p><strong>💼 职业建议</strong>：医疗/实验室/精密仪器行业，USB-HID 是主流。会 HID 通信 + 能用 IDevice 抽象接入，是这类细分行业岗位的明确加分项，JD 常和"串口/Modbus"并列点名"USB"。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M16',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>M1</strong>（串口）：CAN/USB 的"模拟通道"套路直接复用 M1 的 <code>LoopbackSerialChannel</code> 思想——<strong>真实硬件不可达时，先模拟打通逻辑</strong>。</li>
+<li><strong>M2</strong>（Modbus）：CAN 没有"地址+功能码"，只有 ID+数据；理解差异才能不混用。</li>
+<li><strong>M9</strong>（面向接口/DI）：<code>ICanChannel</code>/<code>IHidChannel</code> 抽象让"换硬件不换业务"，是 M9 分层架构的真实落地。</li>
+<li><strong>M12</strong>（工程量）：<code>raw/10.0</code> 就是 M12 的线性标定，跨模块复用。</li>
+<li><strong>M15</strong>（调试工具）：CAN 用 CANalyst 协议分析仪、USB 用 HID 调试助手，正是 M15 Day3 的工具。</li>
+</ul>
+<h2 id="sec-2-5">🧩 完整代码组装（CAN/USB 设备，已真写进 DAQMonitor 工程）</h2>
+<pre><code class="language-csharp">// src/DaqMonitor.Core/Devices/CanDevice.cs + ICanChannel.cs + SimulatedCanChannel.cs
+// src/DaqMonitor.Core/Devices/UsbHidDevice.cs + IHidChannel.cs + SimulatedHidChannel.cs
+// src/DaqMonitor.Core/Health/DeviceHealthMonitor.cs（M9 容错 + M15 心跳重连落地）
+</code></pre>
+<blockquote>
+<p><strong>本模块的设备代码已真写进 DAQMonitor 工程</strong>（2026-07-23 工程代码落地轮次），不是只讲不练：
+- <code>CanDevice</code>/<code>ICanChannel</code>/<code>SimulatedCanChannel</code>（CAN 设备实现 IDevice，零硬件可测）
+- <code>UsbHidDevice</code>/<code>IHidChannel</code>/<code>SimulatedHidChannel</code>（USB-HID 设备实现 IDevice）
+- <code>DeviceHealthMonitor</code>（心跳探活 + 退避重连，本模块设备也可被它守护）
+- 配套单测：<code>CanDeviceTests</code> / <code>UsbHidDeviceTests</code> / <code>DeviceHealthMonitorTests</code>（共 6 个，全绿）
+- 组合根 <code>Bootstrapper.cs</code> 已加 CAN/USB/心跳的注册示例注释。</p>
+<p>真实硬件形态：把 <code>SimulatedXxxChannel</code> 换成 PCANChannel（CAN）或 HidLibrary 实现的 <code>IHidChannel</code>（USB），业务类一行不动——和 SerialDevice/LoopbackSerialChannel 同一套路。</p>
+</blockquote>
+<h2 id="sec-2-6">🔗 明日预告（路线收尾）</h2>
+<p><strong>M10 报表（历史聚合 + Excel/PDF 导出）</strong>：把 M4 存的历史库、M5 曲线、M6 报警收口成"能交付客户的报表"。至此 M0→M16 主线 + 广度全部串完，你的 DAQ Monitor 成为<strong>能演示、能交付、覆盖 13K→15K 主流 JD</strong> 的简历项目。下一步：写简历初稿 + 投递。</p>
+<h2 id="sec-2-7">📚 延伸阅读</h2>
+<ul>
+<li>CAN 总线 · <a href="https://zh.wikipedia.org/wiki/控制器區域網絡">维基百科</a></li>
+<li>HidLibrary · <a href="https://github.com/mikeobrien/HidLibrary">GitHub</a></li>
+<li>PCAN-Basic · <a href="https://www.peak-system.com/">PEAK-System</a></li>
+</ul>
+<h2 id="sec-2-8">模块交付清单（M16）</h2>
+<ul>
+<li>[ ] 能口述 CAN 与 Modbus 的核心区别（广播ID vs 主从问答）</li>
+<li>[ ] 写/读懂 <code>CanDevice</code> + <code>SimulatedCanChannel</code> 并跑通测试</li>
+<li>[ ] 能说清 USB-HID 为什么免驱、怎么用 VID/PID 找设备</li>
+<li>[ ] 写/读懂 <code>UsbHidDevice</code>（HidLibrary）并理解 ReadReport 循环</li>
+<li>[ ] 完成 Day1/Day2 练习</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M15.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M15 · 工程协作与联调</div></a>
+  <a class="next" href="getting-started.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">实操入门 · 从零搭建企业级工程</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

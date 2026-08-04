@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>岗位驱动 · 知识点全景图谱与缺口审计 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="jobmap">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">0. 数据来源（全部真实，非臆测）</a><ul>
+<li class="l3"><a href="#sec-3-1">0.1 今天新扒到的真实 JD（2026-07-23，初中级）</a></li>
+<li class="l3"><a href="#sec-3-2">0.2 之前已调研的真实 JD（2026-07-23 早，13–15K）</a></li>
+<li class="l3"><a href="#sec-3-3">0.3 词频结论（企业最常用，按出现率）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">1. 企业常用度分级说明</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">2. 分级知识点图谱 + 覆盖审计</a><ul>
+<li class="l3"><a href="#sec-3-4">2.1 初级（能写基础采集界面，1–3 年，7–12K）</a></li>
+<li class="l3"><a href="#sec-3-5">2.2 中级（多设备/数据库/报警，可独立做项目，10–16K）</a></li>
+<li class="l3"><a href="#sec-3-6">2.3 资深中级（架构/工程化/可交付企业，13–15K+）</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">3. 遗漏清单（这是你最在意的"不能遗漏"）</a><ul>
+<li class="l3"><a href="#sec-3-7">3.1 本次审计新发现的真实遗漏（之前调研没覆盖）</a></li>
+<li class="l3"><a href="#sec-3-8">3.2 之前已发现、本次确认仍偏薄/遗漏</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">4. 补强计划（P0/P1/P2）+ 模块映射</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">5. 一句话结论</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">6. 本次已落地的动作（工程代码落地轮次 2026-07-23）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">岗位驱动 · 知识点全景图谱与缺口审计（初级 → 资深中级）</h1>
+<blockquote>
+<p>编写时间：2026-07-23｜目的：用<strong>真实招聘 JD</strong> 反推"从初级到资深中级上位机工程师"必须掌握的知识点，逐项审计现有 <code>M0–M14 + prep + 工具箱</code> 文档的覆盖情况，找出<strong>遗漏</strong>，并给出补强计划。
+这是对你"不能遗漏、要全面详细讲透、对照企业要求"要求的落地核查。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">0. 数据来源（全部真实，非臆测）</h2>
+<h3 id="sec-3-1">0.1 今天新扒到的真实 JD（2026-07-23，初中级）</h3>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>岗位</th>
+<th>薪资</th>
+<th>年限</th>
+<th>关键要求原文摘录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>智联招聘</td>
+<td>c#上位机开发工程师-<strong>初级</strong></td>
+<td>7–9K</td>
+<td>1–3年</td>
+<td>"熟悉 Windows 下各种通信协议，包括 <strong>TCP/IP 通信、Socket 通信、串口通信、Modbus、CAN</strong>"；"熟悉 SQL…MySQL/SQL Server/SQLite"；"熟悉 .Net Web 开发 HTML/CSS/JS"；"编写产品设计开发输出的相关文档"</td>
+</tr>
+<tr>
+<td>猎聘</td>
+<td>初级软件工程师(<strong>上位机</strong>)</td>
+<td>10–20K·14薪</td>
+<td>1–3年</td>
+<td>"下位机通信协议实现与调试（<strong>USB/串口/蓝牙</strong>）"；"掌握 Git 版本管理工具，了解<strong>敏捷开发流程</strong>"；"熟悉<strong>示波器或逻辑分析仪</strong>基本使用"；"编写软件设计说明、接口文档及单元测试报告"</td>
+</tr>
+<tr>
+<td>某招聘站</td>
+<td>C#<strong>初级</strong>上位机开发工程师</td>
+<td>12–16K·13薪</td>
+<td>不限</td>
+<td>"熟悉多线程、异步任务、数据库"；"掌握 <strong>Linq、lambda、泛型、委托/事件、多线程、串口232/485、网络编程、Socket</strong>"；"掌握任何一种 <strong>ORM 框架</strong>"；"Winform/WCF/WPF 下的 C/S 端"；"熟悉<strong>前后端分离架构</strong>，了解 VUE"；加分：<strong>PLC 相关软件、图形算法、数据处理算法</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">0.2 之前已调研的真实 JD（2026-07-23 早，13–15K）</h3>
+<p>BOSS·江松科技(15–28K)：C#+WinForm/WPF+多线程+SQL Server+PLC+运动控制卡+视觉
+BOSS·拓斯达(10–15K)：C#+WinForm/WPF+CS两层/三层+ModbusTCP/RTU/Socket/WebApi/MQTT+MySQL/SQL Server+视觉
+猎聘·华威科(13–28K)：C/C++/C#+QT/MFC+硬件SDK+SQL+工业协议(Modbus/Ethernet/TCP-IP/RS485)</p>
+<h3 id="sec-3-3">0.3 词频结论（企业最常用，按出现率）</h3>
+<p>🔴 <strong>100% 必提</strong>：C#/.NET、WinForm 或 WPF（双修最稳）、多线程/异步、串口、Modbus、数据库(至少一种)、面向对象/分层
+🔴 <strong>高频</strong>：Socket/TCP-IP、PLC(S7)、MVVM、Git、文档能力
+🟠 <strong>重要</strong>：自定义控件、配置化(Ini/XML/JSON)、OPC UA/MQTT/WebApi、单元测试、敏捷
+🟡 <strong>行业加分</strong>：运动控制卡、机器视觉、CAN、USB-HID、Prism、WCF、算法</p>
+<hr />
+<h2 id="sec-2-2">1. 企业常用度分级说明</h2>
+<ul>
+<li>🔴 <strong>必会（初级就要）</strong>：不会基本投不出去</li>
+<li>🟠 <strong>重要（中级）</strong>：独立做项目绕不开</li>
+<li>🟡 <strong>加分（行业特定）</strong>：设备控制/视觉类岗位要，纯监控类不强制</li>
+<li>⚫ <strong>过程能力</strong>：工程协作、调试、文档——决定你能不能"交付企业"</li>
+</ul>
+<h2 id="sec-2-3">2. 分级知识点图谱 + 覆盖审计</h2>
+<p>状态：<code>✅讲透</code> / <code>⚠️偏薄</code> / <code>❌遗漏</code></p>
+<h3 id="sec-3-4">2.1 初级（能写基础采集界面，1–3 年，7–12K）</h3>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>常用度</th>
+<th>真实 JD 证据</th>
+<th>对应文档</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C# 语法（类型/类/集合/LINQ/委托事件/泛型/lambda）</td>
+<td>🔴</td>
+<td>上海初级 JD 原句</td>
+<td>M0 Day1–6</td>
+<td>✅讲透</td>
+</tr>
+<tr>
+<td>.NET 开发环境（VS/VS Code/dotnet CLI）</td>
+<td>🔴</td>
+<td>天津初级 JD</td>
+<td>M0 Day1 + 实操入门</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>WinForm / WPF 界面（至少一种）</td>
+<td>🔴</td>
+<td>全部</td>
+<td>M0 Day8 / M8 / M14</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>串口 RS232/485</td>
+<td>🔴</td>
+<td>全部</td>
+<td>M1</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>TCP/IP / Socket 网络编程</td>
+<td>🔴</td>
+<td>全部</td>
+<td>M11</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>数据解析与本地存储</td>
+<td>🔴</td>
+<td>苏州初级 JD</td>
+<td>M1 / M4</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>多线程 / 异步基础</td>
+<td>🔴</td>
+<td>全部</td>
+<td>M0 Day7</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>数据库基础（SQL/SQLite/MySQL/SQL Server 一种）</td>
+<td>🔴</td>
+<td>全部</td>
+<td>M4 / M12</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>LINQ / lambda / ORM</td>
+<td>🔴</td>
+<td>上海初级 JD</td>
+<td>M0 Day3 / M4 / M12</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Git 版本管理</strong></td>
+<td>🔴</td>
+<td>苏州初级 JD 原句</td>
+<td>—</td>
+<td>❌<strong>遗漏</strong></td>
+</tr>
+<tr>
+<td><strong>敏捷开发流程</strong></td>
+<td>🔴</td>
+<td>苏州初级 JD 原句</td>
+<td>—</td>
+<td>❌<strong>遗漏</strong></td>
+</tr>
+<tr>
+<td><strong>硬件调试工具（示波器/逻辑分析仪）</strong></td>
+<td>🔴</td>
+<td>苏州初级 JD 原句</td>
+<td>硬件替代方案(部分)</td>
+<td>❌<strong>遗漏</strong></td>
+</tr>
+<tr>
+<td><strong>USB / 蓝牙 通信</strong></td>
+<td>🔴</td>
+<td>苏州初级 JD 原句</td>
+<td>—</td>
+<td>❌<strong>遗漏</strong></td>
+</tr>
+<tr>
+<td>文档（设计说明/接口文档/测试报告）</td>
+<td>⚫</td>
+<td>全部 JD</td>
+<td>文档能力附录</td>
+<td>⚠️偏薄(缺动手练)</td>
+</tr>
+<tr>
+<td>单元测试</td>
+<td>🟠</td>
+<td>天津/苏州 JD</td>
+<td>M9 Day1</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">2.2 中级（多设备/数据库/报警，可独立做项目，10–16K）</h3>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>常用度</th>
+<th>对应文档</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modbus RTU/TCP</td>
+<td>🔴</td>
+<td>M2</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>PLC 通信（西门子 S7）</td>
+<td>🔴</td>
+<td>M3</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>MVVM 架构</td>
+<td>🔴</td>
+<td>M8</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>面向对象/分层/接口/DI</td>
+<td>🔴</td>
+<td>M9</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>配置化（Ini/XML/JSON）</td>
+<td>🟠</td>
+<td>M8 Day3</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>报表（Excel/PDF）</td>
+<td>🟠</td>
+<td>M10</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>报警引擎 + 日志</td>
+<td>🟠</td>
+<td>M6</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>OPC UA / MQTT 上云</td>
+<td>🟠</td>
+<td>M7</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>工程量转换 / 量程标定</td>
+<td>🟠</td>
+<td>M12</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>企业数据库换库（SQL Server/MySQL）</td>
+<td>🟠</td>
+<td>M12</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>容错重试</td>
+<td>🟠</td>
+<td>M9 Day4</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>心跳重连</td>
+<td>🟠</td>
+<td>M9 Day4(已并)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>多品牌 PLC + 国产库(Hsl)</td>
+<td>🟠</td>
+<td>M13</td>
+<td>⚠️偏薄</td>
+</tr>
+<tr>
+<td>自定义控件（WPF 自绘）</td>
+<td>🟠</td>
+<td>M14(WinForm 自绘)</td>
+<td>⚠️偏薄(WPF 侧)</td>
+</tr>
+<tr>
+<td><strong>CAN 总线</strong></td>
+<td>🟡</td>
+<td>—</td>
+<td>❌<strong>遗漏(本次新发现)</strong></td>
+</tr>
+<tr>
+<td><strong>WebApi / REST / 前后端分离</strong></td>
+<td>🟠</td>
+<td>—</td>
+<td>❌<strong>遗漏</strong></td>
+</tr>
+<tr>
+<td><strong>WCF</strong></td>
+<td>🟡</td>
+<td>—</td>
+<td>❌<strong>遗漏(niche)</strong></td>
+</tr>
+<tr>
+<td>算法/数据处理（滤波/标定点/拟合）</td>
+<td>🟠</td>
+<td>仅 LINQ</td>
+<td>⚠️偏薄</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">2.3 资深中级（架构/工程化/可交付企业，13–15K+）</h3>
+<table>
+<thead>
+<tr>
+<th>知识点</th>
+<th>常用度</th>
+<th>对应文档</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>统一采集架构（Channel<T> 批量）</td>
+<td>🟠</td>
+<td>M9 Day3</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>生产容错（Retry 指数退避）</td>
+<td>🟠</td>
+<td>M9 Day4</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>工程素养（单测/Moq/DI/分层）</td>
+<td>🔴</td>
+<td>M9</td>
+<td>✅(超出一般 JD)</td>
+</tr>
+<tr>
+<td><strong>Prism 框架（企业标准 MVVM+模块化+DI+导航）</strong></td>
+<td>🟠</td>
+<td>—</td>
+<td>❌<strong>遗漏(仍缺口)</strong></td>
+</tr>
+<tr>
+<td>运动控制卡（固高/雷赛/凌华）</td>
+<td>🟡</td>
+<td>—</td>
+<td>❌(P2 加分)</td>
+</tr>
+<tr>
+<td>机器视觉（Halcon/VisionPro/OpenCV）</td>
+<td>🟡</td>
+<td>—</td>
+<td>❌(P2 加分)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-4">3. 遗漏清单（这是你最在意的"不能遗漏"）</h2>
+<h3 id="sec-3-7">3.1 本次审计<strong>新发现</strong>的真实遗漏（之前调研没覆盖）</h3>
+<ol>
+<li>❌ <strong>Git 版本管理 + 敏捷开发流程</strong> —— 初级 JD <strong>普遍硬性要求</strong>，现有文档 0 覆盖。这是"能不能进团队干活"的门槛，不是可选项。</li>
+<li>❌ <strong>硬件调试工具（示波器 / 逻辑分析仪 / 协议分析仪 / 串口助手）</strong> —— 苏州初级 JD 原句"熟悉示波器或逻辑分析仪基本使用"。我们只有"串口助手"提了一句，没系统讲怎么用这些工具看信号、定位联调问题。</li>
+<li>❌ <strong>CAN 总线</strong> —— 天津初级 JD 原句把 CAN 和 Modbus/TCP/IP/串口并列点名。工业现场（尤其汽车/军工/半导体设备）极常见，现有文档完全没提。</li>
+<li>❌ <strong>USB / HID 通信</strong> —— 苏州初级 JD 原句"USB/串口/蓝牙"。仪器类设备（流量计、泵、扫码枪）大量走 USB-HID，现有文档没覆盖。</li>
+<li>❌ <strong>WebApi / REST / 前后端分离</strong> —— 上海初级 JD 原句 + 拓斯达 JD(WebApi)。部分上位机要暴露 HTTP 接口给 MES/其他系统，现有只有 MQTT/OPC UA。</li>
+<li>❌ <strong>Prism 框架</strong> —— 之前调研已标为 gap，至今未补。工业上位机"企业标准"MVVM 框架，比自研 Bootstrapper 更规范。</li>
+<li>❌ <strong>WCF</strong> —— 个别 JD 点名（上海初级），niche，但既然 JD 写了就记上。</li>
+</ol>
+<h3 id="sec-3-8">3.2 之前已发现、本次确认仍偏薄/遗漏</h3>
+<ol start="8">
+<li>⚠️ <strong>算法/数据处理</strong>：JD 点名"数据处理算法/图形算法"，现有只讲 LINQ，没系统讲<strong>滤波(滑动平均/中值)、标定点(线性/查表)、曲线拟合</strong>——这些是工程量转换的底层。</li>
+<li>⚠️ <strong>多品牌 PLC + HslCommunication</strong>：M13 仅 3.4KB，太薄。</li>
+<li>⚠️ <strong>WPF 自定义控件</strong>：M14 只做了 WinForm 自绘，WPF 侧（你项目用的正是 WPF）反而没专门练。</li>
+<li>⚠️ <strong>文档能力练习量</strong>：模板有，但缺"动手写一份真实协议文档/接口文档"的练习。</li>
+</ol>
+<hr />
+<h2 id="sec-2-5">4. 补强计划（P0/P1/P2）+ 模块映射</h2>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>补强项</th>
+<th>落到哪</th>
+<th>是否影响"独立交付"</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>Git + 敏捷 + 硬件调试工具 + 联调定位</td>
+<td><strong>新建 M15</strong></td>
+<td>✅ 初级门槛</td>
+</tr>
+<tr>
+<td><strong>P0</strong></td>
+<td>CAN 总线 + USB-HID</td>
+<td><strong>新建 M16</strong></td>
+<td>✅ 工业现场常见</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>Prism + WebApi/REST + WCF 概览</td>
+<td><strong>新建 M17</strong></td>
+<td>⚠️ 提升企业味</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>算法/数据处理（滤波/标定/拟合）</td>
+<td><strong>并入 M12 Day1</strong></td>
+<td>✅ 工程量底层</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>WPF 自定义控件专练</td>
+<td><strong>扩展 M14 Day2</strong></td>
+<td>⚠️ JD 点名</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>文档动手练习（写一份协议文档）</td>
+<td><strong>扩展 文档能力附录</strong></td>
+<td>✅ 交付硬要求</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>运动控制卡 / 机器视觉</td>
+<td>行业加分，监控类不强制</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>重要</strong>：所有新建/扩展都保持"教练带练"风格（先跑/逐行白话/运行结果/多举例/多练习），并<strong>接入 DAQMonitor 项目</strong>（边学边做）——新建的设备通信（CAN/USB）实现 <code>IDevice</code> 接口，Git/调试工具落到工程协作。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-6">5. 一句话结论</h2>
+<p>现有 <code>M0–M14</code> 已经扎实覆盖了<strong>初中级主干必会项</strong>（C#→WPF→串口→Modbus→PLC→数据库→并发→上云→工程素养），且<strong>工程素养超出一般 JD</strong>。但<strong>本次对照真实初中级 JD 审计，新发现 6 个真实遗漏</strong>：<code>Git/敏捷</code>、<code>硬件调试工具</code>、<code>CAN</code>、<code>USB-HID</code>、<code>WebApi/REST</code>、<code>Prism</code>——其中前 4 个是初级岗硬要求，必须补。</p>
+<p>补完 <code>M15(工程协作与联调) + M16(工业总线 CAN/USB) + M17(框架级 Prism/WebApi)</code> 并把 M12/M14/文档附录补厚后，<strong>学完 = 资深中级达标、项目可交付企业</strong>。运动控制卡/机器视觉属行业加分，按目标岗位（你做的是 DAQ 监控类）暂不强制。</p>
+<hr />
+<h2 id="sec-2-7">6. 本次已落地的动作（工程代码落地轮次 2026-07-23）</h2>
+<ul>
+<li>✅ 新建 <code>M15_工程协作与联调_深度版.md</code>（Git/敏捷/调试工具/联调）</li>
+<li>✅ 新建 <code>M16_更多工业总线_CAN_USB_深度版.md</code>（CAN/USB-HID + IDevice 实现）</li>
+<li>✅ 注册进 <code>build_site.py</code>，站点重建为 31 页</li>
+<li>✅ <strong>工程代码落地（边学边做）</strong>：把 M15/M16 的设备代码真写进 DAQMonitor ——</li>
+<li>M16：<code>CanDevice</code>/<code>UsbHidDevice</code> + <code>ICanChannel</code>/<code>IHidChannel</code> + <code>SimulatedCanChannel</code>/<code>SimulatedHidChannel</code>（实现 IDevice，零硬件可测）</li>
+<li>M15：<code>DeviceHealthMonitor</code>（心跳探活 + 连续超时判掉线 + 指数退避重连）+ <code>SerialDevice.RawLog</code> 调试开关</li>
+<li><code>Bootstrapper</code> 已加 CAN/USB/心跳注册示例注释</li>
+<li>新增测试 <code>CanDeviceTests</code>/<code>UsbHidDeviceTests</code>/<code>DeviceHealthMonitorTests</code>/<code>SerialDevice.RawLog</code> 共 7 个，工程 <strong>28 个测试全绿、0 错误 0 警告</strong></li>
+<li>⏳ 待做（下一轮）：M17(Prism/WebApi/WCF)、M12 算法、M14 WPF 控件、文档动手练习、ModbusDevice/PlcDevice 真落工程、简历初稿、腾讯文档云同步</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="audit.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">质量复核 · 15K 完整性复核</div></a>
+  <a class="next" href="docs.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">文档能力 · 设计/协议/操作/测试文档</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>
