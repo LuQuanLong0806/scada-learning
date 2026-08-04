@@ -1,5 +1,6 @@
 using DaqMonitor.Core.Acquisition;
 using DaqMonitor.Core.Alarms;
+using DaqMonitor.Core.Auth;
 using DaqMonitor.Core.Cloud;
 using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Diagnostics;
@@ -43,6 +44,11 @@ public static class Bootstrapper
         services.AddSingleton<AlarmEngine>();
         // 诊断/调试服务：采集统计 + 结构化日志，UI 的诊断面板直接绑它
         services.AddSingleton<DiagnosticsService>();
+
+        // —— M17 工业安全:用户认证 + 审计日志(单例,整个应用生命周期共享) ——
+        services.AddSingleton<ICurrentUserService, CurrentUserService>();
+        services.AddSingleton<AuditService>();
+        services.AddSingleton<AuthService>();
 
         // 管道：定时 200ms 批量出队（见 AcquisitionPipeline，统一采集架构）
         services.AddSingleton<AcquisitionPipeline>(_ => new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
@@ -115,6 +121,7 @@ public static class Bootstrapper
             var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDb>>();
             using var db = factory.CreateDbContext();
             db.Database.EnsureCreated();
+            SeedDefaultUsers(db);
         }
 
         // 预置两条报警规则：点位 1 超 100 判 Critical、点位 2 超 100 判 Warning（带回滞 2，防抖动）
@@ -123,5 +130,48 @@ public static class Bootstrapper
         alarms.Add(new AlarmRule { PointId = 2, Threshold = 100, IsHigh = true, Level = AlarmLevel.Warning, Hysteresis = 2 });
 
         return provider;
+    }
+
+    /// <summary>
+    /// 种子默认账号:3 角色 demo(开发期用,生产部署应首次启动让管理员自设密码)。
+    /// 默认密码:
+    ///   admin / admin123      (管理员,全部权限)
+    ///   engineer / engineer123 (工程师,改配方/参数 + 看审计)
+    ///   operator / operator123 (操作工,只读 + 启停采集)
+    /// 已有数据则跳过(EnsureCreated 后调,幂等)。
+    /// </summary>
+    private static void SeedDefaultUsers(AppDb db)
+    {
+        if (db.Users.Any()) return;  // 已有用户,不重复种子
+
+        db.Users.AddRange(
+            new User
+            {
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123", workFactor: 11),
+                Role = UserRole.Admin,
+                DisplayName = "系统管理员",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new User
+            {
+                Username = "engineer",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("engineer123", workFactor: 11),
+                Role = UserRole.Engineer,
+                DisplayName = "工艺工程师",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            },
+            new User
+            {
+                Username = "operator",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("operator123", workFactor: 11),
+                Role = UserRole.Operator,
+                DisplayName = "操作工",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        db.SaveChanges();
     }
 }

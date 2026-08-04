@@ -1,3 +1,4 @@
+using DaqMonitor.Core.Auth;
 using DaqMonitor.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,12 @@ public class AppDb : DbContext
     /// <summary>历史样本表（按时间追加，几乎不更新）。</summary>
     public DbSet<SensorRecord> Records => Set<SensorRecord>();
 
+    /// <summary>用户表(M17 工业安全:本地账号 + BCrypt)。</summary>
+    public DbSet<User> Users => Set<User>();
+
+    /// <summary>审计日志表(只追加,法律合规要求)。</summary>
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder mb)
     {
         base.OnModelCreating(mb);
@@ -41,5 +48,39 @@ public class AppDb : DbContext
         e.HasIndex(x => new { x.PointId, x.Time }).HasDatabaseName("ix_record_point_time");
         e.HasIndex(x => x.PointId).HasDatabaseName("ix_record_point");
         e.HasIndex(x => x.Time).HasDatabaseName("ix_record_time");
+
+        // ===== User 表 =====
+        var u = mb.Entity<User>();
+        u.ToTable("users");
+        u.HasKey(x => x.Id);
+        u.Property(x => x.Id).ValueGeneratedOnAdd();
+        u.Property(x => x.Username).HasColumnName("username").IsRequired().HasMaxLength(64);
+        u.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired().HasMaxLength(120);
+        u.Property(x => x.Role).HasColumnName("role").HasConversion<string>().IsRequired();
+        u.Property(x => x.IsActive).HasColumnName("is_active").IsRequired();
+        u.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+        u.Property(x => x.LastLoginAt).HasColumnName("last_login_at");
+        u.Property(x => x.DisplayName).HasColumnName("display_name").HasMaxLength(64);
+        // 用户名唯一索引:防止并发创建重复账号
+        u.HasIndex(x => x.Username).IsUnique().HasDatabaseName("ix_users_username");
+
+        // ===== AuditLog 表 =====
+        var a = mb.Entity<AuditLog>();
+        a.ToTable("audit_logs");
+        a.HasKey(x => x.Id);
+        a.Property(x => x.Id).ValueGeneratedOnAdd();
+        a.Property(x => x.Action).HasColumnName("action").IsRequired().HasMaxLength(64);
+        a.Property(x => x.UserId).HasColumnName("user_id");
+        a.Property(x => x.Username).HasColumnName("username").HasMaxLength(64);
+        a.Property(x => x.Target).HasColumnName("target").HasMaxLength(128);
+        a.Property(x => x.BeforeValue).HasColumnName("before_value");
+        a.Property(x => x.AfterValue).HasColumnName("after_value");
+        a.Property(x => x.Result).HasColumnName("result").IsRequired().HasMaxLength(16);
+        a.Property(x => x.Detail).HasColumnName("detail").HasMaxLength(256);
+        a.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+        // 审计查询主路径:按时间倒序翻页 + 按 UserId 过滤
+        a.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_audit_created");
+        a.HasIndex(x => x.UserId).HasDatabaseName("ix_audit_user");
+        a.HasIndex(x => x.Action).HasDatabaseName("ix_audit_action");
     }
 }

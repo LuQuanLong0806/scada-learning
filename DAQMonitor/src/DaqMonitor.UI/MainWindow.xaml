@@ -13,21 +13,43 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- 顶部：标题 + 启动/停止 + 报表 -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="📡 DAQ Monitor" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
-            <Button Content="启动采集" Command="{Binding StartCommand}" Width="90" Height="30" Margin="16,0,0,0"
-                    IsEnabled="{Binding IsRunning, Converter={StaticResource InverseBool}}" />
-            <Button Content="停止采集" Command="{Binding StopCommand}" Width="90" Height="30" Margin="8,0,0,0"
-                    IsEnabled="{Binding IsRunning}" />
-            <TextBlock VerticalAlignment="Center" Margin="16,0,0,0">
-                <Run Text="状态：" />
-                <Run Text="{Binding IsRunning, Converter={StaticResource RunningText}}" FontWeight="Bold" />
-            </TextBlock>
-            <DatePicker SelectedDate="{Binding From}" Width="110" Margin="16,0,0,0" VerticalAlignment="Center" ToolTip="报表起始时间" />
-            <DatePicker SelectedDate="{Binding To}" Width="110" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="报表结束时间" />
-            <Button Content="导出报表" Command="{Binding ExportReportCommand}" Width="80" Height="30" Margin="8,0,0,0" />
-        </StackPanel>
+        <!-- 顶部：标题 + 启动/停止 + 报表 + 当前用户 -->
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <TextBlock Text="📡 DAQ Monitor" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" />
+                <Button Content="启动采集" Command="{Binding StartCommand}" Width="90" Height="30" Margin="16,0,0,0"
+                        IsEnabled="{Binding CanStartAcquisition}" />
+                <Button Content="停止采集" Command="{Binding StopCommand}" Width="90" Height="30" Margin="8,0,0,0"
+                        IsEnabled="{Binding CanStopAcquisition}" />
+                <TextBlock VerticalAlignment="Center" Margin="16,0,0,0">
+                    <Run Text="状态：" />
+                    <Run Text="{Binding IsRunning, Converter={StaticResource RunningText}}" FontWeight="Bold" />
+                </TextBlock>
+                <DatePicker SelectedDate="{Binding From}" Width="110" Margin="16,0,0,0" VerticalAlignment="Center" ToolTip="报表起始时间" />
+                <DatePicker SelectedDate="{Binding To}" Width="110" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="报表结束时间" />
+                <Button Content="导出报表" Command="{Binding ExportReportCommand}" Width="80" Height="30" Margin="8,0,0,0"
+                        IsEnabled="{Binding CanExportReport}"
+                        ToolTip="权限:Engineer 及以上" />
+            </StackPanel>
+
+            <!-- 当前用户区(M17 工业安全):角色用颜色区分 -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0">
+                    <Run Text="👤" FontSize="14"/>
+                    <Run Text="{Binding CurrentUsername}" FontWeight="Bold"/>
+                    <Run Text="("/>
+                    <Run Text="{Binding CurrentRole}" Foreground="{Binding CurrentRoleColor}"/>
+                    <Run Text=")"/>
+                </TextBlock>
+                <Button Content="登出" Command="{Binding LogoutCommand}" Width="50" Height="26" Margin="8,0,0,0"
+                        FontSize="11" Padding="0"/>
+            </StackPanel>
+        </Grid>
 
         <!-- 左：实时点位表（数值列用 GaugeControl 显示读数，并绑 Level 让报警驱动变色） -->
         <GroupBox Grid.Row="1" Header="实时点位" Margin="0,0,8,0">

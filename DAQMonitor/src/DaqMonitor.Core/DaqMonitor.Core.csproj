@@ -20,6 +20,8 @@
     </PackageReference>
     <!-- MQTT 上云（M7 修正版双向）：MQTTnet 4.x，必须用 v4 管线 API（MqttFactory().CreateMqttClient） -->
     <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
+    <!-- 用户认证(M17 工业安全):BCrypt 加盐哈希,工业标准 -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
   <ItemGroup>

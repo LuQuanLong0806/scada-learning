@@ -4,9 +4,11 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using DaqMonitor.Core.Acquisition;
 using DaqMonitor.Core.Alarms;
 using DaqMonitor.Core.AppServices;
+using DaqMonitor.Core.Auth;
 using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Diagnostics;
 using DaqMonitor.Core.Models;
@@ -51,6 +53,8 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly AlarmEngine _alarms;
     private readonly IDevice _device;
     private readonly DiagnosticsService _diag;
+    private readonly ICurrentUserService _current;
+    private readonly AuthService _auth;
     private readonly Dictionary<int, AlarmLevel> _levels = new();
     private bool _running;
     private DateTime _from = DateTime.Today;
@@ -63,6 +67,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand StartCommand { get; }
     public ICommand StopCommand { get; }
     public ICommand ExportReportCommand { get; }
+    public ICommand LogoutCommand { get; }
 
     /// <summary>诊断面板绑定的“一行式”统计摘要（每次批量后刷新）。</summary>
     public string DiagnosticsSummary
@@ -74,11 +79,53 @@ public class MainViewModel : INotifyPropertyChanged
     public bool IsRunning
     {
         get => _running;
-        private set { _running = value; OnChanged(); }
+        private set
+        {
+            _running = value;
+            OnChanged();
+            // 运行状态翻转 → 启停按钮的可用性也跟着变（权限 && 状态）
+            OnChanged(nameof(CanStartAcquisition));
+            OnChanged(nameof(CanStopAcquisition));
+        }
     }
 
     public DateTime From { get => _from; set { _from = value; OnChanged(); } }
     public DateTime To { get => _to; set { _to = value; OnChanged(); } }
+
+    // —— M17 工业安全:当前用户信息(头部显示) + 按钮级权限 IsEnabled ——
+
+    /// <summary>当前登录用户名(Header 右上角显示)。</summary>
+    public string CurrentUsername => _current.Username;
+
+    /// <summary>当前角色文本(Admin/Engineer/Operator)。</summary>
+    public string CurrentRole => _current.Role?.ToString() ?? "—";
+
+    /// <summary>
+    /// 角色对应的颜色(IEC 60073 借鉴:红=Admin 高权限需慎用、蓝=Engineer 技术、灰=Operator 基础)。
+    /// 返回 Frozen Brush,WPF 跨线程使用安全。
+    /// </summary>
+    public SolidColorBrush CurrentRoleColor => RoleBrush(_current.Role);
+
+    /// <summary>启动采集按钮 IsEnabled:有权限 && 当前未在跑。</summary>
+    public bool CanStartAcquisition
+        => _current.HasPermission(Permissions.AcquisitionStart) && !IsRunning;
+
+    /// <summary>停止采集按钮 IsEnabled:有权限 && 当前正在跑。</summary>
+    public bool CanStopAcquisition
+        => _current.HasPermission(Permissions.AcquisitionStop) && IsRunning;
+
+    /// <summary>导出报表按钮 IsEnabled:Engineer 及以上(含敏感生产数据)。</summary>
+    public bool CanExportReport => _current.HasPermission(Permissions.ReportExport);
+
+    private static SolidColorBrush RoleBrush(UserRole? role) => role switch
+    {
+        UserRole.Admin => Freeze(new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C))),    // 红
+        UserRole.Engineer => Freeze(new SolidColorBrush(Color.FromRgb(0x00, 0xA0, 0xFF))), // 蓝
+        UserRole.Operator => Freeze(new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0x9E))), // 灰
+        _ => Freeze(new SolidColorBrush(Colors.Black)),
+    };
+
+    private static SolidColorBrush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
 
     public MainViewModel(ServiceProvider services)
     {
@@ -87,16 +134,19 @@ public class MainViewModel : INotifyPropertyChanged
         _alarms = services.GetRequiredService<AlarmEngine>();
         _device = services.GetRequiredService<IDevice>();
         _diag = services.GetRequiredService<DiagnosticsService>();
+        _current = services.GetRequiredService<ICurrentUserService>();
+        _auth = services.GetRequiredService<AuthService>();
 
         StartCommand = new RelayCommand(_ => Start());
         StopCommand = new RelayCommand(_ => Stop());
-        ExportReportCommand = new RelayCommand(_ => ExportReport());
+        ExportReportCommand = new RelayCommand(_ => ExportReport(), _ => CanExportReport);
+        LogoutCommand = new RelayCommand(_ => Logout());
 
         _pipeline.BatchReady += OnBatchReady;
         _alarms.AlarmTriggered += OnAlarmTriggered;
         _alarms.AlarmCleared += OnAlarmCleared;
 
-        _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断）。");
+        _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断/认证）。");
     }
 
     /// <summary>由 MainWindow 注入：把实时曲线页接到 BatchReady。</summary>
@@ -175,6 +225,19 @@ public class MainViewModel : INotifyPropertyChanged
         if (_device is SimulatedDevice sd) sd.Stop();
         _diag.RecordInfo("停止采集。");
         IsRunning = false;
+    }
+
+    /// <summary>
+    /// 登出:写审计 → 关主窗 → 弹登录窗重新进。
+    /// 工业现场"换班"标准动作:不退出进程,只换当前用户(UI 状态/采集不受影响)。
+    /// </summary>
+    private async void Logout()
+    {
+        if (_device is SimulatedDevice sd && IsRunning) sd.Stop();
+        await _auth.LogoutAsync();
+        // 关掉主窗,App.xaml.cs 的 window.Closed 会触发 audit + dispose
+        // 这里直接 Shutdown,让用户重新双击启动重新登录(最简、最安全)
+        Application.Current.Shutdown();
     }
 
     /// <summary>
