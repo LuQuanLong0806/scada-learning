@@ -69,6 +69,14 @@
 <strong>前端类比总纲</strong>：EF Core 就是你后端用过的 Prisma/TypeORM —— 写 C# 类，它自动建表、存对象、查行，不用手搓 SQL。</p>
 </blockquote>
 <hr />
+<blockquote>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」+ 「Day 1 一句话讲清楚」— 知道 EF Core 像 Prisma/TypeORM
+- <strong>30 分钟</strong>:加看 Day 1 DbContext + 迁移 + 双写内存/SQLite 跑通
+- <strong>3 小时</strong>:全文精读 + Day 2 攒批写入 + Day 3 历史查询 + 索引优化
+- 🎯 <strong>面试高频</strong>:<strong>DbContext 用完即弃(短生命周期)</strong> / 攒批写 vs 逐条写 / <strong>双写一致性(内存+SQLite)</strong> / IDbContextFactory 为什么必须
+- 🔁 <strong>配套复习</strong>:<a href="面试高频知识点_速记卡.md">速记卡 Q14-Q16</a> · <a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B11 PointStore 双写</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C5 DbContext 线程不安全</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
+</blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>把采集到的 <code>SensorPoint</code> 历史存进 SQLite，支持按时间 / 点位查询，并能导出 CSV。学完你能讲清：<strong>DbContext 为什么用完即弃、高频写入怎么攒批、迁移是干什么的</strong>——这三点决定你写的存储层是"玩具"还是"企业级"。</p>
 <hr />

@@ -13,6 +13,13 @@
 > - `DaqMonitor.UI/Controls/StatusDot.cs` + `Themes/Generic.xaml` —— 设备状态灯，绑 `PointView.State`，`Connecting` 带脉冲动画。
 > 它们用的是**最正宗的自定义控件写法**（继承 `Control` + `DefaultStyleKey` + `Generic.xaml` + `ThemeInfo` 程序集特性 + `DependencyProperty`），所以本模块 Day 2 是"讲透你已经用着的控件"，再扩展出波形 `Sparkline`、LED 数码管等，而不是从零讲概念。M5 的可视化、M6 的报警会把 `GaugeControl.Level` 驱动起来；M12 工程量转换后，绑的 `Value` 直接变成工程量（℃/MPa），控件零改动。
 
+> ⏱️ **阅读路径**(按时间预算选入口)
+> - **3 分钟**:看「模块目标」— 知道 WinForm 像 jQuery 时代 DOM 操作
+> - **30 分钟**:加看 Day 1 WinForm 跑一个 Hello World + 看 WPF/WinForm 区别
+> - **3 小时**:全文精读 + Day 2 **自绘控件(GDI+)** 仪表盘
+> - 🎯 **面试高频**:WPF 数据驱动 vs WinForm 事件驱动 / **GDI+ 自绘圆弧仪表** / 双缓冲防闪烁
+> - 🔁 **配套复习**:[速记卡 Q2 WPF vs WinForms](面试高频知识点_速记卡.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
+
 ## 模块目标
 写出一个 WinForm 小窗体（按钮 + 文本框 + 后台线程刷新）+ 讲透自绘仪表盘控件（开发 / 复用 / 扩展 / 调试四场景）。
 

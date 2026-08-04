@@ -60,6 +60,12 @@
 <strong>技术来源</strong>：🟩 .NET 类库 <code>System.IO.Ports</code>（.NET 8 需 <code>dotnet add package System.IO.Ports</code>；它是微软官方 BCL 扩展，不是第三方，装了就行、随 .NET 版本）。
 <strong>给简历加的能力</strong>：真实 / 虚拟串口设备接入 —— 上位机对接下位机、仪表、传感器的<strong>最普遍</strong>方式。
 <strong>前置</strong>：M0（类 / 事件 / 并发）。M1 是第一次把"后台收数 → 事件 → UI"串成真实链路。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」+ 「Day 1 一句话讲清楚」— 知道串口收发流程
+- <strong>30 分钟</strong>:加看 Day 1 波特率/RS232/485 对比表 + 写一个 Hello World 收发
+- <strong>3 小时</strong>:全文精读 + Day 1-2 串口采集 + Day 3 RawLog 联调
+- 🎯 <strong>面试高频</strong>:RS232 vs RS485(差分/距离/总线)/ 9600-8-N-1 四参数 / DataReceived 跨线程
+- 🔁 <strong>配套复习</strong>:<a href="面试高频知识点_速记卡.md">速记卡 Q7-Q8</a> · <a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B3 IDevice 实现</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写出一个串口采集器：配置波特率 → 打开端口 → 接收字节流 → 解析成业务数据 → 通过 <code>DataReceived</code> 事件抛给 UI → 显示在 DAQ Monitor。</p>

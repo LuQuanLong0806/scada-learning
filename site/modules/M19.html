@@ -107,6 +107,12 @@
 <strong>前端类比总纲</strong>：前端有 Chrome DevTools 五件套（Elements / Console / Sources / Network / Memory），上位机这一套全是新东西——VS 调试器是 Sources 面板的超集，<code>dotnet dump</code> 是 Memory 快照的命令行版，Wireshark 是 Network 面板的物理层版，Serilog 是 Sentry 的本地版。前端的调试直觉 60% 能迁移，剩下 40% 是<strong>多线程 + 内存 + 协议</strong>三座大山，本模块就是翻这三座山。
 <strong>给简历加的能力</strong>：能在面试讲出<strong>真实排过的三种难 bug</strong> —— "7×24 跑 3 天后内存从 100MB 涨到 1GB"、"现场设备偶发性掉线 30 秒自动恢复"、"UI 偶发卡顿 200ms"——并讲清用了什么工具、怎么定位、怎么修。这三句话顶得过你写十个 CRUD 模块。
 <strong>前置</strong>：M0（多线程基础，Threads 窗口要看懂）、M9（DI 容器 + 异步容错，Serilog 已落地）。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道这是 13K→15K 硬要求(面试必问"遇到什么难 bug")
+- <strong>30 分钟</strong>:加看 Day 1 VS 调试器(条件断点/数据断点/Threads 窗口)
+- <strong>3 小时</strong>:全文精读 + Day 2 异常/竞态 + Day 3 内存泄漏 4 种 + Day 4 性能 + Day 5 Wireshark/万用表
+- 🎯 <strong>面试高频</strong>:<strong>条件断点 vs 数据断点</strong> / <strong>dotnet counters + gcdump 抓内存泄漏</strong> / Wireshark 抓 Modbus 字节 / Serilog + TraceId 跨线程关联 / "什么 bug 不在软件里要上示波器"
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B20 Serilog + TraceId</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C7/C8/C9 全二刷</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>学完你能：① 用 VS 调试器高级功能（条件断点 / 数据断点 / 调用栈 / 多线程窗口）定位<strong>任意一处异常的"第一现场"</strong>；② 排查 4 类典型 bug（异常吞 / 多线程竞态 / 内存泄漏 / 性能瓶颈）；③ 抓包分析工业协议（串口字节 / Modbus TCP / CAN / OPC UA），分清是<strong>你代码错</strong>还是<strong>设备错</strong>；④ 知道什么时候该上<strong>万用表 / 示波器 / 逻辑分析仪</strong>——不是所有 bug 都在软件里；⑤ 用 <code>Serilog</code> 结构化日志 + <code>TraceId</code> 做<strong>跨线程、跨设备的关联追踪</strong>，把"现场偶发"变"日志里可查"。</p>

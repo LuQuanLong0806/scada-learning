@@ -7,6 +7,13 @@
 > **前置**：M0–M8（DAQ Monitor 已具备采集/可视化/存储/报警/上云），本模块给它们"穿上工程铠甲"。
 > **已落地验证**：本项目的 `DaqMonitor.Tests` 已含 **28 个真实测试全绿**（`dotnet test`），覆盖 PointStore / AlarmEngine / Crc16 / FrameParser / Retry / AcquisitionPipeline / Moq 集成 / **串口通信层 SerialDevice（单帧·粘包·半包·坏CRC·管道集成·RawLog 调试开关 共 6 个）** / **CAN 设备 2 个** / **USB-HID 设备 2 个** / **心跳健康监测 DeviceHealthMonitor 2 个**。
 
+> ⏱️ **阅读路径**(按时间预算选入口)
+> - **3 分钟**:看「模块目标」— 知道这是 13K→15K 分水岭(测试/DI/容错)
+> - **30 分钟**:加看 Day 1 xUnit+Moq + Day 2 DI 容器注册
+> - **3 小时**:全文精读 + Day 3 **Channel<T> 统一采集架构** + Day 4 Retry 指数退避
+> - 🎯 **面试高频**:**Channel<T> 生产消费者(为什么不用 ConcurrentQueue)** / DI 生命周期(单例/作用域/瞬态)/ **Retry 指数退避 + 熔断**
+> - 🔁 **配套复习**:[代码肌肉 B2 Channel 生产消费 10min 白板](代码肌肉训练手册_30天刷题版.md) · [Debug C3 多线程竞态 / C4 event 没退订](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
+
 ## 模块目标
 ① **单元测试**（xUnit + Moq）：核心逻辑可验证，改代码不怕回归；② **DI 容器**：服务一处注册、随处可取，便于替换与测试；③ **统一采集架构**（`Channel<T>` + `Timer` 批量）：修正 M5③/M7② 的"逐点刷新/逐点发布"坑；④ **生产级容错与重试**：通信断了自动退避重试，而不是裸 `try/catch` 抛给用户。
 

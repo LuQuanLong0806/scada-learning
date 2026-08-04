@@ -74,6 +74,12 @@
 <strong>技术来源</strong>：🟦 <code>System.Text.Json</code>（参数 JSON 列）+ 🟧 <code>Microsoft.EntityFrameworkCore.Sqlite</code>（EF Core，沿用 M4）+ 🟧 <code>ClosedXML</code>（Excel 导入导出，沿用 M10）
 <strong>给简历加的能力</strong>：让上位机支持「切换产品配方」——一键把工艺参数（温度设定 / 压力阈值 / 时间序列）从一组切换到另一组，并带版本化 + 审计。这是真实工厂里最常见的一个「软需求」，能讲出来就比只做采集的同行多一项能打的牌。
 <strong>前置</strong>：M4（EF Core / DbContext / 迁移）、M9（DI / 单测 / 工程分层）、M10（ClosedXML 导出）。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道配方 = 一组工艺参数的命名版本
+- <strong>30 分钟</strong>:加看 Day 1 配方 CRUD + JSON 序列化
+- <strong>3 小时</strong>:全文精读 + Day 2 <strong>版本化 + 回滚事务(写入+回读+失败回滚)</strong> + Day 3 Excel 导入导出
+- 🎯 <strong>面试高频</strong>:<strong>JSON 列 vs 关联表权衡</strong> / 配方切换事务思想 / 版本 diff 实现 / 审计谁改了啥
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B23 Recipe 配方管理</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p><strong>配方 = 一组工艺参数（温度设定 / 压力阈值 / 时间序列）的命名版本</strong>。本模块让上位机：① 编辑 / 保存配方；② 切换产品时一键下发到设备；③ 版本化（可回滚到任意历史版本）；④ 审计（谁什么时候改了啥、激活了哪个版本）。学完你能讲清：「JSON 列 vs 关联表」的权衡、配方切换的「写入 + 回读 + 失败回滚」事务思想、版本 diff 的实现——这三点是「做过配方系统」和「只听过这个词」的分界线。</p>

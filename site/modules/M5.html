@@ -65,6 +65,12 @@
 <strong>技术来源</strong>：🟧 第三方 NuGet <code>LiveChartsCore.SkiaSharpView.WPF</code>（<code>dotnet add package LiveChartsCore.SkiaSharpView.WPF</code>）。
 <strong>给简历加的能力</strong>：动态曲线 / 仪表盘 —— 上位机的"面子"，让数据一眼可见。
 <strong>前置</strong>：M0（WPF / 绑定 / 并发）、M1–M3（有点数据）。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道 LiveCharts2 是 WPF 实时曲线库
+- <strong>30 分钟</strong>:加看 Day 1 装包 + 一根实时曲线跑起来
+- <strong>3 小时</strong>:全文精读 + Day 2 仪表盘 + Day 3 性能优化(高频滚动 60s 窗口)
+- 🎯 <strong>面试高频</strong>:ObservableCollection 跨线程异常 / 实时曲线 60s 窗口怎么不卡 / 数据降采样
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B10 INotifyPropertyChanged 手写</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>用 LiveCharts2 在 WPF 里画实时曲线（温度随时间）和仪表盘（当前值），数据来自 <code>DataReceived</code> 事件。</p>

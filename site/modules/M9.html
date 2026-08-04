@@ -83,6 +83,12 @@
 <strong>给简历加的能力</strong>：把"能跑的代码"升级成"信得过、可维护、可交付"的工程 —— 有测试兜底、有容器解耦、有统一架构、有生产级容错。这正是 <strong>13K→15K</strong> 的分水岭。
 <strong>前置</strong>：M0–M8（DAQ Monitor 已具备采集/可视化/存储/报警/上云），本模块给它们"穿上工程铠甲"。
 <strong>已落地验证</strong>：本项目的 <code>DaqMonitor.Tests</code> 已含 <strong>28 个真实测试全绿</strong>（<code>dotnet test</code>），覆盖 PointStore / AlarmEngine / Crc16 / FrameParser / Retry / AcquisitionPipeline / Moq 集成 / <strong>串口通信层 SerialDevice（单帧·粘包·半包·坏CRC·管道集成·RawLog 调试开关 共 6 个）</strong> / <strong>CAN 设备 2 个</strong> / <strong>USB-HID 设备 2 个</strong> / <strong>心跳健康监测 DeviceHealthMonitor 2 个</strong>。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道这是 13K→15K 分水岭(测试/DI/容错)
+- <strong>30 分钟</strong>:加看 Day 1 xUnit+Moq + Day 2 DI 容器注册
+- <strong>3 小时</strong>:全文精读 + Day 3 <strong>Channel<T> 统一采集架构</strong> + Day 4 Retry 指数退避
+- 🎯 <strong>面试高频</strong>:<strong>Channel<T> 生产消费者(为什么不用 ConcurrentQueue)</strong> / DI 生命周期(单例/作用域/瞬态)/ <strong>Retry 指数退避 + 熔断</strong>
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B2 Channel 生产消费 10min 白板</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C3 多线程竞态 / C4 event 没退订</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>① <strong>单元测试</strong>（xUnit + Moq）：核心逻辑可验证，改代码不怕回归；② <strong>DI 容器</strong>：服务一处注册、随处可取，便于替换与测试；③ <strong>统一采集架构</strong>（<code>Channel&lt;T&gt;</code> + <code>Timer</code> 批量）：修正 M5③/M7② 的"逐点刷新/逐点发布"坑；④ <strong>生产级容错与重试</strong>：通信断了自动退避重试，而不是裸 <code>try/catch</code> 抛给用户。</p>

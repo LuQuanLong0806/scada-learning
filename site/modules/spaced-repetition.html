@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔁 记忆与复习机制 · 间隔重复版 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="spaced-repetition">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">为什么需要间隔重复(用前端语言讲)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">第 1 节 · 30 天间隔重复排程表(核心产出)📅</a><ul>
+<li class="l3"><a href="#sec-3-1">Week 1(Day 1-7)· 主干打底 + 第一轮复习起步</a></li>
+<li class="l3"><a href="#sec-3-2">Week 2(Day 8-14)· 数据 + 可视化 + Prism</a></li>
+<li class="l3"><a href="#sec-3-3">Week 3(Day 15-21)· TCP + 上云 + 报表</a></li>
+<li class="l3"><a href="#sec-3-4">Week 4(Day 22-30)· 文档 + 简历 + 面试 + 毕业测试</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">第 2 节 · 每周日闭卷自测 30 题(共 120 题)📝</a><ul>
+<li class="l3"><a href="#sec-3-5">Week 1 闭卷 30 题 · 主干打底(C# / Modbus / 串口 / 通道)</a></li>
+<li class="l3"><a href="#sec-3-6">Week 2 闭卷 30 题 · 数据 + 可视化 + Prism 深化</a></li>
+<li class="l3"><a href="#sec-3-7">Week 3 闭卷 30 题 · TCP + 上云 + 报表 + 综合</a></li>
+<li class="l3"><a href="#sec-3-8">Week 4 闭卷 30 题 · 综合 + 面试冲刺(终极版)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">第 3 节 · Anki 卡片制作建议 📇</a><ul>
+<li class="l3"><a href="#sec-3-9">工具选择</a></li>
+<li class="l3"><a href="#sec-3-10">卡片格式(四件套)</a></li>
+<li class="l3"><a href="#sec-3-11">5 个具体卡片样例(从代码肌肉题里挑)</a></li>
+<li class="l3"><a href="#sec-3-12">每天怎么刷</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">第 4 节 · 错题本规范 📒</a><ul>
+<li class="l3"><a href="#sec-3-13">路径与格式</a></li>
+<li class="l3"><a href="#sec-3-14">错因分类与标色</a></li>
+<li class="l3"><a href="#sec-3-15">3 个错题样例(从 C1/C2/C5 改写)</a></li>
+<li class="l3"><a href="#sec-3-16">错题本纪律</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">第 5 节 · "快忘了"信号 + 立即复习触发器 🚨</a><ul>
+<li class="l3"><a href="#sec-3-17">5 大"快忘了"信号</a></li>
+<li class="l3"><a href="#sec-3-18">立即复习触发器(信号 → 行动)</a></li>
+<li class="l3"><a href="#sec-3-19">实战场景模拟</a></li>
+<li class="l3"><a href="#sec-3-20">信号统计(每周日闭卷自测后做)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">第 6 节 · 与 30 天路线的集成 🔗</a><ul>
+<li class="l3"><a href="#sec-3-21">每天 4 块变 5 块(新增复习队列)</a></li>
+<li class="l3"><a href="#sec-3-22">关键日历节点</a></li>
+<li class="l3"><a href="#sec-3-23">Day 30 毕业测试详情</a></li>
+<li class="l3"><a href="#sec-3-24">与 30 天路线的同步策略</a></li>
+<li class="l3"><a href="#sec-3-25">边面试边学期间的复习调整</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">📚 配套材料导航</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">🎯 最终判据(30 天后你应该有的)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">记忆与复习机制 · 间隔重复版(Spaced Repetition)🧠</h1>
+<blockquote>
+<p><strong>优先级定位</strong>:🔴 <strong>必执行</strong> · 这是 30 天路线的"防漏机制"——没有它,Day 1 学的 CRC 到 Day 25 已经忘 80%,你前面 24 天的努力直接打水漂
+<strong>核心问题</strong>:旧 30 天路线只有 Day 7 / 14 / 24 三次"二刷/三刷",间隔太稀疏,Week 1 学完到 Week 2 复习中间已经遗忘 70%,复习等于重学。本机制换 Ebbinghaus 数字版:<strong>1d / 3d / 7d / 15d / 30d 五段间隔重复</strong>
+<strong>技术来源</strong>:🟦 Ebbinghaus 遗忘曲线(1885,实验心理学的开山研究) · 🟧 Anki / Quizlet / SuperMemo 的 SM-2 算法 · 🟧 React <code>useEffect</code> 依赖触发模型(类比记忆触发模型)
+<strong>给简历加的能力</strong>:面试时被追问"为什么 0xA001 不是 0x8005"——你 <strong>3 秒内</strong> 答出来,不假思索。这不是"聪明",是<strong>间隔重复训练出来的肌肉记忆</strong>。13-15K 和 8-10K 的差距,70% 在这里
+<strong>前置</strong>:<a href="30天作战路线_转行冲刺版.md">30 天作战路线</a> · <a href="代码肌肉训练手册_30天刷题版.md">代码肌肉训练手册</a> · <a href="面试高频知识点_速记卡.md">面试高频知识点速记卡</a> · <a href="面试问答_逐字稿_30题.md">面试问答逐字稿 30 题</a></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">为什么需要间隔重复(用前端语言讲)</h2>
+<p><strong>核心类比</strong>:<code>React.useEffect</code> 的依赖数组——只有 deps 变了,effect 才重跑。<strong>记忆也是一样的</strong>:只有"快忘了才复习"才能让大脑把这条信息标记为"重要、长期保留";每次都趁热复习(像每次 render 都重跑 effect),大脑反而判它"已知、不用存",<strong>复习反而破坏记忆</strong>。</p>
+<p><strong>为什么旧路线的"周末刷上周"不行</strong>:周一学的 CRC,周日复习时你已经忘掉 65%(Ebbinghaus 曲线:24h 后忘 66%,7d 后忘 75%)。复习 = 重学一遍,效率极低,而且因为重学不痛苦,大脑记不住。</p>
+<p><strong>SRS(Spaced Repetition System)为什么有效</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>时机</th>
+<th>大脑反应</th>
+<th>记忆效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学完立刻复习(0-2h)</td>
+<td>"这个我已经知道了"</td>
+<td>几乎无效(浅层加工)</td>
+</tr>
+<tr>
+<td>1 天后复习</td>
+<td>"诶,有点模糊,要想想"</td>
+<td><strong>强记忆</strong>(大脑判定"重要")</td>
+</tr>
+<tr>
+<td>3 天后复习</td>
+<td>"得回忆几秒"</td>
+<td><strong>更强记忆</strong>(深度提取)</td>
+</tr>
+<tr>
+<td>7 天后复习</td>
+<td>"卡壳了,翻一下笔记"</td>
+<td><strong>长期固化</strong>(迁移到长期记忆)</td>
+</tr>
+<tr>
+<td>15-30 天后还能复习起来</td>
+<td>"这题我熟"</td>
+<td>永久掌握</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Anki / Quizlet 的底层就是这个</strong>:算法在"你快忘了"那一刻把卡片推给你,复习成本最低、收益最高。Anki 用 SM-2 算法,SuperMemo 用 SM-18,本质都是 Ebbinghaus 曲线的工程化。</p>
+<p><strong>前端工程师的天然优势</strong>:你已经习惯"配 useEffect deps",配间隔重复就是同样的事——给每个知识点挂"复习触发器",到点自动触发。30 天 = 30 个 effect,每天 15-20 分钟跑一遍。</p>
+<hr />
+<h2 id="sec-2-2">第 1 节 · 30 天间隔重复排程表(核心产出)📅</h2>
+<blockquote>
+<p><strong>怎么读这张表</strong>:
+- <strong>【新学】</strong> 当天学的新内容(讲义 / 项目 / 代码肌肉 / 速记卡)
+- <strong>【复习队列】</strong> 用 1d/3d/7d/15d/30d 倒推出来的今天必须复习的内容
+  - 例:Day 5 复习队列 = Day 4 学的(隔 1d)+ Day 2 学的(隔 3d)
+- <strong>目标时间</strong>:复习队列每天 15-20 分钟,不允许超时(超时 = 你没掌握,记错题本)
+- <strong>判据</strong>:复习题能"3 秒内反应答案"算过关;卡壳超 5 秒 = 失败,记错题本,隔 1d 重刷</p>
+</blockquote>
+<h3 id="sec-3-1">Week 1(Day 1-7)· 主干打底 + 第一轮复习起步</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>【新学】学习 + 项目 + 代码肌肉</th>
+<th>【复习队列】1d / 3d / 7d / 15d 倒推</th>
+<th>目标时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1 周一</strong></td>
+<td>学习: <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱</a> 8 大陷阱 / <a href="M0_每日讲义_深度版.md">M0</a> Day 1-6 速过<br>项目: clone + 跑通 DAQMonitor + 读 IDevice.cs<br>代码肌肉: A1-A4(翻译题)+ C1(async void)<br>速记卡: Q1-Q3(上位机基础)</td>
+<td><strong>无</strong>(第一天没有复习)</td>
+<td>学习 2h + 项目 1.5h + 代码 1h</td>
+</tr>
+<tr>
+<td><strong>2 周二</strong></td>
+<td>学习: <a href="M1_串口通信_深度版.md">M1 串口通信</a> 全文<br>项目: 写 ModbusDevice(虚拟串口)<br>代码肌肉: <strong>B1(CRC16,5min 白板)</strong> + A5-A8<br>速记卡: Q4-Q6(并发异步)</td>
+<td><strong>【1d】</strong> Day 1 内容:A1-A4 翻译题默写一遍 + C1 复述 async void 三大坑</td>
+<td>复习 15min</td>
+</tr>
+<tr>
+<td><strong>3 周三</strong></td>
+<td>学习: <a href="M2_Modbus_深度版.md">M2 Modbus</a> 全文 + 手算 CRC<br>项目: ModbusDevice 跑通虚拟从站<br>代码肌肉: B1 二刷(限时 4min)+ C2(.Result 死锁)+ C10(字节序)<br>速记卡: Q7-Q9(串口通信)</td>
+<td><strong>【1d】</strong> Day 2:B1 默写一遍(目标 4min)<br><strong>【速记 1d】</strong> Q4-Q6 默背</td>
+<td>复习 18min</td>
+</tr>
+<tr>
+<td><strong>4 周四</strong></td>
+<td>学习: <a href="M3_PLC_深度版.md">M3 PLC</a> 全文<br>项目: 写 PlcDevice(S7.Net)<br>代码肌肉: <strong>B2(Channel 生产消费者,10min)</strong> + C3(竞态)+ C4(event 没退订)<br>速记卡: Q10-Q12(Modbus/粘包/PLC)</td>
+<td><strong>【1d】</strong> Day 3:B1 三刷 + 字节序口诀<br><strong>【速记 1d】</strong> Q7-Q9 默背</td>
+<td>复习 18min</td>
+</tr>
+<tr>
+<td><strong>5 周五</strong></td>
+<td>学习: <a href="M3_PLC_深度版.md">M3 PLC</a> Day 2 + 硬件替代<br>项目: PlcDevice 编译通过<br>代码肌肉: B2 二刷(限时 8min)+ A9-A12<br>速记卡: Q13-Q14(工程量/EF Core)</td>
+<td><strong>【1d】</strong> Day 4:B2 默写一遍<br><strong>【3d】</strong> Day 2 学的:<strong>B1 第四刷</strong> + C1+C10 复述<br><strong>【速记 1d】</strong> Q10-Q12 默背</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>6 周六</strong></td>
+<td>学习: <a href="M0_每日讲义_深度版.md">M0 Day 7 并发</a> + 硬件替代方案<br>项目: 4 设备(Sim/Serial/Modbus/PLC)同时跑<br>代码肌肉: <strong>B3(IDevice 实现,15min)</strong> + A13-A16<br>速记卡: Q15-Q17(报警/OPC UA/控件)</td>
+<td><strong>【1d】</strong> Day 5:B2 三刷<br><strong>【3d】</strong> Day 3:<strong>B1 + C2(.Result)</strong> 全套复述<br><strong>【速记 3d】</strong> Q1-Q6 全部默背一遍(盖答案自问)</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>7 周日</strong></td>
+<td>学习: <a href="M19_问题排查与调试_深度版.md">M19 Day 1 VS 调试</a> + Wireshark<br>项目: 条件断点实操 + 抓 Modbus TCP 字节<br>代码肌肉: <strong>B1+B2+B3 闭卷自测</strong>(限时 4min/8min/12min)<br><strong>🎯 周日闭卷 30 题(Week 1 版,见第 2 节)</strong></td>
+<td><strong>【1d】</strong> Day 6:B3 默写<br><strong>【3d】</strong> Day 4:<strong>B2 + C3+C4</strong> 全套<br><strong>【速记 7d】</strong> Q1-Q17 系统过一遍(第一次 7d 间隔)<br><strong>【Week 1 闭卷 30 题】</strong></td>
+<td>复习 30min + 自测 30min</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Week 1 检查点</strong>:周日闭卷 30 题正确率 ≥ 80%。低于 70% → Day 8 新学内容砍半,补救 Week 1。</p>
+<hr />
+<h3 id="sec-3-2">Week 2(Day 8-14)· 数据 + 可视化 + Prism</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>【新学】学习 + 项目 + 代码肌肉</th>
+<th>【复习队列】1d / 3d / 7d / 15d 倒推</th>
+<th>目标时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>8 周一</strong></td>
+<td>学习: <a href="M4_数据持久化_深度版.md">M4 数据持久化</a> 全文<br>项目: 读+理解 PointStore + AppDbContext + 历史查询<br>代码肌肉: <strong>B11(PointStore 内存+SQLite,15min)</strong> + A1-A10 二刷<br>速记卡: Q18-Q21(工程素养)</td>
+<td><strong>【1d】</strong> Day 7 闭卷错题复刷<br><strong>【速记 1d】</strong> Q15-Q17 默背</td>
+<td>复习 15min</td>
+</tr>
+<tr>
+<td><strong>9 周二</strong></td>
+<td>学习: <a href="M4_数据持久化_深度版.md">M4</a> Day 2 + SQLite Browser<br>项目: 历史查询方法<br>代码肌肉: <strong>B4(Retry 指数退避,10min)</strong> + C5 二刷 + C6(struct 拷贝)<br>速记卡: Q22-Q23(简历讲法)</td>
+<td><strong>【1d】</strong> Day 8:B11 默写<br><strong>【3d】</strong> Day 6:<strong>B3 + A13-A16</strong> 复述<br><strong>【速记 1d】</strong> Q18-Q21 默背</td>
+<td>复习 18min</td>
+</tr>
+<tr>
+<td><strong>10 周三</strong></td>
+<td>学习: <a href="M5_实时可视化_深度版.md">M5 实时可视化</a><br>项目: LiveCharts2 实时曲线 + 自定义仪表<br>代码肌肉: <strong>B9(RelayCommand,5min)</strong> + <strong>B10(INPC,5min)</strong><br>速记卡: 二刷 Q1-Q12(盖答案)</td>
+<td><strong>【1d】</strong> Day 9:B4 默写<br><strong>【3d】</strong> Day 7:<strong>B1+B2+B3 闭卷再刷</strong>(关键,7d 巩固)<br><strong>【速记 3d】</strong> Q1-Q17 系统过</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>11 周四</strong></td>
+<td>学习: <a href="M6_报警引擎日志_深度版.md">M6 报警日志</a> 全文<br>项目: AlarmEngine 回滞验证 + Serilog 配置 + dotnet counters<br>代码肌肉: <strong>B5(AlarmRule 回滞,15min)</strong><br>速记卡: 二刷 Q13-Q23</td>
+<td><strong>【1d】</strong> Day 10:B9+B10 默写<br><strong>【3d】</strong> Day 8:<strong>B11 + C5+C6</strong> 复述<br><strong>【速记 1d】</strong> 二刷 Q1-Q12 错的题</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>12 周五</strong></td>
+<td>学习: <a href="M9_工程素养_测试DI容错_深度版.md">M9 工程素养</a> 速过<br>项目: Prism.DryIoc 安装 + Bootstrapper 改造<br>代码肌肉: <strong>B8(Bootstrapper DI,10min)</strong> + <strong>B12(HttpClient Polly,10min)</strong><br>速记卡: 三刷 Q1-Q10</td>
+<td><strong>【1d】</strong> Day 11:B5 默写<br><strong>【3d】</strong> Day 9:<strong>B4 + C5 二刷</strong><br><strong>【7d】</strong> Day 5:<strong>B2 + Q1-Q6</strong> 第一次 7d 间隔,看还记不记得</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>13 周六</strong></td>
+<td>学习: <a href="M8.5_Prism企业级MVVM_深度版.md">M8.5 Prism</a> 精读<br>项目: 拆 View + RegionManager + EventAggregator<br>代码肌肉: <strong>B17(EventAggregator,10min)</strong> + <strong>B18(ViewModelLocator,5min)</strong><br>速记卡: 三刷 Q11-Q23</td>
+<td><strong>【1d】</strong> Day 12:B8+B12 默写<br><strong>【3d】</strong> Day 10:<strong>B9+B10 + Q15-Q17</strong><br><strong>【速记 7d】</strong> Q1-Q23 全部盖答案自问</td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>14 周日</strong></td>
+<td>项目: Prism 重构完成 + Region 全套<br>代码肌肉: <strong>Week 1+2 错题二刷(限时 50%)</strong><br><strong>🎯 周日闭卷 30 题(Week 2 版,见第 2 节)</strong></td>
+<td><strong>【1d】</strong> Day 13:B17+B18 默写<br><strong>【3d】</strong> Day 11:<strong>B5 + Q13-Q14</strong><br><strong>【7d】</strong> Day 7:<strong>Week 1 闭卷 30 题错的复刷</strong>(关键)<br><strong>【Week 2 闭卷 30 题】</strong></td>
+<td>复习 30min + 自测 30min</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Week 2 检查点</strong>:周日闭卷 30 题正确率 ≥ 80%;<strong>Week 1 闭卷题二次正确率 ≥ 90%</strong>。</p>
+<hr />
+<h3 id="sec-3-3">Week 3(Day 15-21)· TCP + 上云 + 报表</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>【新学】学习 + 项目 + 代码肌肉</th>
+<th>【复习队列】1d / 3d / 7d / 15d 倒推</th>
+<th>目标时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>15 周一</strong></td>
+<td>学习: <a href="M11_TCP_Socket_深度版.md">M11 TCP Socket</a> 全文<br>项目: 读+理解 TcpDevice + 模拟 TCP Server<br>代码肌肉: <strong>B16(TcpDevice 粘包,15min)</strong> + C7(TCP 缓冲)+ C8(闭包)<br>速记卡: Q4-Q12 三刷</td>
+<td><strong>【1d】</strong> Day 14 闭卷错题<br><strong>【速记 1d】</strong> 三刷 Q1-Q10</td>
+<td>复习 15min</td>
+</tr>
+<tr>
+<td><strong>16 周二</strong></td>
+<td>学习: <a href="M11_TCP_Socket_深度版.md">M11</a> Day 2 状态机<br>项目: TcpDevice 真粘包处理 + 模拟设备通<br>代码肌肉: <strong>B6(帧解析 AA55,10min)</strong> + C9(async lambda)二刷<br>速记卡: Q13-Q23 三刷</td>
+<td><strong>【1d】</strong> Day 15:B16 默写<br><strong>【3d】</strong> Day 13:<strong>B17+B18</strong><br><strong>【速记 7d】</strong> Q1-Q23(每周一通)</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>17 周三</strong></td>
+<td>学习: <a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA + MQTT</a> + <a href="M12_工程量转换与多数据库_深度版.md">M12 工程量</a><br>项目: MqttPublisher 双向 + EngineeringConverter + MQTTX 验证<br>代码肌肉: <strong>B13(MQTT 双向,15min)</strong> + <strong>B24(EngineeringConverter,5min)</strong><br>速记卡: 闭卷 Q1-Q23</td>
+<td><strong>【1d】</strong> Day 16:B6 默写<br><strong>【3d】</strong> Day 14:<strong>Week 2 闭卷错题</strong><br><strong>【速记 1d】</strong> 闭卷 Q1-Q23</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>18 周四</strong></td>
+<td>学习: <a href="M9.5_性能压测与长跑稳定性_深度版.md">M9.5 性能压测</a><br>项目(选): OpcUaClient + BenchmarkDotNet + 1h 长跑<br>代码肌肉: <strong>B14(OPC UA 异步,15min)</strong><br>速记卡: 全闭卷(目标 80%+)</td>
+<td><strong>【1d】</strong> Day 17:B13+B24 默写<br><strong>【3d】</strong> Day 15:<strong>B16 + C7+C8</strong><br><strong>【7d】</strong> Day 11:<strong>B5 + M6 报警原理</strong><br><strong>【速记 15d ⭐】</strong> Day 3:<strong>B1 + C1+C10</strong>(第一次 15d 间隔,关键考验)</td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>19 周五</strong></td>
+<td>学习: <a href="M10_报表_深度版.md">M10 报表</a> + <a href="M8_工程化收尾_深度版.md">M8 工程化</a><br>项目: ClosedXML 导 Excel + Inno Setup 安装包<br>代码肌肉: <strong>B19(IDialogService,10min)</strong> + <strong>B20(Serilog 中间件,10min)</strong><br>速记卡: 全闭卷</td>
+<td><strong>【1d】</strong> Day 18:B14 默写<br><strong>【3d】</strong> Day 16:<strong>B6 + C9</strong><br><strong>【速记 7d】</strong> Q1-Q23(每周)</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>20 周六</strong></td>
+<td>学习: <a href="M17_工业安全与MES对接_深度版.md">M17 MES</a><br>项目(选): MesApiClient + Polly + JWT + 白名单<br>代码肌肉: <strong>B21(白名单,10min)</strong> + <strong>B22(AuditLogger,10min)</strong><br>速记卡: 全闭卷</td>
+<td><strong>【1d】</strong> Day 19:B19+B20 默写<br><strong>【3d】</strong> Day 17:<strong>B13+B24</strong><br><strong>【7d】</strong> Day 13:<strong>B17+B18 + Prism 知识点</strong></td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>21 周日</strong></td>
+<td>学习: <a href="M18_配方管理_深度版.md">M18 配方</a> + <a href="M19_问题排查与调试_深度版.md">M19</a> Day 2-5 复习<br>项目(选): RecipeManager + dotnet gcdump 实操 + Wireshark 抓协议<br>代码肌肉: <strong>B23(Recipe 配方,15min)</strong><br><strong>🎯 周日闭卷 30 题(Week 3 版,见第 2 节)</strong></td>
+<td><strong>【1d】</strong> Day 20:B21+B22 默写<br><strong>【3d】</strong> Day 18:<strong>B14 + 性能压测知识</strong><br><strong>【7d】</strong> Day 14:<strong>Week 2 闭卷错题二刷</strong><br><strong>【15d ⭐】</strong> Day 6:<strong>B3 + C3+C4</strong>(15d 关键考验)<br><strong>【Week 3 闭卷 30 题】</strong></td>
+<td>复习 35min + 自测 30min</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Week 3 检查点</strong>:周日闭卷 30 题 ≥ 80%;<strong>Week 1 闭卷题三次正确率 ≥ 95%</strong>(已经接近永久记忆)。</p>
+<hr />
+<h3 id="sec-3-4">Week 4(Day 22-30)· 文档 + 简历 + 面试 + 毕业测试</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>【新学】学习 + 项目 + 代码肌肉</th>
+<th>【复习队列】1d / 3d / 7d / 15d 倒推</th>
+<th>目标时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>22 周一</strong></td>
+<td>学习: <a href="文档能力_设计协议操作测试文档_深度版.md">文档能力</a> + <a href="M15_工程协作与联调_深度版.md">M15</a> Day 1<br>项目: 写 README + 架构 + 协议 + 操作 + 测试报告 4 份文档<br>代码肌肉: <strong>B25(PerformanceCounter,10min)</strong> + <strong>B26(IDisposable,10min)</strong></td>
+<td><strong>【1d】</strong> Day 21 闭卷错题<br><strong>【3d】</strong> Day 19:<strong>B19+B20</strong><br><strong>【7d】</strong> Day 15:<strong>B16 + TCP 粘包原理</strong><br><strong>【速记 7d】</strong> 全部 Q1-Q23(每周)</td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>23 周二</strong></td>
+<td>项目: 文档完善 + PlantUML 时序图<br>代码肌肉: <strong>B27(CancellationToken,5min)</strong> + <strong>B28(LazyCache,5min)</strong> + <strong>B29(MemoryCache,5min)</strong> + <strong>B30(单元测试,10min)</strong></td>
+<td><strong>【1d】</strong> Day 22:B25+B26 默写<br><strong>【3d】</strong> Day 20:<strong>B21+B22 + MES 知识</strong><br><strong>【7d】</strong> Day 16:<strong>B6 + 帧解析原理</strong></td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>24 周三</strong></td>
+<td>学习: 速记卡全集闭卷 + <a href="面试问答_逐字稿_30题.md">面试逐字稿 30 题</a> 精读 10 题<br>产出: 简历 13K 版改写 + 项目 STAR 讲法背第 1 遍<br>代码肌肉: 闭卷抽 5 题(2 翻译 + 2 手写 + 1 Debug)</td>
+<td><strong>【1d】</strong> Day 23:B27-B30 默写<br><strong>【3d】</strong> Day 21:<strong>Week 3 闭卷错题</strong><br><strong>【7d】</strong> Day 17:<strong>B13+B24 + MQTT/工程量</strong><br><strong>【15d ⭐】</strong> Day 9:<strong>B4 + Retry 原理</strong>(关键)</td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>25 周四</strong></td>
+<td>学习: 逐字稿 30 题精读后 10 题<br>产出: 简历 14-15K 版 + 15K+ 版 + 5 个"难点故事"打磨<br>代码肌肉: <strong>毕业测试预演</strong>(B1+B2+B5+B16+B13 五大件,目标 60min)</td>
+<td><strong>【1d】</strong> Day 24:抽 5 题默写<br><strong>【3d】</strong> Day 22:<strong>B25+B26</strong><br><strong>【7d】</strong> Day 18:<strong>B14 + OPC UA 原理</strong><br><strong>【速记 7d】</strong> 全部 Q1-Q23</td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>26 周五</strong></td>
+<td>投递: BOSS / 智联 / 拉勾 / 猎聘,先投 10-13K 练手 5-10 家<br>代码肌肉: 每天白板 3 题(随机抽)</td>
+<td><strong>【1d】</strong> Day 25:毕业预演错的题<br><strong>【3d】</strong> Day 23:<strong>B27-B30</strong><br><strong>【7d】</strong> Day 19:<strong>B19+B20 + Serilog 原理</strong></td>
+<td>复习 15min</td>
+</tr>
+<tr>
+<td><strong>27 周六</strong></td>
+<td>模拟面试: 对镜头自问自答录音回听 + 逐字稿自测<br>代码肌肉: 错题集中刷 + 白板 3 题</td>
+<td><strong>【1d】</strong> Day 26:白板 3 题<br><strong>【3d】</strong> Day 24:<strong>抽 5 题默写</strong><br><strong>【7d】</strong> Day 20:<strong>B21+B22 + MES/审计</strong><br><strong>【15d ⭐】</strong> Day 12:<strong>B8+B12 + DI/Polly 原理</strong></td>
+<td>复习 25min</td>
+</tr>
+<tr>
+<td><strong>28 周日</strong></td>
+<td>复盘: 模拟面试录音整理 + 补漏<br><strong>🎯 周日闭卷 30 题(Week 4 综合版,见第 2 节)</strong></td>
+<td><strong>【1d】</strong> Day 27:白板 3 题<br><strong>【3d】</strong> Day 25:<strong>毕业预演五大件</strong><br><strong>【7d】</strong> Day 21:<strong>Week 3 闭卷 30 题</strong><br><strong>【15d ⭐】</strong> Day 13:<strong>B17+B18 + Prism 原理</strong><br><strong>【Week 4 闭卷 30 题】</strong></td>
+<td>复习 35min + 自测 30min</td>
+</tr>
+<tr>
+<td><strong>29 周一</strong></td>
+<td>真面试(边面边补):每场面试后立刻记录被问倒的题<br>代码肌肉: 针对性补刷(被问什么补什么)</td>
+<td><strong>【1d】</strong> Day 28:闭卷错题<br><strong>【7d】</strong> Day 22:<strong>B25+B26</strong><br><strong>【速记 7d】</strong> 全部 Q1-Q23 + 30 题逐字稿</td>
+<td>复习 20min</td>
+</tr>
+<tr>
+<td><strong>30 周二</strong></td>
+<td><strong>🎯 毕业测试</strong>:不查文档白板写完一个完整 ModbusDevice(含协议解析+CRC+异常处理+IDisposable),30min 内<br><strong>🎯 综合闭卷 30 题</strong>(从 Week 1-4 各抽 7-8 题组成,见第 2 节)</td>
+<td><strong>【1d】</strong> Day 29:被问倒的题<br><strong>【3d】</strong> Day 27:<strong>白板 3 题</strong><br><strong>【7d】</strong> Day 23:<strong>B27-B30</strong><br><strong>【15d ⭐】</strong> Day 15:<strong>B16 + TCP 粘包</strong>(15d 关键考验)<br><strong>【30d ⭐⭐ 终极考验】</strong> Day 1:<strong>C# 8 大陷阱全复述</strong>(30 天前学的,现在还能讲清 = 永久记忆)</td>
+<td>复习 40min + 毕业测试 1h</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Day 30 毕业判据</strong>:
+- ✅ 五大件白板 60min 内完成(B1+B2+B5+B16+B13)
+- ✅ 综合闭卷 30 题正确率 ≥ 85%
+- ✅ <strong>Day 1 学的 C# 8 大陷阱还能 3 秒反应答案</strong>(30d 间隔通过 = 永久记忆)
+- ✅ 任意一段代码 5 秒内能说"这里有什么坑"</p>
+<hr />
+<h2 id="sec-2-3">第 2 节 · 每周日闭卷自测 30 题(共 120 题)📝</h2>
+<blockquote>
+<p><strong>怎么用</strong>:每周日打开本节对应那一周,盖住答案,3 秒内回答。<strong>卡壳超 5 秒 = 失败</strong>,标"快忘点"。
+<strong>快忘点</strong> = 面试官最爱追问的点,你最容易答不出的点。每个快忘点都标了为什么面试官爱追。
+<strong>题号格式</strong>:W1.01 = Week 1 第 1 题。</p>
+</blockquote>
+<h3 id="sec-3-5">Week 1 闭卷 30 题 · 主干打底(C# / Modbus / 串口 / 通道)</h3>
+<h4>C# 陷阱(5 题)</h4>
+<p><strong>W1.01</strong> <code>List&lt;Point&gt;</code> 改字段(<code>list[0].X = 99</code>)为什么会丢?</p>
+<blockquote>
+<p>答:struct 值类型,索引器返回拷贝,改拷贝原对象没动。
+<strong>快忘点</strong>:面试官追问"struct 性能一定比 class 好吗?"→ 错,&gt;16 字节拷贝成本陡增。</p>
+</blockquote>
+<p><strong>W1.02</strong> <code>async void</code> 为什么是炸弹?</p>
+<blockquote>
+<p>答:异常无法 catch + 调用方无法 await + 进程崩溃。唯一合法场景是 WPF 事件处理器。
+<strong>快忘点</strong>:追问"库代码里 async void 怎么改"→ 一律 async Task,内部包 try-catch。</p>
+</blockquote>
+<p><strong>W1.03</strong> UI 线程调 <code>.Result</code> 为什么死锁?</p>
+<blockquote>
+<p>答:<code>.Result</code> 阻塞 UI,async 内部 await 要回 SynchronizationContext(UI 线程),两边互等。
+<strong>快忘点</strong>:追问"库代码怎么避免"→ 加 <code>ConfigureAwait(false)</code>。</p>
+</blockquote>
+<p><strong>W1.04</strong> <code>Count++</code> 在多线程下为什么会丢数?</p>
+<blockquote>
+<p>答:读-改-写三步非原子,用 <code>Interlocked.Increment(ref _count)</code>。
+<strong>快忘点</strong>:追问"为什么 lock 也行但慢"→ lock 有上下文切换成本。</p>
+</blockquote>
+<p><strong>W1.05</strong> 闭包捕获 for 循环变量(<code>for(i...) Task.Run(()=&gt;i)</code>)为什么全打 5?</p>
+<blockquote>
+<p>答:Lambda 捕获变量引用,循环结束 i=5,C# 5+ 已修但老代码要 <code>var local = i</code>。
+<strong>快忘点</strong>:追问"foreach 也踩吗?"→ C# 5+ foreach 已修,for 没修。</p>
+</blockquote>
+<h4>Modbus / 协议(5 题)</h4>
+<p><strong>W1.06</strong> Modbus RTU 帧格式?</p>
+<blockquote>
+<p>答:<code>[从站地址 1B][功能码 1B][数据 NB][CRC16 低字节][CRC16 高字节]</code>。
+<strong>快忘点</strong>:CRC 低字节在前(很多新人搞反)。</p>
+</blockquote>
+<p><strong>W1.07</strong> Modbus CRC16 初值为什么是 0xFFFF,不是 0?</p>
+<blockquote>
+<p>答:让全 0 数据也产生非零校验,否则全 0 数据 CRC=0 看不出错。
+<strong>快忘点</strong>:追问"多项式为什么 0xA001"→ 0x8005 的位反转。</p>
+</blockquote>
+<p><strong>W1.08</strong> Modbus 寄存器是大端还是小端?CRC 呢?</p>
+<blockquote>
+<p>答:寄存器值大端,CRC 低字节在前(混合标准,最坑)。
+<strong>快忘点</strong>:面试官故意问"CRC 也是大端吧"→ 错,这是陷阱。</p>
+</blockquote>
+<p><strong>W1.09</strong> 寄存器地址 40001 对应协议里的什么?</p>
+<blockquote>
+<p>答:40001 是引用地址(文档写法),协议里功能码 03 的"寄存器地址"从 0 开始,40001 → 0。
+<strong>快忘点</strong>:追问"为什么有 4 区段(0/1/3/4)"→ Modbus 规范:线圈/输入线圈/输入寄存器/保持寄存器。</p>
+</blockquote>
+<p><strong>W1.10</strong> 粘包/半包的本质是什么?怎么解?</p>
+<blockquote>
+<p>答:串口/TCP 是字节流无消息边界。解法:帧头 + 长度域 + 缓冲重组 + CRC 校验。
+<strong>快忘点</strong>:追问"找不到帧头怎么办"→ 清空缓冲,否则内存无限涨(生产事故源)。</p>
+</blockquote>
+<h4>PLC(3 题)</h4>
+<p><strong>W1.11</strong> S7.Net 连 PLC,<code>IsConnected</code> 返回 true 就一定通吗?</p>
+<blockquote>
+<p>答:不,只表示 TCP 通。PLC 进 STOP 模式后 <code>IsConnected=true</code> 但 <code>LastErrorCode != 0</code>。
+<strong>快忘点</strong>:追问"怎么真判断"→ 看 <code>LastErrorCode</code> + 心跳读已知点位。</p>
+</blockquote>
+<p><strong>W1.12</strong> <code>DB1.DBW0</code> / <code>DB1.DBD4</code> / <code>DB1.DBX0.0</code> 区别?</p>
+<blockquote>
+<p>答:DBW = Word(2 字节)、DBD = Double Word(4 字节)、DBX = 位(1 bit)。
+<strong>快忘点</strong>:追问"读浮点用哪个"→ DBD,但 PLC 端要声明 Real 不是 DInt。</p>
+</blockquote>
+<p><strong>W1.13</strong> S7-1200 默认优化访问的 DB 块能用 S7.Net 读偏移吗?</p>
+<blockquote>
+<p>答:不能,必须右键 DB 块取消"优化访问"才能按偏移读。
+<strong>快忘点</strong>:追问"为什么"→ 优化访问用符号寻址,偏移不固定。</p>
+</blockquote>
+<h4>EF Core(3 题)</h4>
+<p><strong>W1.14</strong> EF Core 为什么推荐 <code>IDbContextFactory&lt;T&gt;</code> 不直接注入 <code>DbContext</code>?</p>
+<blockquote>
+<p>答:DbContext 不是线程安全,并发 SaveChangesAsync 抛异常。Factory 每次返回新实例。
+<strong>快忘点</strong>:追问"AddDbContext + Scoped 行不行"→ WPF 没请求作用域,Factory 更稳。</p>
+</blockquote>
+<p><strong>W1.15</strong> <code>SaveChangesAsync</code> 高频调用为什么慢?怎么优化?</p>
+<blockquote>
+<p>答:每条都开事务 + 网络往返。改批量:<code>AddRange</code> + 单次 <code>SaveChanges</code>,性能提 10-50 倍。
+<strong>快忘点</strong>:追问"SQLite 单写者怎么处理"→ 用 Channel 串行化所有写。</p>
+</blockquote>
+<p><strong>W1.16</strong> <code>AsNoTracking()</code> 什么时候用?</p>
+<blockquote>
+<p>答:只读查询用,跳过变更追踪提升性能。写场景必须用 tracking。
+<strong>快忘点</strong>:追问"全局禁用 tracking 怎么做"→ <code>UseQueryTrackingBehavior(NoTracking)</code>。</p>
+</blockquote>
+<h4>Prism / MVVM(3 题)</h4>
+<p><strong>W1.17</strong> MVVM 三层职责?</p>
+<blockquote>
+<p>答:View(XAML 界面) / ViewModel(状态+逻辑,INotifyPropertyChanged) / Model(数据)。
+<strong>快忘点</strong>:追问"ViewModel 能引用 View 吗"→ 不能,违背 MVVM。</p>
+</blockquote>
+<p><strong>W1.18</strong> <code>SetProperty(ref _x, value)</code> 内部做了什么?</p>
+<blockquote>
+<p>答:① 比较新旧值(EqualityComparer)② 不等则赋值 ③ 触发 PropertyChanged 事件。
+<strong>快忘点</strong>:追问"为什么不直接 <code>_x = value</code>"→ 不触发事件 UI 不更新。</p>
+</blockquote>
+<p><strong>W1.19</strong> <code>ICommand.CanExecute</code> 返回 false 会怎样?</p>
+<blockquote>
+<p>答:绑定的 Button 自动 <code>IsEnabled=false</code>(灰显)。
+<strong>快忘点</strong>:追问"CanExecute 什么时候重算"→ <code>CommandManager.InvalidateRequerySuggested()</code> 或显式 <code>RaiseCanExecuteChanged</code>。</p>
+</blockquote>
+<h4>TCP(3 题)</h4>
+<p><strong>W1.20</strong> TCP <code>ReceiveAsync</code> 返回 0 表示什么?</p>
+<blockquote>
+<p>答:对端正常关闭(FIN),不是错误,必须 return 触发重连。
+<strong>快忘点</strong>:追问"返回 0 抛异常吗"→ 不抛,静默返回 0。</p>
+</blockquote>
+<p><strong>W1.21</strong> TCP 心跳和接收循环为什么要并行 Task?</p>
+<blockquote>
+<p>答:接收循环 await ReceiveAsync 阻塞,心跳要定时发送,串行会卡。
+<strong>快忘点</strong>:追问"用 LinkedTokenSource 干嘛"→ 一个 cancel 同时停心跳和接收。</p>
+</blockquote>
+<p><strong>W1.22</strong> 重连退避为什么加抖动(jitter)?</p>
+<blockquote>
+<p>答:避免多客户端同时重试撞服务端(thundering herd),抖动 = 随机 + baseDelay。
+<strong>快忘点</strong>:追问"指数退避上限"→ 必须封顶,否则 <code>Math.Pow(2, 20)</code> 溢出。</p>
+</blockquote>
+<h4>MQTT / 上云(3 题)</h4>
+<p><strong>W1.23</strong> MQTT QoS 0 / 1 / 2 区别?</p>
+<blockquote>
+<p>答:0=至多一次(火警丢)、1=至少一次(可能重复)、2=恰好一次(性能差)。
+<strong>快忘点</strong>:追问"工业现场选哪个"→ 1(默认),2 性能差慎用。</p>
+</blockquote>
+<p><strong>W1.24</strong> MQTT ClientId 重复会怎样?</p>
+<blockquote>
+<p>答:后连的踢先连的(broker 默认行为)。
+<strong>快忘点</strong>:追问"怎么避免"→ <code>MachineName + Guid</code> 保证唯一。</p>
+</blockquote>
+<p><strong>W1.25</strong> MQTT 通配符 <code>+</code> 和 <code>#</code> 区别?</p>
+<blockquote>
+<p>答:<code>+</code> 单层(<code>device/+/data</code> 匹配 device/A/data 不匹配 device/A/B/data),<code>#</code> 多层。
+<strong>快忘点</strong>:追问"<code>#</code> 必须在主题最后吗"→ 是,MQTT 规范要求。</p>
+</blockquote>
+<h4>报警 / 性能(2+2 题)</h4>
+<p><strong>W1.26</strong> 报警为什么要回滞(hysteresis)?</p>
+<blockquote>
+<p>答:阈值边界抖动时报警反复触发/消除。回滞:超上限才报,降到下限以下才解除。
+<strong>快忘点</strong>:追问"回滞带怎么定"→ 经验值,通常是量程的 2-5%。</p>
+</blockquote>
+<p><strong>W1.27</strong> <code>dotnet counters</code> 监控什么指标?</p>
+<blockquote>
+<p>答:GC / ThreadPool / 内存 / CPU / 工作集。生产 7×24 跑必看。
+<strong>快忘点</strong>:追问"GC Gen 2 计数涨说明什么"→ 大对象进老代,可能内存泄漏。</p>
+</blockquote>
+<p><strong>W1.28</strong> 7×24 跑 3 天内存从 100MB 涨到 1GB,怎么排查?</p>
+<blockquote>
+<p>答:<code>dotnet gcdump</code> 抓快照对比,找对象数量异常增长(event 没退订 / Channel 没消费)。
+<strong>快忘点</strong>:追问"怎么验证修好了"→ 再跑 3 天看曲线平稳。</p>
+</blockquote>
+<h4>调试(1 题)</h4>
+<p><strong>W1.29</strong> 条件断点和数据断点区别?各自适合什么场景?</p>
+<blockquote>
+<p>答:条件断点 = 表达式为真时断(类似 <code>if(x)debugger</code>)。数据断点 = 内存地址被改时断(适合"字段莫名被改")。
+<strong>快忘点</strong>:追问"数据断点对 class 字段有效吗"→ 无效,只能监视值类型字段地址。</p>
+</blockquote>
+<h4>综合(1 题)</h4>
+<p><strong>W1.30</strong> 讲讲你 DAQMonitor 项目的架构(1 分钟 STAR)?</p>
+<blockquote>
+<p>答:分层 Core(IDevice 抽象 + Channel 并发 + 报警 + 报表 + 心跳)+ UI(WPF/MVVM + 自研控件)+ Tests(56 测试)。换设备 UI 零改动,支持串口/Modbus/PLC/CAN/USB。
+<strong>快忘点</strong>:面试官追问"最难的一点"→ 准备好粘包 / UI 卡顿 / 内存泄漏任选一个真实例子。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-6">Week 2 闭卷 30 题 · 数据 + 可视化 + Prism 深化</h3>
+<blockquote>
+<p><strong>注意</strong>:Week 2 的题比 Week 1 深 1 层,且<strong>包含 Week 1 的核心题复刷</strong>(标 🔁)。</p>
+</blockquote>
+<h4>C# 陷阱深挖(5 题)</h4>
+<p><strong>W2.01</strong> 🔁 W1.02 升级:<code>async void</code> 内的异常,AppDomain.UnhandledException 能 catch 吗?</p>
+<blockquote>
+<p>答:能捕获但不能阻止进程崩溃(除非 <code>TaskScheduler.UnobservedTaskException</code> 配置)。
+<strong>快忘点</strong>:追问".NET Core vs .NET Framework 行为差"→ Core 默认不崩(可配),Framework 默认崩。</p>
+</blockquote>
+<p><strong>W2.02</strong> <code>ConfigureAwait(false)</code> 在 WPF 和库代码里分别该不该加?</p>
+<blockquote>
+<p>答:WPF UI 代码不用(要回 UI 线程更新),库代码必须加(避免 SynchronizationContext 捕获,防死锁)。
+<strong>快忘点</strong>:追问"ASP.NET Core 还需要吗"→ 不需要(无 SyncContext)。</p>
+</blockquote>
+<p><strong>W2.03</strong> <code>lock(this)</code> 为什么不行?</p>
+<blockquote>
+<p>答:<code>this</code> 是公开引用,外部代码可以 lock 同一对象 → 死锁 + 隐蔽耦合。用 <code>private readonly object _gate = new()</code>。
+<strong>快忘点</strong>:追问"<code>lock(typeof(T))</code> 行吗"→ 也不行,typeof 返回的 Type 对象是公开的。</p>
+</blockquote>
+<p><strong>W2.04</strong> 🔁 W1.04 升级:<code>Interlocked.CompareExchange</code> 怎么实现无锁 CAS?</p>
+<blockquote>
+<p>答:CPU 原生指令(<code>lock cmpxchg</code>),比较 + 交换一次性原子完成。失败重试。
+<strong>快忘点</strong>:追问"CAS 的 ABA 问题"→ 加版本号(<code>Interlocked</code> 的 <code>ref int version</code> 模式)。</p>
+</blockquote>
+<p><strong>W2.05</strong> <code>IDisposable</code> + finalizer 什么时候一起用?</p>
+<blockquote>
+<p>答:只有封装非托管资源(IntPtr/文件句柄/COM)才需要 finalizer 兜底。纯托管不需要。
+<strong>快忘点</strong>:追问"SafeHandle 是干嘛的"→ 已包 finalizer,优先用而不是自己写。</p>
+</blockquote>
+<h4>Modbus / 通信深化(5 题)</h4>
+<p><strong>W2.06</strong> 🔁 W1.06 升级:Modbus RTU 帧之间要等多久?</p>
+<blockquote>
+<p>答:3.5 字符静默时间(9600bps 约 4ms)。否则接收方分不清帧边界。
+<strong>快忘点</strong>:追问"Modbus TCP 也要吗"→ 不用,TCP 用 MBAP 头里的长度域定位。</p>
+</blockquote>
+<p><strong>W2.07</strong> Modbus 异常码 0x01-0x04 含义?</p>
+<blockquote>
+<p>答:0x01 非法功能码 / 0x02 非法数据地址 / 0x03 非法数据值 / 0x04 从站设备故障。
+<strong>快忘点</strong>:追问"异常响应帧怎么识别"→ 功能码最高位置 1(如 0x83 = 0x03 异常)。</p>
+</blockquote>
+<p><strong>W2.08</strong> RS485 一主多从,主站轮询时间怎么算?</p>
+<blockquote>
+<p>答:每从站响应时间 × 从站数 + 帧间隔。如 10 从站 × 50ms = 500ms 一轮,1s 轮询 2 次。
+<strong>快忘点</strong>:追问"从站太多轮询不够怎么办"→ 拆多个总线 / 提波特率 / 用 TCP。</p>
+</blockquote>
+<p><strong>W2.09</strong> 🔁 W1.10 升级:粘包缓冲区找不到帧头为什么必须清空?</p>
+<blockquote>
+<p>答:设备掉线发垃圾数据时缓冲区无限涨,最终 OOM 崩进程。
+<strong>快忘点</strong>:追问"清空会丢真数据吗"→ 不会,真数据有 AA55 帧头,清的是垃圾。</p>
+</blockquote>
+<p><strong>W2.10</strong> 串口 <code>BytesToRead</code> 等够数据时为什么用 <code>Thread.Sleep(10)</code> + 超时,不直接 <code>Read()</code>?</p>
+<blockquote>
+<p>答:<code>SerialPort.Read</code> 没数据会阻塞卡死,无法超时退出。轮询 BytesToRead + Sleep 可控。
+<strong>快忘点</strong>:追问"生产怎么写"→ 用 NModbus4 库的 <code>async Task&lt;ushort[]&gt;</code> 异步。</p>
+</blockquote>
+<h4>EF Core 深化(3 题)</h4>
+<p><strong>W2.11</strong> PointStore 内存索引 + SQLite 双写为什么不一致?</p>
+<blockquote>
+<p>答:设计上接受"内存是最新,SQLite 是历史",落盘失败丢这条历史业务可接受。
+<strong>快忘点</strong>:追问"强一致怎么做"→ 加事务 + 写完再返回,但采集慢。</p>
+</blockquote>
+<p><strong>W2.12</strong> <code>await using var db = factory.CreateDbContextAsync()</code> 为什么必须 <code>await using</code>?</p>
+<blockquote>
+<p>答:DbContext 实现 <code>IAsyncDisposable</code>,同步 Dispose 占 ThreadPool(高频场景炸)。
+<strong>快忘点</strong>:追问"IAsyncDisposable 和 IDisposable 区别"→ 异步释放能 await 内部异步清理。</p>
+</blockquote>
+<p><strong>W2.13</strong> EF Core 迁移(Migrations)和 <code>EnsureCreated</code> 区别?</p>
+<blockquote>
+<p>答:EnsureCreated 一次性建表,改字段不生效。Migrations 支持增量演进,生产推荐。
+<strong>快忘点</strong>:追问"什么时候用哪个"→ Demo 用 EnsureCreated,生产用 Migrations。</p>
+</blockquote>
+<h4>Prism / MVVM 深化(3 题)</h4>
+<p><strong>W2.14</strong> Prism 的 <code>EventAggregator</code> 比自己写的多什么?</p>
+<blockquote>
+<p>答:UI 线程自动 marshal + 订阅过滤(<code>filter: m =&gt; m.X &gt; 5</code>)+ <code>KeepSubscriberReferenceAlive</code> 选项。
+<strong>快忘点</strong>:追问"为什么默认弱引用"→ 防 VM 订阅没退订导致内存泄漏。</p>
+</blockquote>
+<p><strong>W2.15</strong> Prism Region 和 Navigation 怎么协作?</p>
+<blockquote>
+<p>答:Region 是 UI 占位符(ContentControl),Navigation 切换 Region 里显示哪个 View。
+<strong>快忘点</strong>:追问"View 怎么注册到 Region"→ <code>RegisterViewWithRegion("MainRegion", typeof(MyView))</code> 或 <code>RequestNavigate</code>。</p>
+</blockquote>
+<p><strong>W2.16</strong> <code>ViewModelLocator.AutoWireViewModel="True"</code> 怎么找到 VM?</p>
+<blockquote>
+<p>答:命名约定:<code>MyApp.Views.MainView</code> → <code>MyApp.ViewModels.MainViewModel</code>。
+<strong>快忘点</strong>:追问"约定能改吗"→ <code>ViewModelLocationProvider.SetDefaultViewTypeToViewModelTypeResolver(...)</code>。</p>
+</blockquote>
+<h4>TCP / 性能深化(3+2 题)</h4>
+<p><strong>W2.17</strong> 🔁 W1.22 升级:指数退避公式?</p>
+<blockquote>
+<p>答:<code>delay = baseDelay × 2^(attempt-1) + random(0, baseDelay)</code>。attempt 从 1 开始。
+<strong>快忘点</strong>:追问"为什么 attempt &lt;= maxRetries 用 when"→ 最后一次失败要抛,不能进 retry 分支。</p>
+</blockquote>
+<p><strong>W2.18</strong> <code>MemoryStream.CopyTo</code> 为什么高频小包性能炸?</p>
+<blockquote>
+<p>答:byte-by-byte 循环,每帧 GC 压力大。改 <code>Array.Copy</code> + 重置 Position。
+<strong>快忘点</strong>:追问"更优解"→ <code>System.IO.Pipelines</code>(PipeReader/Writer),专为大流量。</p>
+</blockquote>
+<p><strong>W2.19</strong> 高频采集(1000 点/秒)UI 怎么不卡?</p>
+<blockquote>
+<p>答:① 后台线程采集 ② Channel 攒批 ③ 每 200ms 批量 UI 刷新 ④ Dispatcher 切 UI 线程。
+<strong>快忘点</strong>:追问"ObservableCollection 直接 Add 会怎样"→ 跨线程异常 + 每条触发 UI 刷新卡死。</p>
+</blockquote>
+<p><strong>W2.20</strong> <code>dotnet trace</code> 和 <code>dotnet counters</code> 区别?</p>
+<blockquote>
+<p>答:counters = 实时指标(GC/CPU);trace = 采样火焰图(cpu-stack),找热点方法。
+<strong>快忘点</strong>:追问"什么时候用 PerfView"→ Windows 旧场景 / ETW 深挖。</p>
+</blockquote>
+<p><strong>W2.21</strong> BenchmarkDotNet 怎么测 PointStore 性能?</p>
+<blockquote>
+<p>答:<code>[MemoryDiagnoser]</code> 标注 + <code>[Benchmark]</code> 标方法 + <code>dotnet run -c Release</code>,看 Gen0/Gen1/Gen2 + Mean + Allocated。
+<strong>快忘点</strong>:追问"<code>[MemoryDiagnoser]</code> 干嘛"→ 测每次调用分配多少内存,找 GC 压力源。</p>
+</blockquote>
+<h4>报警 / 调试(2+1 题)</h4>
+<p><strong>W2.22</strong> 🔁 W1.26 升级:回滞带的 HighThreshold 和 LowThreshold 谁大?</p>
+<blockquote>
+<p>答:HighThreshold &gt; LowThreshold(高报场景)。LowThreshold 是"回落到这个值以下才解除"。
+<strong>快忘点</strong>:追问"低报场景反过来吗"→ 是,LowThreshold &lt; HighThreshold(低报解除要升回去)。</p>
+</blockquote>
+<p><strong>W2.23</strong> AlarmEngine 触发事件的边沿检测怎么做?</p>
+<blockquote>
+<p>答:存 <code>wasActive</code>,只在 <code>!wasActive &amp;&amp; nowActive</code> 触发 Triggered,<code>wasActive &amp;&amp; !nowActive</code> 触发 Cleared。
+<strong>快忘点</strong>:追问"不边沿检测会怎样"→ 状态不变也触发,UI 反复刷新报警。</p>
+</blockquote>
+<p><strong>W2.24</strong> Wireshark 抓 Modbus TCP 怎么过滤?</p>
+<blockquote>
+<p>答:<code>modbus</code> 或 <code>tcp.port == 502</code>。看 Function Code / Reference Number / Register Values。
+<strong>快忘点</strong>:追问"RTU 串口怎么抓"→ 用串口监视器(ComSpy / PortMon),Wireshark 抓不到串口。</p>
+</blockquote>
+<h4>MQTT / 综合(3+3 题)</h4>
+<p><strong>W2.25</strong> 🔁 W1.25 升级:MQTT <code>WithCleanSession(false)</code> 为什么重要?</p>
+<blockquote>
+<p>答:配合 QoS 1,broker 在断线期间缓存消息,重连补发。否则离线消息全丢。
+<strong>快忘点</strong>:追问"持久会话 ClientId 怎么处理"→ 必须固定(不能用随机 Guid),否则 broker 找不到旧 session。</p>
+</blockquote>
+<p><strong>W2.26</strong> 🔁 W1.30 升级:你项目最难的一点是什么?(STAR 法 1 分钟答)</p>
+<blockquote>
+<p>答:挑粘包 / Channel 并发 / 内存泄漏任选一个真实例子:Situation → Task → Action → Result。
+<strong>快忘点</strong>:追问"如果重来怎么改"→ 必须有反思(说明你成长型思维)。</p>
+</blockquote>
+<p><strong>W2.27</strong> <code>IDevice</code> 抽象为什么这么设计?换设备为什么 UI 零改动?</p>
+<blockquote>
+<p>答:IDevice 定义 Connect/Disconnect/Read/Write + DataReceived 事件。UI 订阅事件,Bootstrapper 改一行换设备实现。
+<strong>快忘点</strong>:追问"接口 vs 抽象类"→ IDevice 接口(无共享代码),DeviceBase 抽象类(共享 RaiseData)。</p>
+</blockquote>
+<p><strong>W2.28</strong> DI 容器为什么用 Singleton 注册 PointStore?</p>
+<blockquote>
+<p>答:全局共享状态(实时数据缓存),所有线程读同一份。Scoped 用于"请求级"对象(WPF 没请求概念)。
+<strong>快忘点</strong>:追问"Singleton 注入 DbContext 会怎样"→ 炸(并发),所以用 IDbContextFactory。</p>
+</blockquote>
+<p><strong>W2.29</strong> 单元测试怎么 mock IDevice 验证 BatchReady 事件触发?</p>
+<blockquote>
+<p>答:<code>Mock&lt;IDevice&gt;</code> + <code>SetupAdd(d =&gt; d.DataReceived += It.IsAny&lt;&gt;())</code> 捕获订阅,手动 Invoke 触发。
+<strong>快忘点</strong>:追问"<code>Verify(d =&gt; d.Connect(), Times.Once)</code> 干嘛"→ 验证方法调用次数。</p>
+</blockquote>
+<p><strong>W2.30</strong> 🔁 Week 1 全套抽 3 题复刷(W1.06 / W1.10 / W1.26 任选)</p>
+<blockquote>
+<p>答:口述答案 + 快忘点。
+<strong>快忘点</strong>:这是 Week 2 复习 Week 1 的核心机制(7d 间隔重复)。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-7">Week 3 闭卷 30 题 · TCP + 上云 + 报表 + 综合</h3>
+<blockquote>
+<p>Week 3 题比 Week 2 又深 1 层,且包含 Week 1-2 关键题复刷。</p>
+</blockquote>
+<h4>C# / 异步深挖(5 题)</h4>
+<p><strong>W3.01</strong> <code>Task.FromResult(42)</code> 和 <code>Task.Run(() =&gt; 42)</code> 区别?</p>
+<blockquote>
+<p>答:FromResult 同步完成(已完成的 Task,无线程开销);Task.Run 调度到线程池跑。
+<strong>快忘点</strong>:追问"什么时候用 FromResult"→ 已有结果的异步签名伪装,如 mock。</p>
+</blockquote>
+<p><strong>W3.02</strong> <code>IAsyncEnumerable&lt;T&gt;</code> 是什么?前端类比?</p>
+<blockquote>
+<p>答:异步流(<code>async IAsyncEnumerable&lt;T&gt; Stream()</code> + <code>yield return</code>)。类比 Node Readable Stream / JS <code>for await...of</code>。
+<strong>快忘点</strong>:追问"和 Channel 区别"→ IAsyncEnumerable 拉模型(pull),Channel 推模型(push)。</p>
+</blockquote>
+<p><strong>W3.03</strong> <code>ValueTask&lt;T&gt;</code> 比 <code>Task&lt;T&gt;</code> 强在哪?</p>
+<blockquote>
+<p>答:值类型,避免 Task 对象分配(高频热路径同结果可复用)。但只能 await 一次。
+<strong>快忘点</strong>:追问"什么时候用 ValueTask"→ 高频 + 多数同步完成的 API(如带缓存的读)。</p>
+</blockquote>
+<p><strong>W3.04</strong> 🔁 W2.01 复刷:async void 异常路径(详细机制)?</p>
+<blockquote>
+<p>答:3 秒内回答完整;卡壳 = 失败,记错题本。
+<strong>快忘点</strong>:同 W2.01。</p>
+</blockquote>
+<p><strong>W3.05</strong> <code>CancellationTokenSource.CreateLinkedTokenSource</code> 用途?</p>
+<blockquote>
+<p>答:合并多个 token(超时 + 用户取消 + 父任务取消),任一触发都取消。
+<strong>快忘点</strong>:追问"linkedCts 必须 Dispose 吗"→ 必须,内部有 Timer 链接。</p>
+</blockquote>
+<h4>Modbus / PLC 深化(5 题)</h4>
+<p><strong>W3.06</strong> 🔁 W1.08 复刷:Modbus 寄存器大端 + CRC 小端(混合标准)。</p>
+<blockquote>
+<p>答:3 秒内答完。
+<strong>快忘点</strong>:同 W1.08。</p>
+</blockquote>
+<p><strong>W3.07</strong> Modbus 浮点字节序(ABCD / CDAB / BADC / DCBA)现场怎么确认?</p>
+<blockquote>
+<p>答:<strong>抓帧</strong>:让设备发一个已知值(如 1.0),看字节顺序。<strong>不能假设</strong> ABCD,工业现场 CDAB 最常见。
+<strong>快忘点</strong>:追问"1.0 在 ABCD 下字节是什么"→ <code>0x3F800000</code>(IEEE754),即 3F 80 00 00。</p>
+</blockquote>
+<p><strong>W3.08</strong> 多个 Modbus 从站共享一个串口怎么调度?</p>
+<blockquote>
+<p>答:必须串行(同一时刻只能一个从站在响应),用调度队列排队请求。<strong>不能并发</strong>。
+<strong>快忘点</strong>:追问"轮询顺序怎么定"→ 关键从站优先,或按 slave ID 顺序。</p>
+</blockquote>
+<p><strong>W3.09</strong> 🔁 W1.11 复刷:PLC <code>IsConnected</code> 不可全信。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W1.11。</p>
+</blockquote>
+<p><strong>W3.10</strong> S7.Net 同步 API 在 C# 怎么异步化?</p>
+<blockquote>
+<p>答:<code>Task.Run(() =&gt; plc.Read(addr))</code> 包装。或换 S7NetPlus.Async 扩展 / Sharp7。
+<strong>快忘点</strong>:追问"为什么 S7.Net 不直接 async"→ 历史原因,API 老旧。</p>
+</blockquote>
+<h4>EF Core / 持久化(3 题)</h4>
+<p><strong>W3.11</strong> SQLite 高频写(1000 条/秒)怎么压?</p>
+<blockquote>
+<p>答:批量 <code>AddRange</code> + 单次 SaveChanges + 用 Channel 串行化 + WAL 模式。
+<strong>快忘点</strong>:追问"WAL 模式怎么开"→ <code>PRAGMA journal_mode=WAL</code>,允许并发读 + 单写。</p>
+</blockquote>
+<p><strong>W3.12</strong> EF Core 跟踪大对象图(1000 个 entity)性能差,怎么办?</p>
+<blockquote>
+<p>答:用 <code>AsNoTracking()</code> 或 <code>AsNoTrackingWithIdentityResolution()</code>,跳过变更字典。
+<strong>快忘点</strong>:追问"<code>Detach</code> 单个 entity 怎么做"→ <code>db.Entry(e).State = Detached</code>。</p>
+</blockquote>
+<p><strong>W3.13</strong> 跨数据库(SQLite → SQL Server → MySQL)怎么平滑切换?</p>
+<blockquote>
+<p>答:EF Core 抽象层 + <code>UseSqlite</code> / <code>UseSqlServer</code> / <code>UseMySQL</code> 切换 Provider。
+<strong>快忘点</strong>:追问"SQL 方言差异怎么办"→ 用 LINQ(避免裸 SQL),或 <code>Database.SqlQueryRaw&lt;T&gt;</code> 时分库写。</p>
+</blockquote>
+<h4>Prism / MVVM 深化(3 题)</h4>
+<p><strong>W3.14</strong> Prism 模块化(Module)和 Region 区别?</p>
+<blockquote>
+<p>答:Module = 功能包(DLL 级别隔离);Region = UI 占位符(View 切换)。Module 注册 View 到 Region。
+<strong>快忘点</strong>:追问"什么时候要拆 Module"→ 团队多人 + 独立部署 + 按需加载(减小主程序)。</p>
+</blockquote>
+<p><strong>W3.15</strong> Prism DialogService 和自己写的 IDialogService 区别?</p>
+<blockquote>
+<p>答:Prism 的支持自定义弹窗 UI(注册到容器 + <code>ShowDialog("ConfirmDialog", parameters, callback)</code>)。
+<strong>快忘点</strong>:追问"VM 怎么接收 Dialog 返回值"→ callback <code>r =&gt; { /* r 是 true/false */ }</code>。</p>
+</blockquote>
+<p><strong>W3.16</strong> 🔁 W2.16 复刷:ViewModelLocator 命名约定。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.16。</p>
+</blockquote>
+<h4>TCP / 性能深化(3+2 题)</h4>
+<p><strong>W3.17</strong> TCP 粘包状态机 <code>needResync</code> 信号什么时候置位?</p>
+<blockquote>
+<p>答:扫到帧头但下一字节不对(如 AA 后不是 55),置位 → 调用方 <code>RemoveAt(0)</code> 丢 1 字节继续扫。
+<strong>快忘点</strong>:追问"为什么只丢 1 字节不丢整段"→ 可能 AA 是真帧头(被噪声污染前一字节),丢整段会丢真数据。</p>
+</blockquote>
+<p><strong>W3.18</strong> 🔁 W2.18 复刷:<code>MemoryStream.CopyTo</code> 性能坑。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.18。</p>
+</blockquote>
+<p><strong>W3.19</strong> 长跑 1 小时内存平稳的标准是什么?</p>
+<blockquote>
+<p>答:工作集不持续涨(允许锯齿,GC 周期回收),GC Gen 2 对象数稳定,无大对象(&gt;85KB)持续分配。
+<strong>快忘点</strong>:追问"锯齿是什么"→ GC 回收的正常表现,每代回收后内存降。</p>
+</blockquote>
+<p><strong>W3.20</strong> <code>Interlocked.Exchange(ref _x, 0)</code> 在 PerformanceCounter 里干嘛?</p>
+<blockquote>
+<p>答:原子读 + 重置,避免上报和计数竞态(普通读 + 赋值两步中间会被插队)。
+<strong>快忘点</strong>:追问"为什么不用 lock"→ Interlocked 是 CPU 原子指令,lock 是内核态切换慢 100 倍。</p>
+</blockquote>
+<p><strong>W3.21</strong> 🔁 W2.21 复刷:BenchmarkDotNet 用法。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.21。</p>
+</blockquote>
+<h4>MQTT / 报警 / 报表(3+2+2 题)</h4>
+<p><strong>W3.22</strong> 🔁 W1.23 复刷:MQTT QoS 三档。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W1.23。</p>
+</blockquote>
+<p><strong>W3.23</strong> MQTT 高频发布(1000 条/秒)怎么压?</p>
+<blockquote>
+<p>答:批量 <code>PublishAsync</code> 循环 / 用 <code>PublishAsync(IAsyncEnumerable&lt;&gt;)</code> 流式 / Payload 用 MessagePack 替代 JSON。
+<strong>快忘点</strong>:追问"为什么 MessagePack"→ 比 JSON 小 50-80%,反序列化快 10 倍。</p>
+</blockquote>
+<p><strong>W3.24</strong> 🔁 W2.22 复刷:回滞带 HighThreshold / LowThreshold 关系。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.22。</p>
+</blockquote>
+<p><strong>W3.25</strong> 报警去抖除了回滞还有什么方法?</p>
+<blockquote>
+<p>答:时间窗口(N 秒内 M 次超阈值才报)+ 滑动平均(过滤毛刺)+ 中值滤波(去极值)。
+<strong>快忘点</strong>:追问"这些方法组合用吗"→ 是,工业现场常回滞 + 时间窗口双保险。</p>
+</blockquote>
+<p><strong>W3.26</strong> ClosedXML 导 Excel 大数据(10 万行)慢?</p>
+<blockquote>
+<p>答:用 <code>LoadFromCollection</code> 批量插入,不要逐 cell 写。或用 OpenXML SDK 的 SAX 流式。
+<strong>快忘点</strong>:追问"超过 Excel 行数(104 万)怎么办"→ 分 sheet 或换格式(CSV / Parquet)。</p>
+</blockquote>
+<p><strong>W3.27</strong> Excel 报表模板怎么填充?</p>
+<blockquote>
+<p>答:ClosedXML <code>workbook.Worksheet("Sheet1").Cell("A1").Value = ...</code> 或用占位符 <code>{{NAME}}</code> 批量替换。
+<strong>快忘点</strong>:追问"图表怎么生成"→ ClosedXML 原生支持 Line/Bar/Pie,从数据范围自动生成。</p>
+</blockquote>
+<h4>调试 / 安全 / 综合(1+1+3 题)</h4>
+<p><strong>W3.28</strong> <code>dotnet gcdump</code> 和 <code>dotnet dump</code> 区别?</p>
+<blockquote>
+<p>答:gcdump = 只抓堆对象(轻量,用于找泄漏);dump = 全进程快照(用 windbg/lldb 分析)。
+<strong>快忘点</strong>:追问"gcdump 何时抓两个对比"→ 跑 5min 抓一次,跑 30min 再抓一次,对比对象增长。</p>
+</blockquote>
+<p><strong>W3.29</strong> JWT 在工业 MES 对接里干嘛?</p>
+<blockquote>
+<p>答:无状态认证(token 内含签名 + 过期),HttpClient 每请求带 <code>Authorization: Bearer &lt;token&gt;</code>,服务端验签不查库。
+<strong>快忘点</strong>:追问"token 过期怎么续"→ RefreshToken 模式,过期前用 refresh 换新 token。</p>
+</blockquote>
+<p><strong>W3.30</strong> 🔁 Week 1+2 综合复刷:W1.30 + W2.26 项目 STAR 讲法 + 难点故事。</p>
+<blockquote>
+<p>答:3 秒内开讲,流畅完整。
+<strong>快忘点</strong>:这是 Week 3 检验 Week 1-2 是否真固化的关键。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-8">Week 4 闭卷 30 题 · 综合 + 面试冲刺(终极版)</h3>
+<blockquote>
+<p>Week 4 是<strong>面试前最后一关</strong>,题目全部模拟面试官真实追问,深度最高。包含 Week 1-3 核心题三刷。</p>
+</blockquote>
+<h4>C# 终极追问(5 题)</h4>
+<p><strong>W4.01</strong> 🔁 W1.01-W1.05 + W2.01-W2.05 综合:C# 8 大陷阱无脑过(前端转上位机必看)</p>
+<blockquote>
+<p>答:struct 拷贝 / async void / .Result 死锁 / 闭包循环变量 / Count++ 竞态 / lock(this) / IDisposable+finalizer / ConfigureAwait。每个 3 秒答完。
+<strong>快忘点</strong>:面试官最爱从这 8 个里随机抽。</p>
+</blockquote>
+<p><strong>W4.02</strong> GC 三代(0/1/2)机制 + 大对象堆(LOH)什么时候触发?</p>
+<blockquote>
+<p>答:Gen 0 = 短命对象(&lt;85KB),Gen 1 = 缓冲,Gen 2 = 长命,LOH = ≥85KB 大对象(直接进 Gen 2)。
+<strong>快忘点</strong>:追问"为什么大对象直接 Gen 2"→ 复制成本太高,LOH 不压缩不动。</p>
+</blockquote>
+<p><strong>W4.03</strong> <code>Span&lt;T&gt;</code> / <code>Memory&lt;T&gt;</code> 是什么?为什么有?</p>
+<blockquote>
+<p>答:连续内存的抽象(数组 / 字符串 / native),零拷贝切片。Span 栈 only(不能字段),Memory 可堆。
+<strong>快忘点</strong>:追问"<code>MemoryMarshal.Cast&lt;byte, int&gt;</code> 干嘛"→ 类型重解释,UDP/协议解析常用。</p>
+</blockquote>
+<p><strong>W4.04</strong> 🔁 W3.03 复刷:ValueTask vs Task。</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W3.03。</p>
+</blockquote>
+<p><strong>W4.05</strong> <code>record</code> / <code>record struct</code> / <code>class</code> 怎么选?</p>
+<blockquote>
+<p>答:不可变值对象用 <code>record</code>(默认引用 + 值相等),性能敏感小对象用 <code>record struct</code>,可变业务对象用 <code>class</code>。
+<strong>快忘点</strong>:追问"record 的 <code>with</code> 表达式"→ 创建副本只改某字段,基于 <code>init</code> 属性。</p>
+</blockquote>
+<h4>Modbus / PLC 终极(5 题)</h4>
+<p><strong>W4.06</strong> 🔁 W1.06-W1.09 + W3.06-W3.07 综合:Modbus RTU 帧全细节(CRC/字节序/地址偏移)</p>
+<blockquote>
+<p>答:3 秒答完,不卡壳。
+<strong>快忘点</strong>:CRC 低字节在前、寄存器大端、40001→地址 0,三个不能混。</p>
+</blockquote>
+<p><strong>W4.07</strong> Modbus RTU vs ASCII 区别?</p>
+<blockquote>
+<p>答:RTU = 二进制 + CRC16(高效,主流);ASCII = 16 进制字符(:开头,CRLF 结尾)+ LRC 校验(可读性,基本淘汰)。
+<strong>快忘点</strong>:追问"LRC 怎么算"→ 补码校验和(<code>256 - (sum &amp; 0xFF)</code>)。</p>
+</blockquote>
+<p><strong>W4.08</strong> 🔁 W1.11-W1.13 + W3.10 综合:PLC 全套(S7.Net / DB 块 / 优化访问)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W1.11-W1.13。</p>
+</blockquote>
+<p><strong>W4.09</strong> 三菱 / 欧姆龙 / 西门子通信协议区别?</p>
+<blockquote>
+<p>答:三菱 = MC 协议(二进制/ASCII);欧姆龙 = FINS(UDP/TCP);西门子 = S7(ISO-on-TCP)。或用 HslCommunication 统一。
+<strong>快忘点</strong>:追问"HslCommunication 优势"→ 一把梭多协议,缺点是闭源商业(基础免费)。</p>
+</blockquote>
+<p><strong>W4.10</strong> OPC UA 比 Modbus 强在哪?</p>
+<blockquote>
+<p>答:类型系统(对象/方法/事件)+ 内置安全(签名加密)+ 订阅模式(变化推送)+ 信息模型(每个变量有 unit/range/description)。
+<strong>快忘点</strong>:追问"OPC UA 缺点"→ 重(.NET 实现 5MB+)+ 复杂(信息模型学习曲线陡)。</p>
+</blockquote>
+<h4>EF Core / 数据终极(3 题)</h4>
+<p><strong>W4.11</strong> 🔁 W2.11-W2.13 + W3.11-W3.12 综合:EF Core 全套(IDbContextFactory / 跟踪 / 批量)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.11-W2.13。</p>
+</blockquote>
+<p><strong>W4.12</strong> Dapper vs EF Core 怎么选?</p>
+<blockquote>
+<p>答:Dapper = 轻量 SQL 映射,性能好可控;EF Core = ORM,LINQ 写快,性能差 2-5 倍。简单查询用 Dapper,复杂关系用 EF Core。
+<strong>快忘点</strong>:追问"混用怎么搞"→ 同项目都装,CUD 走 EF Core,复杂报表 SQL 走 Dapper。</p>
+</blockquote>
+<p><strong>W4.13</strong> 时序数据(每秒 1 万点)用什么库?</p>
+<blockquote>
+<p>答:SQLite 撑不住(单写者),换 InfluxDB / TimescaleDB(PostgreSQL 扩展)/ TDengine(国产,工业主流)。
+<strong>快忘点</strong>:追问"为什么不用 MySQL"→ B+树索引对时间序列写放大严重,时序库用 LSM-tree 写吞吐高 10 倍。</p>
+</blockquote>
+<h4>Prism / TCP / MQTT 终极(3+3+3 题)</h4>
+<p><strong>W4.14</strong> 🔁 W2.14-W2.16 + W3.14-W3.15 综合:Prism 全套(EventAggregator / Region / Module / DialogService)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.14-W2.16。</p>
+</blockquote>
+<p><strong>W4.15</strong> 🔁 W1.20-W1.22 + W3.17 综合:TCP 全套(ReceiveAsync 0 / 心跳并行 / 退避抖动 / needResync)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W1.20-W1.22。</p>
+</blockquote>
+<p><strong>W4.16</strong> TCP <code>SocketAsyncEventArgs</code> vs <code>ReceiveAsync</code> 区别?</p>
+<blockquote>
+<p>答:SAEA 是高性能 IOCP 模式(对象池复用,无 GC 压力);普通 <code>ReceiveAsync</code> 简单但每调用分配。万连接以上用 SAEA。
+<strong>快忘点</strong>:追问"<code>System.IO.Pipelines</code> 在哪"→ 更高层抽象,管道式读写,ASP.NET Core 内部用。</p>
+</blockquote>
+<p><strong>W4.17</strong> 🔁 W1.23-W1.25 + W3.22-W3.23 综合:MQTT 全套(QoS / ClientId / 通配符 / CleanSession / 高频发布)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W1.23-W1.25。</p>
+</blockquote>
+<p><strong>W4.18</strong> MQTT Broker 自建(Mosquitto) vs 云(EMQX) vs 商业 怎么选?</p>
+<blockquote>
+<p>答:自建 Mosquitto(轻量,内网);EMQX(集群,百万连接);商业 AWS IoT(贵 + 合规)。工业现场常 Mosquitto 内网 + 备份。
+<strong>快忘点</strong>:追问"Broker 挂了怎么办"→ 集群 + 客户端本地队列(SQLite)回放。</p>
+</blockquote>
+<p><strong>W4.19</strong> OPC UA <code>Subscription</code> 和 <code>MonitoredItem</code> 关系?</p>
+<blockquote>
+<p>答:Subscription = 发布通道(PublishingInterval);MonitoredItem = 订阅的节点(SamplingInterval)。一个 Subscription 装多个 MonitoredItem。
+<strong>快忘点</strong>:追问"几千节点怎么压"→ 1 个 Subscription 装 1000 个 Item,不要 1000 个 Subscription。</p>
+</blockquote>
+<h4>报警 / 性能 / 调试终极(2+2+1 题)</h4>
+<p><strong>W4.20</strong> 🔁 W1.26 + W2.22 + W3.24-W3.25 综合:报警回滞全套(HighThreshold / LowThreshold / 边沿检测 / 去抖方法)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.22-W3.25。</p>
+</blockquote>
+<p><strong>W4.21</strong> 报警分级(Critical / Warning / Info)怎么落库 + 通知?</p>
+<blockquote>
+<p>答:Critical = 短信 + 电话 + 邮件;Warning = 邮件 + 企业微信;Info = 仅日志。落 SQLite 不同表或同表 Level 字段。
+<strong>快忘点</strong>:追问"报警风暴(1 秒 100 条)怎么压"→ 去重 + 分级聚合(同点位 1 分钟内只发 1 次)。</p>
+</blockquote>
+<p><strong>W4.22</strong> 🔁 W1.27-W1.28 + W2.20-W2.21 + W3.19-W3.21 综合:性能全套(counters / gcdump / trace / BenchmarkDotNet / 长跑标准)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W2.20-W3.21。</p>
+</blockquote>
+<p><strong>W4.23</strong> 🔁 W1.29 + W2.24 + W3.28 综合:调试全套(条件断点 / 数据断点 / Wireshark / gcdump / dump)</p>
+<blockquote>
+<p>答:3 秒答完。
+<strong>快忘点</strong>:同 W1.29-W3.28。</p>
+</blockquote>
+<p><strong>W4.24</strong> 工业现场"偶发性掉线 30 秒自动恢复",怎么定位?</p>
+<blockquote>
+<p>答:① 物理层(网线 / 接地 / EMC 干扰)② 链路(抓包看 FIN 还是 RST)③ 应用层(超时配置 / 重试退避)④ 日志(Serilog TraceId 关联)。
+<strong>快忘点</strong>:追问"30 秒是哪个超时"→ 多半是 OS TCP keepalive(默认 2 小时,但配 30s 也可能)或应用层心跳超时。</p>
+</blockquote>
+<h4>简历 / 项目 / 综合(3+3 题)</h4>
+<p><strong>W4.25</strong> DAQMonitor 项目 1 分钟 STAR 讲法?</p>
+<blockquote>
+<p>答:S(转行,缺项目经验)T(30 天做真能跑的 SCADA)A(分层架构 + 6 协议 + 56 测试)R(可演示 / 面试官挖不倒)。
+<strong>快忘点</strong>:面试官追问"用了什么设计模式"→ 接口 / 工厂 / 观察者 / 策略,挑 2 个具体讲。</p>
+</blockquote>
+<p><strong>W4.26</strong> 🔁 W1.30 + W2.26 + W3.30 终极:5 大件白板 60min(B1+B2+B5+B16+B13)?</p>
+<blockquote>
+<p>答:模拟面试场景,白板写完。<strong>卡壳任一题 = 失败</strong>。
+<strong>快忘点</strong>:这是 Day 30 毕业测试预演,必须一次过。</p>
+</blockquote>
+<p><strong>W4.27</strong> 为什么从前端转上位机?(必问,准备好 3 个理由)</p>
+<blockquote>
+<p>答:① 上位机技术栈深(协议 / 实时 / 并发)天花板高;② 工业互联网风口;③ 5 年前端经验可迁移(WPF/XAML ≈ HTML/CSS,MVVM ≈ React,异步习惯好)。
+<strong>快忘点</strong>:追问"为什么不选后端"→ 后端竞争激烈 + 互联网收缩,工业稳定 + 缺人。</p>
+</blockquote>
+<p><strong>W4.28</strong> 期望薪资 13-15K 的依据?</p>
+<blockquote>
+<p>答:① JD 调研(同岗位中位数)② 项目可演示(超 80% 应届)③ 协议 / 并发 / 调试深度(超 8-10K 助理岗)④ 学习能力(30 天独立完成)。
+<strong>快忘点</strong>:追问"低于 13 接受吗"→ 看公司(大厂 12K 可以,小厂坚持 13K+)。</p>
+</blockquote>
+<p><strong>W4.29</strong> 1 年后想做到什么水平?(成长型思维)</p>
+<blockquote>
+<p>答:① 独立负责中型项目(从协议对接到部署)② 带新人 / Code Review ③ 深挖 1-2 个垂直领域(OPC UA / 时序数据库 / 工业安全)。
+<strong>快忘点</strong>:追问"3 年呢"→ 技术专家 / 架构师方向,或转 PM(懂技术的产品)。</p>
+</blockquote>
+<p><strong>W4.30</strong> 🔥 <strong>毕业终极题</strong>:从 Day 1 学到现在,你觉得最关键的 3 个知识点是什么?</p>
+<blockquote>
+<p>答:<strong>自己回答</strong>(没有标准答案,看你是否真内化)。建议答:① IDevice 抽象(架构思维)② Channel 并发(性能核心)③ 协议字节序 / CRC(工业本质)。
+<strong>快忘点</strong>:面试官最爱这个,看你思维深度。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">第 3 节 · Anki 卡片制作建议 📇</h2>
+<h3 id="sec-3-9">工具选择</h3>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>平台</th>
+<th>优势</th>
+<th>劣势</th>
+<th>推荐度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AnkiDesktop</strong></td>
+<td>Win/Mac/Linux/手机</td>
+<td>免费、开源、SM-2 算法、插件丰富、支持图片音频</td>
+<td>UI 丑、学习曲线陡</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td>Quizlet</td>
+<td>全平台</td>
+<td>UI 美观、易上手</td>
+<td>免费版功能少、算法不如 Anki</td>
+<td>⭐⭐⭐</td>
+</tr>
+<tr>
+<td>RemNote</td>
+<td>全平台</td>
+<td>笔记 + 卡片一体化</td>
+<td>收费、社区小</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>自建 Markdown</strong></td>
+<td>VS Code</td>
+<td>已有讲义直接复用、Git 管理</td>
+<td>无算法、靠手动</td>
+<td>⭐⭐⭐⭐(备用)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结论</strong>:<strong>主推 AnkiDesktop</strong>(免费 + 算法强 + 跨平台同步)。</p>
+<ul>
+<li>下载:https://apps.ankiweb.net/(Windows 免费)</li>
+<li>手机:AnkiDroid(Android 免费)/ AnkiMobile(iOS 168 元,可先用网页版)</li>
+<li>同步:免费 AnkiWeb 账号 2GB 空间,够用</li>
+</ul>
+<h3 id="sec-3-10">卡片格式(四件套)</h3>
+<p>每张卡片必须 4 个字段,缺一不可:</p>
+<pre><code>【正面】问题(短、具体、面试官会怎么问)
+【反面】答案(一句话,3 秒能答完)
+【为什么】底层原理(让面试官&quot;嗯,你真懂&quot;)
+【踩坑警告】实战坑(证明你做过,不是背书)
+</code></pre>
+<h3 id="sec-3-11">5 个具体卡片样例(从代码肌肉题里挑)</h3>
+<h4>卡片 1(来自 B1)</h4>
+<pre><code>【正面】手写 Modbus CRC16,初值为什么是 0xFFFF 而不是 0?
+【反面】让全 0 数据也产生非零校验,否则全 0 数据 CRC=0 看不出错。
+【为什么】CRC 的本质是&quot;多项式除法余数&quot;,初值 0 会让前导 0 字节不影响余数 → 失去检错能力。
+   初值 0xFFFF 等价于&quot;开头先 XOR 一个 0xFFFF&quot;,保证前导 0 也能改余数。
+【踩坑警告】① 多项式必须 0xA001 不是 0x8005(Modbus 用反向多项式)
+           ② 8 次循环不是 16 次
+           ③ Modbus 协议 CRC 低字节在前(很多新人搞反)
+           ④ 5 分钟白板写不出 = 你背得不够熟
+</code></pre>
+<h4>卡片 2(来自 B2)</h4>
+<pre><code>【正面】Channel&lt;T&gt; 为什么比 ConcurrentQueue&lt;T&gt; 更适合生产者消费者?
+【反面】Channel 是异步无锁(单 reader / writer 时),ConcurrentQueue 是全局锁。
+【为什么】Channel 内部用 Segment 链表 + Volatile 读,SingleReader=true 时完全无锁。
+   配合 `await ReadAllAsync()` 自然支持异步消费,不阻塞线程。
+   ConcurrentQueue 的 `TryDequeue` 是同步阻塞,高频场景吃 ThreadPool。
+【踩坑警告】① 必须 `Writer.Complete()` 否则消费者永远 await
+           ② 必须 `CancellationToken` 否则退出卡死
+           ③ `SingleReader=true` 一定要配对(多个消费者会乱)
+           ④ 不要用 `async void` 处理消费异常(会吞)
+</code></pre>
+<h4>卡片 3(来自 B16)</h4>
+<pre><code>【正面】TCP 粘包状态机遇到&quot;假帧头&quot;(AA 后不是 55)怎么办?
+【反面】只移除 1 字节(AA),从下一字节继续扫 0xAA,不要整段丢弃。
+【为什么】AA 可能是真帧头被噪声污染的前一字节,丢整段会丢真数据。
+   丢 1 字节最坏情况是丢一个垃圾字节,数据完整性最高。
+【踩坑警告】① `RemoveAt(0)` 是 O(N),高频场景用 ArrayPool + 环形缓冲
+           ② 缓冲找不到 AA 必须清空(否则内存爆)
+           ③ CRC 校验范围要对(头 + 长 + 载荷,不含 CRC 本身)
+           ④ `RemoveRange(0, idx + total)` 不是 `RemoveRange(idx, total)`
+</code></pre>
+<h4>卡片 4(来自 C1)</h4>
+<pre><code>【正面】`bus.DataArrived += async (s, e) =&gt; await SaveAsync(e)` 为什么是炸弹?
+【反面】Lambda 是 `async void`(EventHandler 签名),SaveAsync 抛异常时进程直接崩,没 Task 能 catch。
+【为什么】async void 的异常直接抛到 SynchronizationContext,WPF 默认会让进程崩溃。
+   编译器生成的状态机无法被外部观察,取消/超时/异常全部&quot;消失&quot;。
+【踩坑警告】① 改同步入队:bus.DataArrived += OnData;然后在 OnData 里 _ = Task.Run(...)
+           ② 更优:用 Channel&lt;T&gt; 串行化(异步消费,不阻塞事件源)
+           ③ WPF Button_Click 是 async void 唯一合法场景,但内部必须 try-catch + 日志
+           ④ 库代码见到 async void 99% 是 bug
+</code></pre>
+<h4>卡片 5(来自 B5)</h4>
+<pre><code>【正面】报警回滞的 HighThreshold 和 LowThreshold 谁大?低报场景反过来吗?
+【反面】高报:High &gt; Low(80 / 70,超 80 报,降到 70 以下解);低报:Low &lt; High(20 / 30,低 20 报,升到 30 以上解)。
+【为什么】回滞本质是&quot;两个阈值中间是迟滞区&quot;,防止边界抖动反复触发。
+   高报场景:Low 是&quot;解除阈值&quot;,必须在 High 之下才有效果。
+   低报场景反之。
+【踩坑警告】① 必须边沿检测(只在 wasActive ≠ nowActive 触发事件),否则反复刷 UI
+           ② 回滞带大小 = 量程 2-5%(温度量程 100℃ → 带 2-5℃)
+           ③ 报警风暴(1 秒 100 条)要聚合去重(同点位 1 分钟 1 次)
+           ⑤ 锁要细(只锁 Evaluate + 事件触发,不要锁整个 OnSample)
+</code></pre>
+<h3 id="sec-3-12">每天怎么刷</h3>
+<table>
+<thead>
+<tr>
+<th>时段</th>
+<th>场景</th>
+<th>张数</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>早上通勤</td>
+<td>地铁 / 公交</td>
+<td>10 张</td>
+<td>唤醒记忆</td>
+</tr>
+<tr>
+<td>中午排队</td>
+<td>食堂 / 电梯</td>
+<td>5 张</td>
+<td>碎片利用</td>
+</tr>
+<tr>
+<td>晚上睡前</td>
+<td>床上</td>
+<td>5 张</td>
+<td>巩固 + 反思</td>
+</tr>
+<tr>
+<td><strong>总计</strong></td>
+<td></td>
+<td><strong>20 张/天</strong></td>
+<td>15-20 分钟搞定</td>
+</tr>
+</tbody>
+</table>
+<p><strong>纪律</strong>:
+1. 卡片"快忘了才复习"(Anki 算法自动推),不要每天全刷
+2. 失败 3 次的卡片标"重难点",手动加备注
+3. 每周日凌晨把本周错题本里的题加进 Anki(下一周自动刷)
+4. 面试前 1 小时刷 30 张(进入"考试模式")</p>
+<hr />
+<h2 id="sec-2-5">第 4 节 · 错题本规范 📒</h2>
+<h3 id="sec-3-13">路径与格式</h3>
+<p><strong>文件路径</strong>:<code>f:\00_project\上位机学习\错题本.md</code>(每天写,git commit)</p>
+<p><strong>每条错题格式</strong>:</p>
+<pre><code class="language-markdown">## 2026-08-04 周一
+
+### ❌ 错题 #001 - B1 Modbus CRC16
+- **日期**:2026-08-04
+- **题号**:B1(代码肌肉训练手册)
+- **错因分类**:🟢 语法 📝
+- **错因细节**:把 0xA001 写成 0x8005,正向多项式忘了位反转
+- **正确答案**:`crc ^= 0xA001`(Modbus 用反向多项式)
+- **快忘点**:面试官追问&quot;为什么 0xA001&quot;必答&quot;0x8005 位反转&quot;
+- **二刷日期**:2026-08-05(1d 后)
+- **三刷日期**:2026-08-07(3d 后)
+- **四刷日期**:2026-08-11(7d 后)
+</code></pre>
+<h3 id="sec-3-14">错因分类与标色</h3>
+<table>
+<thead>
+<tr>
+<th>标色</th>
+<th>分类</th>
+<th>图标</th>
+<th>占比(经验)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴</td>
+<td><strong>异步</strong></td>
+<td>⚡</td>
+<td>30%</td>
+<td>async void / .Result 死锁 / ConfigureAwait / Thread vs Task</td>
+</tr>
+<tr>
+<td>🟡</td>
+<td><strong>边界</strong></td>
+<td>🪟</td>
+<td>25%</td>
+<td>null / 空集合 / 除零 / 整数溢出 / 数组越界</td>
+</tr>
+<tr>
+<td>🟢</td>
+<td><strong>语法</strong></td>
+<td>📝</td>
+<td>20%</td>
+<td>C# 关键字 / LINQ / 模式匹配 / 类型转换</td>
+</tr>
+<tr>
+<td>🔵</td>
+<td><strong>性能</strong></td>
+<td>🚀</td>
+<td>15%</td>
+<td>GC / 内存分配 / 锁 / 异步性能 / LINQ 延迟求值</td>
+</tr>
+<tr>
+<td>🟣</td>
+<td><strong>逻辑</strong></td>
+<td>🧠</td>
+<td>10%</td>
+<td>算法错 / 状态机错 / 业务理解错</td>
+</tr>
+</tbody>
+</table>
+<p><strong>用法</strong>:每周日统计各色占比,<strong>红色多</strong> → 重点补异步专项;<strong>黄色多</strong> → 补防御编程;<strong>蓝色多</strong> → 看 <a href="M9.5_性能压测与长跑稳定性_深度版.md">M9.5 性能压测</a>。</p>
+<h3 id="sec-3-15">3 个错题样例(从 C1/C2/C5 改写)</h3>
+<h4>错题样例 1(C1 改写)</h4>
+<pre><code class="language-markdown">## 2026-08-05 周二
+
+### ❌ 错题 #002 - C1 async void 吞异常
+- **日期**:2026-08-05
+- **题号**:C1(代码肌肉训练手册 Part C)
+- **错因分类**:🔴 异步 ⚡
+- **错因细节**:看到 `bus.DataArrived += async (s, e) =&gt; await SaveAsync(e)` 没反应过来这是 async void,
+  以为是 async Task,5 分钟找 bug 没找到
+- **正确答案**:Lambda 签名 `void(object, EventArgs)`,加 async 变成 `async void`(不是 async Task!),
+  异常直接抛到 SynchronizationContext,进程崩。改同步入队 + Task.Run 包 try-catch,或用 Channel&lt;T&gt;。
+- **快忘点**:EventHandler 签名强制 void,加 async 就是 async void,这是 C# 编译器&quot;特殊照顾&quot;的灾难。
+- **二刷日期**:2026-08-06
+- **三刷日期**:2026-08-08
+- **关联讲义**:[C# 陷阱](C#_陷阱_前端转上位机必看_深度版.md) 陷阱 4 · [M7 修正版](M7_OPCUA_MQTT_深度版.md)
+</code></pre>
+<h4>错题样例 2(C2 改写)</h4>
+<pre><code class="language-markdown">## 2026-08-06 周三
+
+### ❌ 错题 #003 - C2 .Result 死锁
+- **日期**:2026-08-06
+- **题号**:C2
+- **错因分类**:🔴 异步 ⚡
+- **错因细节**:WPF UI 线程调 `LoadFromApiAsync().Result`,以为是&quot;阻塞等结果&quot;,
+  没意识到 LoadFromApiAsync 内部 await 要回 UI 线程(SynchronizationContext),两边互等 = 死锁
+- **正确答案**:UI 事件处理器一律 async void 包 try-catch + await。库代码加 ConfigureAwait(false) 避免捕获 SyncContext。
+  绝对不要 `.Result` / `.Wait()` / `.GetAwaiter().GetResult()`(后两个一样死锁)。
+- **快忘点**:面试官最爱问&quot;为什么 .Result 死锁,Task.Run(() =&gt; xxx.Result).Wait() 不死锁?&quot;
+  → 后者在 ThreadPool 线程,无 SyncContext,不互等。
+- **二刷日期**:2026-08-07
+- **三刷日期**:2026-08-09
+- **关联讲义**:[C# 陷阱](C#_陷阱_前端转上位机必看_深度版.md) 陷阱 4
+</code></pre>
+<h4>错题样例 3(C5 改写)</h4>
+<pre><code class="language-markdown">## 2026-08-08 周五
+
+### ❌ 错题 #004 - C5 DbContext 线程不安全
+- **日期**:2026-08-08
+- **题号**:C5
+- **错因分类**:🔵 性能 🚀 + 🟣 逻辑 🧠
+- **错因细节**:以为 Singleton 注入 DbContext 跟 Singleton 注入 PointStore 一样安全,
+  没意识到 DbContext 内部有变更追踪字典 + 连接,多线程并发 SaveChangesAsync 抛
+  `InvalidOperationException: A second operation was started on this context`
+- **正确答案**:用 `IDbContextFactory&lt;T&gt;` + `await using var db = factory.CreateDbContextAsync()`,
+  每次调用独立 DbContext,用完即释放。WPF 没请求作用域,Factory 比 Scoped 更直观可控。
+- **快忘点**:面试官追问&quot;为什么 IDbContextFactory 而不是 AddDbContext + Scoped?&quot;
+  → ASP.NET Core 有请求作用域自然适用,WPF / 服务这种没&quot;请求&quot;概念的场景,Factory 显式控制生命周期更稳。
+- **二刷日期**:2026-08-09
+- **三刷日期**:2026-08-11
+- **关联讲义**:[M4 数据持久化](M4_数据持久化_深度版.md) · [B11 PointStore](代码肌肉训练手册_30天刷题版.md)
+</code></pre>
+<h3 id="sec-3-16">错题本纪律</h3>
+<ol>
+<li><strong>当天错当天记</strong>:不要攒,隔天就忘细节</li>
+<li><strong>每周日统计</strong>:看哪色错题最多,下周专项突破</li>
+<li><strong>二刷必须闭卷</strong>:不能看答案,3 秒答不出 = 还没掌握</li>
+<li><strong>三刷四刷加入 Anki</strong>:让算法自动推复习时机</li>
+<li><strong>面试前 1 天</strong>:全错题本过一遍(目标 30 分钟内)</li>
+</ol>
+<hr />
+<h2 id="sec-2-6">第 5 节 · "快忘了"信号 + 立即复习触发器 🚨</h2>
+<h3 id="sec-3-17">5 大"快忘了"信号</h3>
+<table>
+<thead>
+<tr>
+<th>信号</th>
+<th>表现</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 <strong>写代码卡壳超 10 秒</strong></td>
+<td>手写 B1 时忘了 <code>0xA001</code> 怎么写</td>
+<td>肌肉记忆退化了</td>
+</tr>
+<tr>
+<td>🟡 <strong>看到题不知道用什么</strong></td>
+<td>问"TCP 粘包怎么解",你想不到状态机</td>
+<td>概念链接断了</td>
+</tr>
+<tr>
+<td>🟠 <strong>讲不出"为什么"</strong></td>
+<td>知道用 Channel,但讲不清为什么不用 ConcurrentQueue</td>
+<td>表层记忆,没内化</td>
+</tr>
+<tr>
+<td>🔵 <strong>细节说不全</strong></td>
+<td>知道回滞,但讲不清 HighThreshold 和 LowThreshold 谁大</td>
+<td>模糊记忆</td>
+</tr>
+<tr>
+<td>🟣 <strong>类比前端讲不出</strong></td>
+<td>知道 MVVM,但说不出"ViewModel 像 React 的 useState"</td>
+<td>跨域链接断</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-18">立即复习触发器(信号 → 行动)</h3>
+<pre><code>检测到信号(任一)
+    ↓
+立即查 30 天排程表(第 1 节)
+    ↓
+看今天&quot;复习队列&quot;有没有这道题
+    ├─ 有 → 提前复习,标&quot;信号触发&quot;
+    └─ 无 → 当天加复习一遍(加 15 分钟)
+            ↓
+            复习后能否 3 秒答?
+            ├─ 能 → 标&quot;信号已恢复&quot;,正常继续
+            └─ 不能 → 记错题本(标红),明天再复习一遍
+</code></pre>
+<h3 id="sec-3-19">实战场景模拟</h3>
+<p><strong>场景 1</strong>:Day 18 你在写代码,B14 OPC UA 卡壳了想不起 <code>Subscription</code> 和 <code>MonitoredItem</code> 关系。
+- <strong>触发</strong>:🔴 信号 1
+- <strong>行动</strong>:打开本文档第 1 节 Day 18 行,看复习队列里没 B14 → 加 15 分钟复习 → 看速记卡 W4.19 → 3 秒能答 → 继续。</p>
+<p><strong>场景 2</strong>:Day 25 你在准备面试,模拟时讲不出"为什么 IDevice 抽象这么设计"。
+- <strong>触发</strong>:🟠 信号 3
+- <strong>行动</strong>:查 Day 25 行 → 复习队列有 Day 18(B14)+ Day 23(B27-B30)→ 没直接对应 → 加复习 <a href="M9_工程素养_测试DI容错_深度版.md">M9 工程素养</a> IDevice 章节 → 默背 W2.27 → 讲清 → 记错题本(防再忘)。</p>
+<p><strong>场景 3</strong>:Day 30 你毕业测试白板 B16 TcpDevice 粘包,写到 <code>needResync</code> 卡了 10 秒。
+- <strong>触发</strong>:🔴 信号 1
+- <strong>行动</strong>:这是毕业测试,不能查文档 → 标"未达标" → 记错题本 → Day 30 复习队列里有 Day 15(B16)→ 重写一遍 → 直到 5 秒能写出。</p>
+<h3 id="sec-3-20">信号统计(每周日闭卷自测后做)</h3>
+<table>
+<thead>
+<tr>
+<th>信号类型</th>
+<th>本周触发次数</th>
+<th>主要在哪题触发</th>
+<th>下周专项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 卡壳超 10s</td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td>🟡 不知用什么</td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td>🟠 讲不出为什么</td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td>🔵 细节说不全</td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+<tr>
+<td>🟣 类比讲不出</td>
+<td>___</td>
+<td>___</td>
+<td>___</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判据</strong>:任一信号一周触发 ≥ 3 次 = 该知识点没固化,<strong>下周每天加 5 分钟专项刷</strong>。</p>
+<hr />
+<h2 id="sec-2-7">第 6 节 · 与 30 天路线的集成 🔗</h2>
+<h3 id="sec-3-21">每天 4 块变 5 块(新增复习队列)</h3>
+<p>旧版 30 天路线每天 4 块:学习 + 项目 + 代码肌肉 + 打卡。<strong>本机制插入第 5 块</strong>:</p>
+<pre><code>每天 = 学习(2h)+ 项目(1.5h)+ 代码肌肉(1h)+ 【复习队列 15-20min】+ 打卡(0.5h)
+        ↑                                                            ↑
+        新学内容                                                      间隔重复(本机制)
+</code></pre>
+<p><strong>总时长</strong>:4-5 小时(复习队列占 15-20min,占比 5-7%,<strong>性价比极高</strong>)。</p>
+<h3 id="sec-3-22">关键日历节点</h3>
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>类型</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>每周日</strong></td>
+<td>闭卷自测 30 题</td>
+<td>Week 1/2/3/4 各一版,共 120 题</td>
+</tr>
+<tr>
+<td><strong>Day 7</strong></td>
+<td>Week 1 闭卷 + 7d 间隔首考</td>
+<td>检验 Day 1 学的 C# 陷阱是否真记住</td>
+</tr>
+<tr>
+<td><strong>Day 14</strong></td>
+<td>Week 2 闭卷 + 15d 间隔首考</td>
+<td>Day 1 学的内容第一次 15d 考验</td>
+</tr>
+<tr>
+<td><strong>Day 21</strong></td>
+<td>Week 3 闭卷 + 7d 二次考</td>
+<td>Week 1 闭卷题二次复刷(目标 95%+)</td>
+</tr>
+<tr>
+<td><strong>Day 28</strong></td>
+<td>Week 4 综合闭卷 + 15d 二次考</td>
+<td>Day 13 学的 Prism 内容 15d 考验</td>
+</tr>
+<tr>
+<td><strong>Day 30</strong></td>
+<td><strong>🔥 毕业测试</strong></td>
+<td>不查文档白板五大件 60min + 综合闭卷 30 题 + <strong>30d 间隔终极考验</strong>(Day 1 学的 C# 陷阱)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-23">Day 30 毕业测试详情</h3>
+<p><strong>上午(1.5h)</strong>:
+- <strong>五大件白板</strong>(60min):B1 CRC16(5min)+ B2 Channel(10min)+ B5 AlarmRule(15min)+ B16 TcpDevice 粘包(15min)+ B13 MQTT 双向(15min)。每题独立计时,超时也算完成但要标"未达标"
+- <strong>任意一段代码 5 秒内说坑</strong>(10min):让朋友 / 镜头随机指 5 段代码,你 5 秒内说"这里有什么坑"</p>
+<p><strong>下午(1h)</strong>:
+- <strong>综合闭卷 30 题</strong>(从 Week 1-4 各抽 7-8 题):盖答案,3 秒内答完,正确率 ≥ 85%
+- <strong>30d 间隔终极考验</strong>:Day 1 学的 C# 8 大陷阱还能 3 秒答完 → <strong>永久记忆达成</strong></p>
+<p><strong>毕业判据</strong>(全部满足):
+- ✅ 五大件白板 60min 内完成,代码能跑
+- ✅ 综合闭卷 30 题正确率 ≥ 85%
+- ✅ Day 1 学的 C# 8 大陷阱 3 秒答完(30d 间隔通过)
+- ✅ 错题本累计错题 ≤ 50 条(超过说明掌握度不够)
+- ✅ 5 段代码坑 5 秒内说全</p>
+<p><strong>未达标处理</strong>:延期 3-5 天,集中补弱项,再考一次。</p>
+<h3 id="sec-3-24">与 30 天路线的同步策略</h3>
+<table>
+<thead>
+<tr>
+<th>30 天路线模块</th>
+<th>本机制对应章节</th>
+<th>协作方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="30天作战路线_转行冲刺版.md">Week 1 主干打底</a></td>
+<td>本机制 Week 1 排程</td>
+<td>路线决定"学什么",本机制决定"何时复习"</td>
+</tr>
+<tr>
+<td><a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 Part D</a></td>
+<td>本机制 30 天排程的"代码肌肉"列</td>
+<td>路线给题号,本机制给复习节奏</td>
+</tr>
+<tr>
+<td><a href="面试高频知识点_速记卡.md">速记卡 Q1-Q23</a></td>
+<td>本机制每天的"速记卡"行</td>
+<td>路线给卡片,本机制给倒推时机</td>
+</tr>
+<tr>
+<td><a href="面试问答_逐字稿_30题.md">面试逐字稿 30 题</a></td>
+<td>本机制 Week 4 闭卷题</td>
+<td>Week 4 才开始背诵(避免太早背忘)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>冲突处理</strong>:如果某天复习队列 + 新学时间超 5 小时,优先砍新学内容(Project / 讲义),保复习队列(因为复习是巩固,新学是增量,巩固比增量重要)。</p>
+<h3 id="sec-3-25">边面试边学期间的复习调整</h3>
+<p>进入 Week 4 后期(Day 26+),开始真面试,<strong>复习策略调整</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>面试反馈</th>
+<th>当晚复习动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>被问倒的题</td>
+<td>立刻记错题本 + 当晚必复习 + 第二天加刷</td>
+</tr>
+<tr>
+<td>答得模糊的题</td>
+<td>当晚复习 + 加进 Anki</td>
+</tr>
+<tr>
+<td>答得好的题</td>
+<td>跳过(已固化)</td>
+</tr>
+<tr>
+<td>完全没准备过的题</td>
+<td>加进错题本 + 找讲义补 + Week 4 末统一刷</td>
+</tr>
+</tbody>
+</table>
+<p><strong>原则</strong>:<strong>每场面试后当晚必复盘</strong>,不复盘 = 浪费这场面试的"暴露弱点"价值。</p>
+<hr />
+<h2 id="sec-2-8">📚 配套材料导航</h2>
+<table>
+<thead>
+<tr>
+<th>材料</th>
+<th>用途</th>
+<th>何时用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="30天作战路线_转行冲刺版.md">30 天作战路线</a></td>
+<td>总览 + 每天新学内容</td>
+<td>每天</td>
+</tr>
+<tr>
+<td><a href="代码肌肉训练手册_30天刷题版.md">代码肌肉训练手册</a></td>
+<td>B1-B30 + C1-C10 题库</td>
+<td>每天代码肌肉 + 复习队列</td>
+</tr>
+<tr>
+<td><a href="面试高频知识点_速记卡.md">面试高频知识点速记卡</a></td>
+<td>Q1-Q23 通勤刷</td>
+<td>每天速记卡列</td>
+</tr>
+<tr>
+<td><a href="面试问答_逐字稿_30题.md">面试问答逐字稿 30 题</a></td>
+<td>Week 4 背诵 + 面试前复习</td>
+<td>Week 4 开始</td>
+</tr>
+<tr>
+<td><a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></td>
+<td>8 大陷阱深度</td>
+<td>Day 1 必读 + 反复回看</td>
+</tr>
+<tr>
+<td><a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></td>
+<td>调试方法 + 工具</td>
+<td>Day 7 / 21 复习</td>
+</tr>
+<tr>
+<td>本文档</td>
+<td>间隔重复排程 + 闭卷自测 + 错题规范</td>
+<td>每天复习队列 + 每周日自测</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-9">🎯 最终判据(30 天后你应该有的)</h2>
+<ul>
+<li>✅ <strong>30 天间隔重复完整执行</strong>(每天 15-20min 复习队列,无中断)</li>
+<li>✅ <strong>4 次周日闭卷自测</strong>(120 题累计正确率 ≥ 85%)</li>
+<li>✅ <strong>错题本 ≤ 50 条</strong>(每条都四刷通过)</li>
+<li>✅ <strong>Anki 卡片 ≥ 100 张</strong>(每天 20 张刷过)</li>
+<li>✅ <strong>5 大件白板 60min</strong>(CRC / Channel / AlarmRule / TcpDevice / MQTT)</li>
+<li>✅ <strong>Day 1 学的 C# 8 大陷阱 30d 后还能 3 秒答</strong>(永久记忆)</li>
+<li>✅ <strong>任意代码 5 秒说坑</strong>(真技术硬实力判据)</li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:这不是"额外的复习任务",是<strong>让前 24 天的努力不打水漂</strong>的保险。
+没有本机制,你 Day 1 学的 CRC 到 Day 25 已经忘 80%,Week 4 面试时连 5 大件都写不全。
+有了本机制,Day 30 你能在白板上 60min 写完五大件 + 3 秒答 30 题综合闭卷 + 30 天前学的陷阱还能脱口而出。
+<strong>这就是 13-15K 和 8-10K 的差距,70% 在这里</strong>。</p>
+<p>开始 Day 1 → <a href="30天作战路线_转行冲刺版.md">30 天作战路线</a> + 本文第 1 节 Week 1 排程表</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="interview30.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🎤 面试问答 · 逐字稿 30 题</div></a>
+  <a class="next" href="webview2-vue-dashboard.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">⚡ 前端 × 上位机差异化冲刺</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

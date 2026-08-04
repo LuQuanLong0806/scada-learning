@@ -5,6 +5,13 @@
 > **给简历加的能力**：把数据推到云端 / 对接 SCADA —— 这是 13K→15K 的分水岭，体现"会联网"。
 > **前置**：M0–M6（有完整采集/存储/报警链路）。
 
+> ⏱️ **阅读路径**(按时间预算选入口)
+> - **3 分钟**:看「模块目标」— 知道 MQTT 是轻量上云协议 / OPC UA 是工业互联标准
+> - **30 分钟**:加看 Day 1 MQTT Publish + mosquitto_sub 接数据
+> - **3 小时**:全文精读 + Day 2 MQTT 双向 Subscribe(下行命令)+ Day 3 OPC UA 客户端
+> - 🎯 **面试高频**:**全程 async 不能 .Result(UI 死锁)** / MQTT QoS 0/1/2 / 持久会话 CleanSession=false / MQTTnet 4.x v4 API
+> - 🔁 **配套复习**:[代码肌肉 B13 MQTT Publish+Subscribe 双向](代码肌肉训练手册_30天刷题版.md) · [Debug C1 async void 吞异常](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
+
 ## 模块目标
 把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。
 

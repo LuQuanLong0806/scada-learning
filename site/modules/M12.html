@@ -69,6 +69,14 @@
 <strong>前端类比总纲</strong>：工程量转换像 <code>d3.scaleLinear().domain([0,4095]).range([0,100])</code> 的坐标映射；换数据库像"ORM 换驱动"，业务代码一行不动。</p>
 </blockquote>
 <hr />
+<blockquote>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道工程量标定像 d3.scaleLinear
+- <strong>30 分钟</strong>:加看 Day 1 线性标定 + 字节序(ABCD/CDAB)
+- <strong>3 小时</strong>:全文精读 + Day 2 SQL Server/MySQL 切换 + Day 3 Dapper 对比
+- 🎯 <strong>面试高频</strong>:<strong>量程标定公式(0-4095 → 0-100℃)</strong> / 字节序 ABCD vs CDAB / EF Core 切数据库"改连接串+加包"
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B24 EngineeringConverter 量程标定</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C10 字节序搞反</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
+</blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>给 <code>SensorPoint</code> 加 <code>EngValue</code>；写出 <code>EngineeringConverter</code> 做量程标定；把 M4 的仓储接口指向 SQL Server / MySQL（改连接串 + 加包，<strong>业务代码零改</strong>）。</p>
 <hr />

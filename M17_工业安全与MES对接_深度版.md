@@ -6,6 +6,13 @@
 > **给简历加的能力**：把上位机从"采集设备数据"升级成"**接入企业 IT 基础设施**"——向 MES 上报完工、从 ERP 拉工单、把报警推到 SCADA，并且**符合工业网络安全规范**（IEC 62443 思想）。这是 JD 里"对接上位系统 / 信息安全"那条的真实落地，13→15K 的硬通货。
 > **前置**：M4（持久化，审计日志要落库）、M9（DI 容器 + 异步容错，HttpClient 必须 DI），M7（OPC UA / MQTT 走的是工业协议，这里走的是 IT 协议，互为补充）。
 
+> ⏱️ **阅读路径**(按时间预算选入口)
+> - **3 分钟**:看「模块目标」— 知道 MES 对接 = HttpClient + REST + JWT,跟 axios 80% 像
+> - **30 分钟**:加看 Day 1 HttpClientFactory + DI + Polly 重试
+> - **3 小时**:全文精读 + Day 2 **IT/OT 双网卡/白名单/审计日志** + Day 3 JWT 鉴权
+> - 🎯 **面试高频**:**HttpClientFactory 为什么不能直接 new HttpClient(socket 耗尽)** / Polly retry+circuit-breaker / IT/OT 物理隔离 / IEC 62443 思想
+> - 🔁 **配套复习**:[代码肌肉 B21 白名单 / B22 AuditLogger](代码肌肉训练手册_30天刷题版.md) · [间隔重复表](记忆与复习机制_间隔重复版.md)
+
 ## 模块目标
 让上位机：① 用 `HttpClient` 通过 HttpClientFactory + DI 对接 MES/ERP REST API（含 JSON 序列化、JWT、重试、熔断）；② 满足基本的**工业网络安全**要求（IT/OT 双网卡、白名单、审计日志、凭证管理）；③ 知道 IT/OT 边界在哪儿——为什么工厂要把生产网和办公网物理隔离，为什么不能直接 `http://` 走公网。
 

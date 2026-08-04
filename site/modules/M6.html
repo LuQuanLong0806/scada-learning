@@ -65,6 +65,12 @@
 <strong>技术来源</strong>：🟦 规则模型 / 事件总线 + 🟧 第三方 NuGet <code>Serilog</code>（<code>dotnet add package Serilog.Sinks.File</code>）。
 <strong>给简历加的能力</strong>：阈值规则触发报警 + 结构化日志 —— 上位机的"哨兵"与"黑匣子"。
 <strong>前置</strong>：M0（事件 / 接口）、M1–M3（有点数据）。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道报警 = 阈值 + 回滞 + 通知
+- <strong>30 分钟</strong>:加看 Day 1 阈值规则 + Day 2 回滞机制(为什么需要)
+- <strong>3 小时</strong>:全文精读 + Day 3 Serilog 结构化日志 + Day 4 报警事件总线
+- 🎯 <strong>面试高频</strong>:<strong>回滞机制(为什么不能直接阈值判断)</strong> / Serilog 结构化日志 / 报警级别(Info/Warning/Critical)
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B5 AlarmRule 回滞手写</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写一套报警引擎：配置"点位 + 阈值 + 级别"，数据进来自动判警并通知；用 Serilog 把运行/错误写进日志文件。</p>

@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚡ 前端 × 上位机差异化冲刺 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="webview2-vue-dashboard">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">开篇:为什么前端 × 上位机是稀缺组合(300 字)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">第 1 节:5 个结合方向对比表</a><ul>
+<li class="l3"><a href="#sec-3-1">明确推荐:你做 A + D 这 2 个</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">第 2 节:5 天落地方案 — WebView2 + Vue3 大屏(核心)</a><ul>
+<li class="l3"><a href="#sec-3-2">Day 1:Vue3 + Vite 项目搭起来,跑通一个 Dashboard</a></li>
+<li class="l3"><a href="#sec-3-3">Day 2(核心难点):DAQMonitor 暴露 WebSocket 服务 — WebBroadcastService.cs</a></li>
+<li class="l3"><a href="#sec-3-4">Day 3:Vue 大屏接 WebSocket,ECharts 实时曲线</a></li>
+<li class="l3"><a href="#sec-3-5">Day 4:WPF 嵌 WebView2,WPF ↔ Vue 双向通信</a></li>
+<li class="l3"><a href="#sec-3-6">Day 5:大屏加 4 个组件,截图录视频</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">第 3 节:独立 Vue 工业大屏(并行 2 天方案)</a><ul>
+<li class="l3"><a href="#sec-3-7">跟 WebView2 方向的关系</a></li>
+<li class="l3"><a href="#sec-3-8">2 天能加什么加分点</a></li>
+<li class="l3"><a href="#sec-3-9">独立大屏的简历加分点</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">第 4 节:简历话术(3 句话 + 3 种行业版本)</a><ul>
+<li class="l3"><a href="#sec-3-10">通用版 3 句话(直接复制到简历"项目经验"末尾)</a></li>
+<li class="l3"><a href="#sec-3-11">行业版本 1:新能源(锂电 / 光伏)</a></li>
+<li class="l3"><a href="#sec-3-12">行业版本 2:半导体设备</a></li>
+<li class="l3"><a href="#sec-3-13">行业版本 3:3C 非标自动化</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">第 5 节:面试会问什么(10 题)</a><ul>
+<li class="l3"><a href="#sec-3-14">Q1:为什么用 WebView2 不直接用 CefSharp?</a></li>
+<li class="l3"><a href="#sec-3-15">Q2:WPF ↔ Vue 怎么双向通信?</a></li>
+<li class="l3"><a href="#sec-3-16">Q3:WebSocket 断线重连怎么做?</a></li>
+<li class="l3"><a href="#sec-3-17">Q4:大屏性能,1 万点数据怎么不卡?</a></li>
+<li class="l3"><a href="#sec-3-18">Q5:为什么不直接全用 Web 而要嵌 WebView2?</a></li>
+<li class="l3"><a href="#sec-3-19">Q6:后端为什么用 ASP.NET Core 不用 Node?</a></li>
+<li class="l3"><a href="#sec-3-20">Q7:Vue 大屏和 WPF 自带的 LiveCharts2 怎么取舍?</a></li>
+<li class="l3"><a href="#sec-3-21">Q8:WebSocket 多客户端订阅,C# 端怎么并发广播?</a></li>
+<li class="l3"><a href="#sec-3-22">Q9:WebView2 Runtime 没装怎么办?</a></li>
+<li class="l3"><a href="#sec-3-23">Q10:如果让你做数字孪生 3D,你怎么选型?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">第 6 节:踩坑警告(7 个真实坑)</a><ul>
+<li class="l3"><a href="#sec-3-24">坑 1:WebView2 Runtime 未装 → 程序闪退</a></li>
+<li class="l3"><a href="#sec-3-25">坑 2:Core 改 Sdk.Web 后 UI 项目编译报错</a></li>
+<li class="l3"><a href="#sec-3-26">坑 3:Vue 路由 hash vs history</a></li>
+<li class="l3"><a href="#sec-3-27">坑 4:WebSocket 心跳 / 重连——必做</a></li>
+<li class="l3"><a href="#sec-3-28">坑 5:跨域 / CSP / 本地资源加载</a></li>
+<li class="l3"><a href="#sec-3-29">坑 6:ECharts 内存泄漏</a></li>
+<li class="l3"><a href="#sec-3-30">坑 7:打包后 Vue 路径错乱</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">收尾:7 天冲刺 vs 30 天主线的取舍</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">附:关键参考来源</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">前端 × 上位机差异化冲刺:WebView2 与工业大屏(7 天可落地方案)</h1>
+<blockquote>
+<p><strong>优先级定位</strong>:🔴 <strong>差异化必读</strong> · 把 5 年前端经验显性化为上位机加分项
+<strong>目标</strong>:7 天内给简历加一句"<strong>全栈:上位机 WPF + 前端 Vue3 大屏双栈</strong>",把面试排名从 30% 跳到 10%
+<strong>前置条件</strong>:DAQMonitor 主项目已落地(7 设备 + EF Core 双写 + LiveCharts2 + MQTT 双向 + 56 测试),你已经具备冲 13-15K 的"硬底盘"
+<strong>核心判断</strong>:你不该把 5 年前端当作"转行的包袱",而要把它当作"95% 上位机候选人没有的稀缺武器"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">开篇:为什么前端 × 上位机是稀缺组合(300 字)</h2>
+<p>先看一个冷酷的行业事实:<strong>13-15K 上位机岗位的 100 个候选人里,大概只有 5 个人能像样地写一个工业大屏页面</strong>。剩下 95 个,要么 WPF 写得贼溜但前端只会一行 <code>&lt;div&gt;</code>,要么 WinForm 老兵连 ECharts 都没碰过。这就是你的机会窗口。</p>
+<p>绝大多数上位机候选人的能力曲线是这样的:C#/WPF/Prism + Modbus/PLC/OPC UA + EF Core/SQLite + 一堆工业协议栈,<strong>栈深但宽度极窄</strong>——一旦面试官问到"我们公司想做 Web 远程监控 / MES 看板 / 数字孪生",这群人立刻集体沉默。而新能源、半导体、3C 非标、智慧工厂这 4 个行业,恰恰在 2024-2026 这一波疯狂地往"上位机 + Web 大屏"方向招人:宁德时代的产线看板、隆基的智慧工厂大屏、北方华创的设备状态全景图、拓斯达的远程运维平台——<strong>JD 里"工业大屏 / 数字孪生 / SCADA Web 化 / MES 看板"这 4 个关键词出现频率 2025 年比 2022 年涨了 3 倍</strong>。</p>
+<p>你反过来:5 年前端带过来的不只是"会写 Vue",而是 <strong>4 大可平移能力</strong>——</p>
+<ol>
+<li><strong>组件化思维</strong>(SFC → UserControl,反向亦然,你能比纯 WPF 工程师更快理解模板复用);</li>
+<li><strong>状态管理</strong>(Pinia/Redux → Prism EventAggregator,数据流思维一致,你能讲清楚"单向数据流");</li>
+<li><strong>工程化</strong>(Vite/Webpack/CI → dotnet CLI/MSBuild,构建优化思路平移);</li>
+<li><strong>大屏可视化</strong>(ECharts/D3/Canvas → LiveCharts2,数据降采样 / 虚拟滚动 / WebGL 渲染是同一个问题);</li>
+</ol>
+<p>这 4 项<strong>恰好是工业大屏岗位的命门</strong>。本份冲刺方案就是把这 4 项<strong>变成简历上一句话、面试里 10 道题、GitHub 上一段录屏</strong>,7 天内让面试官在 ATS 简历库里多看你 30 秒。</p>
+<hr />
+<h2 id="sec-2-2">第 1 节:5 个结合方向对比表</h2>
+<p>先把"前端 × 上位机"的所有可能结合方式摆出来,你才知道为什么后面死磕 <strong>WebView2 + Vue 大屏</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>上手成本</th>
+<th>投哪些岗位</th>
+<th>学习产出</th>
+<th>简历加分点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. WebView2 嵌 Vue(推荐 ⭐⭐⭐)</strong></td>
+<td>★★☆(3 天)</td>
+<td>上位机 + 大屏双栈岗 / 工业软件 / SCADA</td>
+<td>DAQMonitor 主窗口里嵌一个 Vue3 大屏页,WPF ↔ Vue 双向通信</td>
+<td>"<strong>全栈:WPF + Vue3 双栈</strong>,WebView2 在桌面端嵌入 Web 大屏"</td>
+</tr>
+<tr>
+<td><strong>B. Blazor Hybrid</strong></td>
+<td>★★★(5 天)</td>
+<td>.NET 系工业软件 / 微软生态外企</td>
+<td>用 Razor 重写一个页面,共享 C# 模型</td>
+<td>"Blazor Hybrid(.NET 8)统一桌面/Web UI"</td>
+</tr>
+<tr>
+<td><strong>C. Electron + Node 桌面</strong></td>
+<td>★★★★(7 天)</td>
+<td>偏 Web 系工业互联网(树根 / 卡奥斯)</td>
+<td>整套 Electron 壳 + Node 采集层</td>
+<td>"Electron 跨平台桌面 + Node 采集"——但偏离 C# 主线,<strong>不推荐</strong></td>
+</tr>
+<tr>
+<td><strong>D. 独立 Vue 工业大屏(推荐 ⭐⭐⭐)</strong></td>
+<td>★★(2 天)</td>
+<td>前端 + 工业 / MES 看板 / 数字孪生</td>
+<td>一个独立部署的 Vue3 大屏,通过 WebSocket 接 DAQMonitor</td>
+<td>"<strong>独立 Vue3 工业大屏</strong>,ECharts 实时曲线 + 报警 + 设备卡片"</td>
+</tr>
+<tr>
+<td><strong>E. ASP.NET Core + SignalR</strong></td>
+<td>★★★(4 天)</td>
+<td>B/S 上位机 / 远程监控平台</td>
+<td>一个 Web 后端 + Vue 前端,SignalR 推数据</td>
+<td>"ASP.NET Core + SignalR 实时推送"——比 WebSocket 多一层封装</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-1">明确推荐:你做 A + D 这 2 个</h3>
+<p><strong>为什么选 A(WebView2 嵌 Vue)</strong>:</p>
+<ol>
+<li><strong>简历一句话直击灵魂</strong>——"用 WebView2 在 WPF 中嵌入 Vue3 工业大屏"是 95% 上位机候选人写不出来的话,投"上位机 + 大屏双栈"岗位(HC 占比 15-20%)一击必中;</li>
+<li><strong>复用 DAQMonitor 现有 7 设备 + LiveCharts2</strong>——你不需要重写采集层,只是给主项目加一个"大屏视图",WPF 主窗口的 LiveCharts2 是 fallback,Vue 大屏是亮点;</li>
+<li><strong>学习成本最低</strong>——WebView2 控件 30 行代码就能跑起来,核心难点在 WPF ↔ Vue 双向通信,你前端经验 + C# 经验刚好覆盖;</li>
+<li><strong>行业最对口</strong>——新能源 / 半导体 / 3C 非标这 3 个行业的大屏岗,<strong>JD 里 60% 写"WebView2"或"嵌入式 Web"</strong>,CefSharp 老旧、Blazor 太新,WebView2 是 2024-2026 的主流。</li>
+</ol>
+<p><strong>为什么选 D(独立 Vue 大屏)</strong> 作为备份方案:</p>
+<ol>
+<li><strong>同一份 WebSocket 服务,A 一次写完 D 直接复用</strong>——WebSocket 是 A 和 D 共用的底层,Day 2 写完后 D 只剩"前端组件"工作,你的舒适区;</li>
+<li><strong>投"前端 + 工业大屏"岗位的简历加分</strong>——这类岗位 13-18K,JD 写"工业大屏 / 数字孪生 / SCADA 看板",Vue3 + ECharts + WebSocket 是标配;</li>
+<li><strong>截图最漂亮</strong>——独立大屏部署到 Vercel / Netlify,简历附个在线 demo 链接,HR 点开就看到实时曲线,<strong>冲击力远胜 GitHub 截图</strong>。</li>
+</ol>
+<p><strong>为什么不推荐 B(C# 系 Blazor Hybrid)</strong>:你前端 5 年是 React/Vue 不是 Blazor,学 Razor 学习曲线陡,而且 Blazor 工业岗位 HC 极少(全国 &lt;5%),投入产出比低。<strong>Blazor 是好技术但不是你的好选择</strong>。</p>
+<p><strong>为什么不推荐 C(Electron)</strong>:你会偏离 C# 上位机主线,简历会被怀疑"是不是前端干不下去了才转",<strong>自毁长城</strong>。</p>
+<hr />
+<h2 id="sec-2-3">第 2 节:5 天落地方案 — WebView2 + Vue3 大屏(核心)</h2>
+<blockquote>
+<p>本节是这份文档的灵魂。<strong>5 天,每天 4-6 小时,产出 1 个可截图可录屏的大屏</strong>。第 6、7 天留给录视频 + 简历话术 + 面试题背熟。
+共享底层:<strong>DAQMonitor.Core 加 1 个 WebBroadcastService.cs</strong>,A 和 D 方向都用它,Day 2 写完后续 Days 复用。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-2">Day 1:Vue3 + Vite 项目搭起来,跑通一个 Dashboard</h3>
+<p><strong>目标</strong>:本地起一个 Vue3 大屏页面,有标题、3 个卡片、1 个折线图占位。这一天<strong>只写前端</strong>,完全不碰 C#。</p>
+<p><strong>步骤</strong>:</p>
+<ol>
+<li><strong>安装 Node 20+ 和 pnpm</strong>(你应该早就有,跳过)。</li>
+<li><strong>在 DAQMonitor 同级目录创建 Vue 项目</strong>:</li>
+</ol>
+<pre><code class="language-bash">cd f:/00_project/上位机学习
+npm create vite@latest daq-dashboard -- --template vue-ts
+cd daq-dashboard
+pnpm install
+pnpm add echarts vue-echarts pinia axios
+pnpm dev
+</code></pre>
+<ol start="3">
+<li><strong>目录规划</strong>(前端工程化思维):</li>
+</ol>
+<pre><code>daq-dashboard/
+├── src/
+│   ├── api/
+│   │   ├── ws.ts              # WebSocket 客户端封装(Day 3 重点)
+│   │   └── http.ts            # REST 备用(Day 2 简易查历史)
+│   ├── stores/
+│   │   ├── points.ts          # Pinia:实时点位 store
+│   │   └── alarms.ts          # Pinia:报警 store
+│   ├── components/
+│   │   ├── RealtimeChart.vue  # 实时曲线(Day 3)
+│   │   ├── DeviceCard.vue     # 设备状态卡片(Day 5)
+│   │   ├── AlarmTicker.vue    # 报警滚动(Day 5)
+│   │   └── GaugePanel.vue     # 工程量仪表盘(Day 5)
+│   ├── types/
+│   │   └── point.ts           # TS 类型,对齐 C# SensorPoint
+│   ├── views/
+│   │   └── Dashboard.vue      # 大屏主页
+│   ├── App.vue
+│   └── main.ts
+└── vite.config.ts
+</code></pre>
+<ol start="4">
+<li><strong>TS 类型(对齐 C# SensorPoint)</strong>:</li>
+</ol>
+<pre><code class="language-ts">// src/types/point.ts
+// 跟 DaqMonitor.Core 的 SensorPoint struct 一一对应,前端类型即文档
+export enum DeviceState { Offline = 0, Connecting = 1, Online = 2 }
+export enum AlarmLevel  { Normal = 0, Warning = 1, Critical = 2 }
+
+export interface SensorPoint {
+  id: number
+  value: number
+  state: DeviceState
+  timestamp: string   // ISO 8601,UTC,前端 dayjs 格式化
+}
+
+export interface AlarmEvent {
+  pointId: number
+  level: AlarmLevel
+  value: number
+  message: string
+  timestamp: string
+}
+</code></pre>
+<blockquote>
+<p>关键思维:<strong>TS 类型 = 前后端契约</strong>。前端 5 年你早就懂这套,现在把它显性化:简历写"前后端共用 TypeScript 类型契约,降低联调成本"。</p>
+</blockquote>
+<ol start="5">
+<li><strong>Dashboard.vue 跑通 3 个卡片 + 1 个 ECharts 占位</strong>:</li>
+</ol>
+<pre><code class="language-vue">&lt;!-- src/views/Dashboard.vue --&gt;
+&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, onMounted } from 'vue'
+import RealtimeChart from '@/components/RealtimeChart.vue'
+import DeviceCard from '@/components/DeviceCard.vue'
+import AlarmTicker from '@/components/AlarmTicker.vue'
+import GaugePanel from '@/components/GaugePanel.vue'
+
+const online = ref(0)
+const total  = ref(7)   // DAQMonitor 7 个设备
+const alarmCount = ref(0)
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div class=&quot;dashboard&quot;&gt;
+    &lt;header class=&quot;dashboard__title&quot;&gt;
+      DAQMonitor · 工业数据采集监控大屏
+      &lt;span class=&quot;dashboard__clock&quot;&gt;{{ new Date().toLocaleString() }}&lt;/span&gt;
+    &lt;/header&gt;
+
+    &lt;section class=&quot;dashboard__kpis&quot;&gt;
+      &lt;div class=&quot;kpi&quot;&gt;&lt;div class=&quot;kpi__label&quot;&gt;在线设备&lt;/div&gt;&lt;div class=&quot;kpi__value&quot;&gt;{{ online }}/{{ total }}&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;kpi&quot;&gt;&lt;div class=&quot;kpi__label&quot;&gt;实时点位&lt;/div&gt;&lt;div class=&quot;kpi__value&quot;&gt;{{ total }}&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;kpi&quot;&gt;&lt;div class=&quot;kpi__label&quot;&gt;活跃报警&lt;/div&gt;&lt;div class=&quot;kpi__value kpi__value--alarm&quot;&gt;{{ alarmCount }}&lt;/div&gt;&lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;dashboard__main&quot;&gt;
+      &lt;div class=&quot;panel panel--chart&quot;&gt;&lt;RealtimeChart /&gt;&lt;/div&gt;
+      &lt;div class=&quot;panel panel--gauge&quot;&gt;&lt;GaugePanel /&gt;&lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;dashboard__bottom&quot;&gt;
+      &lt;div class=&quot;panel panel--devices&quot;&gt;&lt;DeviceCard /&gt;&lt;/div&gt;
+      &lt;div class=&quot;panel panel--alarms&quot;&gt;&lt;AlarmTicker /&gt;&lt;/div&gt;
+    &lt;/section&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;style scoped&gt;
+/* 工业大屏风格:深色 + 高对比 + 等宽数字 + 霓虹蓝/橙/红 */
+.dashboard { background: #0a0e1a; color: #c5d1de; min-height: 100vh; padding: 16px; font-family: 'Inter', sans-serif; }
+.dashboard__title { font-size: 22px; font-weight: 600; padding: 8px 0; display: flex; justify-content: space-between; }
+.dashboard__clock { font-size: 14px; color: #6b7a8f; font-variant-numeric: tabular-nums; }
+.dashboard__kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0; }
+.kpi { background: linear-gradient(135deg, #131a2b, #1a2238); border: 1px solid #1f2a44; border-radius: 8px; padding: 16px; }
+.kpi__label { font-size: 13px; color: #6b7a8f; }
+.kpi__value { font-size: 36px; font-weight: 700; color: #4dd0e1; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.kpi__value--alarm { color: #ff5252; }
+.dashboard__main { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.dashboard__bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+.panel { background: #131a2b; border: 1px solid #1f2a44; border-radius: 8px; padding: 12px; }
+&lt;/style&gt;
+</code></pre>
+<ol start="6">
+<li><strong>跑起来</strong>:<code>pnpm dev</code> 浏览器打开 <code>http://localhost:5173</code>,看到 3 个 KPI 卡片 + 4 个空 panel 占位。<strong>Day 1 结束</strong>。</li>
+</ol>
+<blockquote>
+<p><strong>Day 1 用时</strong>:4 小时。如果你前端 5 年真的扎实,这 1 天其实 2-3 小时就够,剩余时间用来调大屏配色。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-3">Day 2(核心难点):DAQMonitor 暴露 WebSocket 服务 — WebBroadcastService.cs</h3>
+<p><strong>目标</strong>:在 <code>DaqMonitor.Core</code> 里加一个 <code>WebBroadcastService.cs</code>,起一个 ASP.NET Core Kestrel 的 <code>ws://localhost:5180/ws</code> 端点,把 <code>AcquisitionPipeline.BatchReady</code> 事件转发给所有连接的 WebSocket 客户端。</p>
+<p><strong>为什么用 WebSocket 不用 REST 轮询</strong>:</p>
+<ul>
+<li><strong>REST 轮询</strong> = 前端每 500ms 一次 GET → C# 端建连接 → 查库 → JSON 序列化 → 返回 → 关连接。100Hz×7 设备 = 每秒 700 个点,轮询拿不全,且 SQLite 并发扛不住;</li>
+<li><strong>WebSocket</strong> = 一次握手,长连接,C# 端有新 batch 就推,<strong>带宽和 CPU 都低 10 倍以上</strong>;</li>
+<li><strong>类比前端</strong>:你做股票看盘 / 实时聊天都用过 WebSocket,这里完全一样。</li>
+</ul>
+<p><strong>为什么用 ASP.NET Core Kestrel 不用裸 System.Net.WebSockets</strong>:</p>
+<ul>
+<li>裸 <code>HttpListener</code> + <code>WebSocket</code> 需要 80+ 行样板代码,路由 / SSL / 静态文件全要自己写;</li>
+<li>ASP.NET Core Kestrel 在 .NET 8 里<strong>和 Core 项目共享 SDK</strong>,加一个 <code>Microsoft.AspNetCore.App</code> 框架引用就行,<strong>还能顺带托管 Vue 的静态文件</strong>(生产部署直接一个 exe 起来,前端免装 Node);</li>
+<li>简历可以多写一句"ASP.NET Core Kestrel 嵌入式宿主"——这是高级上位机的加分点(2024 年开始新能源行业部分岗位明确要"ASP.NET Core 嵌入桌面")。</li>
+</ul>
+<p><strong>步骤</strong>:</p>
+<ol>
+<li><strong>改 <code>DaqMonitor.Core.csproj</code>,加 ASP.NET Core 框架引用</strong>:</li>
+</ol>
+<p>打开 <code>f:\00_project\上位机学习\DAQMonitor\src\DaqMonitor.Core\DaqMonitor.Core.csproj</code>,在 <code>&lt;Project Sdk="Microsoft.NET.Sdk"&gt;</code> 下面加一行 SDK 改造(或者用 FrameworkReference):</p>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk.Web&quot;&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
+    &lt;RollForward&gt;Major&lt;/RollForward&gt;
+    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    &lt;RootNamespace&gt;DaqMonitor.Core&lt;/RootNamespace&gt;
+    &lt;!-- 重要:Core 改 Sdk.Web 后,UI 项目要确保 UseWPF 不冲突,生产环境推荐拆出 DaqMonitor.Web 单独项目 --&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;!-- 已有的包:DI / 串口 / EF Core Sqlite / MQTTnet 不动 --&gt;
+    &lt;PackageReference Include=&quot;Microsoft.Extensions.DependencyInjection&quot; Version=&quot;8.0.1&quot; /&gt;
+    &lt;PackageReference Include=&quot;System.IO.Ports&quot; Version=&quot;8.0.0&quot; /&gt;
+    &lt;PackageReference Include=&quot;Microsoft.EntityFrameworkCore.Sqlite&quot; Version=&quot;8.0.10&quot; /&gt;
+    &lt;PackageReference Include=&quot;Microsoft.EntityFrameworkCore.Design&quot; Version=&quot;8.0.10&quot;&gt;
+      &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;/PackageReference&gt;
+    &lt;PackageReference Include=&quot;MQTTnet&quot; Version=&quot;4.3.7.1207&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;InternalsVisibleTo Include=&quot;DaqMonitor.Tests&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;
+</code></pre>
+<blockquote>
+<p><strong>生产架构建议</strong>:为避免 <code>Sdk.Web</code> 影响现有 UI / 测试,<strong>更推荐的做法是新建一个 <code>DaqMonitor.Web</code> 项目</strong>(独立 csproj),引用 <code>DaqMonitor.Core</code>,把 <code>WebBroadcastService</code> 放在 Web 项目里。本文为简化讲解放在 Core,实际落地建议拆项目——这点面试可以主动提("我会把 Web 层独立成 DaqMonitor.Web 项目,跟 Core 解耦")。</p>
+</blockquote>
+<ol start="2">
+<li><strong>新建 <code>WebBroadcastService.cs</code></strong> 在 <code>f:\00_project\上位机学习\DAQMonitor\src\DaqMonitor.Core\Web\</code>:</li>
+</ol>
+<pre><code class="language-csharp">using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Channels;
+using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.Models;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace DaqMonitor.Core.Web;
+
+/// &lt;summary&gt;
+/// 实时数据广播服务:起一个 ASP.NET Core Kestrel 嵌入式宿主,
+/// 把 AcquisitionPipeline.BatchReady 事件用 WebSocket 推给所有连接的前端大屏。
+///
+/// 设计要点(面试可以讲):
+/// 1) 嵌入式 Kestrel——跟主程序同进程,不占新端口冲突,跟 Core 共享 DI 容器
+/// 2) 用 Channel 做广播缓冲——BatchReady 触发频率高(200ms 一次),WebSocket 写慢时不会堵采集线程
+/// 3) 客户端连接列表用 ConcurrentDictionary + WebSocket,断线自动清理
+/// 4) JSON 用 System.Text.Json + TimeSpan/string 预格式化,前端拿到直接用
+/// 5) 提供心跳机制:每 5 秒推一条 ping,前端断线重连用
+/// &lt;/summary&gt;
+public sealed class WebBroadcastService : IHostedService, IDisposable
+{
+    private readonly AcquisitionPipeline _pipeline;
+    private readonly ILogger&lt;WebBroadcastService&gt;? _log;
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Channel&lt;string&gt; _outbox = Channel.CreateBounded&lt;string&gt;(1024);
+    private readonly ConcurrentDictionary&lt;Guid, WebSocket&gt; _clients = new();
+
+    private IHost? _host;
+    private Task? _broadcastLoop;
+    private Task? _heartbeatLoop;
+
+    public WebBroadcastService(AcquisitionPipeline pipeline, ILogger&lt;WebBroadcastService&gt;? log = null)
+    {
+        _pipeline = pipeline;
+        _log = log;
+    }
+
+    public async Task StartAsync(CancellationToken cancel = default)
+    {
+        // 1) Kestrel 起在 5180 端口(避开常见端口),路由 /ws 给 WebSocket,/api/history 给 REST(备用)
+        _host = Host.CreateDefaultBuilder()
+            .ConfigureWebHostDefaults(builder =&gt;
+            {
+                builder.UseUrls(&quot;http://localhost:5180&quot;);
+                builder.Configure(app =&gt;
+                {
+                    app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(5) });
+                    app.Map(&quot;/ws&quot;, HandleWebSocketAsync);
+                    app.Map(&quot;/api/health&quot;, ctx =&gt; ctx.Response.WriteAsync(&quot;ok&quot;));
+                });
+            })
+            .Build();
+
+        await _host.StartAsync(cancel);
+
+        // 2) 订阅采集管道的批量事件:把 List&lt;SensorPoint&gt; 序列化成 JSON,塞进广播 Channel
+        _pipeline.BatchReady += OnBatchReady;
+
+        // 3) 后台两个任务:广播 + 心跳
+        _broadcastLoop = Task.Run(BroadcastLoopAsync);
+        _heartbeatLoop = Task.Run(HeartbeatLoopAsync);
+
+        _log?.LogInformation(&quot;WebBroadcastService started on http://localhost:5180/ws&quot;);
+    }
+
+    public async Task StopAsync(CancellationToken cancel = default)
+    {
+        _pipeline.BatchReady -= OnBatchReady;
+        _cts.Cancel();
+        if (_host is not null) await _host.StopAsync(cancel);
+        _outbox.Writer.TryComplete();
+    }
+
+    // —— 关键回调:把批量点位转 JSON ——
+    // 注意:这里同步序列化没问题(几百个点的 JSON 不到 10KB,耗时 &lt;1ms),
+    // 但严禁在此阻塞或做重活,BatchReady 在采集线程上触发。
+    private void OnBatchReady(object? sender, IReadOnlyList&lt;SensorPoint&gt; batch)
+    {
+        // 协议格式:{&quot;type&quot;:&quot;batch&quot;,&quot;points&quot;:[{&quot;id&quot;:1,&quot;value&quot;:42.5,&quot;state&quot;:2,&quot;timestamp&quot;:&quot;...&quot;}]}
+        var payload = new
+        {
+            type = &quot;batch&quot;,
+            points = batch.Select(p =&gt; new
+            {
+                p.Id,
+                p.Value,
+                state = (int)p.State,
+                timestamp = p.Timestamp.ToString(&quot;O&quot;)   // ISO 8601,前端 new Date() 直接用
+            })
+        };
+        var json = JsonSerializer.Serialize(payload);
+        _outbox.Writer.TryWrite(json);   // 满了就丢,采集优先级高于广播
+    }
+
+    // —— WebSocket 处理:握手成功后挂进客户端表,主循环负责推 ——
+    private async Task HandleWebSocketAsync(HttpContext ctx)
+    {
+        if (!ctx.WebSockets.IsWebSocketRequest) { ctx.Response.StatusCode = 400; return; }
+        var ws = await ctx.WebSockets.AcceptWebSocketAsync();
+        var id = Guid.NewGuid();
+        _clients[id] = ws;
+        _log?.LogInformation(&quot;WebSocket connected: {Id}, total={Count}&quot;, id, _clients.Count);
+
+        // 接收循环:客户端不发数据时也要 await,这样新 .NET 会自动处理 KeepAlive Ping
+        var buffer = new byte[1024];
+        try
+        {
+            while (ws.State == WebSocketState.Open &amp;&amp; !_cts.IsCancellationRequested)
+            {
+                var result = await ws.ReceiveAsync(buffer, _cts.Token);
+                if (result.MessageType == WebSocketMessageType.Close) break;
+                // 业务上暂不接收前端消息,收到直接丢;Day 4 双向通信时会用到
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { _log?.LogError(ex, &quot;WebSocket error&quot;); }
+        finally
+        {
+            _clients.TryRemove(id, out _);
+            ws.Dispose();
+            _log?.LogInformation(&quot;WebSocket disconnected: {Id}, total={Count}&quot;, id, _clients.Count);
+        }
+    }
+
+    // —— 广播循环:从 Channel 拿 JSON,并发推给所有客户端 ——
+    private async Task BroadcastLoopAsync()
+    {
+        await foreach (var json in _outbox.Reader.ReadAllAsync(_cts.Token))
+        {
+            if (_clients.IsEmpty) continue;
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var tasks = _clients.Values.Select(ws =&gt; SafeSendAsync(ws, bytes, _cts.Token)).ToArray();
+            try { await Task.WhenAll(tasks); }
+            catch (Exception ex) { _log?.LogError(ex, &quot;Broadcast error&quot;); }
+        }
+    }
+
+    // —— 心跳:5 秒一次,前端拿不到 batch 也知道连接活着 ——
+    private async Task HeartbeatLoopAsync()
+    {
+        while (!_cts.IsCancellationRequested)
+        {
+            await Task.Delay(5000, _cts.Token);
+            if (_clients.IsEmpty) continue;
+            var ping = Encoding.UTF8.GetBytes(&quot;{\&quot;type\&quot;:\&quot;ping\&quot;,\&quot;ts\&quot;:\&quot;&quot; + DateTimeOffset.Now.ToString(&quot;O&quot;) + &quot;\&quot;}&quot;);
+            var tasks = _clients.Values.Select(ws =&gt; SafeSendAsync(ws, ping, _cts.Token)).ToArray();
+            try { await Task.WhenAll(tasks); } catch { /* 单个连接失败不影响其他 */ }
+        }
+    }
+
+    // —— 安全发送:单连接失败不能影响其他客户端 ——
+    private static async Task SafeSendAsync(WebSocket ws, byte[] data, CancellationToken ct)
+    {
+        try
+        {
+            if (ws.State == WebSocketState.Open)
+                await ws.SendAsync(data, WebSocketMessageType.Text, endOfMessage: true, ct);
+        }
+        catch { /* 客户端断了,会由接收循环清理 */ }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _host?.Dispose();
+        _cts.Dispose();
+    }
+}
+</code></pre>
+<ol start="3">
+<li><strong>注册到 <code>Bootstrapper.cs</code></strong>——打开 <code>f:\00_project\上位机学习\DAQMonitor\src\DaqMonitor.Core\AppServices\Bootstrapper.cs</code>,在 <code>services.AddSingleton&lt;MqttPublisher&gt;(...)</code> 后面加一行:</li>
+</ol>
+<pre><code class="language-csharp">// Web 大屏广播服务(嵌入式 Kestrel):启动时调用 StartAsync
+services.AddSingleton&lt;WebBroadcastService&gt;();
+</code></pre>
+<p><code>Bootstrapper.Build()</code> 返回的 <code>ServiceProvider</code> 拿到 <code>WebBroadcastService</code> 后,<strong>由 UI 层(App.xaml.cs)在启动时调一次 <code>StartAsync()</code></strong>——具体见 Day 4。</p>
+<ol start="4">
+<li><strong>本地测试</strong>:用浏览器开 <code>http://localhost:5180/api/health</code> 看到 <code>ok</code>,然后下一个临时测试:</li>
+</ol>
+<blockquote>
+<p><strong>临时测试</strong>:Chrome 装 "WebSocket King" 或用 PowerShell 都行,连 <code>ws://localhost:5180/ws</code>,5 秒内应收到 <code>{"type":"ping","ts":"..."}</code>;如果当前 <code>SimulatedDevice</code> 在跑,200ms 内应收到 <code>{"type":"batch","points":[...]}</code>。</p>
+</blockquote>
+<ol start="5">
+<li><strong>Day 2 用时</strong>:6 小时。这是整个方案最难的一天,核心难点是 ASP.NET Core 嵌入式宿主 + WebSocket 并发广播。<strong>踩坑警告</strong>:见第 6 节。</li>
+</ol>
+<hr />
+<h3 id="sec-3-4">Day 3:Vue 大屏接 WebSocket,ECharts 实时曲线</h3>
+<p><strong>目标</strong>:Vue 大屏连接 <code>ws://localhost:5180/ws</code>,Pinia 存实时点位,ECharts 画 7 条曲线(对应 7 个设备),复用你的前端能力。</p>
+<p><strong>步骤</strong>:</p>
+<ol>
+<li><strong>WebSocket 客户端封装</strong>(关键:断线重连 + 心跳):</li>
+</ol>
+<pre><code class="language-ts">// src/api/ws.ts
+// 封装 WebSocket:自动重连(指数退避)+ 心跳检测 + 订阅模式
+// 类比前端你做过 React useWebSocket Hook,这里是 Vue 版
+import { ref } from 'vue'
+
+export type WsMessage =
+  | { type: 'batch'; points: Array&lt;{ id: number; value: number; state: number; timestamp: string }&gt; }
+  | { type: 'ping'; ts: string }
+  | { type: 'alarm'; alarm: AlarmPayload }
+
+interface AlarmPayload { pointId: number; level: number; value: number; message: string; timestamp: string }
+
+export function useWebSocket(url: string) {
+  const connected = ref(false)
+  const lastMessage = ref&lt;WsMessage | null&gt;(null)
+  const subscribers = new Set&lt;(msg: WsMessage) =&gt; void&gt;()
+
+  let ws: WebSocket | null = null
+  let retryCount = 0
+  let retryTimer: number | null = null
+  let manualClose = false
+  let heartbeatTimer: number | null = null
+  let lastPong = Date.now()
+
+  const connect = () =&gt; {
+    ws = new WebSocket(url)
+    ws.onopen = () =&gt; {
+      connected.value = true
+      retryCount = 0
+      console.log('[ws] connected', url)
+      // 心跳:10 秒没收到服务端 ping 就认为断线,主动 close 触发重连
+      lastPong = Date.now()
+      heartbeatTimer = window.setInterval(() =&gt; {
+        if (Date.now() - lastPong &gt; 10_000) {
+          console.warn('[ws] heartbeat timeout, reconnecting...')
+          ws?.close()
+        }
+      }, 5000)
+    }
+    ws.onmessage = (e) =&gt; {
+      const msg = JSON.parse(e.data) as WsMessage
+      if (msg.type === 'ping') lastPong = Date.now()
+      lastMessage.value = msg
+      subscribers.forEach(fn =&gt; fn(msg))
+    }
+    ws.onclose = () =&gt; {
+      connected.value = false
+      if (heartbeatTimer) clearInterval(heartbeatTimer)
+      if (manualClose) return
+      // 指数退避:1s → 2s → 4s → 8s → 封顶 30s
+      const delay = Math.min(30_000, 1000 * 2 ** retryCount++)
+      console.warn(`[ws] closed, retry in ${delay}ms`)
+      retryTimer = window.setTimeout(connect, delay)
+    }
+    ws.onerror = (e) =&gt; console.error('[ws] error', e)
+  }
+
+  const close = () =&gt; {
+    manualClose = true
+    if (retryTimer) clearTimeout(retryTimer)
+    if (heartbeatTimer) clearInterval(heartbeatTimer)
+    ws?.close()
+  }
+
+  const subscribe = (fn: (msg: WsMessage) =&gt; void) =&gt; {
+    subscribers.add(fn)
+    return () =&gt; subscribers.delete(fn)
+  }
+
+  return { connected, lastMessage, connect, close, subscribe }
+}
+</code></pre>
+<ol start="2">
+<li><strong>Pinia store(实时点位环形缓冲)</strong>:</li>
+</ol>
+<pre><code class="language-ts">// src/stores/points.ts
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+
+// 每个点位保留最近 600 条(60 秒 @ 10Hz × 1 个点位),前端环形缓冲
+// 类比:你前端做股票看盘也是这个套路,固定长度数组避免内存爆炸
+const MAX_POINTS = 600
+
+export const usePointsStore = defineStore('points', () =&gt; {
+  const series = ref&lt;Map&lt;number, Array&lt;[number, number]&gt;&gt;&gt;(new Map())
+
+  const push = (id: number, value: number, ts: string) =&gt; {
+    const t = new Date(ts).getTime()
+    if (!series.value.has(id)) series.value.set(id, [])
+    const arr = series.value.get(id)!
+    arr.push([t, value])
+    if (arr.length &gt; MAX_POINTS) arr.shift()
+  }
+
+  const clear = () =&gt; series.value.clear()
+
+  return { series, push, clear }
+})
+</code></pre>
+<ol start="3">
+<li><strong>ECharts 实时曲线组件</strong>:</li>
+</ol>
+<pre><code class="language-vue">&lt;!-- src/components/RealtimeChart.vue --&gt;
+&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import * as echarts from 'echarts'
+import { useWebSocket } from '@/api/ws'
+import { usePointsStore } from '@/stores/points'
+
+const ws = useWebSocket('ws://localhost:5180/ws')
+const store = usePointsStore()
+const chartEl = ref&lt;HTMLDivElement&gt;()
+let chart: echarts.ECharts | null = null
+
+// 设备配置(真实项目从 /api/devices 拉,这里硬编码演示)
+const DEVICES = [
+  { id: 1, name: '温度', unit: '℃',   color: '#4dd0e1' },
+  { id: 2, name: '压力', unit: 'MPa', color: '#ffb74d' },
+  { id: 3, name: '流量', unit: 'L/m',  color: '#81c784' },
+  { id: 4, name: '电压', unit: 'V',    color: '#ba68c8' },
+  { id: 5, name: '电流', unit: 'A',    color: '#ff8a65' },
+  { id: 6, name: '转速', unit: 'rpm',  color: '#90caf9' },
+  { id: 7, name: '振动', unit: 'mm/s', color: '#e57373' },
+]
+
+onMounted(() =&gt; {
+  chart = echarts.init(chartEl.value!, 'dark', { renderer: 'canvas' })  // canvas 比 svg 快 5 倍
+  chart.setOption({
+    backgroundColor: 'transparent',
+    grid: { left: 50, right: 30, top: 40, bottom: 40 },
+    tooltip: { trigger: 'axis' },
+    legend: { data: DEVICES.map(d =&gt; d.name), textStyle: { color: '#c5d1de' } },
+    xAxis: { type: 'time', axisLabel: { color: '#6b7a8f' } },
+    yAxis: { type: 'value', axisLabel: { color: '#6b7a8f' }, splitLine: { lineStyle: { color: '#1f2a44' } } },
+    series: DEVICES.map(d =&gt; ({ name: d.name, type: 'line', showSymbol: false, smooth: true, lineStyle: { width: 2, color: d.color }, data: [] })),
+  })
+
+  // 订阅 WebSocket batch 消息,推入 store
+  ws.subscribe((msg) =&gt; {
+    if (msg.type !== 'batch') return
+    for (const p of msg.points) store.push(p.id, p.value, p.timestamp)
+  })
+
+  ws.connect()
+
+  // 200ms 刷新一次图表(跟 C# 端 BatchReady 频率对齐,不要每条消息都 setOption)
+  const refresh = setInterval(() =&gt; {
+    if (!chart) return
+    chart.setOption({
+      series: DEVICES.map(d =&gt; ({
+        name: d.name,
+        data: store.series.get(d.id) ?? [],
+      })),
+    })
+  }, 200)
+
+  onUnmounted(() =&gt; { clearInterval(refresh); chart?.dispose(); ws.close() })
+})
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div class=&quot;chart&quot;&gt;
+    &lt;div class=&quot;chart__title&quot;&gt;实时数据曲线(最近 60 秒)&lt;/div&gt;
+    &lt;div ref=&quot;chartEl&quot; class=&quot;chart__canvas&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;style scoped&gt;
+.chart { height: 100%; display: flex; flex-direction: column; }
+.chart__title { font-size: 14px; color: #6b7a8f; margin-bottom: 8px; }
+.chart__canvas { flex: 1; min-height: 320px; }
+&lt;/style&gt;
+</code></pre>
+<ol start="4">
+<li>
+<p><strong>跑起来</strong>:DAQMonitor 的 <code>WebBroadcastService.StartAsync()</code> 已启动(Day 4 会接到 UI),<code>pnpm dev</code> 跑 Vue 大屏,浏览器 <code>http://localhost:5173</code> 应看到 7 条彩色实时曲线在跳动。</p>
+</li>
+<li>
+<p><strong>Day 3 用时</strong>:4-6 小时。这一天对你的前端经验是降维打击,<strong>真正的难点是 ECharts 在 600 点 × 7 条 = 4200 点情况下保持 60fps</strong>——你前端 5 年早就踩过这个坑,降采样 / 切 canvas / 减少 setOption 频率三件套。</p>
+</li>
+</ol>
+<hr />
+<h3 id="sec-3-5">Day 4:WPF 嵌 WebView2,WPF ↔ Vue 双向通信</h3>
+<p><strong>目标</strong>:在 DAQMonitor.UI 主窗口里放一个 WebView2 控件,加载 Vue 大屏的 <code>http://localhost:5173</code>(开发)或本地 <code>dist/index.html</code>(生产),C# ↔ JS 双向通信。</p>
+<p><strong>步骤</strong>:</p>
+<ol>
+<li><strong>UI 项目加 WebView2 包</strong>——打开 <code>f:\00_project\上位机学习\DAQMonitor\src\DaqMonitor.UI\DaqMonitor.UI.csproj</code>,在 <code>&lt;ItemGroup&gt;</code> 里加:</li>
+</ol>
+<pre><code class="language-xml">&lt;PackageReference Include=&quot;Microsoft.Web.WebView2&quot; Version=&quot;1.0.2903.40&quot; /&gt;
+</code></pre>
+<ol start="2">
+<li><strong>新建 <code>WebViewBridge.cs</code></strong>——<code>f:\00_project\上位机学习\DAQMonitor\src\DaqMonitor.UI\Controls\WebViewBridge.cs</code>,这是 C# ↔ JS 双向通信的核心:</li>
+</ol>
+<pre><code class="language-csharp">using System.Text.Json;
+using System.Windows;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
+
+namespace DaqMonitor.UI.Controls;
+
+/// &lt;summary&gt;
+/// WebView2 + Vue 双向通信桥:
+/// 1) C# → JS:用 ExecuteScriptAsync 调用前端全局函数(下发命令 / 推设备列表)
+/// 2) JS → C#:前端用 chrome.webview.postMessage(jsonObject),C# 订阅 WebMessageReceived
+///
+/// 类比前端:这就是 React Native 的 bridge,或 Electron 的 ipcMain/ipcRenderer
+/// &lt;/summary&gt;
+public class WebViewBridge
+{
+    private readonly WebView2 _wv;
+    public WebViewBridge(WebView2 wv) { _wv = wv; }
+
+    /// &lt;summary&gt;C# 调 JS:前端 window.__daqBridge 接收&lt;/summary&gt;
+    public async Task InvokeAsync(string method, object? payload = null)
+    {
+        var json = JsonSerializer.Serialize(new { method, payload });
+        // ExecuteScriptAsync 要求字符串再包一层 JSON.stringify,前端拿到的才是对象不是字符串
+        var script = $&quot;window.__daqBridge &amp;&amp; window.__daqBridge.receive({json});&quot;;
+        await _wv.ExecuteScriptAsync(script);
+    }
+
+    /// &lt;summary&gt;JS → C#:前端调 chrome.webview.postMessage(msg),这里接收&lt;/summary&gt;
+    public void OnMessageFromWeb(EventHandler&lt;string&gt; handler)
+    {
+        _wv.WebMessageReceived += (s, e) =&gt; handler(s, e.TryGetWebMessageAsString());
+    }
+}
+</code></pre>
+<ol start="3">
+<li><strong>Vue 端补 bridge 接收代码</strong>——在 <code>daq-dashboard/src/main.ts</code> 加:</li>
+</ol>
+<pre><code class="language-ts">// Vue 接收 C# 下发消息的全局桥
+// 类比:Electron 的 preload script
+declare global {
+  interface Window {
+    __daqBridge?: { receive: (msg: { method: string; payload?: unknown }) =&gt; void }
+    chrome?: { webview: { postMessage: (msg: unknown) =&gt; void } }
+  }
+}
+
+window.__daqBridge = {
+  receive(msg) {
+    console.log('[bridge] from C#:', msg)
+    // 这里用 EventBus / Pinia 派发,例如收到 &quot;ackAlarm&quot; → 报警 store 标记已确认
+    window.dispatchEvent(new CustomEvent('daq-bridge', { detail: msg }))
+  },
+}
+
+// Vue → C# 调用工具
+export function sendToNative(msg: unknown) {
+  if (window.chrome?.webview) {
+    window.chrome.webview.postMessage(msg)
+  } else {
+    console.log('[bridge] no native host, msg dropped:', msg)
+  }
+}
+</code></pre>
+<ol start="4">
+<li><strong>WPF 主窗口嵌 WebView2</strong>——打开 <code>f:\00_project\上位机学习\DAQMonitor\src\DaqMonitor.UI\MainWindow.xaml</code>,在 Grid 里加一个 Tab 或区域:</li>
+</ol>
+<pre><code class="language-xml">&lt;TabControl&gt;
+  &lt;TabItem Header=&quot;本地 LiveCharts2 视图&quot;&gt;
+    &lt;!-- 原有的 LiveCharts2 视图,fallback 兜底 --&gt;
+    &lt;local:ChartView /&gt;
+  &lt;/TabItem&gt;
+  &lt;TabItem Header=&quot;Vue3 工业大屏 (WebView2)&quot;&gt;
+    &lt;wv2:WebView2 x:Name=&quot;DashboardWebView&quot; /&gt;
+  &lt;/TabItem&gt;
+&lt;/TabControl&gt;
+</code></pre>
+<p>XAML 头部加命名空间:</p>
+<pre><code class="language-xml">xmlns:wv2=&quot;clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf&quot;
+</code></pre>
+<ol start="5">
+<li><strong><code>MainWindow.xaml.cs</code> 初始化 WebView2</strong>:</li>
+</ol>
+<pre><code class="language-csharp">// 在 MainWindow 构造函数末尾或 Loaded 事件里
+private WebViewBridge? _bridge;
+
+private async void Window_Loaded(object sender, RoutedEventArgs e)
+{
+    // —— 启动嵌入式 Kestrel(Day 2 的 WebBroadcastService)——
+    var broadcaster = App.Services.GetRequiredService&lt;WebBroadcastService&gt;();
+    await broadcaster.StartAsync();
+
+    // —— WebView2 初始化(必须在 InitializeAsync 完成前不能调 Source)——
+    await DashboardWebView.EnsureCoreWebView2Async();
+    DashboardWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
+
+    // 开发环境直接加载 dev server,生产加载打包后的本地 dist
+#if DEBUG
+    DashboardWebView.Source = new Uri(&quot;http://localhost:5173/&quot;);
+#else
+    // 生产模式:把 daq-dashboard/dist 拷到 DAQMonitor.UI 输出目录的 web/
+    DashboardWebView.CoreWebView2.SetVirtualHostToFolderMapping(
+        &quot;dashboard.local&quot;,
+        System.IO.Path.Combine(AppContext.BaseDirectory, &quot;web&quot;),
+        CoreWebView2HostResourceAccessKind.Allow);
+    DashboardWebView.Source = new Uri(&quot;https://dashboard.local/index.html&quot;);
+#endif
+
+    // 双向通信桥
+    _bridge = new WebViewBridge(DashboardWebView);
+    _bridge.OnMessageFromWeb((_, msg) =&gt;
+    {
+        // 收到前端消息,例如点击&quot;复位报警&quot;按钮
+        Console.WriteLine($&quot;[bridge] from Vue: {msg}&quot;);
+        // 解析后调用 AlarmEngine.Ack 等
+    });
+}
+</code></pre>
+<ol start="6">
+<li><strong>App.xaml.cs 暴露 Services</strong>:</li>
+</ol>
+<pre><code class="language-csharp">public partial class App : Application
+{
+    public static ServiceProvider Services { get; private set; } = null!;
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+        Services = Bootstrapper.Build();
+    }
+}
+</code></pre>
+<ol start="7">
+<li><strong>跑起来</strong>:F5 启动 DAQMonitor.UI,切到"Vue3 工业大屏"Tab,看到 Vue 大屏嵌在 WPF 窗口里。<strong>Day 4 用时</strong>:6 小时。核心坑在 WebView2 Runtime 未装、虚拟主机映射路径错误,见第 6 节。</li>
+</ol>
+<hr />
+<h3 id="sec-3-6">Day 5:大屏加 4 个组件,截图录视频</h3>
+<p><strong>目标</strong>:大屏全功能化,4 个组件就位:<strong>实时曲线(Day 3 已完成)</strong> + <strong>设备状态卡片</strong> + <strong>报警滚动</strong> + <strong>工程量仪表盘</strong>。</p>
+<p><strong>1. 设备状态卡片(DeviceCard.vue)</strong>:</p>
+<pre><code class="language-vue">&lt;!-- src/components/DeviceCard.vue --&gt;
+&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useWebSocket } from '@/api/ws'
+
+const ws = useWebSocket('ws://localhost:5180/ws')
+const devices = ref([
+  { id: 1, name: 'Modbus 温控仪', value: 0, state: 0, lastTs: '' },
+  { id: 2, name: 'Modbus TCP IO', value: 0, state: 0, lastTs: '' },
+  { id: 3, name: 'S7-1200 PLC',   value: 0, state: 0, lastTs: '' },
+  { id: 4, name: 'OPC UA Server', value: 0, state: 0, lastTs: '' },
+  { id: 5, name: 'MQTT 网关',     value: 0, state: 0, lastTs: '' },
+  { id: 6, name: 'CAN 设备',      value: 0, state: 0, lastTs: '' },
+  { id: 7, name: 'USB-HID 设备',  value: 0, state: 0, lastTs: '' },
+])
+
+onMounted(() =&gt; {
+  ws.subscribe((msg) =&gt; {
+    if (msg.type !== 'batch') return
+    for (const p of msg.points) {
+      const d = devices.value.find(x =&gt; x.id === p.id)
+      if (d) { d.value = p.value; d.state = p.state; d.lastTs = p.timestamp }
+    }
+  })
+  ws.connect()
+})
+onUnmounted(() =&gt; ws.close())
+
+const stateText = (s: number) =&gt; ['离线', '连接中', '在线'][s] ?? '未知'
+const stateClass = (s: number) =&gt; ['offline', 'connecting', 'online'][s]
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div class=&quot;device-grid&quot;&gt;
+    &lt;div v-for=&quot;d in devices&quot; :key=&quot;d.id&quot; class=&quot;device&quot; :class=&quot;stateClass(d.state)&quot;&gt;
+      &lt;div class=&quot;device__head&quot;&gt;
+        &lt;span class=&quot;device__dot&quot;&gt;&lt;/span&gt;
+        &lt;span class=&quot;device__name&quot;&gt;{{ d.name }}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;device__value&quot;&gt;{{ d.value.toFixed(2) }}&lt;/div&gt;
+      &lt;div class=&quot;device__state&quot;&gt;{{ stateText(d.state) }} · {{ d.lastTs || '--' }}&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;style scoped&gt;
+.device-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.device { background: #1a2238; border-radius: 6px; padding: 10px; border-left: 3px solid #4dd0e1; }
+.device.offline   { border-left-color: #6b7a8f; }
+.device.connecting{ border-left-color: #ffb74d; }
+.device.online    { border-left-color: #4dd0e1; }
+.device__head { display: flex; align-items: center; gap: 6px; }
+.device__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.online .device__dot    { background: #4dd0e1; box-shadow: 0 0 8px #4dd0e1; }
+.connecting .device__dot{ background: #ffb74d; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.device__name { font-size: 13px; color: #c5d1de; }
+.device__value { font-size: 24px; font-weight: 700; color: #4dd0e1; font-variant-numeric: tabular-nums; }
+.device__state { font-size: 11px; color: #6b7a8f; }
+&lt;/style&gt;
+</code></pre>
+<p><strong>2. 报警滚动(AlarmTicker.vue)</strong>:</p>
+<pre><code class="language-vue">&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useWebSocket } from '@/api/ws'
+const ws = useWebSocket('ws://localhost:5180/ws')
+const alarms = ref&lt;Array&lt;{ id: number; level: number; msg: string; ts: string }&gt;&gt;([])
+
+onMounted(() =&gt; {
+  ws.subscribe((msg) =&gt; {
+    if (msg.type === 'alarm') {
+      alarms.value.unshift({
+        id: msg.alarm.pointId, level: msg.alarm.level,
+        msg: msg.alarm.message, ts: msg.alarm.timestamp,
+      })
+      if (alarms.value.length &gt; 50) alarms.value.pop()
+    }
+  })
+  ws.connect()
+})
+onUnmounted(() =&gt; ws.close())
+const levelClass = (l: number) =&gt; ['normal', 'warning', 'critical'][l]
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div class=&quot;alarm-ticker&quot;&gt;
+    &lt;div class=&quot;alarm-ticker__title&quot;&gt;实时报警(最近 50 条)&lt;/div&gt;
+    &lt;div class=&quot;alarm-ticker__list&quot;&gt;
+      &lt;div v-for=&quot;(a, i) in alarms&quot; :key=&quot;i&quot; class=&quot;alarm&quot; :class=&quot;levelClass(a.level)&quot;&gt;
+        &lt;span class=&quot;alarm__time&quot;&gt;{{ new Date(a.ts).toLocaleTimeString() }}&lt;/span&gt;
+        &lt;span class=&quot;alarm__msg&quot;&gt;{{ a.msg }}&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;style scoped&gt;
+.alarm-ticker { height: 100%; display: flex; flex-direction: column; }
+.alarm-ticker__title { font-size: 14px; color: #6b7a8f; margin-bottom: 8px; }
+.alarm-ticker__list { overflow-y: auto; flex: 1; }
+.alarm { display: flex; gap: 12px; padding: 6px 0; border-bottom: 1px solid #1f2a44; font-size: 13px; }
+.alarm__time { color: #6b7a8f; font-variant-numeric: tabular-nums; }
+.alarm.warning { color: #ffb74d; }
+.alarm.critical { color: #ff5252; font-weight: 600; }
+&lt;/style&gt;
+</code></pre>
+<p><strong>3. 工程量仪表盘(GaugePanel.vue)</strong>——直接用 ECharts gauge:</p>
+<pre><code class="language-vue">&lt;script setup lang=&quot;ts&quot;&gt;
+import { ref, onMounted, onUnmounted } from 'vue'
+import * as echarts from 'echarts'
+import { useWebSocket } from '@/api/ws'
+
+const ws = useWebSocket('ws://localhost:5180/ws')
+const gaugeEl = ref&lt;HTMLDivElement&gt;()
+let chart: echarts.ECharts | null = null
+
+const GAUGES = [
+  { id: 1, name: '温度', min: 0, max: 150, unit: '℃' },
+  { id: 2, name: '压力', min: 0, max: 2, unit: 'MPa' },
+  { id: 3, name: '转速', min: 0, max: 3000, unit: 'rpm' },
+]
+const values = ref&lt;Record&lt;number, number&gt;&gt;({ 1: 0, 2: 0, 3: 0 })
+
+onMounted(() =&gt; {
+  chart = echarts.init(gaugeEl.value!, 'dark', { renderer: 'canvas' })
+  chart.setOption({
+    backgroundColor: 'transparent',
+    series: GAUGES.map((g, i) =&gt; ({
+      type: 'gauge', center: ['50%', `${20 + i * 30}%`], radius: '25%',
+      min: g.min, max: g.max,
+      title: { offsetCenter: [0, '70%'], color: '#c5d1de', fontSize: 12 },
+      detail: { formatter: `{value} ${g.unit}`, color: '#4dd0e1', fontSize: 16, offsetCenter: [0, '40%'] },
+      data: [{ value: 0, name: g.name }],
+      axisLine: { lineStyle: { color: [[0.7, '#4dd0e1'], [0.9, '#ffb74d'], [1, '#ff5252']] } },
+    })),
+  })
+  ws.subscribe((msg) =&gt; {
+    if (msg.type !== 'batch') return
+    for (const p of msg.points) if (p.id in values.value) values.value[p.id] = p.value
+    chart?.setOption({ series: GAUGES.map(g =&gt; ({ data: [{ value: values.value[g.id], name: g.name }] })) })
+  })
+  ws.connect()
+})
+onUnmounted(() =&gt; { chart?.dispose(); ws.close() })
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;div class=&quot;title&quot;&gt;工程量仪表盘&lt;/div&gt;
+    &lt;div ref=&quot;gaugeEl&quot; style=&quot;height: 480px&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+</code></pre>
+<p><strong>4. 录视频准备简历</strong>:</p>
+<ul>
+<li>用 OBS Studio / Windows 自带的 Xbox Game Bar 录 60-90 秒;</li>
+<li><strong>脚本</strong>:开机启动 DAQMonitor → 切到 Vue3 大屏 Tab → 镜头扫过 7 设备 / 实时曲线 / 报警弹出 / 仪表盘;</li>
+<li>录完上传 B 站 / 腾讯视频 / YouTube(私享),简历附 URL;</li>
+<li><strong>同时截 4-6 张高清大图</strong>,放 GitHub README 顶部。</li>
+</ul>
+<p><strong>5. Day 5 用时</strong>:6 小时。截图 + 录视频别偷懒,这是简历冲击力的核心。</p>
+<hr />
+<h2 id="sec-2-4">第 3 节:独立 Vue 工业大屏(并行 2 天方案)</h2>
+<blockquote>
+<p>这一节是 Day 6-7 的并行方案,<strong>和 Day 1-5 共享 WebBroadcastService</strong>(同一个 ws:// 端点),但 Vue 项目独立部署,投"前端 + 工业大屏"岗位时这是<strong>第二个简历项目</strong>。</p>
+</blockquote>
+<h3 id="sec-3-7">跟 WebView2 方向的关系</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>WebView2 嵌 Vue(A)</th>
+<th>独立 Vue 大屏(D)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vue 代码</td>
+<td>共享</td>
+<td><strong>完全共享</strong></td>
+</tr>
+<tr>
+<td>WebSocket 服务</td>
+<td>共享(Day 2 写的)</td>
+<td><strong>完全共享</strong></td>
+</tr>
+<tr>
+<td>部署</td>
+<td>WPF 内嵌,跟着 exe 走</td>
+<td>独立部署 Vercel / Netlify</td>
+</tr>
+<tr>
+<td>简历话术</td>
+<td>"上位机 + 大屏双栈"</td>
+<td>"前端工业大屏"</td>
+</tr>
+<tr>
+<td>投递岗位</td>
+<td>上位机 + 大屏双栈岗</td>
+<td>前端 + 工业 / 数字孪生 / MES 看板</td>
+</tr>
+<tr>
+<td>在线 demo</td>
+<td>不能(桌面端)</td>
+<td><strong>可以</strong>,附简历 URL</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-8">2 天能加什么加分点</h3>
+<p><strong>Day 6(独立大屏增强 1)</strong>:</p>
+<ol>
+<li><strong>WebSocket 断线重连</strong>(Day 3 已写,但要打磨 UI 上的"连接中"提示);</li>
+<li><strong>多屏适配</strong>——CSS Grid + <code>vw/vh</code> + 1920 / 2560 / 4K 三档断点,大屏必须撑满;</li>
+<li><strong>图表数据降采样</strong>——10Hz 数据显示 60 秒 = 600 点,前端每 200ms 一次 setOption 不卡;但 24 小时历史曲线(86 万点)必须降采样到 2000 点才能渲染,<strong>写一个 LTTB 算法</strong>(Largest Triangle Three Buckets,工业大屏标配);</li>
+<li><strong>数字孪生 2D</strong>——用 SVG 画一张工厂平面图,7 个设备用 circle 标位,状态颜色联动,点击跳详情(2D 数字孪生比 3D 便宜 10 倍,投新能源 / 智慧工厂岗加分)。</li>
+</ol>
+<p><strong>Day 7(独立大屏增强 2)</strong>:</p>
+<ol>
+<li><strong>3D 数字孪生(可选,投数字孪生岗)</strong>——用 Three.js 画一个简化版的工厂模型,7 个设备用 Box 标位,实时数据驱动物体颜色 / 高度;</li>
+<li><strong>多客户端订阅演示</strong>——开 3 个浏览器窗口同时连 ws://,证明"WebSocket 一对多广播"(面试时这是必问点);</li>
+<li><strong>打包部署 Vercel</strong>——<code>pnpm build</code> → dist 推到 Vercel,得到 <code>https://daq-dashboard.vercel.app</code>;</li>
+<li><strong>GitHub README 写完整</strong>——架构图 + 录屏 + 截图 + 启动步骤,这块直接影响 HR 点开 GitHub 链接后的"看 5 秒决定是否继续读"。</li>
+</ol>
+<h3 id="sec-3-9">独立大屏的简历加分点</h3>
+<p>投"前端 + 工业大屏"岗位时,简历第二项目写:</p>
+<blockquote>
+<p><strong>DaqDashboard · 工业实时监控大屏(Vue3 + TypeScript + ECharts + WebSocket)</strong>
+- <strong>架构</strong>:Vue3 + Vite + Pinia + ECharts,通过 WebSocket 接入 DAQMonitor 实时数据(7 设备 / 10Hz);
+- <strong>性能</strong>:LTTB 降采样算法处理 24 小时历史曲线(86 万点 → 2000 点 60fps);
+- <strong>数字孪生</strong>:基于 SVG 的工厂平面图,7 设备状态实时联动;支持 4K 大屏适配;
+- <strong>可靠性</strong>:WebSocket 断线指数退避重连 + 心跳检测;支持多客户端订阅;
+- <strong>部署</strong>:在线 demo <a href="#">vercel.com/daq-dashboard</a>,GitHub 附完整文档 + 录屏。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">第 4 节:简历话术(3 句话 + 3 种行业版本)</h2>
+<h3 id="sec-3-10">通用版 3 句话(直接复制到简历"项目经验"末尾)</h3>
+<blockquote>
+<p><strong>全栈能力:上位机 WPF + 前端 Vue3 大屏双栈</strong>——基于 WebView2 在 DAQMonitor(WPF)中嵌入 Vue3 工业大屏,统一实时曲线 / 报警 / 设备状态展示,生产部署一个 exe 完成全部前后端。</p>
+<p><strong>WebSocket 解耦</strong>:用 ASP.NET Core Kestrel 嵌入式宿主 + WebSocket 把 C# 采集层(BatchReady 事件)与 Vue 大屏解耦,支持<strong>多客户端订阅</strong>(产线看板 + 工程师工位 + 经理办公室同时看)。</p>
+<p><strong>性能优化</strong>:前端 LTTB 降采样算法处理 24 小时历史曲线(86 万点 → 2000 点 60fps),ECharts canvas 渲染 + 200ms 节流刷新;后端用 Channel 做广播缓冲避免阻塞采集线程。</p>
+</blockquote>
+<h3 id="sec-3-11">行业版本 1:新能源(锂电 / 光伏)</h3>
+<blockquote>
+<p>在 DAQMonitor 项目中,<strong>基于 WebView2 + Vue3 实现锂电产线监控大屏</strong>——实时显示 100+ 设备状态、温度/电压/电流曲线、SOH/SOC 仪表盘;支持<strong>多客户端订阅</strong>(车间大屏 + 中央控制室 + MES 看板),满足宁德 / 比亚迪系供应商"产线 + 远程运维"双场景需求。</p>
+</blockquote>
+<h3 id="sec-3-12">行业版本 2:半导体设备</h3>
+<blockquote>
+<p>在 DAQMonitor 项目中,<strong>基于 WebView2 + Vue3 实现 AOI 设备状态大屏</strong>——实时曲线 + 报警滚动 + 数字孪生(SVG 平面图),对接 S7.Net + OPC UA + TCP Socket,<strong>满足半导体设备厂"操作员工位 + 工程师诊断 + 经理汇报"三屏需求</strong>;24 小时历史曲线用 LTTB 降采样保证 60fps。</p>
+</blockquote>
+<h3 id="sec-3-13">行业版本 3:3C 非标自动化</h3>
+<blockquote>
+<p>在 DAQMonitor 项目中,<strong>基于 WebView2 + Vue3 实现测试产线数据看板</strong>——Modbus TCP + S7 PLC + MQTT 上云,Vue 大屏支持 4K 大屏 + 工位机两种分辨率;<strong>Web 化部署支持多客户端订阅</strong>,客户现场工程师用手机 / iPad 也能看产线状态,<strong>减少 60% 现场支持出差</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-6">第 5 节:面试会问什么(10 题)</h2>
+<blockquote>
+<p>每题 1 句答案 + 1 句"为什么这么答"。<strong>面试官挖坑的核心套路是看你"是不是真的做过"</strong>——背答案和真做过的人,在追问 2-3 层后差异巨大。</p>
+</blockquote>
+<h3 id="sec-3-14">Q1:为什么用 WebView2 不直接用 CefSharp?</h3>
+<p><strong>答</strong>:WebView2 是微软官方 2020+ 主推方案,基于 Edge / Chromium 内核,<strong>Windows 11 自带 Runtime</strong>,包体积小(2MB vs CefSharp 200MB+);CefSharp 是 .NET 包装层,依赖 C++ 二进制,部署困难且不再活跃维护。</p>
+<p><strong>为什么这么答</strong>:面试官想看你是否知道"工业软件部署痛点"——客户工厂机器通常装不上 CefSharp 的 200MB,而且 CefSharp 在 Win10 上要先装 VC++ Runtime,运维极痛。补一句"我用 WebView2 Evergreen Bootstrapper 自动装 Runtime"更显得真做过。</p>
+<h3 id="sec-3-15">Q2:WPF ↔ Vue 怎么双向通信?</h3>
+<p><strong>答</strong>:<strong>C# → JS</strong> 用 <code>webView.CoreWebView2.ExecuteScriptAsync(jsCode)</code>,直接执行前端全局函数;<strong>JS → C#</strong> 用 <code>window.chrome.webview.postMessage(jsonObj)</code>,C# 端订阅 <code>WebMessageReceived</code> 事件。我封装了一个 <code>WebViewBridge</code> 类屏蔽这两种调用差异。</p>
+<p><strong>为什么这么答</strong>:这是 WebView2 必考点。追问会问"为什么不用 shared object / AddHostObjectToScript?"——你可以回答 "AddHostObjectToScript 用 COM 互操作,序列化复杂对象坑多,postMessage + JSON 简单稳定,且符合单向数据流原则"。</p>
+<h3 id="sec-3-16">Q3:WebSocket 断线重连怎么做?</h3>
+<p><strong>答</strong>:Vue 端封装 <code>useWebSocket</code> composable,<strong>指数退避重连</strong>(1s → 2s → 4s → 8s → 30s 封顶);C# 端用 Kestrel 自带 KeepAlive Ping(5 秒一次),前端 10 秒收不到 ping 主动 close 触发重连。</p>
+<p><strong>为什么这么答</strong>:工业现场网络抖动常见(尤其 wifi / 4G),面试官想看你<strong>真的考虑过生产环境</strong>。补一句"重连后前端 store 不清空,曲线继续画避免断点"——这是真实场景才会遇到的问题。</p>
+<h3 id="sec-3-17">Q4:大屏性能,1 万点数据怎么不卡?</h3>
+<p><strong>答</strong>:三件套——<strong>①数据降采样</strong>(LTTB 算法,86 万点 → 2000 点误差 &lt; 1%),<strong>②Canvas 渲染</strong>(ECharts <code>renderer: 'canvas'</code> 比 SVG 快 5 倍,<strong>绝不</strong>用 DOM 渲染),<strong>③节流刷新</strong>(数据 200ms 一次 setOption,不是每条消息都刷)。</p>
+<p><strong>为什么这么答</strong>:你 5 年前端早就踩过这个坑——股票看盘 / 大屏监控都是这套。能讲清楚 LTTB 算法原理(最大三角形三次桶)直接秒杀 95% 候选人。</p>
+<h3 id="sec-3-18">Q5:为什么不直接全用 Web 而要嵌 WebView2?</h3>
+<p><strong>答</strong>:WPF 端有 OPC UA / Modbus / S7 / CAN / USB-HID 这些<strong>工业协议</strong>,Web 端不便处理(浏览器安全沙箱限制串口 / USB 访问);<strong>WebView2 模式 = 桌面端保留协议栈 + 复用前端 UI 能力</strong>,一次开发两套 UI(LiveCharts2 给操作员 / Vue 大屏给经理)。</p>
+<p><strong>为什么这么答</strong>:这道题考"为什么不全 B/S"。答出"工业协议不能跑浏览器"是真懂上位机,如果答"因为 Web 慢"就掉进了"前端思维"。</p>
+<h3 id="sec-3-19">Q6:后端为什么用 ASP.NET Core 不用 Node?</h3>
+<p><strong>答</strong>:<strong>跟 DAQMonitor.Core 共享代码</strong>——C# 端的 SensorPoint / AcquisitionPipeline / AlarmEngine 直接复用,Node 重写一遍要 2 周;而且 WebSocket 服务跟采集层同进程,避免 IPC 开销。</p>
+<p><strong>为什么这么答</strong>:这是考"全栈技术选型思维"。答"因为我会 C#"是被动的,答"共享代码 + 同进程避免 IPC"是主动的。</p>
+<h3 id="sec-3-20">Q7:Vue 大屏和 WPF 自带的 LiveCharts2 怎么取舍?</h3>
+<p><strong>答</strong>:LiveCharts2 是 fallback / 离线兜底,<strong>操作员日常工位机用 LiveCharts</strong>(启动快、纯桌面、无网络依赖);Vue 大屏是<strong>汇报 / 远程 / 多客户端场景</strong>(经理办公室大屏、客户演示、MES 看板对接)。<strong>两套并存</strong>比单一方案稳。</p>
+<p><strong>为什么这么答</strong>:这是考"技术选型权衡"。如果你只答"Vue 大屏更好"就显得没考虑过成本,答"两套并存按场景分"是真做过架构。</p>
+<h3 id="sec-3-21">Q8:WebSocket 多客户端订阅,C# 端怎么并发广播?</h3>
+<p><strong>答</strong>:用 <code>ConcurrentDictionary&lt;Guid, WebSocket&gt;</code> 维护客户端列表,广播时 <code>Task.WhenAll(clients.Select(c =&gt; SafeSend(c, data)))</code>,<code>SafeSend</code> 内部 try-catch 防止单连接失败影响其他。</p>
+<p><strong>为什么这么答</strong>:追问会问"如果 100 个客户端同时订阅,CPU 占用会不会爆?"——你答"广播前先用 Channel 缓冲 + 单线程出队,广播任务用 WhenAll 并发但限制并发度到 16"就完美了。</p>
+<h3 id="sec-3-22">Q9:WebView2 Runtime 没装怎么办?</h3>
+<p><strong>答</strong>:打包时用 <strong>Evergreen Bootstrapper</strong>(微软提供的 <code>MicrosoftEdgeWebview2Setup.exe</code>),首次启动 DAQMonitor 检测注册表 <code>HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}</code>,没装就弹窗引导安装(约 100MB,一次安装后续所有 WebView2 应用共享)。</p>
+<p><strong>为什么这么答</strong>:真实部署过 WebView2 的人必踩这个坑。补一句"客户的 Win7 / Server 2012 不支持 WebView2,这种场景才用 CefSharp fallback"是加分。</p>
+<h3 id="sec-3-23">Q10:如果让你做数字孪生 3D,你怎么选型?</h3>
+<p><strong>答</strong>:轻量用 <strong>Three.js + WebGL</strong>(开源 / 免费 / 文档丰富);重量级(unity 级真实感)用 <strong>Unity WebGL 导出</strong>(但包体积 30MB+,首屏慢);<strong>绝不</strong>用纯 CSS 3D(性能差);<strong>优先 2D SVG 数字孪生</strong>(性价比最高,投新能源 / 智慧工厂岗 80% 场景够用)。</p>
+<p><strong>为什么这么答</strong>:这是给"投数字孪生岗"留的钩子。前端 5 年你 ECharts / D3 / Three.js 应该都碰过,这题是你<strong>碾压纯 WPF 候选人</strong>的题——他们连 SVG 和 Canvas 区别都讲不清。</p>
+<hr />
+<h2 id="sec-2-7">第 6 节:踩坑警告(7 个真实坑)</h2>
+<blockquote>
+<p>这 7 个坑是我吃过亏的,<strong>Day 2-4 期间遇到时回来查这一节</strong>。</p>
+</blockquote>
+<h3 id="sec-3-24">坑 1:WebView2 Runtime 未装 → 程序闪退</h3>
+<p><strong>症状</strong>:<code>EnsureCoreWebView2Async()</code> 抛 <code>WebView2RuntimeNotFoundException</code>,WPF 直接闪退,无错误提示。</p>
+<p><strong>原因</strong>:Win10 / Server 2019 默认不装 WebView2 Runtime,只有 Win11 自带。</p>
+<p><strong>解决</strong>:</p>
+<ol>
+<li>部署时打包 <a href="https://developer.microsoft.com/microsoft-edge/webview2/">Microsoft Edge WebView2 Evergreen Bootstrapper</a>(10MB,首次运行自动下载 Runtime ~100MB);</li>
+<li>启动代码加 try-catch,捕获异常后引导用户安装;</li>
+<li><strong>绝不要</strong>直接打包 Standalone Offline Installer(150MB,违反 Evergreen 原则,后续无法自动升级)。</li>
+</ol>
+<h3 id="sec-3-25">坑 2:Core 改 Sdk.Web 后 UI 项目编译报错</h3>
+<p><strong>症状</strong>:<code>Sdk="Microsoft.NET.Sdk.Web"</code> 让 UI(WPF)项目混淆——Microsoft.NET.Sdk.Web 默认生成 exe,跟 WPF 的 UseWPF 冲突。</p>
+<p><strong>解决</strong>:<strong>生产推荐拆项目</strong>——新建 <code>DaqMonitor.Web</code> 项目(<code>Sdk.Web</code>),引用 <code>DaqMonitor.Core</code>,放 WebBroadcastService;UI 项目保持原 SDK 不动,通过 DI 容器调 Web 项目的服务。本文为简化讲解把服务塞 Core,实际工程必须分层。</p>
+<h3 id="sec-3-26">坑 3:Vue 路由 hash vs history</h3>
+<p><strong>症状</strong>:WebView2 加载 Vue 大屏后,刷新或路由跳转白屏。</p>
+<p><strong>原因</strong>:<code>createWebHistory</code> 模式依赖服务器 SPA fallback,WebView2 加载本地 <code>file://</code> 或虚拟主机映射时无 fallback 配置。</p>
+<p><strong>解决</strong>:<strong>WebView2 内嵌时强制用 <code>createWebHashHistory</code></strong>——hash 模式不带后端 fallback,纯前端路由更稳。<code>vite.config.ts</code> 加 <code>base: './'</code>(相对路径),打包后资源正确加载。</p>
+<h3 id="sec-3-27">坑 4:WebSocket 心跳 / 重连——必做</h3>
+<p><strong>症状</strong>:工厂内 wifi 不稳,大屏 30 秒后停止刷新,但浏览器没显示断开。</p>
+<p><strong>原因</strong>:WebSocket TCP 半开连接(网线被拔 / 路由器重启),前端 <code>onclose</code> 不会立刻触发。</p>
+<p><strong>解决</strong>:</p>
+<ul>
+<li>C# 端 <code>WebSocketOptions.KeepAliveInterval = TimeSpan.FromSeconds(5)</code>(Kestrel 自动 ping);</li>
+<li>前端 5 秒没收到任何消息主动 <code>ws.close()</code> 触发 onclose → 重连;</li>
+<li><strong>绝不要</strong>让 WebSocket 静默超过 10 秒。</li>
+</ul>
+<h3 id="sec-3-28">坑 5:跨域 / CSP / 本地资源加载</h3>
+<p><strong>症状</strong>:Vue 大屏浏览器开 <code>http://localhost:5173</code> 能跑,WebView2 内嵌报 CORS / CSP / Mixed Content 错误。</p>
+<p><strong>原因</strong>:Vue dev server 默认不允许多 Origin,Kestrel 默认 CORS 关闭。</p>
+<p><strong>解决</strong>:</p>
+<ul>
+<li>Kestrel 加 CORS 允许任意源(本地内嵌场景,安全性可控);</li>
+<li>生产用 <code>SetVirtualHostToFolderMapping</code> 把 Vue 的 <code>dist/</code> 映射到 <code>https://dashboard.local/</code>,<strong>避免 file:// 协议</strong>(fetch / WebSocket 在 file:// 下被禁);</li>
+<li>Vue 端 CSP meta 标签放宽 <code>connect-src 'self' ws: wss: http://localhost:*</code>。</li>
+</ul>
+<h3 id="sec-3-29">坑 6:ECharts 内存泄漏</h3>
+<p><strong>症状</strong>:大屏跑 2 小时,Chrome / WebView2 占用 2GB,曲线越来越卡。</p>
+<p><strong>原因</strong>:<code>setOption</code> 不清理旧数据,series.data 数组无限增长;<code>echarts.init</code> 多次调用未 dispose。</p>
+<p><strong>解决</strong>:</p>
+<ul>
+<li>Pinia store 用环形缓冲(本文 <code>MAX_POINTS = 600</code>),超出 <code>arr.shift()</code>;</li>
+<li>组件 <code>onUnmounted</code> 必须 <code>chart.dispose()</code>;</li>
+<li><strong>绝不要</strong>用 <code>series.data.push(...)</code> 后直接 setOption,<strong>要传新数组</strong>才能让 ECharts 内部 diff 释放旧引用。</li>
+</ul>
+<h3 id="sec-3-30">坑 7:打包后 Vue 路径错乱</h3>
+<p><strong>症状</strong>:<code>pnpm build</code> 产出的 dist 拷到 DAQMonitor.UI 的输出目录,WebView2 加载白屏,F12 看到所有资源 404。</p>
+<p><strong>原因</strong>:Vite 默认 <code>base: '/'</code>,资源路径是 <code>/assets/xxx.js</code>,WebView2 加载 <code>https://dashboard.local/index.html</code> 找不到 <code>/assets/</code>。</p>
+<p><strong>解决</strong>:<code>vite.config.ts</code> 改 <code>base: './'</code>,资源路径变 <code>./assets/xxx.js</code>,WebView2 加载本地映射后正确。</p>
+<hr />
+<h2 id="sec-2-8">收尾:7 天冲刺 vs 30 天主线的取舍</h2>
+<p><strong>这份 7 天方案的前提</strong>:DAQMonitor 主项目已经稳(7 设备 + 56 测试 + MQTT 双向),你<strong>不是从零开始</strong>,而是给一个已经能跑的项目<strong>加一层差异化亮点</strong>。</p>
+<p><strong>节奏建议</strong>:</p>
+<ul>
+<li><strong>第 1 周</strong>:Day 1-5 主攻 WebView2 + Vue 大屏(本文重点),Day 6-7 录视频 + 简历话术;</li>
+<li><strong>第 2-4 周</strong>:回到主项目的 P0 缺口补漏(机器视觉入门 + 运动控制概念 + 4 份文档实操),投简历 + 面试。</li>
+</ul>
+<p><strong>绝对不要</strong>把 7 天都花在前端大屏而忽略协议层——面试官真正为 13-15K 买单的是<strong>协议栈 + 工程化</strong>,大屏是<strong>差异化加分项</strong>,不是主菜。</p>
+<p><strong>最后一句</strong>:你能写出 Vue3 大屏 + WebView2 嵌入,<strong>95% 的上位机候选人做不到这件事</strong>。这就是你 5 年前端经验的真实价值,不是"用不上的包袱",是"碾压他们的稀缺武器"。</p>
+<hr />
+<h2 id="sec-2-9">附:关键参考来源</h2>
+<ul>
+<li><a href="https://learn.microsoft.com/microsoft-edge/webview2/gettingstarted/wpf">Microsoft Learn — WebView2 官方文档(Getting Started with WebView2 in WPF)</a></li>
+<li><a href="https://learn.microsoft.com/aspnet/core/fundamentals/websockets">Microsoft Learn — ASP.NET Core WebSocket 官方文档</a></li>
+<li><a href="https://cn.vuejs.org/">Vue 3 官方文档(中文)</a></li>
+<li><a href="https://vitejs.dev/">Vite 官方文档</a></li>
+<li><a href="https://echarts.apache.org/handbook/zh/get-started/">ECharts 官方文档</a></li>
+<li><a href="https://pinia.vuejs.org/zh/">Pinia 官方文档</a></li>
+<li><a href="https://threejs.org/docs/">Three.js 官方文档(数字孪生可选)</a></li>
+<li><a href="https://skemman.is/handle/1946/15343">LTTB 降采样算法论文(工业大屏标配)</a></li>
+<li><a href="https://learn.microsoft.com/aspnet/core/fundamentals/servers/kestrel">ASP.NET Core Kestrel 嵌入式宿主用法</a></li>
+<li><a href="https://developer.microsoft.com/microsoft-edge/webview2/">WebView2 Evergreen Bootstrapper 下载</a></li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:这份方案不是"前端转上位机的退路",而是"用前端能力把上位机做到 13-15K 上限"的差异化冲刺。<strong>7 天后,你的简历比 95% 候选人多一句话</strong>——"全栈:WPF + Vue3 大屏双栈"。这句话值 1-2K 月薪。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="spaced-repetition.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🔁 记忆与复习机制 · 间隔重复版</div></a>
+  <a class="next" href="getting-started.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">实操入门 · 从零搭建企业级工程</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

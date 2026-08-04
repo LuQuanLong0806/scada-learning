@@ -67,6 +67,12 @@
 <strong>前端类比总纲</strong>：前端有 Jsben.ch / Vitest bench 比两段代码谁快、Chrome DevTools Memory 抓堆快照、Performance 看火焰图、Service Worker/PWA 做离线降级——本模块把这套"性能工程 + 长跑韧性"在 C# 上位机里完整复刻。<strong>电脑永远不眠、产线永远不停</strong>，你的程序也得稳得起。
 <strong>给简历加的能力</strong>：能在简历写"用 BenchmarkDotNet 验证 1000Hz 采集单帧 &lt; 1ms；用 <code>dotnet counters</code> 实时监控 GC/线程/业务 EventCounter；用 dotMemory 抓快照排查并修复事件订阅泄漏；长跑策略 Channel 限流 + 重试熔断 + 心跳自愈"——这四句一摆，15K 岗位稳过简历关。
 <strong>前置</strong>：M0（并发/分层）、M9（统一管道 + Retry + 心跳）。本模块是给前 14 个模块"做体检 + 上保险"。</p>
+<p>⏱️ <strong>阅读路径</strong>(按时间预算选入口)
+- <strong>3 分钟</strong>:看「模块目标」— 知道这是 15K 加分项(7×24 不崩)
+- <strong>30 分钟</strong>:加看 Day 1 BenchmarkDotNet + dotnet counters 监控 GC/线程
+- <strong>3 小时</strong>:全文精读 + Day 2 <strong>dotMemory 抓内存泄漏(事件订阅泄漏)</strong> + Day 3 Channel 限流 + Day 4 长跑策略
+- 🎯 <strong>面试高频</strong>:<strong>BenchmarkDotNet 报告怎么读</strong> / <strong>dotnet counters vs dotnet dump</strong> / <strong>4 种内存泄漏(event/Cached delegate/Static/Timer)</strong> / Channel 限流背压 DropOldest
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B25 PerformanceCounter / B26 IDisposable 完整模式</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>让上位机 <strong>7×24 稳跑</strong>：① 用 BenchmarkDotNet 量化关键路径性能（CRC / 解析 / Span vs byte[]）；② 用 <code>dotnet counters</code> 实时看 GC/堆/线程 + 自定义业务 EventCounter；③ 用 dotMemory 抓快照找"只增不减"的内存泄漏（4 种典型）；④ 长跑稳定性策略——限流 / 降级 / 熔断 / 心跳 / 自愈。<strong>做完这套，你的程序才算"工业级"</strong>。</p>

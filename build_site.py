@@ -121,6 +121,12 @@ PAGES = [
     dict(slug="interview30", kind="support", file="面试问答_逐字稿_30题.md",
          title="🎤 面试问答 · 逐字稿 30 题", sub="10 大主题 × 3 题",
          what="C#/并发/Modbus/PLC/EF/Prism/TCP/报警/性能/调试 各 3 题，标准答+逐字稿", src="🟦 面试"),
+    dict(slug="spaced-repetition", kind="support", file="记忆与复习机制_间隔重复版.md",
+         title="🔁 记忆与复习机制 · 间隔重复版", sub="1d/3d/7d/15d 表 + 每周自测 120 题",
+         what="艾宾浩斯曲线应用 + 30 天排程 + 每周闭卷自测 + Anki 卡片建议 + 错题本规范", src="🟦 复习机制"),
+    dict(slug="webview2-vue-dashboard", kind="support", file="前端×上位机差异化冲刺_WebView2与工业大屏.md",
+         title="⚡ 前端 × 上位机差异化冲刺", sub="WebView2 + Vue3 大屏 5-7 天方案",
+         what="5 结合方向对比 + Day 26-27 落地代码 + 简历话术 + 面试 10 题 + 踩坑警告", src="🟦 差异化王牌"),
     # ---- 工具箱（support）----
     dict(slug="getting-started", kind="support", file="实操入门_从零搭建企业级工程.md",
          title="实操入门 · 从零搭建企业级工程", sub="从最简单的做起",
