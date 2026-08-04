@@ -13,6 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\DaqMonitor.Core\DaqMonitor.Core.csproj" />
     <PackageReference Include="ClosedXML" Version="0.102.3" />
+    <!-- LiveCharts2 实时曲线（M5 落地）：Core 2.x 跨平台，WPF 用 SkiaSharpView -->
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc4.5" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔍 整体串联审计 v2 · 由粗到细 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="audit-v2">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、阶段级审计(Week 1-4)</a><ul>
+<li class="l3"><a href="#sec-3-1">✅ 通过项</a></li>
+<li class="l3"><a href="#sec-3-2">⚠️ 需改项</a></li>
+<li class="l3"><a href="#sec-3-3">❌ 缺漏项</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、模块级审计(M0-M19 + 支撑材料)</a><ul>
+<li class="l3"><a href="#sec-3-4">二-1 模块覆盖矩阵</a></li>
+<li class="l3"><a href="#sec-3-5">二-2 模块间串联图(文字版)</a></li>
+<li class="l3"><a href="#sec-3-6">二-3 孤岛 / 重复 / 断点清单</a></li>
+<li class="l3"><a href="#sec-3-7">二-4 支撑材料与原体系的融洽度</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、知识点级审计(每个模块抽 3 个技术点)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、与用户最新 2 条诉求的对齐检查</a><ul>
+<li class="l3"><a href="#sec-3-8">4-1 "整体检查阶段/模块/知识点 由粗到细"</a></li>
+<li class="l3"><a href="#sec-3-9">4-2 "代码练习融入日常学习"</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、Top 10 必修问题(按优先级)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、建议的下一步执行顺序</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">整体串联审计 v2 · 由粗到细</h1>
+<blockquote>
+<p>审计日期:2026/08/04
+审计范围:阶段(Week 1-4) → 模块(M0-M19 + 支撑材料) → 知识点(抽样)
+审计目标:① 4 周是否覆盖 JD 必考点 ② 模块是否串联无孤岛 ③ 知识点是否正确完整
+审计原则:诚实指出问题,具体到文件/行,只读不写(除本报告)</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、阶段级审计(Week 1-4)</h2>
+<h3 id="sec-3-1">✅ 通过项</h3>
+<ol>
+<li><strong>4 周主题清晰</strong>(<code>30天作战路线_转行冲刺版.md:24/86/137/194</code>)
+   - W1 主干打底(串口/Modbus/PLC)、W2 落库+可视化+Prism、W3 TCP+上云+报表、W4 文档+简历+面试 — 节奏合理,前端背景可执行。</li>
+<li><strong>检查点全部可量化</strong>(<code>:77-83, :129-133, :186-190</code>)
+   - W1"5 分钟手算 CRC + 讲 IDevice"、W3"5 种设备 + MQTT 双向 + Excel 导出" — 都是客观可判定项。</li>
+<li><strong>应急预案三档可执行</strong>(<code>:230-244</code>)
+   - 滞后 1 周 → 砍 M14/M16/M18;滞后 2 周 → 保 W1+W2+W4;完全来不及 → 投助理岗 — 给了真实退路。</li>
+<li><strong>边面试边学策略</strong>(<code>:248-258</code>)
+   - W2 末投 10-13K 练手、W3 末投 13-15K 主力 — 这条策略比"30 天学完再投"务实 10 倍。</li>
+</ol>
+<h3 id="sec-3-2">⚠️ 需改项</h3>
+<ol>
+<li><strong>W4 引用 2 个不存在的文件</strong>(<code>:211, :214</code>)
+   - <code>面试问答_逐字稿_30题.md</code>(Glob 全局搜索:<strong>不存在</strong>)
+   - <code>简历模板_上位机_13-15K.md</code>(Glob 全局搜索:<strong>不存在</strong>)
+   - 原文甚至直白写"我后面会写"(<code>:211</code>),但用户原计划确实要写,这是<strong>最大的空挂</strong>。</li>
+<li><strong>W4 没有"代码肌肉训练手册的毕业测试"对齐</strong>(<code>30天作战路线_转行冲刺版.md</code> 全文未出现"代码肌肉""肌肉训练"字样)
+   - 代码肌肉手册 Part D 自己定义了"Day 30 毕业测试:30 分钟白板写完一个完整 ModbusDevice + 单测"(<code>代码肌肉训练手册_30天刷题版.md:734</code>),但作战路线 Day 30 安排的是"真面试 + 边面边补" — <strong>两份计划 Day 30 撞车</strong>。</li>
+<li><strong>W3 项目任务超载</strong>(<code>:141-185</code>)
+   - Day 15-21 共 7 天要写 TcpDevice + OpcUaClient + MqttPublisher 双向 + ClosedXML Excel + Inno Setup 安装包 + MesApiClient + 配方管理 — 按每天 3-4h 算约 25h,<strong>这是 14h 的量塞进 7 天</strong>。</li>
+<li><strong>每日打卡粒度不一致</strong>
+   - W1 每天都有"打卡 ✅ ✅ ✅"(<code>:39, :53, :65</code>),W2/W3 部分日有部分没有(W2 Day 10/11 有、Day 12-14 没单日打卡;W3 Day 18 有、Day 15-17/19/20 没单日打卡)。</li>
+</ol>
+<h3 id="sec-3-3">❌ 缺漏项</h3>
+<ol>
+<li><strong>W1-W4 全程没有"M19 问题排查"的学习日</strong>
+   - M19 在 <code>M19_问题排查与调试_深度版.md:1-7</code> 自我定位为"🔴 必学,13→15K 硬要求,面试必问'遇到过什么难 bug,怎么排查'",但作战路线全文搜索"M19" — <strong>零结果</strong>。这是最大的阶段级缺漏。</li>
+<li><strong>W4 没有"M15 工程协作与联调"的学习日</strong>
+   - M15 讲 Git/敏捷/调试工具/联调,是 JD 常见要求,作战路线完全没排进 30 天,且 M15 在全项目只被 <code>build_site.py</code> 引用 — <strong>模块孤岛</strong>(详见二-3)。</li>
+<li><strong>没有"M14 WinForm / M16 CAN+USB-HID"的学习日</strong>
+   - M14/M16 只出现在应急预案"砍"里(<code>:233</code>)。M14 是"老项目维护"(JD 点名),M16 是 CAN 总线 + USB-HID(汽车/半导体行业 JD 常见),完全没学习日意味着<strong>主力路线默认放弃</strong>这两块。</li>
+<li><strong>没有"M9.5 性能压测与长跑稳定性"的学习日</strong>
+   - M9.5 是"7×24 稳定性",13-15K 必问。只被 M19 引用一次(<code>M19:539</code>),作战路线未排。</li>
+</ol>
+<hr />
+<h2 id="sec-2-2">二、模块级审计(M0-M19 + 支撑材料)</h2>
+<h3 id="sec-3-4">二-1 模块覆盖矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>JD 必考</th>
+<th>对应模块</th>
+<th>讲义</th>
+<th>项目代码</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>串口通信</td>
+<td>M1</td>
+<td>✅ <code>M1_串口通信_深度版.md</code></td>
+<td>✅ <code>SerialDevice.cs</code> + <code>ISerialChannel.cs</code></td>
+</tr>
+<tr>
+<td>Modbus RTU/TCP</td>
+<td>M2</td>
+<td>✅ <code>M2_Modbus_深度版.md</code></td>
+<td>✅ <code>ModbusDevice.cs</code> + <code>ModbusFrameParser.cs</code></td>
+</tr>
+<tr>
+<td>PLC(西门子 S7)</td>
+<td>M3</td>
+<td>✅ <code>M3_PLC_深度版.md</code></td>
+<td>✅ <code>PlcDevice.cs</code></td>
+</tr>
+<tr>
+<td>数据持久化(EF Core + SQLite)</td>
+<td>M4</td>
+<td>✅ <code>M4_数据持久化_深度版.md</code></td>
+<td>✅ <code>AppDbContext.cs</code> + <code>PointStore.cs</code></td>
+</tr>
+<tr>
+<td>实时可视化</td>
+<td>M5</td>
+<td>✅ <code>M5_实时可视化_深度版.md</code></td>
+<td>⚠️ 仅 <code>GaugeControl.cs</code>,无 LiveCharts2 曲线代码</td>
+</tr>
+<tr>
+<td>报警引擎 + 日志</td>
+<td>M6</td>
+<td>✅ <code>M6_报警引擎日志_深度版.md</code></td>
+<td>✅ <code>AlarmEngine.cs</code> + <code>AlarmRule.cs</code>(回滞已实现)</td>
+</tr>
+<tr>
+<td>OPC UA / MQTT 上云</td>
+<td>M7</td>
+<td>✅ <code>M7_OPCUA_MQTT_深度版.md</code>(修正版)</td>
+<td>❌ 无 <code>Cloud/</code> 目录,<code>OpcUaClient.cs</code> / <code>MqttPublisher.cs</code> 不存在</td>
+</tr>
+<tr>
+<td>工程化收尾</td>
+<td>M8</td>
+<td>✅ <code>M8_工程化收尾_深度版.md</code></td>
+<td>⚠️ 文档未生成</td>
+</tr>
+<tr>
+<td>Prism 企业级 MVVM</td>
+<td>M8.5</td>
+<td>✅ <code>M8.5_Prism企业级MVVM_深度版.md</code></td>
+<td>⚠️ Bootstrapper 未改 PrismBootstrapper,无 Region 拆分</td>
+</tr>
+<tr>
+<td>工程素养(测试/DI/容错)</td>
+<td>M9</td>
+<td>✅ <code>M9_工程素养_测试DI容错_深度版.md</code></td>
+<td>✅ <code>Bootstrapper.cs</code> + 28 个测试全绿</td>
+</tr>
+<tr>
+<td>性能压测/长跑</td>
+<td>M9.5</td>
+<td>✅ <code>M9.5_性能压测与长跑稳定性_深度版.md</code></td>
+<td>❌ 无压测项目</td>
+</tr>
+<tr>
+<td>报表</td>
+<td>M10</td>
+<td>✅ <code>M10_报表_深度版.md</code></td>
+<td>✅ <code>ReportService.cs</code> + <code>ReportExporter.cs</code></td>
+</tr>
+<tr>
+<td>TCP Socket</td>
+<td>M11</td>
+<td>✅ <code>M11_TCP_Socket_深度版.md</code></td>
+<td>❌ <code>TcpDevice.cs</code> 不存在(作战路线 Day 15-16 待新建)</td>
+</tr>
+<tr>
+<td>工程量转换/多数据库</td>
+<td>M12</td>
+<td>✅ <code>M12_工程量转换与多数据库_深度版.md</code></td>
+<td>❌ 无 <code>EngineeringConverter.cs</code>,多数据库切换未实现</td>
+</tr>
+<tr>
+<td>多品牌 PLC/HslCommunication</td>
+<td>M13</td>
+<td>✅ <code>M13_多品牌PLC与国产库_深度版.md</code></td>
+<td>❌ 无三菱/欧姆龙设备类</td>
+</tr>
+<tr>
+<td>WinForm + 自绘控件</td>
+<td>M14</td>
+<td>✅ <code>M14_WinForm与自定义控件_深度版.md</code></td>
+<td>❌ 无 WinForm 工程</td>
+</tr>
+<tr>
+<td>工程协作/联调</td>
+<td>M15</td>
+<td>✅ <code>M15_工程协作与联调_深度版.md</code></td>
+<td>— (理论模块)</td>
+</tr>
+<tr>
+<td>CAN / USB-HID</td>
+<td>M16</td>
+<td>✅ <code>M16_更多工业总线_CAN_USB_深度版.md</code></td>
+<td>✅ <code>CanDevice.cs</code> + <code>UsbHidDevice.cs</code> + <code>SimulatedCanChannel.cs</code> + <code>SimulatedHidChannel.cs</code>(超出讲义预期)</td>
+</tr>
+<tr>
+<td>工业安全/MES 对接</td>
+<td>M17</td>
+<td>✅ <code>M17_工业安全与MES对接_深度版.md</code></td>
+<td>❌ 无 <code>MesApiClient.cs</code></td>
+</tr>
+<tr>
+<td>配方管理</td>
+<td>M18</td>
+<td>✅ <code>M18_配方管理_深度版.md</code></td>
+<td>❌ 无 <code>RecipeManager.cs</code></td>
+</tr>
+<tr>
+<td>问题排查/调试</td>
+<td>M19</td>
+<td>✅ <code>M19_问题排查与调试_深度版.md</code>(30 个段落标记,质量极高)</td>
+<td>— (理论+工具模块)</td>
+</tr>
+<tr>
+<td>C# 陷阱专项</td>
+<td>支撑</td>
+<td>✅ <code>C#_陷阱_前端转上位机必看_深度版.md</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>代码肌肉训练</td>
+<td>支撑</td>
+<td>✅ <code>代码肌肉训练手册_30天刷题版.md</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>30 天作战路线</td>
+<td>支撑</td>
+<td>✅ <code>30天作战路线_转行冲刺版.md</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>简历模板</td>
+<td>支撑</td>
+<td>❌ <strong>缺失</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>面试逐字稿 30 题</td>
+<td>支撑</td>
+<td>❌ <strong>缺失</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>讲义完整度:22/22 模块齐全</strong>(M0/M1-M19 + M8.5/M9.5)。
+<strong>项目代码完整度:核心主干齐全(M0/M1/M2/M3/M4/M6/M9/M10/M16 + 部分硬件替代)</strong>,但 W3 任务所列的 <code>TcpDevice / OpcUaClient / MqttPublisher / MesApiClient / RecipeManager / EngineeringConverter</code> <strong>6 个文件全部未落地</strong>。</p>
+<h3 id="sec-3-5">二-2 模块间串联图(文字版)</h3>
+<pre><code>M0(并发/IDevice/Channel)
+ ├─→ M1(串口字节流)─→ M2(Modbus 帧/CRC)─→ M3(PLC S7)
+ ├─→ M9(DI/容错/测试)─→ M8.5(Prism)─→ M8(打包/收尾)
+ ├─→ M4(EF Core 落库)─→ M10(报表聚合)─→ M5(可视化)
+ ├─→ M6(报警回滞)─→ M9.5(长跑性能)─→ M19(调试)
+ └─→ M7(OPC UA/MQTT 修正版)─→ M17(MES/HttpClient)
+                                              ↓
+                            M11(TCP 粘包)─→ M12(工程量+多数据库)
+                                              ↓
+                            M13(多品牌 PLC) / M14(WinForm) / M15(协作) / M16(CAN/USB) / M18(配方)
+
+C#_陷阱讲义 ── 横切 ──→ 所有模块(struct/字节序/async void/IDisposable/event)
+代码肌肉手册 ── 横切 ──→ 所有模块(白板手写,Part A/B/C/D)
+30 天作战路线 ── 编排 ──→ 主干模块 + 项目任务 + 简历面试
+</code></pre>
+<h3 id="sec-3-6">二-3 孤岛 / 重复 / 断点清单</h3>
+<p><strong>孤岛(讲义存在但被引用极少)</strong></p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>全项目被引用次数</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M15 工程协作</td>
+<td>仅 <code>build_site.py:81</code> 自动注册 + <code>岗位驱动_知识点全景图谱与缺口审计.md:136</code> 自指</td>
+<td><strong>完全孤岛</strong>,作战路线未排</td>
+</tr>
+<tr>
+<td>M19 问题排查</td>
+<td>仅 <code>代码肌肉训练手册:768</code> Part C 引用一次</td>
+<td><strong>准孤岛</strong>,但讲义自我定位为"必学" — 严重错配</td>
+</tr>
+<tr>
+<td>M9.5 性能压测</td>
+<td>仅 <code>M19:539</code> 引用一次</td>
+<td><strong>准孤岛</strong>,长跑稳定性是 13-15K 硬要求</td>
+</tr>
+<tr>
+<td>M18 配方</td>
+<td>作战路线 Day 20-21 提及一次,无交叉引用</td>
+<td>半孤岛</td>
+</tr>
+<tr>
+<td>M14 WinForm</td>
+<td>只在应急预案"砍"里出现</td>
+<td>半孤岛(用户若投汽车/半导体岗会缺)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>重复</strong></p>
+<table>
+<thead>
+<tr>
+<th>重复点</th>
+<th>位置</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modbus CRC16 算法</td>
+<td><code>M2_Modbus_深度版.md</code>(Day 1)+ <code>代码肌肉训练手册 B1</code> + <code>C# 陷阱讲义 陷阱 3</code></td>
+<td><strong>良性重复</strong>(面试高频,三次出现各有侧重:M2 讲协议、肌肉手册练白板、陷阱讲义讲字节序)。<strong>无需合并</strong>。</td>
+</tr>
+<tr>
+<td>async void 反模式</td>
+<td><code>M7_OPCUA_MQTT_深度版.md:45</code> + <code>C# 陷阱讲义 陷阱 4</code> + <code>代码肌肉训练手册 C1</code></td>
+<td><strong>良性重复</strong>(M7 是修正版,从错误到正确完整展示)。</td>
+</tr>
+<tr>
+<td>字节序大小端</td>
+<td><code>M2:Day3</code> + <code>C# 陷阱讲义 陷阱 3</code> + <code>代码肌肉训练手册 C10</code></td>
+<td><strong>良性重复</strong>。</td>
+</tr>
+<tr>
+<td>IDFevice 抽象</td>
+<td><code>M0</code> + <code>M3</code>(<code>:180-203</code> DeviceHost 退订模式)+ <code>代码肌肉训练手册 B3</code></td>
+<td><strong>良性重复</strong>(M3 那段是退订模式加分项)。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>断点(讲义说"项目里多一个文件"但代码不存在)</strong></p>
+<table>
+<thead>
+<tr>
+<th>断点</th>
+<th>讲义/作战路线承诺</th>
+<th>项目实际</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>❌ TcpDevice</td>
+<td><code>30天作战路线:146</code> Day 15-16 新建</td>
+<td><code>Devices/TcpDevice.cs</code> <strong>不存在</strong></td>
+</tr>
+<tr>
+<td>❌ OpcUaClient</td>
+<td><code>30天作战路线:164</code> Day 18 新建</td>
+<td><code>Cloud/OpcUaClient.cs</code> <strong>不存在</strong>,连 Cloud 目录都没建</td>
+</tr>
+<tr>
+<td>❌ MqttPublisher</td>
+<td><code>30天作战路线:165</code> Day 18 新建</td>
+<td><code>Cloud/MqttPublisher.cs</code> <strong>不存在</strong></td>
+</tr>
+<tr>
+<td>❌ MesApiClient</td>
+<td><code>30天作战路线:183</code> Day 20-21 新建</td>
+<td><code>Mes/MesApiClient.cs</code> <strong>不存在</strong></td>
+</tr>
+<tr>
+<td>❌ RecipeManager</td>
+<td>M18 讲义隐含</td>
+<td><code>Recipe/RecipeManager.cs</code> <strong>不存在</strong></td>
+</tr>
+<tr>
+<td>❌ EngineeringConverter</td>
+<td><code>30天作战路线:155-156</code> Day 17</td>
+<td><code>EngineeringConverter.cs</code> <strong>不存在</strong></td>
+</tr>
+<tr>
+<td>⚠️ LiveCharts2 曲线</td>
+<td><code>M5:全文</code></td>
+<td>项目里只有 <code>GaugeControl.cs</code>,无实时曲线 View</td>
+</tr>
+<tr>
+<td>⚠️ Prism 重构</td>
+<td><code>M8.5:全文</code></td>
+<td><code>Bootstrapper.cs</code> 仍是手写 DI,未升 PrismBootstrapper</td>
+</tr>
+</tbody>
+</table>
+<p><strong>评价</strong>:讲义与代码的对齐存在系统性滞后 — 讲义是"目标态",代码是"现状"。这本身没错(项目要逐步长出),但作战路线 Day 15-21 把 6 个未实现的文件塞进 7 天,<strong>现实风险高</strong>。</p>
+<h3 id="sec-3-7">二-4 支撑材料与原体系的融洽度</h3>
+<table>
+<thead>
+<tr>
+<th>支撑材料</th>
+<th>是否融洽</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>30天作战路线_转行冲刺版.md</code></td>
+<td>✅ 没问题</td>
+<td>是编排主轴,讲义和项目都被它指向</td>
+</tr>
+<tr>
+<td><code>C#_陷阱_前端转上位机必看_深度版.md</code></td>
+<td>✅ 高度融洽</td>
+<td>被 M0(<code>:31</code>)、作战路线(<code>:14, :31</code>)、代码肌肉手册(<code>:270, :491, :595, :766, :768</code>)反复引用,<strong>横切所有模块</strong></td>
+</tr>
+<tr>
+<td><code>代码肌肉训练手册_30天刷题版.md</code></td>
+<td>⚠️ 融洽但有结构问题</td>
+<td>(1) 独立成册,<strong>没有融入每日讲义</strong>(用户最新要求"要融入日常") — 现状是 Part D 自己排了 30 天,跟作战路线并行跑;<br>(2) B6-B30 是"简列题目,留作练习"(<code>:398-425</code>),<strong>没给完整答案</strong>,与 B1-B5 的标准格式不符;<br>(3) Part A11-A20 同样"略,自行翻译"(<code>:179-189</code>)—<strong>前后质量断层</strong>。</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">三、知识点级审计(每个模块抽 3 个技术点)</h2>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>抽查点</th>
+<th>评价</th>
+<th>证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M2 Modbus</strong></td>
+<td>① Modbus RTU 帧格式(从站/功能码/数据/CRC)</td>
+<td>✅ 正确</td>
+<td><code>M2:34-46</code>,功能码 0x01-0x10 表完整</td>
+</tr>
+<tr>
+<td></td>
+<td>② CRC16 算法(0xFFFF 初值/0xA001 多项式/低字节在前)</td>
+<td>✅ 正确,与代码肌肉手册 B1 一致</td>
+<td><code>代码肌肉训练手册:204-224</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ 浮点 ABCD/CDAB 字交换</td>
+<td>⚠️ M2 引用此概念(<code>:45</code>)但未在抽样的前 80 行展开</td>
+<td>需在 Day 3 后段验证</td>
+</tr>
+<tr>
+<td><strong>M3 PLC</strong></td>
+<td>① S7.Net 读 DB1.DBX0.0 / DB1.DBD4</td>
+<td>✅ 地址表达正确</td>
+<td><code>30天作战路线:58</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② event 退订模式 + IDisposable 打包</td>
+<td>✅ 正确,代码完整可跑</td>
+<td><code>M3:175-209</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ struct vs class 在多线程</td>
+<td>✅ 在 C# 陷阱讲义展开</td>
+<td><code>C#_陷阱:55-79</code></td>
+</tr>
+<tr>
+<td><strong>M4 EF Core</strong></td>
+<td>① IDbContextFactory(短作用域)</td>
+<td>✅ 正确,8 处展开,符合 EF Core 8 最佳实践</td>
+<td><code>M4:51, :56, :81, :101-102, :112, :218-219, :285, :291-297</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② 异步查询 + 变更追踪</td>
+<td>⚠️ 抽样未覆盖,需 Day 2 验证</td>
+<td>—</td>
+</tr>
+<tr>
+<td></td>
+<td>③ 迁移命令(dotnet ef migrations add)</td>
+<td>⚠️ 抽样未覆盖</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>M7 OPCUA/MQTT</strong></td>
+<td>① MQTTnet ConnectAsync/PublishAsync 异步</td>
+<td>✅ 正确</td>
+<td><code>M7:33-41</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② BatchReady 同步入队 + 后台 consumer(修正 .Result / async void)</td>
+<td>✅ 正确,明确标"🔥 修正说明"</td>
+<td><code>M7:44-60</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ Subscribe 双向 + 调 PlcDevice.Write</td>
+<td>⚠️ 抽样未覆盖,作战路线 <code>:165</code> 承诺"双向"</td>
+<td>需 M7 后段验证</td>
+</tr>
+<tr>
+<td><strong>M11 TCP</strong></td>
+<td>① 粘包/拆包概念(字节流无边界)</td>
+<td>✅ 表达精准,前端类比 WebSocket payload-length</td>
+<td><code>M11:19-29</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② 长度前缀帧 + CRC 校验</td>
+<td>✅ 正确</td>
+<td><code>M11:42-43</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ ReadAsync 返回 0 / SocketException 处理</td>
+<td>✅ 明确点出,带前端类比</td>
+<td><code>M11:48-49</code></td>
+</tr>
+<tr>
+<td><strong>M19 调试</strong></td>
+<td>① 条件断点 + Hit Count + Filter</td>
+<td>✅ VS 高级功能完整覆盖</td>
+<td><code>M19:37-39</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② dotnet dump / counters / trace / gcdump</td>
+<td>✅ 工具栈正确(.NET 8 主流)</td>
+<td><code>M19:4</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ Serilog + TraceId 跨线程关联</td>
+<td>✅ 正确</td>
+<td><code>M19:4, :10</code></td>
+</tr>
+<tr>
+<td><strong>C# 陷阱讲义</strong></td>
+<td>① struct 值类型拷贝(List<T> 改字段报错)</td>
+<td>✅ 正确,代码可复现</td>
+<td><code>C#_陷阱:82-88</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② async void 吞异常(EventHandler 签名)</td>
+<td>✅ 正确</td>
+<td><code>代码肌肉训练手册:433-462</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ event += 不退订 = 内存泄漏</td>
+<td>✅ 正确,与 M3 退订模式呼应</td>
+<td><code>M3:175-209</code></td>
+</tr>
+<tr>
+<td><strong>代码肌肉手册</strong></td>
+<td>① B1 CRC16(5 分钟白板)</td>
+<td>✅ 答案完整</td>
+<td><code>代码肌肉训练手册:202-233</code></td>
+</tr>
+<tr>
+<td></td>
+<td>② B5 AlarmRule 回滞(15 分钟白板)</td>
+<td>✅ 答案完整</td>
+<td><code>代码肌肉训练手册:354-396</code></td>
+</tr>
+<tr>
+<td></td>
+<td>③ B6-B30(只列题不给答案)</td>
+<td>❌ <strong>断档</strong></td>
+<td><code>代码肌肉训练手册:398-425</code> 写"完整答案见各对应讲义",但 B12 Polly / B17 EventAggregator / B18 ViewModelLocator 等在讲义里没有可直接对照的"白板答案"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>知识点正确性总结</strong>:抽样的 18 个技术点,<strong>0 个错误、0 个过时</strong>,技术准确性高。最大问题是代码肌肉手册 B6-B30 的"留作练习"造成<strong>前后质量断层</strong>。</p>
+<hr />
+<h2 id="sec-2-4">四、与用户最新 2 条诉求的对齐检查</h2>
+<h3 id="sec-3-8">4-1 "整体检查阶段/模块/知识点 由粗到细"</h3>
+<p><strong>当前完成度:阶段 ✅ / 模块 ✅ / 知识点 ✅,但有 4 处错配</strong></p>
+<table>
+<thead>
+<tr>
+<th>错配</th>
+<th>严重度</th>
+<th>详情</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>阶段:M19/M15/M9.5/M14 在作战路线无学习日</td>
+<td>🔴 必修</td>
+<td>M19 自我定位"必学",却被跳过</td>
+</tr>
+<tr>
+<td>模块:M15 工程协作完全孤岛</td>
+<td>🟡 建议</td>
+<td>仅被 build 脚本引用,无人工交叉</td>
+</tr>
+<tr>
+<td>模块:W3 项目任务超载(6 文件/7 天)</td>
+<td>🔴 必修</td>
+<td>TcpDevice/OpcUa/Mqtt/MES/Recipe/Engineering 6 个文件全未落地</td>
+</tr>
+<tr>
+<td>知识点:代码肌肉 B6-B30 无答案</td>
+<td>🟡 建议</td>
+<td>前后质量断层</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-9">4-2 "代码练习融入日常学习"</h3>
+<p><strong>当前状态:❌ 未融入,仍是"独立手册"模式</strong></p>
+<p>证据:
+- <code>代码肌肉训练手册_30天刷题版.md:6</code> 自述"配合 30 天作战路线 + C# 陷阱讲义使用" — 是配套关系,<strong>不是融入关系</strong>。
+- 30 天作战路线(<code>30天作战路线_转行冲刺版.md</code> 全文)从未出现"代码肌肉""肌肉训练"字样 — 主路线不知道它的存在。
+- 手册 Part D(<code>:682-734</code>)自己排了独立的 30 天计划,<strong>与作战路线并行</strong>,Day 30 还自己定义了"毕业测试",与作战路线 Day 30"真面试"撞车。</p>
+<p><strong>用户最新要求是"融入",现状是"独立并列"</strong> — 必须重构。</p>
+<hr />
+<h2 id="sec-2-5">五、Top 10 必修问题(按优先级)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>级别</th>
+<th>问题</th>
+<th>修复动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>🔴 必修</td>
+<td>简历模板 + 面试逐字稿 30 题<strong>完全缺失</strong>,作战路线 W4 引用了它们(<code>:211, :214</code>)却是空头支票</td>
+<td>(a) 立即创建 <code>简历模板_上位机_13-15K.md</code>(项目讲法 STAR + 技术关键词 + JD 对齐表);(b) 创建 <code>面试问答_逐字稿_30题.md</code>,30 题覆盖:串口/Modbus CRC/PLC/TCP 粘包/EF Core/Channel/Prism/上云/报表/调试 10 大主题各 3 题;(c) 修正作战路线":211"的"我后面会写"为实际链接</td>
+</tr>
+<tr>
+<td>2</td>
+<td>🔴 必修</td>
+<td>M19 问题排查(自我定位"必学")在作战路线<strong>无学习日</strong></td>
+<td>在作战路线 W2 Day 11-12 之间或 W4 Day 22-23 插入 1 天 M19 学习+实操(VS 条件断点 + dotnet counters 抓一次真实瓶颈)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>🔴 必修</td>
+<td>W3 项目任务超载,6 个文件(TcpDevice/OpcUa/MQTT/MES/Recipe/Engineering)塞进 7 天</td>
+<td>把 W3 拆成"必做 3 个"(TcpDevice/MQTT 双向/Excel 报表) + "选做 3 个"(OPC UA/MES/Recipe);选做纳入应急预案 P2</td>
+</tr>
+<tr>
+<td>4</td>
+<td>🔴 必修</td>
+<td>代码肌肉训练手册<strong>未融入日常</strong>(用户最新要求)</td>
+<td>把 Part D 的每日任务<strong>合并进 30 天作战路线的每日打卡</strong>:Day 1 的"打卡"行追加"Code: A1-A4 + B1 + C1";删除手册独立 Part D 或改为附录</td>
+</tr>
+<tr>
+<td>5</td>
+<td>🔴 必修</td>
+<td>代码肌肉手册 B6-B30(25 道)"留作练习"无答案,前后断层</td>
+<td>至少把 B6/B7/B8/B9/B11/B13/B15/B16(8 道高频白板题)补完整答案,与 B1-B5 同格式</td>
+</tr>
+<tr>
+<td>6</td>
+<td>🟡 建议</td>
+<td>M15 工程协作完全孤岛(只被 build 脚本引用)</td>
+<td>(a) 在 M9 或 M8.5 末尾"📌 温故知新"加一句"工程协作详见 M15";(b) 或在作战路线 W4 Day 22 写文档前加 0.5h"Git 协作流程"读 M15</td>
+</tr>
+<tr>
+<td>7</td>
+<td>🟡 建议</td>
+<td>M9.5 性能压测、M18 配方 半孤岛</td>
+<td>在 M19 调试模块"📌 温故知新"明确双向引用 M9.5(已有单向 <code>M19:539</code>,加 M9.5 → M19 反向引用)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>🟡 建议</td>
+<td>M5 LiveCharts2 在项目代码无落地(只有 GaugeControl)</td>
+<td>作战路线 Day 10 项目任务(<code>:106-108</code>)明确"加实时曲线 View",需真正实现 <code>Views/ChartView.xaml</code> + LiveCharts2 的 CartesianChart</td>
+</tr>
+<tr>
+<td>9</td>
+<td>🟡 建议</td>
+<td>M8.5 Prism 在项目代码无落地(Bootstrapper 未升 Prism)</td>
+<td>作战路线 Day 12-14(<code>:122-128</code>)承诺"继承 PrismBootstrapper + RegionManager 拆分",需真正落地</td>
+</tr>
+<tr>
+<td>10</td>
+<td>🟢 可选</td>
+<td>M14 WinForm 在主线无学习日(投汽车/半导体岗会缺)</td>
+<td>在 W4 加一个"可选补强"段,5h 速过 M14 + 把 MainWindow 用 WinForms 复刻一遍核心控件</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-6">六、建议的下一步执行顺序</h2>
+<p><strong>按依赖关系排,先修最致命的"空挂"和"未融入",再补"超载拆分"</strong>:</p>
+<ol>
+<li><strong>Day 0(0.5 天,立刻做)</strong>:创建 <code>简历模板_上位机_13-15K.md</code> + <code>面试问答_逐字稿_30题.md</code> 骨架版(至少 30 题题面 + 项目讲法 STAR 模板),消除作战路线 W4 的空挂引用。</li>
+<li><strong>Day 0(0.5 天)</strong>:把 <code>代码肌肉训练手册 Part D</code> 合并进 <code>30天作战路线</code> 的每日"打卡"行,手册本身降级为附录。</li>
+<li><strong>Day 0(0.5 天)</strong>:补全代码肌肉手册 B6/B7/B8/B11/B13/B15/B16 六道高频题答案。</li>
+<li><strong>Week 0 末</strong>:重排 30 天作战路线 W3,拆"必做 3 个 + 选做 3 个";在 W2 或 W4 插入 M19 学习日。</li>
+<li><strong>Week 1-2 执行中</strong>:遇到 M19 调试工具实操机会就立刻用(dotnet counters / Wireshark),不需要等专门学习日。</li>
+<li><strong>Week 3 开始前</strong>:确认 W3 必做 3 个文件落地后再投 13-15K,否则降级投 10-13K。</li>
+<li><strong>Week 4</strong>:用骨架版简历 + 逐字稿练模拟面,面完回来补答案到逐字稿。</li>
+</ol>
+<p><strong>核心原则</strong>:<strong>讲义 → 项目代码 → 简历可讲</strong> 三者必须同步推进,<strong>任何一个空挂都是面试翻车点</strong>。</p>
+<hr />
+<blockquote>
+<p>审计结论:<strong>讲义体系扎实(22 模块齐全,知识点正确),但有 4 处系统性空挂(简历/逐字稿缺失、M19 无学习日、W3 超载、代码肌肉未融入)</strong>。修复这 4 处后,项目可真正达到"13-15K 投得出手"水平。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="muscle.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">💪 代码肌肉训练手册 · 30 天刷题版</div></a>
+  <a class="next" href="jd-research.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📊 JD 调研 · 13-15K 上位机岗位对照</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

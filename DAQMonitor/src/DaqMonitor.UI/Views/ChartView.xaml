@@ -1,0 +1,18 @@
+<UserControl x:Class="DaqMonitor.UI.Views.ChartView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Margin="2,0,0,4" FontSize="13" FontWeight="Bold"
+                   Text="实时曲线 · 最近 60 秒（温度 / 压力，10Hz）" />
+
+        <!-- CartesianChart 由 ChartView.xaml.cs 在 DataContext 设置后用代码注入 Series；
+             XAML 里只用最简控件，避免和 ViewModel 上下文里的可观察集合强耦合 -->
+        <lvc:CartesianChart x:Name="Chart" Grid.Row="1" />
+    </Grid>
+</UserControl>

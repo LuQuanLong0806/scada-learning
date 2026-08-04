@@ -1,9 +1,11 @@
 using DaqMonitor.Core.Acquisition;
 using DaqMonitor.Core.Alarms;
+using DaqMonitor.Core.Cloud;
 using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Diagnostics;
 using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Store;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DaqMonitor.Core.AppServices;
@@ -24,6 +26,17 @@ public static class Bootstrapper
     public static ServiceProvider Build()
     {
         var services = new ServiceCollection();
+
+        // 持久化：SQLite + EF Core。工厂模式便于 BackgroundService / 查询 / 写入各自取短生命周期 DbContext。
+        // 数据库文件放 LocalApplicationData（用户可写、随用户隔离、不会被卸载清理）。
+        var dbPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "DaqMonitor", "daq.db");
+        var dbDir = System.IO.Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(dbDir)) System.IO.Directory.CreateDirectory(dbDir);
+
+        services.AddDbContextFactory<AppDb>(opt =>
+            opt.UseSqlite($"Data Source={dbPath}"));
 
         // 单例：全局共享一份存储与报警引擎
         services.AddSingleton<PointStore>();
@@ -67,7 +80,42 @@ public static class Bootstrapper
         //   // 真实运行：provider.GetRequiredService<DeviceHealthMonitor>().Start();
         services.AddSingleton<IDevice>(_ => new SimulatedDevice(1, "Sim-01", 1, 2, 3));
 
+        // —— M11 TcpDevice：以工厂方法注册，便于运行时按 host/port 创建多个实例 ——
+        // 用法：var factory = provider.GetRequiredService<Func<string,int,IEnumerable<TcpDevice.TcpMap>,bool,TcpDevice>>();
+        //   var maps = new[] { new TcpDevice.TcpMap(1, 1), new TcpDevice.TcpMap(2, 2) };
+        //   var tcp = factory("192.168.1.10", 502, maps, simulate: false);
+        //   pipeline.Register(tcp); tcp.Connect();
+        services.AddSingleton<Func<string, int, IEnumerable<TcpDevice.TcpMap>, bool, TcpDevice>>(
+            _ => (host, port, maps, simulate) => new TcpDevice(
+                id: 100 + ((host, port).GetHashCode() & 0x7FFF),
+                name: $"TCP-{host}:{port}",
+                host: host,
+                port: port,
+                maps: maps,
+                simulate: simulate));
+
+        // 简化版工厂：不带点位映射，开模拟模式直接跑（最常用的“先跑通”入口）
+        services.AddSingleton<Func<string, int, TcpDevice>>(sp => (host, port) =>
+            sp.GetRequiredService<Func<string, int, IEnumerable<TcpDevice.TcpMap>, bool, TcpDevice>>()
+              .Invoke(host, port, Enumerable.Empty<TcpDevice.TcpMap>(), true));
+
+        // —— M7 MQTT 上云：单例，IAsyncDisposable 由容器统一释放 ——
+        // 用法：var mqtt = provider.GetRequiredService<MqttPublisher>();
+        //       mqtt.OnCommand = async (topic, payload) => { /* 处理下行命令 */ };
+        //       await mqtt.StartAsync();
+        //       pipeline.BatchReady += (_, batch) => { foreach (var p in batch) mqtt.Enqueue(p); };
+        services.AddSingleton<MqttPublisher>(_ => new MqttPublisher("broker.emqx.io", 1883, deviceId: "daq-01"));
+
         var provider = services.BuildServiceProvider();
+
+        // 启动期一次性建库建表（用 EnsureCreated：简单，不依赖迁移；首次运行后会生成 daq.db）。
+        // 真实生产后期想加字段时，可改用 Migrate() + EF Core 迁移脚手架，不影响当前调用方。
+        using (var scope = provider.CreateScope())
+        {
+            var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDb>>();
+            using var db = factory.CreateDbContext();
+            db.Database.EnsureCreated();
+        }
 
         // 预置两条报警规则：点位 1 超 100 判 Critical、点位 2 超 100 判 Warning（带回滞 2，防抖动）
         var alarms = provider.GetRequiredService<AlarmEngine>();

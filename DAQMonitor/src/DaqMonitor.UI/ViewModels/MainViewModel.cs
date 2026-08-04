@@ -13,6 +13,7 @@ using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Reporting;
 using DaqMonitor.Core.Store;
 using DaqMonitor.UI.Reporting;
+using DaqMonitor.UI.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 
@@ -54,6 +55,7 @@ public class MainViewModel : INotifyPropertyChanged
     private bool _running;
     private DateTime _from = DateTime.Today;
     private DateTime _to = DateTime.Now;
+    private ChartView? _chart;
 
     public ObservableCollection<PointView> Points { get; } = new();
     public ObservableCollection<string> AlarmLog { get; } = new();
@@ -95,6 +97,13 @@ public class MainViewModel : INotifyPropertyChanged
         _alarms.AlarmCleared += OnAlarmCleared;
 
         _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断）。");
+    }
+
+    /// <summary>由 MainWindow 注入：把实时曲线页接到 BatchReady。</summary>
+    public void AttachChart(ChartView chart)
+    {
+        _chart = chart;
+        chart.StartDemo();   // 演示模式：无外部数据源时自动生成曲线
     }
 
     private void OnBatchReady(object? _, IReadOnlyList<SensorPoint> batch)

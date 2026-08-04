@@ -1,0 +1,2754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>💪 代码肌肉训练手册 · 30 天刷题版 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="muscle">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标(为什么有这份手册)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 手册结构</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">A1. Promise → Task</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">A2. Promise.all → Task.WhenAll</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">A3. Promise.race → Task.WhenAny</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">A4. Array.map → LINQ Select</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">A5. Array.filter / reduce → LINQ Where / Aggregate</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">A6. addEventListener → event +=</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">A7. useState → INotifyPropertyChanged</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">A8. useEffect cleanup → IDisposable</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-11">A9. fetch → HttpClient</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-12">A10. async/await 异常处理</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-13">A11-A20(略,自行翻译)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-14">B1. 手写 Modbus CRC16(⏱️ 5 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-15">B2. 手写 System.Threading.Channel 生产者消费者(⏱️ 10 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-16">B3. 手写 IDevice 实现(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-17">B4. 手写 Retry 指数退避(⏱️ 10 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-18">B5. 手写 AlarmRule 回滞(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-19">B6. 手写帧解析 AA55 帧头 + 长度 + payload + CRC(⏱️ 10 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-20">B7. 手写 ModbusDevice.Connect / Read / Write(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-21">B8. 手写 Bootstrapper(DI 配置)(⏱️ 10 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-22">B9. 手写 RelayCommand(ICommand 实现)(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-23">B10. 手写 INotifyPropertyChanged(无 Prism 基类)(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-24">B11. 手写 PointStore 内存索引 + SQLite 落库(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-25">B12. 手写 HttpClient Polly 重试 + 熔断(⏱️ 10 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-26">B13. 手写 MQTT Publish + Subscribe 双向(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-27">B14. 手写 OPC UA 异步客户端(⏱️ 15 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-28">B15. 手写 PlcDevice(S7.Net 异步)(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-29">B16. 手写 TcpDevice 粘包处理(状态机)(⏱️ 15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-30">B17. 手写 EventAggregator(简化版)(⏱️ 10 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-31">B18. 手写 ViewModelLocator 命名约定绑定(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-32">B19. 手写 IDialogService 标准对话框(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-33">B20. 手写 LogLevel 中间件(Serilog + TraceId)(⏱️ 10 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-34">B21. 手写白名单验证器(IpAllowedHosts)(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-35">B22. 手写 AuditLogger 审计日志(⏱️ 10 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-36">B23. 手写 Recipe 配方管理 + 切换 + 回滚(⏱️ 10 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-37">B24. 手写 EngineeringConverter 量程标定(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-38">B25. 手写 PerformanceCounter 业务指标上报(⏱️ 10 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-39">B26. 手写 IDisposable 完整模式(含 finalizer)(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-40">B27. 手写 CancellationTokenSource 协作取消(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-41">B28. 手写 ConcurrentDictionary 缓存(惰性初始化)(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-42">B29. 手写 MemoryCache 过期 + 容量(⏱️ 5 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-43">B30. 手写单元测试(xUnit + Moq 完整一条)(⏱️ 10 分钟,骨架)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-44">C1. async void 吞异常</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-45">C2. .Result 死锁</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-46">C3. 多线程竞态丢数</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-47">C4. 内存泄漏(event 没退订)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-48">C5. DbContext 线程不安全</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-49">C6. struct 拷贝丢修改</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-50">C7. TCP 缓冲区泄漏</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-51">C8. 闭包捕获循环变量</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-52">C9. async lambda 没等待</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-53">C10. 字节序搞反</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-54">Week 1(Day 1-7)· 前端迁移 + 主干打底</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-55">Week 2(Day 8-14)· 协议代码</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-56">Week 3(Day 15-21)· 架构代码</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-57">Week 4(Day 22-30)· 综合 + Debug</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-58">训练纪律</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-59">评估标准(每周)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-60">真技术硬实力判据(30 天后自测)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-61">📌 配套讲义交叉引用</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-62">📚 延伸刷题资源</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-63">✅ 打卡[ ]</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">代码肌肉训练手册 · 30 天刷题版</h1>
+<blockquote>
+<p><strong>优先级定位</strong>:🔴 <strong>必做(硬实力核心)</strong> · 每天 1 小时刷题,30 天形成"看代码瞬间能写"的肌肉记忆
+<strong>技术来源</strong>:🟦 C# 语法 + 🟩 BCL + 🟧 NuGet(全栈)
+<strong>给简历加的能力</strong>:面试时让你"白板写完一个 ModbusDevice"或"手算 Modbus CRC16",<strong>不卡壳、不思考、直接写</strong> —— 这就是 13-15K 和 8-10K 的差距。
+<strong>前置</strong>:配合 <a href="30天作战路线_转行冲刺版.md">30 天作战路线</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a> 使用。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标(为什么有这份手册)</h2>
+<p><strong>前端工程师有"看代码瞬间能开发"的直觉</strong>,是因为你写过 1000 个组件、100 个 hook、调试过 100 个 bug。<strong>这种直觉 = 肌肉记忆 = 量变到质变</strong>。</p>
+<p>转上位机,<strong>你只有 30 天</strong>。光看讲义不够,必须<strong>手敲</strong>:
+- 看 CRC 算法 → 你能 1 分钟手写出 Modbus CRC16 ✅
+- 看 Channel<T> → 你能 5 分钟手写完生产者-消费者 ✅
+- 看 IDevice → 你能 10 分钟手写完 ModbusDevice ✅</p>
+<p><strong>判据</strong>:30 天后,你能不查文档白板写完任何一道 Part B 题目,代码能跑、能讲、能被追问。</p>
+<hr />
+<h2 id="sec-2-2">📋 手册结构</h2>
+<p><strong>Part A · 前端 → C# 翻译题</strong>(20 道)— 利用前端经验加速,1 周内消除"语法陌生感"
+<strong>Part B · 手写代码题</strong>(30 道)— 面试高频白板题,从空文件写出真功能
+<strong>Part C · Debug 题</strong>(10 道)— 给一段有 bug 的代码,5 分钟内找出来
+<strong>Part D · 30 天训练计划</strong> — 每天具体刷哪些题、刷多久、刷到什么程度算合格</p>
+<hr />
+<h1 id="sec-1-2">Part A · 前端 → C# 翻译题(20 道)</h1>
+<blockquote>
+<p><strong>目标</strong>:1 周内消除 C# 语法陌生感,把前端经验直接迁移过来。
+<strong>节奏</strong>:每天 4 道,5 天刷完。每道 5 分钟,翻译完对照答案找差异。</p>
+</blockquote>
+<h2 id="sec-2-3">A1. Promise → Task</h2>
+<pre><code class="language-js">// JS
+function fetchUser(id) {
+  return fetch(`/api/users/${id}`).then(r =&gt; r.json());
+}
+const user = await fetchUser(1);
+</code></pre>
+<p><strong>翻译成 C#</strong>:</p>
+<pre><code class="language-csharp">// C#
+async Task&lt;User&gt; FetchUserAsync(int id)
+{
+    var resp = await _httpClient.GetAsync($&quot;/api/users/{id}&quot;);
+    return await resp.Content.ReadFromJsonAsync&lt;User&gt;();
+}
+var user = await FetchUserAsync(1);
+</code></pre>
+<p><strong>关键差异</strong>:
+- <code>Promise&lt;T&gt;</code> → <code>Task&lt;T&gt;</code>
+- <code>then(cb)</code> → <code>await</code>(语言级,更直观)
+- 命名约定:<code>Async</code> 后缀(C# 强约定)
+- 配置 await:<code>ConfigureAwait(false)</code>(库代码必加,UI 代码不用)</p>
+<h2 id="sec-2-4">A2. Promise.all → Task.WhenAll</h2>
+<pre><code class="language-js">const [a, b, c] = await Promise.all([fa(), fb(), fc()]);
+</code></pre>
+<pre><code class="language-csharp">var tasks = new[] { FaAsync(), FbAsync(), FcAsync() };
+await Task.WhenAll(tasks);
+// 注意:Task.WhenAll 返回 Task,不带结果数组,要单独拿
+var a = tasks[0].Result;   // 这里 .Result 安全,因为已 await WhenAll
+</code></pre>
+<p><strong>关键差异</strong>:
+- <code>Promise.all</code> 返回数组,<code>Task.WhenAll</code> 不返回(要单独 <code>.Result</code> 拿)
+- 异常处理:<code>Promise.all</code> 抛第一个,<code>Task.WhenAll</code> 抛 <code>AggregateException</code>(所有异常聚合)</p>
+<h2 id="sec-2-5">A3. Promise.race → Task.WhenAny</h2>
+<pre><code class="language-js">const fast = await Promise.race([slowAsync(), timeout(5000)]);
+</code></pre>
+<pre><code class="language-csharp">using var cts = new CancellationTokenSource(5000);
+var result = await SlowAsync(cts.Token);   // 超时自动抛 TaskCanceledException
+</code></pre>
+<p><strong>关键差异</strong>:
+- C# 不用 WhenAny 实现超时,用 <code>CancellationTokenSource(5000)</code> 更优雅
+- WhenAny 用得少,知道有这东西就行</p>
+<h2 id="sec-2-6">A4. Array.map → LINQ Select</h2>
+<pre><code class="language-js">const squares = [1,2,3].map(x =&gt; x*x);
+</code></pre>
+<pre><code class="language-csharp">var squares = new[] { 1, 2, 3 }.Select(x =&gt; x * x).ToArray();
+</code></pre>
+<p><strong>关键差异</strong>:
+- LINQ 默认 lazy(返回 IEnumerable),<code>.ToArray()</code> / <code>.ToList()</code> 才求值
+- 前端 <code>.map</code> 立即求值,C# 延迟求值</p>
+<h2 id="sec-2-7">A5. Array.filter / reduce → LINQ Where / Aggregate</h2>
+<pre><code class="language-js">const sum = [1,2,3].filter(x =&gt; x &gt; 1).reduce((a, b) =&gt; a + b, 0);
+</code></pre>
+<pre><code class="language-csharp">var sum = new[] { 1, 2, 3 }.Where(x =&gt; x &gt; 1).Aggregate(0, (a, b) =&gt; a + b);
+// 或更简单
+var sum = new[] { 1, 2, 3 }.Where(x =&gt; x &gt; 1).Sum();
+</code></pre>
+<h2 id="sec-2-8">A6. addEventListener → event +=</h2>
+<pre><code class="language-js">btn.addEventListener('click', handler);
+btn.removeEventListener('click', handler);   // 必须同一引用
+</code></pre>
+<pre><code class="language-csharp">btn.Click += Handler;
+btn.Click -= Handler;   // 必须同一委托实例
+</code></pre>
+<p><strong>关键差异</strong>:
+- C# event 类型安全(签名必须匹配 EventHandler<T>)
+- Lambda 不能 <code>-=</code>(没引用),必须具名方法或存字段</p>
+<h2 id="sec-2-9">A7. useState → INotifyPropertyChanged</h2>
+<pre><code class="language-js">const [count, setCount] = useState(0);
+setCount(1);
+</code></pre>
+<pre><code class="language-csharp">private int _count;
+public int Count
+{
+    get =&gt; _count;
+    set =&gt; SetProperty(ref _count, value);   // Prism BindableBase
+}
+</code></pre>
+<p><strong>关键差异</strong>:
+- React 自动重渲染,C# 必须 <code>SetProperty</code> 触发 <code>PropertyChanged</code>
+- 多个属性 React 一个 state 搞定,C# 每个属性都要 setter + 字段</p>
+<h2 id="sec-2-10">A8. useEffect cleanup → IDisposable</h2>
+<pre><code class="language-js">useEffect(() =&gt; {
+  const sub = subscribe();
+  return () =&gt; sub.unsubscribe();   // cleanup
+}, []);
+</code></pre>
+<pre><code class="language-csharp">public class MyComponent : IDisposable
+{
+    private readonly IDisposable _sub;
+    public MyComponent() { _sub = Subscribe(); }
+    public void Dispose() =&gt; _sub.Dispose();   // cleanup
+}
+
+// 使用方
+using var comp = new MyComponent();   // 作用域结束自动 Dispose
+</code></pre>
+<h2 id="sec-2-11">A9. fetch → HttpClient</h2>
+<pre><code class="language-js">const resp = await fetch('/api/data', { method: 'POST', body: JSON.stringify(data) });
+</code></pre>
+<pre><code class="language-csharp">var resp = await _httpClient.PostAsJsonAsync(&quot;/api/data&quot;, data);
+</code></pre>
+<p><strong>关键差异</strong>:
+- JS <code>fetch</code> 全局函数,C# 必须 <code>IHttpClientFactory</code> 注入(不要 <code>new HttpClient()</code>)
+- JS 不用关心 socket 池,C# 用错会端口耗尽</p>
+<h2 id="sec-2-12">A10. async/await 异常处理</h2>
+<pre><code class="language-js">try { await asyncFn(); }
+catch (e) { console.error(e); }
+</code></pre>
+<pre><code class="language-csharp">try { await AsyncFn(); }
+catch (Exception ex) when (ex is not TaskCanceledException)   // C# 异常过滤
+{
+    _log.Error(ex, &quot;失败&quot;);
+}
+</code></pre>
+<h2 id="sec-2-13">A11-A20(略,自行翻译)</h2>
+<ul>
+<li>EventEmitter → IEventAggregator</li>
+<li>Subject → Channel<T></li>
+<li>debounce → ReactiveExtensions.Throttle</li>
+<li>lodash.get → null conditional <code>?.</code> + null coalescing <code>??</code></li>
+<li>new class instance → C# 完全一样(但构造注入)</li>
+<li>module.exports → namespace + public class</li>
+<li>require/import → using</li>
+<li>Reflect.ownKeys → reflection <code>typeof(T).GetProperties()</code></li>
+<li>Proxy → DispatchProxy / RealProxy(.NET remoting)</li>
+<li>generator function → async IAsyncEnumerable<T></li>
+</ul>
+<hr />
+<h1 id="sec-1-3">Part B · 手写代码题(30 道)</h1>
+<blockquote>
+<p><strong>目标</strong>:面试高频白板题,从空文件写出真功能。
+<strong>节奏</strong>:每天 1-2 道,30 天刷完。每道 15-30 分钟,目标时间内写完算合格。</p>
+</blockquote>
+<h2 id="sec-2-14">B1. 手写 Modbus CRC16(⏱️ 5 分钟)</h2>
+<p><strong>题目</strong>:写一个 <code>static ushort ComputeCrc(byte[] data)</code>,实现 Modbus CRC16。</p>
+<p><strong>目标答案</strong>:</p>
+<pre><code class="language-csharp">public static ushort ComputeCrc(byte[] data)
+{
+    ushort crc = 0xFFFF;
+    foreach (var b in data)
+    {
+        crc ^= b;
+        for (int i = 0; i &lt; 8; i++)
+        {
+            if ((crc &amp; 0x0001) != 0)
+            {
+                crc &gt;&gt;= 1;
+                crc ^= 0xA001;
+            }
+            else crc &gt;&gt;= 1;
+        }
+    }
+    return crc;
+}
+
+// 使用:验证 01 03 00 00 00 02 的 CRC = 0xC40B → C4 0B(低字节在前)
+</code></pre>
+<p><strong>易错点</strong>:① 初值 0xFFFF 不是 0;② 多项式 0xA001(0x8005 位反转);③ 8 次循环不是 16 次;④ Modbus 协议 CRC 低字节在前。</p>
+<p><strong>面试官追问</strong>:
+- 为什么初值 0xFFFF?(让全 0 数据也产生非零校验)
+- 为什么用 0xA001 不用 0x8005?(Modbus 用反向多项式)
+- 怎么验证 CRC 是低字节在前还是高字节在前?(看规范 / 抓帧)</p>
+<p><strong>判据</strong>:<strong>5 分钟内白板写出,不查文档,代码能跑通</strong>。</p>
+<h2 id="sec-2-15">B2. 手写 System.Threading.Channel 生产者消费者(⏱️ 10 分钟)</h2>
+<p><strong>题目</strong>:写一个采集线程(每 100ms 产生一个 int)+ 消费线程(打印平方)+ 5 秒后优雅退出。</p>
+<p><strong>目标答案</strong>:</p>
+<pre><code class="language-csharp">using System.Threading.Channels;
+
+var channel = Channel.CreateBounded&lt;int&gt;(100);
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+
+var producer = Task.Run(async () =&gt;
+{
+    try
+    {
+        while (!cts.IsCancellationRequested)
+        {
+            var value = Random.Shared.Next(1, 100);
+            await channel.Writer.WriteAsync(value, cts.Token);
+            await Task.Delay(100, cts.Token);
+        }
+    }
+    catch (OperationCanceledException) { }
+    finally { channel.Writer.Complete(); }
+});
+
+var consumer = Task.Run(async () =&gt;
+{
+    await foreach (var v in channel.Reader.ReadAllAsync(cts.Token))
+        Console.WriteLine($&quot;{v}² = {v * v}&quot;);
+});
+
+await Task.WhenAll(producer, consumer);
+</code></pre>
+<p><strong>易错点</strong>:① 没 <code>Writer.Complete()</code> 消费者永远等;② 没 <code>CancellationToken</code> 退出卡住;③ 用 <code>async void</code> 事件订阅异常吞(<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a>)。</p>
+<p><strong>面试官追问</strong>:
+- 为什么用 Channel 不用 ConcurrentQueue?(异步无锁,前端类比 RxJS Subject)
+- 有界 vs 无界?(OOM 风险 vs 背压)
+- DropOldest vs Wait?(生产现场不同选择)</p>
+<h2 id="sec-2-16">B3. 手写 IDevice 实现(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:实现一个 SimulatedDevice,继承 DeviceBase,每 500ms 产生一个随机值,通过 DataReceived 事件触发。</p>
+<p><strong>目标答案</strong>:</p>
+<pre><code class="language-csharp">public class SimulatedDevice : DeviceBase
+{
+    private readonly Random _rnd = new();
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+
+    public SimulatedDevice(int id, string name) : base(id, name) { }
+
+    public override void Connect()
+    {
+        if (_loop != null) return;
+        State = DeviceState.Online;
+        _cts = new CancellationTokenSource();
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!_cts!.Token.IsCancellationRequested)
+                {
+                    RaiseData(Id, _rnd.NextDouble() * 100);
+                    await Task.Delay(500, _cts.Token);
+                }
+            }
+            catch (OperationCanceledException) { }
+        });
+    }
+
+    public override void Disconnect()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(); } catch { }
+        State = DeviceState.Offline;
+    }
+
+    public override double Read(int addr) =&gt; _rnd.NextDouble() * 100;
+    public override void Write(int addr, double value) { /* 模拟设备无写入 */ }
+}
+</code></pre>
+<p><strong>易错点</strong>:① <code>RaiseData</code> 在 <code>DeviceBase</code> 里;② <code>Connect()</code> 重入保护(<code>if (_loop != null) return</code>);③ <code>Disconnect</code> 必须等 <code>_loop</code> 退出。</p>
+<h2 id="sec-2-17">B4. 手写 Retry 指数退避(⏱️ 10 分钟)</h2>
+<p><strong>题目</strong>:写一个 <code>Retry.ExecuteAsync(Func&lt;Task&lt;T&gt;&gt; action, int maxRetries, int baseDelayMs)</code> 实现指数退避 + 随机抖动。</p>
+<p><strong>目标答案</strong>:</p>
+<pre><code class="language-csharp">public static async Task&lt;T&gt; ExecuteAsync&lt;T&gt;(Func&lt;Task&lt;T&gt;&gt; action, int maxRetries, int baseDelayMs)
+{
+    for (int attempt = 1; ; attempt++)
+    {
+        try { return await action(); }
+        catch (Exception ex) when (attempt &lt;= maxRetries)
+        {
+            var jitter = Random.Shared.Next(0, baseDelayMs);
+            var delay = baseDelayMs * Math.Pow(2, attempt - 1) + jitter;
+            await Task.Delay((int)delay);
+        }
+    }
+}
+</code></pre>
+<p><strong>易错点</strong>:① <code>attempt &lt;= maxRetries</code> 的 when 条件(最后一次失败要抛);② 随机抖动避免 thundering herd;③ Math.Pow 返回 double 要转 int。</p>
+<p><strong>面试官追问</strong>:为什么指数退避要加抖动?(避免多客户端同时重试再次撞)</p>
+<h2 id="sec-2-18">B5. 手写 AlarmRule 回滞(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:实现一个报警规则引擎,带回滞防抖(温度 &gt; 80 报警,降到 70 以下才解除)。</p>
+<p><strong>目标答案</strong>:</p>
+<pre><code class="language-csharp">public class AlarmRule
+{
+    public int PointId { get; init; }
+    public double HighThreshold { get; init; }    // 80
+    public double LowThreshold { get; init; }     // 70(回滞带)
+    public bool IsActive { get; private set; }
+
+    public bool Evaluate(double value)
+    {
+        if (!IsActive &amp;&amp; value &gt; HighThreshold) IsActive = true;
+        else if (IsActive &amp;&amp; value &lt; LowThreshold) IsActive = false;
+        return IsActive;
+    }
+}
+
+public class AlarmEngine
+{
+    private readonly Dictionary&lt;int, AlarmRule&gt; _rules = new();
+    private readonly object _gate = new();
+
+    public event Action&lt;int, double, DateTime&gt;? AlarmTriggered;
+    public event Action&lt;int, DateTime&gt;? AlarmCleared;
+
+    public void AddRule(AlarmRule rule) { lock (_gate) _rules[rule.PointId] = rule; }
+
+    public void OnSample(int pointId, double value)
+    {
+        lock (_gate)
+        {
+            if (!_rules.TryGetValue(pointId, out var rule)) return;
+            var wasActive = rule.IsActive;
+            var nowActive = rule.Evaluate(value);
+            if (!wasActive &amp;&amp; nowActive) AlarmTriggered?.Invoke(pointId, value, DateTime.Now);
+            else if (wasActive &amp;&amp; !nowActive) AlarmCleared?.Invoke(pointId, DateTime.Now);
+        }
+    }
+}
+</code></pre>
+<p><strong>易错点</strong>:① 锁要细(只在 Evaluate + 事件触发);② 边沿触发(只在状态变化时触发事件,不重复);③ 回滞带 = HighThreshold - LowThreshold。</p>
+<p><strong>面试官追问</strong>:为什么需要回滞?(防抖,温度在 79-81 之间晃,不报警每秒触发)</p>
+<h2 id="sec-2-19">B6. 手写帧解析 AA55 帧头 + 长度 + payload + CRC(⏱️ 10 分钟)</h2>
+<p><strong>题目</strong>:实现一个 <code>FrameParser</code>,处理字节流粘包/半包。帧格式 <code>AA 55 | Len | Payload | CRC_L CRC_H</code>。提供 <code>Feed(chunk)</code> 喂入字节流,返回本次拆出的所有完整帧。</p>
+<p><strong>🎯 面试官想听到</strong>:① 半包/粘包概念;② 滚动缓冲 + 状态机思路;③ 缓冲无限增长的防御(找不到帧头就清空)。</p>
+<p><strong>✅ 标准答案</strong>:核心思想是<strong>滚动缓冲区</strong> + <strong>循环拆帧</strong>。每次 <code>Feed</code> 把新字节追加到 <code>_buffer</code>,然后 <code>while(TryTakeFrame())</code> 把所有完整帧切出来返回。半包(数据不够)就 <code>return false</code> 等下一次;粘包(多帧粘一起)就靠 while 循环多拆几次。<strong>CRC 不过</strong>直接丢弃整帧,不让坏数据进业务。<strong>找不到 0xAA 帧头</strong>必须清空缓冲,否则内存无限涨(生产事故源)。前端类比:Node 的 Transform stream / 前端自己写 WebSocket 协议解析的 chunk 拼装。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Protocol/FrameParser.cs</code>):</p>
+<pre><code class="language-csharp">public class FrameParser
+{
+    private readonly List&lt;byte&gt; _buffer = new();
+    private readonly bool _verifyCrc;
+
+    public FrameParser(bool verifyCrc = false) =&gt; _verifyCrc = verifyCrc;
+
+    public IReadOnlyList&lt;byte[]&gt; Feed(ReadOnlySpan&lt;byte&gt; chunk)
+    {
+        _buffer.AddRange(chunk.ToArray());
+        var frames = new List&lt;byte[]&gt;();
+        while (TryTakeFrame(out var frame))
+            frames.Add(frame);
+        return frames;
+    }
+
+    private bool TryTakeFrame(out byte[] frame)
+    {
+        frame = Array.Empty&lt;byte&gt;();
+        int idx = _buffer.IndexOf((byte)0xAA);
+        if (idx &lt; 0) { _buffer.Clear(); return false; }          // 没帧头:清空防内存爆
+        if (_buffer.Count &lt; idx + 3) return false;               // 头+长 不齐
+        if (_buffer[idx + 1] != 0x55) { _buffer.RemoveAt(idx); return false; } // 假帧头(后面不是 55)
+        int len = _buffer[idx + 2];
+        int total = 3 + len + 2;                                 // AA 55 LEN | payload | CRC_L CRC_H
+        if (_buffer.Count &lt; idx + total) return false;           // 半包:等更多数据
+
+        if (_verifyCrc)
+        {
+            var full = _buffer.GetRange(idx, total).ToArray();
+            if (!Crc16.Check(full))                             // CRC 不过:丢帧
+            {
+                _buffer.RemoveRange(0, idx + total);
+                return false;
+            }
+        }
+        frame = _buffer.GetRange(idx + 3, len).ToArray();
+        _buffer.RemoveRange(0, idx + total);                    // 滑窗:移除已消费
+        return true;
+    }
+
+    public void Reset() =&gt; _buffer.Clear();
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 缓冲无限增长:找不到 0xAA 必须清空,否则设备掉线时缓冲区涨到 OOM
+- CRC 校验范围:对"头 + 长 + 载荷"整体算,与 <code>Crc16.Check(整帧)</code> 的范围一致
+- 假帧头处理:遇到 0xAA 后下一字节不是 0x55,只移除 1 字节继续扫,<strong>不要整段丢弃</strong>
+- <code>RemoveRange(0, idx + total)</code> 不是 <code>RemoveRange(idx, total)</code>:要把"消费过的"全部移除,包括 idx 前的垃圾字节
+- List<byte> 高频小包性能差,生产用 <code>ArrayPool&lt;byte&gt;</code> + 环形缓冲(参 M11 修正版)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 如果对端乱发数据,没有 0xAA 怎么办?</strong> A:<code>IndexOf</code> 返回 -1,清空缓冲。下次正确数据来时从头开始,不会丢帧。
+- <strong>Q: 1MB 的字节流里只有一个真帧,怎么避免遍历太慢?</strong> A:用 KMP 或 Boyer-Moore 找 <code>AA 55</code> 序列;或限制缓冲区最大长度(如 64KB),超了直接丢。
+- <strong>Q: 多线程同时 Feed 怎么办?</strong> A:<code>FrameParser</code> 不是线程安全,串口/TCP 的接收循环是单线程读,所以没问题;若要多线程喂,外面加 lock。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M1_串口与协议_深度版.md">M1 Day2 帧解析</a> · DAQMonitor <code>Core/Protocol/FrameParser.cs</code> + <code>FrameParserTests.cs</code></p>
+<h2 id="sec-2-20">B7. 手写 ModbusDevice.Connect / Read / Write(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:基于 <code>DeviceBase</code>,实现一个 Modbus RTU 设备。<code>Connect</code> 打开串口 + 启动 500ms 轮询后台任务;<code>Read</code> 返回最近一次缓存值;<code>Write</code> 用功能码 0x06 写单寄存器。</p>
+<p><strong>🎯 面试官想听到</strong>:① 后台 <code>Task.Run</code> + <code>CancellationTokenSource</code> 的"启动-停止"模式;② Modbus RTU 帧结构(<code>[slave][func][addr 2B][count 2B][CRC_L CRC_H]</code>);③ <code>RaiseData</code> 把数据抬到上层,<strong>采集与 UI 解耦</strong>;④ CRC 字节序:寄存器值大端、CRC 低字节在前(双标准)。</p>
+<p><strong>✅ 标准答案</strong>:<code>DeviceBase</code> 已经提供 <code>RaiseData(pointId, value)</code>,所以设备实现只要在轮询循环里把读到的值通过它推出去,UI/采集管道自动收到。<code>Connect</code> 里 <code>Task.Run</code> 起后台循环,<code>while(!token.IsCancellationRequested)</code> 每 500ms 跑一次 <code>Tick</code>——<code>Tick</code> 内部用 <code>ModbusFrameParser.BuildReadHoldingRequest</code> 构造请求帧、<code>SerialPort.Write</code> 下发、轮询 <code>BytesToRead</code> 等够最小响应长度、读响应、<code>Crc16.Check</code> 校验、<code>ParseReadRegisters</code> 拿寄存器、按 ByteOrder 拼 float、<code>RaiseData</code>。<code>Disconnect</code> 必须 <code>Cancel + Wait(500)</code>,否则后台任务没结束 State 就被改了,出现竞态。前端类比:WebSocket 长连接 + setInterval 心跳 + ComponentWillUnmount 清理。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Devices/ModbusDevice.cs</code>):</p>
+<pre><code class="language-csharp">public sealed class ModbusDevice : DeviceBase
+{
+    private readonly byte _slave;
+    private readonly List&lt;RegisterMap&gt; _maps;
+    private SerialPort? _port;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    public ModbusDevice(int id, string name, byte slave, IEnumerable&lt;RegisterMap&gt; maps,
+        string portName = &quot;COM3&quot;, int baud = 9600) : base(id, name)
+    {
+        _slave = slave;
+        _maps = maps.ToList();
+        _port = new SerialPort(portName, baud, Parity.None, 8, StopBits.One);
+    }
+
+    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        _port!.Open();
+        Start();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        Stop();                                  // 先停轮询,避免端口已关还在读
+        if (_port?.IsOpen == true) _port.Close();
+        State = DeviceState.Offline;
+    }
+
+    private void Start()
+    {
+        if (_loop is not null) return;           // 重入保护
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try { while (!token.IsCancellationRequested) { RealTick(); await Task.Delay(500, token); } }
+            catch (OperationCanceledException) { }
+        }, token);
+    }
+
+    private void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { }
+        _cts?.Dispose(); _cts = null; _loop = null;
+    }
+
+    private void RealTick()
+    {
+        foreach (var m in _maps)
+        {
+            ushort count = m.Type == &quot;float&quot; ? (ushort)2 : (ushort)1;
+            var req = ModbusFrameParser.BuildReadHoldingRequest(_slave, m.Address, count);
+            _port!.Write(req, 0, req.Length);
+
+            int waited = 0, minLen = count == 2 ? 9 : 7;
+            while (_port.BytesToRead &lt; minLen &amp;&amp; waited &lt; 1000) { Thread.Sleep(10); waited += 10; }
+            if (_port.BytesToRead == 0) continue;
+
+            var resp = new byte[_port.BytesToRead];
+            _port.Read(resp, 0, resp.Length);
+            if (ModbusFrameParser.IsExceptionResponse(resp, out _)) continue;
+            if (!Crc16.Check(resp)) continue;                          // 坏帧丢
+            var regs = ModbusFrameParser.ParseReadRegisters(resp);
+            if (regs.Length == 0) continue;
+
+            double value = m.Type == &quot;float&quot;
+                ? ModbusFrameParser.ToFloatModbus(regs[0], regs[1], m.Order)
+                : regs[0];
+            _last[m.PointId] = value;
+            RaiseData(m.PointId, value);                               // 抬事件给采集层
+        }
+    }
+
+    public override double Read(int addr) =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        // 功能码 0x06 写单寄存器:[slave][0x06][addrHi][addrLo][valHi][valLo][CRC_L][CRC_H]
+        var payload = new List&lt;byte&gt; { _slave, 0x06, (byte)(addr &gt;&gt; 8), (byte)addr,
+                                       (byte)((int)value &gt;&gt; 8), (byte)(int)value };
+        ushort crc = Crc16.Modbus(payload.ToArray());
+        payload.Add((byte)(crc &amp; 0xFF));
+        payload.Add((byte)(crc &gt;&gt; 8));
+        _port!.Write(payload.ToArray(), 0, payload.Count);
+    }
+
+    public sealed record RegisterMap(int PointId, ushort Address, string Type);
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>Stop()</code> 必须 <code>Wait(500)</code>:不然后台任务还在读 <code>_port</code>,你已 <code>Close()</code>,抛 <code>IOException</code>
+- <code>Start()</code> 重入保护:<code>if (_loop != null) return</code> 防 <code>Connect()</code> 被调两次起两个循环
+- 等响应用 <code>Thread.Sleep(10)</code> + 超时 1000ms:<strong>不要 <code>_port.Read()</code></strong> 阻塞,串口没数据会卡死
+- <code>RaiseData</code> 触发的事件在后台线程,<strong>UI 更新要 Dispatcher.Invoke</strong>(WPF 必踩)
+- 浮点字节序:现场最常见 <code>CDAB</code>(字交换),<strong>不能假设 ABCD</strong>,一定要抓帧确认</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 串口 3.5 字符静默判断帧边界,你这里没做?</strong> A:<code>while(BytesToRead &lt; minLen)</code> 是简化版,真实工程应按波特率算 3.5 字符时间(9600bps 约 4ms);或用 NModbus4 库 <code>async Task&lt;ushort[]&gt; ReadHoldingRegistersAsync()</code> 直接帮你处理。
+- <strong>Q: 设备掉线怎么发现?</strong> A:超时 1000ms 没响应 → 计数器累加 → 连续 3 次失败标 Offline → 触发重连(参 M9 容错讲义)。
+- <strong>Q: 多个设备共享一个串口怎么办?</strong> A:Modbus RTU 多机轮询靠 slave 地址区分,<strong>不能并发</strong>,必须串行(用一个调度器队列)。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M2_Modbus_深度版.md">M2 Modbus 深度版</a> · DAQMonitor <code>Core/Devices/ModbusDevice.cs</code> + <code>ModbusDeviceTests.cs</code></p>
+<h2 id="sec-2-21">B8. 手写 Bootstrapper(DI 配置)(⏱️ 10 分钟)</h2>
+<p><strong>题目</strong>:用 <code>Microsoft.Extensions.DependencyInjection</code> 写一个组合根,注册:SQLite + EF Core(<code>IDbContextFactory&lt;AppDb&gt;</code>)、<code>PointStore</code> 单例、<code>AlarmEngine</code> 单例、<code>AcquisitionPipeline</code> 单例、<code>IDevice</code> 单例(模拟设备)。启动时建库 + 注入 2 条报警规则。</p>
+<p><strong>🎯 面试官想听到</strong>:① <strong>生命周期</strong>选择(Singleton vs Scoped vs Transient);② <strong><code>IDbContextFactory</code> 而非 <code>DbContext</code></strong>:EF Core 8 推荐,因 DbContext 不是线程安全;③ <strong>组合根放在 Core 而不是 UI</strong>:UI/测试/服务复用同一套装配;④ 启动期 <code>EnsureCreated</code>。</p>
+<p><strong>✅ 标准答案</strong>:用 <code>ServiceCollection</code> 注册,关键点:① <code>AddDbContextFactory&lt;AppDb&gt;(opt =&gt; opt.UseSqlite(...))</code> 注册工厂而不是 <code>DbContext</code>,因为 <code>PointStore</code> 是单例,直接注入 <code>DbContext</code> 会让所有线程共用一个,触发 <code>InvalidOperationException</code>;工厂每次 <code>CreateDbContext()</code> 返回新实例,天然规避并发问题。② <code>PointStore / AlarmEngine / AcquisitionPipeline</code> 都是全局共享 → Singleton。③ <code>IDevice</code> 接口注册:模拟设备即可,真实设备改一行就切。④ <code>Build()</code> 末尾用 <code>CreateScope()</code> + <code>EnsureCreated()</code> 建库,然后注入报警规则。前端类比:Nest 的 <code>app.module.ts providers</code> 列表,但 C# DI 更严格(构造注入,不能用 reflect 注解)。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/AppServices/Bootstrapper.cs</code>):</p>
+<pre><code class="language-csharp">public static class Bootstrapper
+{
+    public static ServiceProvider Build()
+    {
+        var services = new ServiceCollection();
+
+        // 数据库文件放 LocalApplicationData:用户隔离、可写、不会被卸载清
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            &quot;DaqMonitor&quot;, &quot;daq.db&quot;);
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+
+        // 注意是 AddDbContextFactory,不是 AddDbContext
+        services.AddDbContextFactory&lt;AppDb&gt;(opt =&gt; opt.UseSqlite($&quot;Data Source={dbPath}&quot;));
+
+        // 全局共享:单例
+        services.AddSingleton&lt;PointStore&gt;();
+        services.AddSingleton&lt;AlarmEngine&gt;();
+        services.AddSingleton&lt;DiagnosticsService&gt;();
+
+        // 管道:200ms 批量出队
+        services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt;
+            new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+
+        // 设备:模拟,真实串口/PLC 改这一行就行(面向接口编程的胜利)
+        services.AddSingleton&lt;IDevice&gt;(_ =&gt; new SimulatedDevice(1, &quot;Sim-01&quot;, 1, 2, 3));
+
+        var provider = services.BuildServiceProvider();
+
+        // 启动期建库(用 EnsureCreated,简单,不依赖迁移;后期改字段改用 Migrate)
+        using (var scope = provider.CreateScope())
+        {
+            var factory = scope.ServiceProvider.GetRequiredService&lt;IDbContextFactory&lt;AppDb&gt;&gt;();
+            using var db = factory.CreateDbContext();
+            db.Database.EnsureCreated();
+        }
+
+        // 预置报警规则
+        var alarms = provider.GetRequiredService&lt;AlarmEngine&gt;();
+        alarms.Add(new AlarmRule { PointId = 1, Threshold = 100, IsHigh = true,
+                                   Level = AlarmLevel.Critical, Hysteresis = 2 });
+        alarms.Add(new AlarmRule { PointId = 2, Threshold = 100, IsHigh = true,
+                                   Level = AlarmLevel.Warning, Hysteresis = 2 });
+
+        return provider;
+    }
+}
+
+// 使用方
+using var provider = Bootstrapper.Build();
+var pipeline = provider.GetRequiredService&lt;AcquisitionPipeline&gt;();
+var device   = provider.GetRequiredService&lt;IDevice&gt;();
+pipeline.Register(device);
+device.Connect();
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong>不要 <code>services.AddDbContext</code> + Singleton 注入 <code>DbContext</code></strong>:DbContext 非线程安全,并发调用 SaveChangesAsync 抛异常(参 C5)
+- <strong><code>IDbContextFactory</code> 必须用 <code>await using</code></strong>:DbContext 实现了 <code>IAsyncDisposable</code>,同步 Dispose 在高频场景会占用 ThreadPool
+- <strong>启动期建库不要在 <code>BuildServiceProvider</code> 之前</strong>:那时容器还没建好,拿不到 factory
+- <strong><code>CreateScope()</code> 必须 <code>using</code></strong>:启动期的 scope 不释放会一直占着 DbContext
+- 多人开发时不要在 Bootstrapper 里 new 业务对象,所有对象都过 DI(便于测试 mock)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 为啥用 <code>IDbContextFactory&lt;T&gt;</code> 不用 <code>AddDbContext</code> + Scoped?</strong> A:Scoped 在 ASP.NET Core 有请求作用域自然适用;在 WPF/服务这种没有"请求"概念的场景,用 Factory 让调用方显式控制 DbContext 生命周期更稳。
+- <strong>Q: 怎么切设备?</strong> A:Bootstrapper 里改一行 <code>services.AddSingleton&lt;IDevice&gt;(...)</code>,UI 和采集层零改动——这就是面向接口编程。
+- <strong>Q: 怎么测?</strong> A:Bootstrapper 返回 ServiceProvider,测试里 <code>provider.GetRequiredService&lt;PointStore&gt;()</code> 拿真实对象组合测;或写 <code>CompositionSmokeTests</code> 跑"能正常装配"冒烟测试(参 DAQMonitor 的 <code>CompositionSmokeTests.cs</code>)。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M4_数据持久化_深度版.md">M4 数据持久化</a> · DAQMonitor <code>Core/AppServices/Bootstrapper.cs</code> + <code>Tests/CompositionSmokeTests.cs</code></p>
+<h2 id="sec-2-22">B9. 手写 RelayCommand(ICommand 实现)(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:WPF 里 <code>Button.Command</code> 需要 <code>ICommand</code>,手写一个 <code>RelayCommand</code> 把 <code>Action</code> + <code>Func&lt;bool&gt;</code> 包成 ICommand。</p>
+<p><strong>🎯 面试官想听到</strong>:<code>CanExecuteChanged</code> 挂到 <code>CommandManager.RequerySuggested</code>(WPF 全局重算),<code>CanExecute</code> 返回 false 时按钮自动灰。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public class RelayCommand : ICommand
+{
+    private readonly Action&lt;object?&gt; _execute;
+    private readonly Func&lt;object?, bool&gt;? _canExecute;
+
+    public RelayCommand(Action&lt;object?&gt; execute, Func&lt;object?, bool&gt;? canExecute = null)
+    {
+        _execute = execute;
+        _canExecute = canExecute;
+    }
+
+    // 挂全局重算:WPF 任何属性变化都会触发 CanExecute 重算(简化,性能差但够用)
+    public event EventHandler? CanExecuteChanged
+    {
+        add =&gt; CommandManager.RequerySuggested += value;
+        remove =&gt; CommandManager.RequerySuggested -= value;
+    }
+
+    public bool CanExecute(object? parameter) =&gt; _canExecute?.Invoke(parameter) ?? true;
+    public void Execute(object? parameter) =&gt; _execute(parameter);
+}
+
+// 用法(VM 里)
+public ICommand SaveCmd { get; }
+public MainViewModel() =&gt; SaveCmd = new RelayCommand(_ =&gt; Save(), _ =&gt; !string.IsNullOrEmpty(_name));
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>CommandManager.RequerySuggested</code> 是弱订阅,但 <code>add/remove</code> 必须配套,否则内存泄漏
+- 大量按钮(&gt;100)时全局重算会卡,生产用 <code>ICommand</code> 显式 <code>RaiseCanExecuteChanged()</code>
+- Prism 的 <code>DelegateCommand</code> 是更完整版本,支持 <code>ObservesProperty(() =&gt; Name)</code> 自动重算</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 按钮什么时候自动灰?</strong> A:绑定 <code>Command</code> + <code>CanExecute</code> 返回 false,WPF 自动设 <code>IsEnabled=false</code>,无需手动管 UI。
+- <strong>Q: CanExecute 怎么刷新?</strong> A:<code>CommandManager.InvalidateRequerySuggested()</code>(全局)或自己暴露 <code>RaiseCanExecuteChanged()</code>(精确)。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a> · DAQMonitor <code>UI/ViewModels/RelayCommand.cs</code></p>
+<h2 id="sec-2-23">B10. 手写 INotifyPropertyChanged(无 Prism 基类)(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:不继承 <code>BindableBase</code>,从零实现 <code>INotifyPropertyChanged</code> + <code>SetProperty</code> 助手。</p>
+<p><strong>🎯 面试官想听到</strong>:① <code>PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)))</code>;② <code>SetProperty</code> 比较 + 赋值 + 触发事件三合一。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public class MyVm : INotifyPropertyChanged
+{
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private string _name = &quot;&quot;;
+    public string Name
+    {
+        get =&gt; _name;
+        set =&gt; SetProperty(ref _name, value);
+    }
+
+    // 三合一助手:string 比较省一次事件触发
+    protected bool SetProperty&lt;T&gt;(ref T field, T value, [CallerMemberName] string? prop = null)
+    {
+        if (EqualityComparer&lt;T&gt;.Default.Equals(field, value)) return false;
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+        return true;
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>[CallerMemberName]</code> 自动填属性名,不要手写 nameof 容易漏改
+- <code>EqualityComparer&lt;T&gt;.Default.Equals</code> 比 <code>==</code> 安全(值类型/引用类型/可空都行)
+- 事件触发<strong>不在构造函数里</strong>(此时订阅者还没挂),要么延迟到 <code>Initialized</code> 事件</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 为啥要用 <code>INotifyPropertyChanged</code> 而不是 DependencyProperty?</strong> A:DP 必须继承 DependencyObject(线程亲和),VM 里用 INPC 更易测、跨线程。
+- <strong>Q: 跨线程改属性 UI 会更新吗?</strong> A:WPF 自动 marshal 到 UI 线程(绑定引擎干的);UWP/WinUI 不行,必须 Dispatcher。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a> · <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 8</a></p>
+<h2 id="sec-2-24">B11. 手写 PointStore 内存索引 + SQLite 落库(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:实现 <code>PointStore</code>,提供 <code>AddOrUpdate(point)</code> 同步刷新内存索引 + 异步落 SQLite;<code>QueryHistoryAsync(pointId, from, to)</code> 查历史。</p>
+<p><strong>🎯 面试官想听到</strong>:① <strong>双轨设计</strong>:内存索引服务实时路径(不阻塞 IO),SQLite 服务历史查询;② <strong>SQLite 单写者约束</strong>:用 <code>Channel&lt;T&gt;</code> 串行化所有写;③ <strong><code>IDbContextFactory</code> + <code>await using</code></strong>:每条写入独立 DbContext。④ <strong>采集线程不阻塞</strong>:写库通过 Channel 解耦。</p>
+<p><strong>✅ 标准答案</strong>:核心矛盾——采集线程同步调 <code>AddOrUpdate</code>,但 SQLite 写盘慢,直接 <code>await db.SaveChangesAsync()</code> 会把采集链路也拖慢,而且 SQLite 是单写者(并发写直接抛 <code>SQLiteException: database is locked</code>)。<strong>解法</strong>:<code>AddOrUpdate</code> 内部 ① <code>lock(_gate)</code> 同步更新内存索引 + <code>Dictionary&lt;int, SensorPoint&gt;</code> + <code>List&lt;SensorPoint&gt;</code>(给 UI 和 GetAlarms 用);② <code>_writeQueue.Writer.TryWrite(record)</code> 把写库任务塞 Channel。后台 <code>_writePump</code> 是 <code>await foreach(var rec in reader.ReadAllAsync())</code> 串行消费,<strong>SingleReader=true</strong> 让 Channel 内部无锁优化。pump 里 <code>await using var db = factory.CreateDbContextAsync()</code> → <code>db.Add + SaveChangesAsync</code>。落盘失败不抛(只吞),因为实时路径已用内存索引服务了,不会因为磁盘满让采集挂。前端类比:IndexedDB + 内存 Map 双写,或 Redux store + localStorage。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Store/PointStore.cs</code>):</p>
+<pre><code class="language-csharp">public class PointStore : IDisposable
+{
+    private readonly List&lt;SensorPoint&gt; _points = new();
+    private readonly Dictionary&lt;int, SensorPoint&gt; _byId = new();
+    private readonly object _gate = new();
+
+    private readonly IDbContextFactory&lt;AppDb&gt; _dbFactory;
+    private readonly System.Threading.Channels.Channel&lt;SensorRecord&gt; _writeQueue =
+        System.Threading.Channels.Channel.CreateUnbounded&lt;SensorRecord&gt;(
+            new() { SingleReader = true, SingleWriter = false });
+    private readonly Task _writePump;
+    private volatile bool _disposed;
+
+    public PointStore(IDbContextFactory&lt;AppDb&gt; factory)
+    {
+        _dbFactory = factory;
+        _writePump = Task.Run(PumpWritesAsync);
+    }
+
+    // 采集线程调用:同步刷内存 + 异步落盘(不阻塞采集)
+    public void AddOrUpdate(SensorPoint p)
+    {
+        lock (_gate)
+        {
+            _byId[p.Id] = p;
+            var idx = _points.FindIndex(x =&gt; x.Id == p.Id);
+            if (idx &gt;= 0) _points[idx] = p;
+            else _points.Add(p);
+        }
+        if (!_disposed) _writeQueue.Writer.TryWrite(SensorRecord.FromPoint(p));
+    }
+
+    public SensorPoint? Get(int id) { lock (_gate) return _byId.TryGetValue(id, out var p) ? p : null; }
+    public IReadOnlyList&lt;SensorPoint&gt; GetAll() { lock (_gate) return _points.ToList(); }
+
+    // 历史查询走 SQLite
+    public async Task&lt;List&lt;SensorPoint&gt;&gt; QueryHistoryAsync(int pointId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var rows = await db.Records.AsNoTracking()
+            .Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to)
+            .OrderBy(r =&gt; r.Time)
+            .ToListAsync(ct);
+        return rows.ConvertAll(r =&gt; r.ToPoint());
+    }
+
+    // 单消费者:串行写,满足 SQLite 单写者
+    private async Task PumpWritesAsync()
+    {
+        var reader = _writeQueue.Reader;
+        try
+        {
+            await foreach (var rec in reader.ReadAllAsync())
+            {
+                if (_disposed) break;
+                try
+                {
+                    await using var db = await _dbFactory.CreateDbContextAsync();
+                    db.Records.Add(rec);
+                    await db.SaveChangesAsync();
+                }
+                catch { /* 落盘失败不阻断采集 */ }
+            }
+        }
+        catch { }
+    }
+
+    public Task FlushAsync(TimeSpan? timeout = null)
+    {
+        _writeQueue.Writer.TryComplete();
+        return _writePump.WaitAsync(timeout ?? TimeSpan.FromSeconds(5));
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _writeQueue.Writer.TryComplete();
+        try { _writePump.Wait(TimeSpan.FromSeconds(2)); } catch { }
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong>不要直接 <code>AddDbContext</code> + Singleton</strong>:DbContext 并发炸(参 C5)
+- <strong>Channel 必须 <code>SingleReader=true</code></strong>:否则内部加锁,pump 单消费者场景白白损失性能
+- <strong><code>AddOrUpdate</code> 不能 await</strong>:采集线程是同步循环,改 Task 会污染整条链路
+- <strong><code>_disposed</code> 必须 <code>volatile</code></strong>:pump 在另一线程读,主线程写,避免重排
+- <strong><code>FlushAsync</code> 测试必调</strong>:不然 pump 还在跑测试就退出,丢点 + DbContext 泄漏</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 高频写(每秒 1000 点)SQLite 顶得住吗?</strong> A:单条 <code>SaveChangesAsync</code> 撑不住,改批量——pump 里 <code>BatchBlock</code> 攒 100 条/200ms 一批,用 <code>db.AddRangeRange + SaveChanges</code>,性能提升 10-50 倍。或换 LiteDB / 不落历史只留内存环形缓冲。
+- <strong>Q: 内存索引和 SQLite 不一致怎么办?</strong> A:设计上接受"内存是最新,SQLite 是历史",不要求强一致。落盘失败就丢这条历史,业务可接受。
+- <strong>Q: 为啥不用 <code>BufferBlock&lt;T&gt;</code>(TPL Dataflow)?</strong> A:Channel<T> 是 .NET Core 2.1+ 内置、API 更简洁、性能更好,Dataflow 已是上一代技术。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M4_数据持久化_深度版.md">M4 数据持久化</a> · DAQMonitor <code>Core/Store/PointStore.cs</code> + <code>Tests/PointStoreTests.cs</code></p>
+<h2 id="sec-2-25">B12. 手写 HttpClient Polly 重试 + 熔断(⏱️ 10 分钟)</h2>
+<p><strong>题目</strong>:用 <code>IHttpClientFactory</code> + Polly 注册一个 HttpClient,要求:① 5xx / 任务超时指数退避重试 3 次;② 连续 5 次失败熔断 30 秒;③ 每次请求 5 秒超时。</p>
+<p><strong>🎯 面试官想听到</strong>:① <strong>必须用 <code>IHttpClientFactory</code>,不能 <code>new HttpClient()</code></strong>(Socket 端口耗尽);② Polly 的 <code>AddPolicyHandler</code> 注册顺序:超时在最内层、重试中间、熔断最外;③ 熔断器三态(Closed / Open / HalfOpen)。</p>
+<p><strong>✅ 标准答案</strong>:.NET 8 推荐 <code>services.AddHttpClient&lt;TClient&gt;(...).AddPolicyHandler(...)</code> 链式注册策略。重试用 <code>Policy.Handle&lt;HttpRequestException&gt;().OrResult&lt;HttpResponseMessage&gt;(r =&gt; (int)r.StatusCode &gt;= 500).WaitAndRetryAsync(...)</code>;熔断用 <code>AdvancedCircuitBreakerAsync(failureThreshold: 0.5, samplingDuration: 30s, minimumThroughput: 10, durationOfBreak: 30s)</code>。<strong>关键陷阱</strong>:① <code>new HttpClient()</code> 会耗尽 socket(每个实例独占 socket,GC 慢回收),必须用 Factory 让 socket 池复用;② <code>AddPolicyHandler</code> 顺序是"洋葱"——先注册的最外层,所以熔断要在重试之前注册;③ 超时用 <code>WaitAndRetryAsync</code> 内部的 <code>TimeSpan</code> 退避 + <code>CancellationToken</code>,不要在熔断后再加超时。前端类比:axios-retry + circuit-breaker.js,但 Polly 是工业级。</p>
+<p><strong>💻 关键代码</strong>(.NET 8 + Polly v8 写法):</p>
+<pre><code class="language-csharp">// Program.cs / Bootstrapper
+using Polly;
+using Polly.Extensions.Http;
+
+services.AddHttpClient&lt;IApiService, ApiService&gt;(c =&gt;
+{
+    c.BaseAddress = new Uri(&quot;http://api.example.com&quot;);
+    c.Timeout = TimeSpan.FromSeconds(5);                  // 单次请求超时
+})
+.AddPolicyHandler(GetRetryPolicy())                       // 先注册 = 最外层
+.AddPolicyHandler(GetCircuitBreakerPolicy());
+
+static IAsyncPolicy&lt;HttpResponseMessage&gt; GetRetryPolicy()
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()                       // 5xx + 408
+        .OrResult(r =&gt; r.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
+        .WaitAndRetryAsync(
+            retryCount: 3,
+            sleepDurationProvider: attempt =&gt; TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 200),
+            onRetryAsync: (outcome, delay, attempt, ctx) =&gt;
+            {
+                // 注入 ILogger 上报,生产必加
+                return Task.CompletedTask;
+            });
+}
+
+static IAsyncPolicy&lt;HttpResponseMessage&gt; GetCircuitBreakerPolicy()
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .AdvancedCircuitBreakerAsync(
+            failureThreshold: 0.5,                        // 50% 失败率触发
+            samplingDuration: TimeSpan.FromSeconds(30),   // 30s 采样窗口
+            minimumThroughput: 10,                        // 至少 10 次请求才统计
+            durationOfBreak: TimeSpan.FromSeconds(30));   // 熔断 30s
+}
+
+// 用法
+public class ApiService
+{
+    private readonly HttpClient _http;
+    public ApiService(HttpClient http) =&gt; _http = http;   // Factory 自动注入带策略的 client
+
+    public async Task&lt;Data?&gt; GetDataAsync(CancellationToken ct)
+        =&gt; await _http.GetFromJsonAsync&lt;Data&gt;(&quot;/api/data&quot;, ct);
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong><code>new HttpClient()</code> 是经典坑</strong>:.NET Framework 时代会耗尽 socket;.NET Core 后用了共享池但仍有 DNS 不刷新问题,统一用 Factory
+- <strong>Polly v8 移除了 <code>Policy.Handle</code> 旧 API</strong>:用 <code>ResiliencePipelineBuilder()</code>,v7 老代码要迁移
+- <strong>熔断 + 重试顺序</strong>:<code>AddPolicyHandler</code> 先注册的是外层,所以重试应该先于熔断注册(让熔断包重试)——上面代码反过来了,要小心调整顺序匹配业务诉求
+- <strong>超时两层</strong>:HttpClient.Timeout 是单次请求,Polly 的重试会<strong>重新计时</strong>,总耗时 = 3 × 5s + 退避
+- <strong>不要 <code>Handle&lt;Exception&gt;</code></strong> 全 catch:业务异常(ArgumentNullException)不该重试</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 熔断了再请求会怎样?</strong> A:Polly 抛 <code>BrokenCircuitException</code>,你的 catch 应转 fallback(返回缓存/默认值),不要让熔断异常冒到用户。
+- <strong>Q: Polly v8 推荐写法?</strong> A:<code>new ResiliencePipelineBuilder().AddRetry(...).AddCircuitBreaker(...).AddTimeout(...).Build()</code>,然后 <code>services.AddHttpClient&lt;T&gt;().AddResilienceHandler("api", pipeline)</code>,更组合化。
+- <strong>Q: 怎么测重试?</strong> A:用 WireMock.Net 模拟 500 → 500 → 200,断言总共调用 3 次。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M9_容错与重试_深度版.md">M9 容错与重试</a> · DAQMonitor <code>Core/Resilience/Retry.cs</code>(手撸版)</p>
+<h2 id="sec-2-26">B13. 手写 MQTT Publish + Subscribe 双向(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:用 MQTTnet 4 实现一个 <code>MqttClientService</code>:连接 broker、订阅 <code>device/+/data</code>、收到消息触发 <code>MessageReceived</code> 事件、提供 <code>PublishAsync(topic, payload)</code> 发布消息。带自动重连。</p>
+<p><strong>🎯 面试官想听到</strong>:① MQTTnet 4 的 <code>IMqttClient</code> + <code>MqttClientOptionsBuilder</code>;② 订阅用 <code>SubscribeAsync</code> + <code>ApplicationMessageReceivedAsync</code> 事件;③ <strong>自动重连</strong>:<code>MqttClientOptionsBuilder.WithAutoReconnectDelay</code>;④ 通配符订阅 <code>device/+/data</code>(+ 单层 / # 多层)。</p>
+<p><strong>✅ 标准答案</strong>:MQTTnet 4 的 API 比较干净:<code>MqttFactory().CreateMqttClient()</code> 创建客户端,<code>ConnectAsync</code> 用 options builder 配置 broker 地址 / 凭据 / 心跳 / 自动重连。订阅用 <code>SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("device/+/data").WithAtLeastOnceQoS().Build())</code>。<strong>消息接收</strong>通过 <code>ApplicationMessageReceivedAsync</code> 事件(返回 <code>Task</code>),内部 e.ApplicationMessage.Topic / Payload 取数据,<strong>事件里不能阻塞</strong>(否则 broker 断开)——业务侧用 Channel 解耦。<code>PublishAsync(new MqttApplicationMessageBuilder().WithTopic(...).WithPayload(...).WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce).Build())</code>。前端类比:mqtt.js + EventEmitter,但 C# 这边是强类型 + 异步。</p>
+<p><strong>💻 关键代码</strong>(MQTTnet 4.x):</p>
+<pre><code class="language-csharp">using MQTTnet;
+using MQTTnet.Protocol;
+using MQTTnet.Client;
+
+public sealed class MqttClientService : IAsyncDisposable
+{
+    private readonly IMqttClient _client = new MqttFactory().CreateMqttClient();
+    private readonly string _brokerHost;
+
+    public event Action&lt;string, ReadOnlyMemory&lt;byte&gt;&gt;? MessageReceived;
+
+    public MqttClientService(string brokerHost) =&gt; _brokerHost = brokerHost;
+
+    public async Task ConnectAsync(CancellationToken ct = default)
+    {
+        var options = new MqttClientOptionsBuilder()
+            .WithClientId($&quot;daq-{Environment.MachineName}-{Guid.NewGuid():N}&quot;.Substring(0, 20))
+            .WithTcpServer(_brokerHost, 1883)
+            .WithCredentials(&quot;user&quot;, &quot;pass&quot;)
+            .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))
+            .WithKeepAliveSendInterval(TimeSpan.FromSeconds(15))
+            .WithAutoReconnectDelay(TimeSpan.FromSeconds(2))      // 自动重连
+            .WithCleanSession(false)                              // 持久会话:断线期间的消息重连后补发
+            .Build();
+
+        _client.ApplicationMessageReceivedAsync += OnMessageAsync;
+        _client.DisconnectedAsync += OnDisconnectedAsync;
+
+        await _client.ConnectAsync(options, ct);
+
+        await _client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
+            .WithTopicFilter(f =&gt; f.WithTopic(&quot;device/+/data&quot;)     // + = 单层通配
+                                   .WithAtLeastOnceQualityOfService())
+            .WithTopicFilter(f =&gt; f.WithTopic(&quot;alarm/#&quot;)           // # = 多层通配
+                                   .WithAtLeastOnceQualityOfService())
+            .Build(), ct);
+    }
+
+    private Task OnMessageAsync(MqttApplicationMessageReceivedEventArgs e)
+    {
+        // 不要在这里 await 长任务!会阻塞 MQTT 内部循环
+        MessageReceived?.Invoke(e.ApplicationMessage.Topic, e.ApplicationMessage.Payload);
+        return Task.CompletedTask;
+    }
+
+    private Task OnDisconnectedAsync(MqttClientDisconnectedEventArgs e)
+    {
+        // AutoReconnect 已开,这里只做日志
+        return Task.CompletedTask;
+    }
+
+    public async Task PublishAsync(string topic, ReadOnlyMemory&lt;byte&gt; payload,
+        MqttQualityOfServiceLevel qos = MqttQualityOfServiceLevel.AtLeastOnce,
+        bool retain = false, CancellationToken ct = default)
+    {
+        if (!_client.IsConnected) return;                         // 离线丢弃,生产要加本地队列
+
+        var msg = new MqttApplicationMessageBuilder()
+            .WithTopic(topic)
+            .WithPayload(payload)
+            .WithQualityOfServiceLevel(qos)
+            .WithRetainFlag(retain)
+            .Build();
+        await _client.PublishAsync(msg, ct);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _client.ApplicationMessageReceivedAsync -= OnMessageAsync;
+        if (_client.IsConnected) await _client.DisconnectAsync();
+        _client.Dispose();
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong><code>ApplicationMessageReceivedAsync</code> 不能阻塞</strong>:加 lock / await HTTP 都会卡住 MQTT 内部循环,broker 看成客户端假死 → 断开。<strong>用 Channel<T> 把消息丢队列异步处理</strong>
+- <strong>ClientId 重复</strong>:两个进程用同样 ClientId,会互相踢(后连的踢先连的)。生产用 <code>MachineName + Guid</code> 保证唯一
+- <strong>QoS 选择</strong>:AtMostOnce(0)= 火警忽略;AtLeastOnce(1)= 默认,可能重复;ExactlyOnce(2)= 性能差慎用
+- <strong><code>WithCleanSession(false)</code> 是关键</strong>:配合持久会话,断线期间 broker 缓存消息,重连补发
+- MQTTnet 4 与 3 API 完全不兼容,老代码迁移成本高</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 离线发布怎么保证不丢?</strong> A:<code>WithCleanSession(false)</code> + QoS 1,broker 缓存;客户端侧用本地 SQLite 队列,连上后回放。
+- <strong>Q: 主题通配符 <code>+</code> 和 <code>#</code> 区别?</strong> A:<code>device/+/data</code> 匹配 <code>device/A/data</code> 不匹配 <code>device/A/B/data</code>;<code>alarm/#</code> 匹配 <code>alarm/fire/1</code>、<code>alarm/any/multi/level</code>。
+- <strong>Q: 高频发布(每秒 1000 条)怎么压?</strong> A:批量构造 <code>MqttApplicationMessage[]</code>,<code>PublishAsync</code> 循环;或用 MQTTnet 的 <code>PublishAsync(IAsyncEnumerable&lt;...&gt;)</code> 流式发布;Payload 用 MessagePack 替代 JSON。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA + MQTT 深度版</a> · MQTTnet 官方 wiki</p>
+<h2 id="sec-2-27">B14. 手写 OPC UA 异步客户端(⏱️ 15 分钟,骨架)</h2>
+<p><strong>题目</strong>:用 Opc.Ua.Client 订阅 Server.Status.CurrentTime 节点,变化时打印。</p>
+<p><strong>🎯 面试官想听到</strong>:① Session + Subscription + MonitoredItem 三层结构;② 异步 <code>ConnectAsync</code> + <code>Subscription.CreateAsync</code>;③ <code>Notification</code> 事件回调。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">using Opc.Ua;
+using Opc.Ua.Client;
+using Opc.Ua.Configuration;
+
+public sealed class OpcUaSubscriber : IAsyncDisposable
+{
+    private Session? _session;
+    private Subscription? _sub;
+
+    public async Task ConnectAsync(string endpoint, CancellationToken ct = default)
+    {
+        var config = new ApplicationConfiguration
+        {
+            ApplicationName = &quot;DaqMonitor&quot;,
+            ApplicationType = ApplicationType.Client,
+            SecurityConfiguration = new SecurityConfiguration
+            {
+                AutoAcceptUntrustedCertificates = true   // 调试用,生产应验证书
+            }
+        };
+        await config.Validate(ApplicationType.Client);
+
+        var endpointUrl = new Uri(endpoint);
+        var ep = await CoreClientUtils.SelectEndpointAsync(config, endpointUrl, useSecurity: false);
+        _session = await Session.Create(config, new ConfiguredEndpoint(null, ep),
+            updateBeforeConnect: false, sessionName: &quot;Daq&quot;, sessionTimeout: 30_000,
+            identity: new UserIdentity(), preferredLocales: Array.Empty&lt;string&gt;(), ct);
+    }
+
+    public async Task SubscribeAsync(string nodeId, Action&lt;double&gt; onChange, CancellationToken ct)
+    {
+        _sub = await _session!.CreateSubscriptionAsync(
+            new SubscriptionDescription
+            {
+                PublishingInterval = 500,
+                DisplayName = &quot;Default&quot;,
+                PublishingEnabled = true
+            }, ct);
+
+        var item = new MonitoredItem
+        {
+            DisplayName = nodeId,
+            StartNodeId = new NodeId(nodeId),
+            AttributeId = Attributes.Value,
+            SamplingInterval = 500,
+            MonitoringMode = MonitoringMode.Reporting
+        };
+        item.Notification += (s, e) =&gt;
+        {
+            foreach (var val in e.NotificationValues)
+                if (val is double d) onChange(d);
+        };
+        _sub.AddItem(item);
+        await _sub.ApplyChangesAsync(ct);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_sub is not null) { _sub.RemoveItems(_sub.MonitoredItems); _sub.Dispose(); }
+        if (_session is not null) { await _session.CloseAsync(); _session.Dispose(); }
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- OPC UA Session 不是线程安全,跨线程订阅要加锁
+- <code>AutoAcceptUntrustedCertificates=true</code> 生产禁用,必须验签
+- <code>MonitoringMode.Reporting</code> vs <code>Sampling</code>:前者按 PublishingInterval 推送,后者只采样不推
+- 节点 ID 用 <code>"ns=2;s=My.Variable"</code> 格式,不是简单的字符串</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: OPC UA 比 Modbus 强在哪?</strong> A:类型系统(对象/方法/事件)、内置安全(签名加密)、订阅模式(变化推送,不用轮询)、信息模型(每个变量都有 description/unit/engineeringRange)。
+- <strong>Q: 几千个点位订阅怎么压?</strong> A:一个 Subscription 装 1000 个 MonitoredItem,不要 1000 个 Subscription;调整 <code>PublishingInterval</code> 与 <code>SamplingInterval</code> 比例降流量。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA 深度版</a> · 官方 Opc.Ua.Client SDK</p>
+<h2 id="sec-2-28">B15. 手写 PlcDevice(S7.Net 异步)(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:基于 <code>DeviceBase</code>,用 S7NetPlus 实现一个 S7-1200 PLC 设备。<code>Connect</code> 建 TCP 长连 + 后台 500ms 轮询 <code>DB1.DBW0</code> 等;<code>Read</code> 返回缓存;<code>Write</code> 同步写。</p>
+<p><strong>🎯 面试官想听到</strong>:① S7 协议是 ISO-on-TCP(102 端口),<code>Plc(CpuType.S71200, ip, rack, slot)</code>;② <strong><code>IsConnected</code> 不可全信</strong>,真正"通不通"要看 <code>LastErrorCode</code>;③ 后台轮询同 ModbusDevice 模式;④ <strong>DB 块地址解析</strong>:<code>DB1.DBW0</code> = DB 块 1 的字 0(2 字节)。</p>
+<p><strong>✅ 标准答案</strong>:S7NetPlus 的 <code>Plc</code> 类是同步 API(<code>Read</code>/<code>Write</code>/<code>Open</code> 都是阻塞),C# 上位机不能直接用,必须 <code>Task.Run</code> 包成异步。<code>Connect</code> 里 <code>plc.Open()</code>,如果成功启动后台 <code>Task.Run</code> 循环——每次 Tick 遍历 <code>_maps</code>,对每个点位 <code>var raw = (short)plc.Read(m.DbAddress);</code>,<strong>关键判断</strong>:<code>if (plc.LastErrorCode != 0) continue</code>——<code>IsConnected</code> 仅表示 TCP 通,不代表 PLC 真的响应(可能 PLC 进入 STOP 模式)。读回来用 <code>RaiseData</code> 抬事件,UI 自动更新。<code>Write</code> 同步 <code>plc.Write(addr, (short)value)</code>。<strong>Disconnect</strong> 时 <code>plc.Close()</code>。前端类比:WebSocket + setInterval 轮询 + ComponentWillUnmount 关连接。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Devices/PlcDevice.cs</code> 真实模式 + S7NetPlus):</p>
+<pre><code class="language-csharp">using S7;
+
+public sealed class PlcDevice : DeviceBase
+{
+    public sealed record PlcMap(int PointId, string DbAddress);   // &quot;DB1.DBW0&quot;
+
+    private readonly string _ip;
+    private readonly List&lt;PlcMap&gt; _maps;
+    private Plc? _plc;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    public PlcDevice(int id, string name, string ip, IEnumerable&lt;PlcMap&gt; maps) : base(id, name)
+    {
+        _ip = ip;
+        _maps = maps.ToList();
+    }
+
+    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        _plc = new Plc(CpuType.S71200, _ip, rack: 0, slot: 1);
+        _plc.Open();                                            // 阻塞调用,生产应包 Task.Run
+        Start();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        try { _plc?.Close(); } catch { }
+        State = DeviceState.Offline;
+    }
+
+    private void Start()
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    Tick();
+                    await Task.Delay(500, token);
+                }
+            }
+            catch (OperationCanceledException) { }
+        }, token);
+    }
+
+    private void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { }
+        _cts?.Dispose(); _cts = null; _loop = null;
+    }
+
+    private void Tick()
+    {
+        foreach (var m in _maps)
+        {
+            try
+            {
+                // S7.Net Read 是同步阻塞,真实工程应 Task.Run 包,或用 async 库
+                var raw = (short)_plc!.Read(m.DbAddress);       // DB1.DBW0 → Int16
+                if (_plc.LastErrorCode != 0) continue;          // IsConnected 不可全信!
+
+                double v = raw;
+                _last[m.PointId] = v;
+                RaiseData(m.PointId, v);
+            }
+            catch { /* 单点失败不阻断其他点位 */ }
+        }
+    }
+
+    public override double Read(int addr)
+        =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        if (_plc?.IsConnected != true) return;
+        // DB1.DBW0 = addr,写 Int16(Word)
+        var map = _maps.FirstOrDefault(m =&gt; m.PointId == addr);
+        if (map is null) return;
+        _plc.Write(map.DbAddress, (short)value);
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong><code>IsConnected</code> 不可全信</strong>:TCP 通不代表 PLC 在 RUN,PLC 进 STOP 模式后 <code>IsConnected=true</code> 但 <code>LastErrorCode != 0</code>
+- <strong>S7.Net 是同步 API</strong>:大量并发点位读会卡 ThreadPool,生产要么用 <code>Task.Run</code> 包,要么换 <code>S7NetPlus.Async</code> 扩展或 <code>Sharp7</code>
+- <strong>DB 块地址格式严格</strong>:<code>DB1.DBW0</code>(块1,字0)、<code>DB1.DBD4</code>(块1,双字4,占 4 字节)、<code>DB1.DBX0.0</code>(块1,位0.0)
+- <strong>数据类型要 cast 对</strong>:<code>Read</code> 返回 <code>object</code>,Int16/UInt16/Int32/Float 转换错会读到垃圾值
+- <strong>rack/slot</strong>:S7-1200/1500 一般 rack=0 slot=1;S7-300 rack=0 slot=2。连不上先查这个</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 怎么读一个 DWord 浮点?</strong> A:<code>(float)plc.Read("DB1.DBD0")</code>,DBD = Double Word = 4 字节。但要确认 PLC 程序员在 DB 块里把这个地址声明成 Real,不是 DInt。
+- <strong>Q: 多个 PLC 怎么并发读?</strong> A:每个 PLC 一个 <code>Plc</code> 实例,一个后台任务,<strong>不要共享 Plc</strong>(非线程安全)。
+- <strong>Q: 怎么订阅而不是轮询?</strong> A:S7 协议不原生支持订阅;OPC UA 才有。或 PLC 程序员写触发块,上位机用 alarmed 位轮询。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M3_PLC_深度版.md">M3 PLC 深度版</a> · DAQMonitor <code>Core/Devices/PlcDevice.cs</code> · S7NetPlus GitHub</p>
+<h2 id="sec-2-29">B16. 手写 TcpDevice 粘包处理(状态机)(⏱️ 15 分钟)</h2>
+<p><strong>题目</strong>:实现 TCP 长连接设备的接收循环。帧格式 <code>[AA 55][LEN_LO][LEN_HI][payload][CRC_LO][CRC_HI]</code>,处理:① 半包(收到的字节不够一帧);② 粘包(多条帧粘在一起);③ 头不对齐(乱码,需要重新同步);④ 心跳超时检测 + 自动重连。</p>
+<p><strong>🎯 面试官想听到</strong>:① <strong><code>ReceiveAsync</code> 循环 + 滚动缓冲 + <code>TryParse</code> 状态机</strong>;② 头不对齐丢 1 字节重同步;③ <strong>断线后指数退避重连</strong>(1s/2s/4s/8s/16s);④ 心跳用并行 <code>Task.Delay</code> + 静默时长判断。</p>
+<p><strong>✅ 标准答案</strong>:TCP 是字节流,无消息边界,<strong>接收方必须自己拼帧</strong>。架构是:<strong>外层重连循环</strong>(while !ct.IsCancellationRequested → ConnectOnce → ReceiveLoop → 出错后 DelayBackoff);<strong>接收循环</strong>(<code>ReceiveAsync(seg)</code> → <code>buffer.AddRange</code> → <code>DrainBuffer</code>)→ <code>DrainBuffer</code> 在 <code>while(buffer.Count&gt;0)</code> 里循环调 <code>TcpFrameParser.TryParse(span, out payload, out frameLen, out needResync)</code>,<strong>true</strong> → 消费 <code>frameLen</code> 字节、调 <code>HandlePayload</code>;<strong>false</strong> 且 <code>needResync</code> → <code>buffer.RemoveAt(0)</code> 丢 1 字节重同步;<strong>false</strong> 且不 needResync(数据不够) → <code>break</code> 等下次 Receive。<strong>心跳并行</strong>:<code>Task.Delay(10s) → SendAsync(heartbeat)</code>,<strong>断线检测</strong>:<code>if (UtcNow - lastRecv &gt; 30s) return</code>。前端类比:WebSocket + 自己写 protobuf 长度前缀解析的 chunked buffer。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Devices/TcpDevice.cs</code>):</p>
+<pre><code class="language-csharp">public sealed class TcpDevice : DeviceBase
+{
+    private const int HeartbeatIntervalMs = 10_000;
+    private const int OfflineTimeoutMs = 30_000;
+    private static readonly int[] BackoffMs = { 1000, 2000, 4000, 8000, 16000 };
+
+    private readonly string _host;
+    private readonly int _port;
+    private Socket? _socket;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+    private readonly byte[] _rx = new byte[4096];
+    private readonly ConcurrentDictionary&lt;int, double&gt; _last = new();
+
+    public TcpDevice(int id, string name, string host, int port) : base(id, name)
+    {
+        _host = host; _port = port;
+    }
+
+    public override void Connect()
+    {
+        if (State == DeviceState.Online) return;
+        State = DeviceState.Connecting;
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        _loop = Task.Run(() =&gt; RealLoop(_cts.Token), _cts.Token);
+    }
+
+    public override void Disconnect() { Stop(); State = DeviceState.Offline; }
+
+    private async Task RealLoop(CancellationToken ct)
+    {
+        int backoffIdx = 0;
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                if (!ConnectOnce())
+                {
+                    await DelayBackoff(ct, backoffIdx);
+                    backoffIdx = Math.Min(backoffIdx + 1, BackoffMs.Length - 1);
+                    continue;
+                }
+                backoffIdx = 0;
+                State = DeviceState.Online;
+
+                using var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                _ = HeartbeatLoop(heartbeatCts.Token);          // 并行心跳
+
+                await ReceiveLoop(ct);                          // 正常退出=掉线
+                heartbeatCts.Cancel();
+            }
+            catch (OperationCanceledException) { break; }
+            catch (SocketException) { /* 走重连 */ }
+            catch (IOException) { /* 走重连 */ }
+            finally { CloseSocket(); State = DeviceState.Connecting; }
+
+            if (ct.IsCancellationRequested) break;
+            await DelayBackoff(ct, backoffIdx);
+            backoffIdx = Math.Min(backoffIdx + 1, BackoffMs.Length - 1);
+        }
+    }
+
+    private bool ConnectOnce()
+    {
+        try
+        {
+            CloseSocket();
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+            {
+                ReceiveTimeout = OfflineTimeoutMs,
+                SendTimeout = 5000
+            };
+            _socket.Connect(_host, _port);
+            return true;
+        }
+        catch (SocketException) { return false; }
+    }
+
+    private async Task ReceiveLoop(CancellationToken ct)
+    {
+        var buffer = new List&lt;byte&gt;(4096);                      // 滚动缓冲
+        var seg = new byte[4096];
+        DateTime lastRecv = DateTime.UtcNow;
+
+        while (!ct.IsCancellationRequested &amp;&amp; _socket?.Connected == true)
+        {
+            int n;
+            try { n = await _socket.ReceiveAsync(new ArraySegment&lt;byte&gt;(seg), SocketFlags.None, ct); }
+            catch (SocketException) { return; }
+            if (n == 0) return;                                 // 对端关闭
+            lastRecv = DateTime.UtcNow;
+
+            buffer.AddRange(seg.AsSpan(0, n));
+            DrainBuffer(buffer);                                // 切出所有完整帧
+
+            if ((DateTime.UtcNow - lastRecv).TotalMilliseconds &gt; OfflineTimeoutMs) return;
+        }
+    }
+
+    private void DrainBuffer(List&lt;byte&gt; buffer)
+    {
+        while (buffer.Count &gt; 0)
+        {
+            var span = CollectionsMarshal.AsSpan(buffer);
+            if (!TcpFrameParser.TryParse(span, out var payload, out int frameLen, out bool needResync))
+            {
+                if (needResync) buffer.RemoveAt(0);             // 头不对齐:丢 1 字节重同步
+                break;                                          // 数据不够:等下次 Receive
+            }
+            HandlePayload(payload);
+            buffer.RemoveRange(0, frameLen);
+        }
+    }
+
+    private void HandlePayload(byte[] payload)
+    {
+        // 业务解析:payload[0] 功能码,payload[1..] 数据
+        // 例:0x01 = 多点上报,[0x01][N][N×(addr:2, val:4 float LE)]
+        if (payload.Length &lt; 2 || payload[0] != 0x01) return;
+        int n = payload[1];
+        for (int i = 0; i &lt; n; i++)
+        {
+            int off = 2 + i * 6;
+            if (off + 6 &gt; payload.Length) break;
+            int pid = payload[off] | (payload[off + 1] &lt;&lt; 8);
+            double val = BitConverter.ToSingle(payload, off + 2);
+            _last[pid] = val;
+            RaiseData(pid, Math.Round(val, 3));
+        }
+    }
+
+    private async Task HeartbeatLoop(CancellationToken ct)
+    {
+        var frame = TcpFrameParser.BuildFrame(new byte[] { 0x02 });   // 0x02 = 心跳
+        while (!ct.IsCancellationRequested &amp;&amp; _socket?.Connected == true)
+        {
+            try { await _socket!.SendAsync(new ArraySegment&lt;byte&gt;(frame), SocketFlags.None, ct); }
+            catch (SocketException) { return; }
+            try { await Task.Delay(HeartbeatIntervalMs, ct); }
+            catch (OperationCanceledException) { return; }
+        }
+    }
+
+    private static async Task DelayBackoff(CancellationToken ct, int idx)
+    {
+        int ms = BackoffMs[Math.Min(idx, BackoffMs.Length - 1)];
+        try { await Task.Delay(ms, ct); } catch (OperationCanceledException) { }
+    }
+
+    private void CloseSocket()
+    {
+        try { _socket?.Shutdown(SocketShutdown.Both); } catch { }
+        try { _socket?.Close(); } catch { }
+        _socket = null;
+    }
+
+    public override double Read(int addr) =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+    public override void Write(int addr, double value) { /* 同 build frame + send */ }
+
+    private void Stop()
+    {
+        try { _cts?.Cancel(); } catch { }
+        try { _loop?.Wait(1000); } catch { }
+        CloseSocket();
+        _cts?.Dispose(); _cts = null; _loop = null;
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong><code>n == 0</code> 是对端关闭</strong>:<code>ReceiveAsync</code> 返回 0 表示 FIN,不是错误,<strong>必须 return</strong> 让重连循环接手
+- <strong><code>buffer.RemoveAt(0)</code> 是 O(N)</strong>:高频场景性能炸,生产用 <code>ArrayPool&lt;byte&gt;</code> + 环形缓冲 / <code>MemoryStream</code> 滑窗(参 C7 修正)
+- <strong>心跳和接收不要互相 await</strong>:心跳 <code>Task.Delay(10s)</code> 阻塞 ReceiveLoop 会让心跳期间收不到数据 → 用并行 Task + <code>LinkedTokenSource</code>
+- <strong>重连退避要 cap</strong>:<code>BackoffMs.Last()</code> 是上限,不要无限翻倍(<code>Math.Pow(2, 20)</code> 会溢出)
+- <strong><code>Shutdown(Both)</code> 必须在 try-catch</strong>:对端已经关了你再 Shutdown 抛 SocketException,直接吞</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 服务端推 1MB 的数据,粘包缓冲怎么处理?</strong> A:<code>List&lt;byte&gt;</code> 在大 buffer 时 AddRange 慢,改用 <code>MemoryStream</code> + <code>Position</code> 滑窗;或 <code>System.IO.Pipelines</code>(PipeReader / PipeWriter),专门为大流量设计。
+- <strong>Q: 怎么测粘包?</strong> A:用 <code>SplitToken</code> 把一个完整帧拆成 2 段、3 段发送,断言接收端能正确拼出;或用 <code>TcpClient</code> + <code>Task.Delay(1)</code> 在每个字节间停顿,模拟逐字节到达。
+- <strong>Q: 重连时怎么知道是断线期间设备发的数据丢了?</strong> A:协议层加序列号(每帧自增),重连后看到序号跳变就知道中间丢了几帧;或用 MQTT/AMQP 这种有 QoS 的中间件。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M11_TCP_Socket_深度版.md">M11 TCP Socket 深度版</a> · DAQMonitor <code>Core/Devices/TcpDevice.cs</code> + <code>Protocol/TcpFrameParser.cs</code></p>
+<h2 id="sec-2-30">B17. 手写 EventAggregator(简化版)(⏱️ 10 分钟,骨架)</h2>
+<p><strong>题目</strong>:不引入 Prism,自己写一个 <code>IEventAggregator</code>,支持 <code>Publish&lt;T&gt;()</code> / <code>Subscribe&lt;T&gt;(handler)</code> + 弱引用(订阅者 GC 后自动清理)。</p>
+<p><strong>🎯 面试官想听到</strong>:① 类型键 <code>Dictionary&lt;Type, List&lt;Delegate&gt;&gt;</code>;② 弱引用避免内存泄漏(VM 订阅但没退订时,VM 不会泄漏);③ 线程安全 lock。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public interface IEventAggregator
+{
+    void Subscribe&lt;T&gt;(Action&lt;T&gt; handler);
+    void Unsubscribe&lt;T&gt;(Action&lt;T&gt; handler);
+    void Publish&lt;T&gt;(T message);
+}
+
+public sealed class EventAggregator : IEventAggregator
+{
+    private readonly Dictionary&lt;Type, List&lt;WeakDelegate&gt;&gt; _handlers = new();
+    private readonly object _gate = new();
+
+    public void Subscribe&lt;T&gt;(Action&lt;T&gt; handler)
+    {
+        lock (_gate)
+        {
+            if (!_handlers.TryGetValue(typeof(T), out var list))
+                _handlers[typeof(T)] = list = new();
+            list.Add(new WeakDelegate(handler));
+        }
+    }
+
+    public void Unsubscribe&lt;T&gt;(Action&lt;T&gt; handler)
+    {
+        lock (_gate)
+        {
+            if (_handlers.TryGetValue(typeof(T), out var list))
+                list.RemoveAll(w =&gt; !w.IsAlive || w.Matches(handler));
+        }
+    }
+
+    public void Publish&lt;T&gt;(T message)
+    {
+        List&lt;WeakDelegate&gt;? snapshot;
+        lock (_gate)
+        {
+            if (!_handlers.TryGetValue(typeof(T), out var list)) return;
+            snapshot = list.ToList();
+        }
+        foreach (var w in snapshot)
+        {
+            if (w.TryInvoke(message) is false)   // 已被 GC
+            {
+                lock (_gate) _handlers[typeof(T)].Remove(w);
+            }
+        }
+    }
+
+    // 弱引用包装:订阅者 GC 后自动失效
+    private sealed class WeakDelegate
+    {
+        private readonly WeakReference _target;
+        private readonly MethodInfo _method;
+        private readonly Type _argType;
+        public bool IsAlive =&gt; _target.IsAlive;
+
+        public WeakDelegate(Delegate d)
+        {
+            _target = new WeakReference(d.Target);
+            _method = d.Method;
+            _argType = d.Method.GetParameters()[0].ParameterType;
+        }
+
+        public bool? TryInvoke(object? arg)
+        {
+            var t = _target.Target;
+            if (t is null) return false;
+            _method.Invoke(t, new[] { arg });
+            return true;
+        }
+
+        public bool Matches(Delegate d) =&gt; ReferenceEquals(_target.Target, d.Target) &amp;&amp; _method == d.Method;
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 弱引用 + Lambda 不兼容(Lambda 没有强目标,会被立即 GC),必须具名方法
+- <code>Publish</code> 内部不要 lock:委托执行可能耗时,锁会阻塞其他 Publish/Subscribe
+- 跨线程 Publish 要 <code>Dispatcher.Invoke</code>(WPF) 或约定都在 UI 线程</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: Prism 的 EventAggregator 比 yours 强在哪?</strong> A:支持 UI 线程自动 marshal、订阅过滤 <code>Subscribe(handler, thread =&gt; UI, filter: m =&gt; m.X &gt; 5)</code>、<code>KeepSubscriberReferenceAlive</code> 选项。
+- <strong>Q: 弱事件模式有现成的吗?</strong> A:WPF 内置 <code>WeakEventManager&lt;T&gt;</code>。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a> · Prism EventAggregator 文档</p>
+<h2 id="sec-2-31">B18. 手写 ViewModelLocator 命名约定绑定(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:WPF 里在 XAML 写 <code>ViewModelLocator.AutoWireViewModel="True"</code>,自动根据 View 名字找到对应 VM。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public static class ViewModelLocator
+{
+    public static readonly DependencyProperty AutoWireViewModelProperty =
+        DependencyProperty.RegisterAttached(&quot;AutoWireViewModel&quot;, typeof(bool),
+            typeof(ViewModelLocator), new PropertyMetadata(false, OnAutoWireChanged));
+
+    public static bool GetAutoWireViewModel(DependencyObject obj) =&gt; (bool)obj.GetValue(AutoWireViewModelProperty);
+    public static void SetAutoWireViewModel(DependencyObject obj, bool value) =&gt; obj.SetValue(AutoWireViewModelProperty, value);
+
+    private static void OnAutoWireChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not FrameworkElement view) return;
+        var viewName = view.GetType().Name;                       // MainView
+        var vmName = viewName.Replace(&quot;View&quot;, &quot;ViewModel&quot;);       // MainViewModel
+        var vmType = Type.GetType($&quot;MyApp.ViewModels.{vmName}&quot;);
+        if (vmType is null) return;
+
+        view.DataContext ??= Activator.CreateInstance(vmType);    // 容器优先,这里简化
+    }
+}
+
+// XAML:
+// &lt;Window x:Class=&quot;MyApp.Views.MainView&quot;
+//         xmlns:vm=&quot;clr-namespace:MyApp.UI&quot;
+//         vm:ViewModelLocator.AutoWireViewModel=&quot;True&quot; /&gt;
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>??=</code> 避免覆盖手动设置的 DataContext
+- 命名约定不一致(<code>Views.MainView</code> vs <code>ViewModels.MainViewModel</code>)导致 <code>Type.GetType</code> 返回 null
+- 真实工程应通过 DI 容器 resolve VM,而不是 <code>Activator.CreateInstance</code></p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: Prism 的 <code>ViewModelLocatorProvider</code> 怎么改约定?</strong> A:<code>ViewModelLocationProvider.SetDefaultViewTypeToViewModelTypeResolver(viewType =&gt; viewType.FullName.Replace(".Views.", ".ViewModels").Replace("View", "ViewModel"))</code>。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a></p>
+<h2 id="sec-2-32">B19. 手写 IDialogService 标准对话框(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:VM 不能直接 <code>MessageBox.Show</code>(破坏可测性 + UI 框架耦合),写一个 <code>IDialogService</code> 抽象。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public interface IDialogService
+{
+    Task&lt;bool&gt; ConfirmAsync(string title, string message);
+    void Alert(string title, string message);
+    Task&lt;string?&gt; PromptAsync(string title, string defaultValue);
+}
+
+public sealed class WpfDialogService : IDialogService
+{
+    public Task&lt;bool&gt; ConfirmAsync(string title, string message)
+    {
+        // 切回 UI 线程(WPF MessageBox 必须 UI 线程)
+        if (Application.Current.Dispatcher.CheckAccess() is false)
+            return Application.Current.Dispatcher.Invoke(() =&gt; ConfirmAsync(title, message));
+
+        var r = MessageBox.Show(message, title, MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        return Task.FromResult(r == MessageBoxResult.OK);
+    }
+
+    public void Alert(string title, string message) { /* 同上 */ }
+    public Task&lt;string?&gt; PromptAsync(string title, string defaultValue) { /* 省略 */ throw new NotImplementedException(); }
+}
+
+// VM 用法:
+public class MainViewModel
+{
+    private readonly IDialogService _dialog;
+    public MainViewModel(IDialogService dialog) =&gt; _dialog = dialog;
+
+    public async Task DeleteAsync()
+    {
+        if (await _dialog.ConfirmAsync(&quot;确认&quot;, &quot;删除不可撤销,确定?&quot;))
+        {
+            // 删除
+        }
+    }
+}
+
+// 测试时注入 MockDialogService,返回 true/false,不弹窗
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 必须切 UI 线程,VM 在后台线程调 ConfirmAsync 直接抛 InvalidOperationException
+- 测试中 mock 时不要真弹窗</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: Prism 的 <code>IDialogService</code> 怎么用?</strong> A:<code>dialogService.ShowDialog("ConfirmDialog", parameters, callback =&gt; { /* 返回结果 */ })</code>,自定义弹窗注册到容器。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a></p>
+<h2 id="sec-2-33">B20. 手写 LogLevel 中间件(Serilog + TraceId)(⏱️ 10 分钟,骨架)</h2>
+<p><strong>题目</strong>:ASP.NET Core 中间件,每个请求打一条结构化日志(方法、路径、状态码、耗时、TraceId)。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">// Program.cs
+builder.Host.UseSerilog((ctx, lc) =&gt; lc
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty(&quot;App&quot;, &quot;DaqMonitor.Api&quot;)
+    .WriteTo.Console(new RenderedCompactJsonFormatter())
+    .WriteTo.File(&quot;logs/app-.log&quot;, rollingInterval: RollingInterval.Day));
+
+builder.Services.AddCors();
+builder.Services.AddHttpContextAccessor();
+
+var app = builder.Build();
+app.UseMiddleware&lt;RequestLoggingMiddleware&gt;();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+
+public sealed class RequestLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger&lt;RequestLoggingMiddleware&gt; _log;
+
+    public RequestLoggingMiddleware(RequestDelegate next, ILogger&lt;RequestLoggingMiddleware&gt; log)
+    {
+        _next = next;
+        _log = log;
+    }
+
+    public async Task InvokeAsync(HttpContext ctx)
+    {
+        var sw = Stopwatch.StartNew();
+        var traceId = Activity.Current?.Id ?? ctx.TraceIdentifier;
+
+        // 用 LogContext 把 TraceId 注入到作用域内所有日志(结构化关联)
+        using (LogContext.PushProperty(&quot;TraceId&quot;, traceId))
+        using (_log.BeginScope(new Dictionary&lt;string, object&gt; { [&quot;TraceId&quot;] = traceId }))
+        {
+            try
+            {
+                await _next(ctx);
+                _log.LogInformation(&quot;{Method} {Path} -&gt; {StatusCode} in {ElapsedMs}ms&quot;,
+                    ctx.Request.Method, ctx.Request.Path, ctx.Response.StatusCode, sw.ElapsedMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, &quot;{Method} {Path} threw in {ElapsedMs}ms&quot;,
+                    ctx.Request.Method, ctx.Request.Path, sw.ElapsedMilliseconds);
+                throw;
+            }
+        }
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>LogContext.PushProperty</code> 必须 <code>using</code>,出作用域自动 pop
+- <code>Activity.Current?.Id</code> 跨服务追踪用(W3C Trace Context),<code>ctx.TraceIdentifier</code> 只是本地
+- 异常分支要 <code>throw</code>,不能吞(中间件管道继续抛给 ErrorHandler)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 怎么接入 OpenTelemetry?</strong> A:<code>builder.Services.AddOpenTelemetry().WithTracing(t =&gt; t.AddAspNetCoreInstrumentation().AddOtlpExporter())</code>,TraceId 自动注入 Activity。
+- <strong>Q: 日志怎么采样?</strong> A:高频路径(健康检查)用 <code>if (Random.Shared.Next(100) &lt; 5) _log.LogInformation(...)</code> 5% 采样;Serilog 还有 <code>MinimumLevel.Override("Microsoft.AspNetCore", Warning)</code>。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · Serilog 官方文档</p>
+<h2 id="sec-2-34">B21. 手写白名单验证器(IpAllowedHosts)(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:中间件,只允许配置的 IP 段访问,其他返回 403。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed class IpAllowListMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly List&lt;(IPAddress Base, int Mask)&gt; _allowed;
+    private readonly ILogger&lt;IpAllowListMiddleware&gt; _log;
+
+    public IpAllowListMiddleware(RequestDelegate next, IConfiguration cfg,
+        ILogger&lt;IpAllowListMiddleware&gt; log)
+    {
+        _next = next;
+        _log = log;
+        _allowed = cfg.GetSection(&quot;AllowedIpCidrs&quot;).Get&lt;List&lt;string&gt;&gt;()
+            ?? new();
+    }
+
+    public async Task InvokeAsync(HttpContext ctx)
+    {
+        var clientIp = ctx.Connection.RemoteIpAddress;
+        if (clientIp is null || !IsAllowed(clientIp))
+        {
+            _log.LogWarning(&quot;拒绝访问: {Ip} {Path}&quot;, clientIp, ctx.Request.Path);
+            ctx.Response.StatusCode = 403;
+            await ctx.Response.WriteAsync(&quot;Forbidden&quot;);
+            return;
+        }
+        await _next(ctx);
+    }
+
+    private bool IsAllowed(IPAddress ip)
+    {
+        foreach (var (baseIp, mask) in _allowed.Select(ParseCidr))
+        {
+            if (IpInCidr(ip, baseIp, mask)) return true;
+        }
+        return false;
+    }
+
+    private static (IPAddress Base, int Mask) ParseCidr(string cidr)
+    {
+        var parts = cidr.Split('/');
+        return (IPAddress.Parse(parts[0]), int.Parse(parts[1]));
+    }
+
+    private static bool IpInCidr(IPAddress ip, IPAddress baseIp, int mask)
+    {
+        if (ip.AddressFamily != baseIp.AddressFamily) return false;
+        var ipBytes = ip.GetAddressBytes();
+        var baseBytes = baseIp.GetAddressBytes();
+        int fullBytes = mask / 8;
+        int remBits = mask % 8;
+        for (int i = 0; i &lt; fullBytes; i++)
+            if (ipBytes[i] != baseBytes[i]) return false;
+        if (remBits &gt; 0)
+        {
+            int maskByte = 0xFF &lt;&lt; (8 - remBits);
+            if ((ipBytes[fullBytes] &amp; maskByte) != (baseBytes[fullBytes] &amp; maskByte)) return false;
+        }
+        return true;
+    }
+}
+
+// appsettings.json:
+// &quot;AllowedIpCidrs&quot;: [ &quot;192.168.1.0/24&quot;, &quot;10.0.0.0/8&quot;, &quot;127.0.0.1/32&quot; ]
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 反向代理后 <code>RemoteIpAddress</code> 是代理 IP,要读 <code>X-Forwarded-For</code>(用 <code>UseForwardedHeaders</code>)
+- IPv6 与 IPv4 不能直接比较,要先 <code>MapToIPv4</code>
+- 配置为空 = 全拒,不要默认全开</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 大量 IP(几万)查询会慢吗?</strong> A:CIDR 线性扫 O(N),生产用 Patricia Trie / LC-trie,查询 O(log N)。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></p>
+<h2 id="sec-2-35">B22. 手写 AuditLogger 审计日志(⏱️ 10 分钟,骨架)</h2>
+<p><strong>题目</strong>:关键操作(登录、删除、配置变更)写审计日志,字段:操作人、时间、IP、动作、目标、结果。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed record AuditEntry(
+    string Actor, string Action, string Target,
+    string? Detail, string? Ip, DateTime At, bool Success);
+
+public interface IAuditLogger
+{
+    Task LogAsync(AuditEntry entry, CancellationToken ct = default);
+}
+
+public sealed class DbAuditLogger : IAuditLogger
+{
+    private readonly IDbContextFactory&lt;AppDb&gt; _factory;
+    private readonly ILogger&lt;DbAuditLogger&gt; _log;
+    // 用 Channel 串行化,与 PointStore 同套路
+    private readonly System.Threading.Channels.Channel&lt;AuditEntry&gt; _queue =
+        System.Threading.Channels.Channel.CreateUnbounded&lt;AuditEntry&gt;(
+            new() { SingleReader = true });
+
+    public DbAuditLogger(IDbContextFactory&lt;AppDb&gt; factory, ILogger&lt;DbAuditLogger&gt; log)
+    {
+        _factory = factory;
+        _log = log;
+        _ = Task.Run(PumpAsync);
+    }
+
+    public Task LogAsync(AuditEntry entry, CancellationToken ct = default)
+    {
+        _queue.Writer.TryWrite(entry);   // 不阻塞调用方
+        return Task.CompletedTask;
+    }
+
+    private async Task PumpAsync()
+    {
+        await foreach (var e in _queue.Reader.ReadAllAsync())
+        {
+            try
+            {
+                await using var db = await _factory.CreateDbContextAsync();
+                db.AuditLogs.Add(new AuditLog
+                {
+                    Actor = e.Actor, Action = e.Action, Target = e.Target,
+                    Detail = e.Detail, Ip = e.Ip, At = e.At, Success = e.Success
+                });
+                await db.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // 审计日志失败要有 fallback:写本地文件 + 报警
+                _log.LogError(ex, &quot;审计日志写入失败: {Action} {Target}&quot;, e.Action, e.Target);
+            }
+        }
+    }
+}
+
+// 用法
+public class UserController
+{
+    private readonly IAuditLogger _audit;
+    public UserController(IAuditLogger audit) =&gt; _audit = audit;
+
+    public async Task&lt;IActionResult&gt; Delete(int id)
+    {
+        // ... 删除逻辑
+        await _audit.LogAsync(new AuditEntry(
+            Actor: User.Identity?.Name ?? &quot;anonymous&quot;,
+            Action: &quot;DeleteUser&quot;,
+            Target: $&quot;User#{id}&quot;,
+            Detail: null,
+            Ip: HttpContext.Connection.RemoteIpAddress?.ToString(),
+            At: DateTime.UtcNow,
+            Success: true));
+        return Ok();
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 审计失败不能让业务回滚(否则删用户失败因为审计 DB 满),要 fallback 到文件
+- <code>DateTime.UtcNow</code> 而不是 <code>Now</code>,避免时区混淆
+- 关键字段加密(如 PII)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 审计日志要不可篡改,怎么保证?</strong> A:哈希链(每条带前一条的 SHA256),或写 append-only 存储(如 AWS QLDB)。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · OWASP Audit Logging Cheat Sheet</p>
+<h2 id="sec-2-36">B23. 手写 Recipe 配方管理 + 切换 + 回滚(⏱️ 10 分钟,骨架)</h2>
+<p><strong>题目</strong>:工业场景"配方"= 一组参数集。要求:<code>LoadAsync(name)</code> 加载、<code>ActivateAsync(name)</code> 激活、激活失败自动回滚到上一个;每次切换记录历史。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed record Recipe(string Name, Dictionary&lt;string, double&gt; Parameters);
+
+public sealed class RecipeManager
+{
+    private readonly Dictionary&lt;string, Recipe&gt; _recipes = new();
+    private readonly Stack&lt;Recipe&gt; _history = new();
+    private Recipe? _current;
+    private readonly IDevice _device;
+    private readonly object _gate = new();
+
+    public Recipe? Current { get { lock (_gate) return _current; } }
+
+    public RecipeManager(IDevice device) =&gt; _device = device;
+
+    public void Register(Recipe r) { lock (_gate) _recipes[r.Name] = r; }
+
+    public async Task&lt;bool&gt; ActivateAsync(string name)
+    {
+        Recipe? recipe;
+        Recipe? previous;
+        lock (_gate)
+        {
+            if (!_recipes.TryGetValue(name, out recipe)) return false;
+            previous = _current;
+        }
+
+        try
+        {
+            // 下发每个参数到设备
+            foreach (var (key, value) in recipe.Parameters)
+            {
+                _device.Write(HashAddr(key), value);   // 简化:key → addr 映射
+                await Task.Delay(50);                   // 给设备喘息
+            }
+
+            lock (_gate)
+            {
+                if (previous is not null) _history.Push(previous);
+                _current = recipe;
+            }
+            return true;
+        }
+        catch (Exception)
+        {
+            // 失败回滚:重新下发 previous
+            if (previous is not null)
+            {
+                foreach (var (key, value) in previous.Parameters)
+                {
+                    try { _device.Write(HashAddr(key), value); } catch { }
+                }
+            }
+            return false;
+        }
+    }
+
+    public async Task&lt;bool&gt; RollbackAsync()
+    {
+        Recipe? prev;
+        lock (_gate)
+        {
+            if (_history.Count == 0) return false;
+            prev = _history.Pop();
+        }
+        return await ActivateAsync(prev.Name);   // 复用激活逻辑
+    }
+
+    private static int HashAddr(string key) =&gt; key.GetHashCode() &amp; 0xFFFF;
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 切换中途断电:写入要带"事务标记",设备侧最后写 enable 位
+- 多线程并发切换:<code>lock(_gate)</code> 保护 _current/_history
+- 回滚也可能失败,要有"安全状态"(设备进入 STOP 模式)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 配方版本管理?</strong> A:<code>Recipe</code> 加 <code>Version</code> 字段,存储所有版本,激活指定版本;关键变更走审批流。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M16_多设备接入_深度版.md">M16 设备管理</a></p>
+<h2 id="sec-2-37">B24. 手写 EngineeringConverter 量程标定(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:把 AD 原始码线性映射到工程量(4-20mA → 0-100℃),处理浮点字节序。</p>
+<p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Engineering/EngineeringConverter.cs</code>):</p>
+<pre><code class="language-csharp">public static class EngineeringConverter
+{
+    // 4-20mA → 0-100℃:raw ∈ [0, 65535] → eng ∈ [0, 100]
+    public static double Linear(double raw, double rawMin, double rawMax, double engMin, double engMax)
+    {
+        double span = rawMax - rawMin;
+        if (Math.Abs(span) &lt; double.Epsilon) return engMin;   // 防除零
+        double ratio = (raw - rawMin) / span;
+        return engMin + ratio * (engMax - engMin);
+    }
+
+    // 非线性查表(PT100 分度表)
+    public static double Lookup(double raw, SortedList&lt;double, double&gt; table)
+    {
+        if (table.Count == 0) throw new ArgumentException(&quot;分度表空&quot;);
+        if (raw &lt;= table.Keys[0]) return table.Values[0];
+        if (raw &gt;= table.Keys[^1]) return table.Values[^1];
+
+        int idx = Bisect(table.Keys, raw);
+        double x0 = table.Keys[idx - 1], x1 = table.Keys[idx];
+        double y0 = table.Values[idx - 1], y1 = table.Values[idx];
+        return y0 + (raw - x0) / (x1 - x0) * (y1 - y0);
+    }
+
+    private static int Bisect(IReadOnlyList&lt;double&gt; keys, double target)
+    {
+        int lo = 0, hi = keys.Count;
+        while (lo &lt; hi)
+        {
+            int mid = (lo + hi) &gt;&gt; 1;
+            if (keys[mid] &lt;= target) lo = mid + 1; else hi = mid;
+        }
+        return lo;
+    }
+
+    public enum ByteOrder { ABCD, CDAB, BADC, DCBA }
+
+    public static byte[] Swap(byte[] bytes, ByteOrder order) =&gt; order switch
+    {
+        ByteOrder.ABCD =&gt; bytes,
+        ByteOrder.CDAB =&gt; new[] { bytes[2], bytes[3], bytes[0], bytes[1] },   // 字交换(最常见)
+        ByteOrder.BADC =&gt; new[] { bytes[1], bytes[0], bytes[3], bytes[2] },
+        ByteOrder.DCBA =&gt; new[] { bytes[3], bytes[2], bytes[1], bytes[0] },
+        _ =&gt; throw new ArgumentOutOfRangeException(nameof(order))
+    };
+
+    public static float ToFloat(byte[] bytes, ByteOrder order = ByteOrder.ABCD)
+    {
+        var ordered = Swap(bytes, order);
+        if (BitConverter.IsLittleEndian) Array.Reverse(ordered);   // ABCD 是大端
+        return BitConverter.ToSingle(ordered, 0);
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 除零:<code>rawMax == rawMin</code> 必须特判
+- 字节序:<strong>必须抓帧确认</strong>,不要假设 ABCD;现场最常见 CDAB(字交换)
+- 查表 <code>SortedList</code> 内存占用大,可改成二进制分度表文件 lazy load</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 标定参数怎么动态调整?</strong> A:存数据库 + 缓存,改了发事件让设备重新读取。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M12_工程量转换_深度版.md">M12 工程量转换</a> · DAQMonitor <code>Core/Engineering/EngineeringConverter.cs</code></p>
+<h2 id="sec-2-38">B25. 手写 PerformanceCounter 业务指标上报(⏱️ 10 分钟,骨架)</h2>
+<p><strong>题目</strong>:统计 QPS、平均响应时间、错误率,定时推送到 Prometheus。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed class PerformanceCounter : IDisposable
+{
+    private long _totalRequests;
+    private long _totalErrors;
+    private long _totalLatencyTicks;   // 总耗时(tick)
+    private DateTime _windowStart = DateTime.UtcNow;
+    private readonly Timer _reporter;
+
+    public PerformanceCounter(TimeSpan reportInterval)
+    {
+        _reporter = new Timer(_ =&gt; ReportAndReset(), null, reportInterval, reportInterval);
+    }
+
+    public void RecordRequest(double latencyMs, bool success)
+    {
+        Interlocked.Increment(ref _totalRequests);
+        if (!success) Interlocked.Increment(ref _totalErrors);
+        Interlocked.Add(ref _totalLatencyTicks, (long)(latencyMs * TimeSpan.TicksPerMillisecond));
+    }
+
+    private void ReportAndReset()
+    {
+        var now = DateTime.UtcNow;
+        var elapsed = (now - _windowStart).TotalSeconds;
+        if (elapsed &lt;= 0) return;
+
+        long reqs = Interlocked.Exchange(ref _totalRequests, 0);
+        long errs = Interlocked.Exchange(ref _totalErrors, 0);
+        long ticks = Interlocked.Exchange(ref _totalLatencyTicks, 0);
+        _windowStart = now;
+
+        double qps = reqs / elapsed;
+        double avgLatencyMs = reqs &gt; 0 ? ticks / (double)TimeSpan.TicksPerMillisecond / reqs : 0;
+        double errorRate = reqs &gt; 0 ? (double)errs / reqs : 0;
+
+        // 推送到 Prometheus(用 prometheus-net)
+        // Metrics.Qps.WithLabels(&quot;api&quot;).Set(qps);
+        Console.WriteLine($&quot;QPS={qps:F1} AvgLatency={avgLatencyMs:F1}ms ErrorRate={errorRate:P1}&quot;);
+    }
+
+    public void Dispose() =&gt; _reporter.Dispose();
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>Interlocked</code> 而不是 <code>lock</code>,高并发下 lock 会拖慢
+- <code>Interlocked.Exchange</code> 原子重置,避免上报与计数竞态
+- 窗口期内 0 请求要特判(除零)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 滑动窗口 vs 简单窗口?</strong> A:简单窗口有边界突变(窗口切换瞬间数据全变),滑动窗口(如 5 分钟内最近统计)更平滑;生产用 <code>prometheus-net</code> 内置或 Reservoir 算法。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · prometheus-net</p>
+<h2 id="sec-2-39">B26. 手写 IDisposable 完整模式(含 finalizer)(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:封装非托管资源(如 IntPtr 句柄),实现完整 Dispose 模式 + finalizer 兜底。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed class NativeResource : IDisposable
+{
+    private IntPtr _handle;
+    private bool _disposed;
+
+    public NativeResource()
+    {
+        _handle = NativeApi.Create();   // 假设返回非托管句柄
+    }
+
+    // 析构器(终极兜底):用户忘记 Dispose 时由 GC 调用
+    // 注意:不要在 finalizer 里碰其他托管对象(它们可能已被 GC)
+    ~NativeResource()
+    {
+        Dispose(disposing: false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);     // 已 Dispose,不再需要 finalizer
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        // 释放非托管
+        if (_handle != IntPtr.Zero)
+        {
+            NativeApi.Destroy(_handle);
+            _handle = IntPtr.Zero;
+        }
+
+        // 释放托管(只有 disposing=true 才能碰)
+        if (disposing)
+        {
+            // _managedDependent?.Dispose();
+        }
+    }
+
+    public void DoWork()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);   // .NET 7+
+        // ...
+    }
+}
+
+// 用法
+using var res = new NativeResource();   // 作用域结束自动 Dispose
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- finalizer 不碰托管对象(顺序不定,可能已 GC)
+- <code>GC.SuppressFinalize(this)</code> 必须调,否则 GC 还会跑 finalizer
+- .NET 7+ 推荐 <code>ObjectDisposedException.ThrowIf</code>,比手抛简洁</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 啥时候要 finalizer?</strong> A:只有封装非托管资源(IntPtr、文件句柄、COM 对象)才需要。纯托管资源不需要 finalizer,只实现 IDisposable 即可。SafeHandle 已经包了 finalizer,优先用它而不是自己写。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 5</a></p>
+<h2 id="sec-2-40">B27. 手写 CancellationTokenSource 协作取消(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:启动一个长任务,5 秒后用户点取消按钮,任务优雅退出。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed class LongJob
+{
+    private CancellationTokenSource? _cts;
+
+    public async Task RunAsync()
+    {
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        try
+        {
+            for (int i = 0; i &lt; 100; i++)
+            {
+                ct.ThrowIfCancellationRequested();   // 关键检查点
+
+                // 或更细粒度:传给 Task.Delay / HttpClient / Stream
+                await Task.Delay(100, ct);
+
+                Console.WriteLine($&quot;Processed {i}%&quot;);
+            }
+            Console.WriteLine(&quot;完成&quot;);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            Console.WriteLine(&quot;用户取消&quot;);           // 区别于超时取消
+        }
+        finally
+        {
+            _cts?.Dispose();
+            _cts = null;
+        }
+    }
+
+    public void Cancel() =&gt; _cts?.Cancel();
+}
+
+// 高级:超时 + 用户取消合并
+using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, userCt);
+await RunAsync(linkedCts.Token);
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- 长循环内必须有 <code>ThrowIfCancellationRequested</code> 检查点
+- <code>Task.Delay(100, ct)</code> 必须传 ct,否则取消时 Delay 不响应
+- <code>catch (OperationCanceledException) when (ct.IsCancellationRequested)</code> 区分取消 vs 超时
+- CTS 必须 Dispose(内部用 Timer)</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: <code>CancellationTokenSource.CreateLinkedTokenSource</code> 用途?</strong> A:合并多个 token(超时 + 用户取消 + 父任务取消),任一触发都取消。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a></p>
+<h2 id="sec-2-41">B28. 手写 ConcurrentDictionary 缓存(惰性初始化)(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:线程安全缓存,未命中时异步加载,多线程同时请求同一 key 只加载一次。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed class LazyCache&lt;TKey, TValue&gt; where TKey : notnull
+{
+    private readonly ConcurrentDictionary&lt;TKey, Lazy&lt;Task&lt;TValue&gt;&gt;&gt; _cache = new();
+    private readonly Func&lt;TKey, CancellationToken, Task&lt;TValue&gt;&gt; _factory;
+
+    public LazyCache(Func&lt;TKey, CancellationToken, Task&lt;TValue&gt;&gt; factory) =&gt; _factory = factory;
+
+    public Task&lt;TValue&gt; GetOrAddAsync(TKey key, CancellationToken ct = default)
+    {
+        // 关键:用 Lazy&lt;Task&lt;TValue&gt;&gt;,ConcurrentDictionary 的 GetOrAdd 只保证单次添加
+        // 不会重复调 factory
+        return _cache.GetOrAdd(key, k =&gt; new Lazy&lt;Task&lt;TValue&gt;&gt;(() =&gt; _factory(k, ct)))
+                     .Value;     // Lazy.Value 线程安全,多个线程同时拿只触发一次
+    }
+
+    public bool TryRemove(TKey key) =&gt; _cache.TryRemove(key, out _);
+    public void Clear() =&gt; _cache.Clear();
+}
+
+// 用法
+var cache = new LazyCache&lt;string, User&gt;(async (id, ct) =&gt;
+{
+    return await _httpClient.GetFromJsonAsync&lt;User&gt;($&quot;/api/users/{id}&quot;, ct)
+           ?? throw new KeyNotFoundException(id);
+});
+
+// 多线程并发请求 user-1,只发一次 HTTP
+var u1 = await cache.GetOrAddAsync(&quot;user-1&quot;);
+var u2 = await cache.GetOrAddAsync(&quot;user-1&quot;);   // 命中缓存
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <strong>必须包 <code>Lazy&lt;Task&lt;&gt;&gt;</code></strong>:直接 <code>ConcurrentDictionary&lt;TKey, Task&lt;TValue&gt;&gt;</code> 的话,GetOrAdd 在并发下会调多次 factory(虽然只一份添加,但 factory 已执行多次浪费资源)
+- factory 抛异常:Lazy 会缓存异常,后续每次 GetOrAdd 都重抛(用 <code>LazyThreadSafetyMode.ExecutionAndPublication</code> 默认行为)。生产要包 try-catch 失败时移除 key</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 缓存雪崩/击穿/穿透?</strong> A:雪崩=大量 key 同时过期(加随机 TTL);击穿=热 key 过期(Lazy 锁就是防击穿);穿透=查不存在的 key(布隆过滤器或缓存 null)。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></p>
+<h2 id="sec-2-42">B29. 手写 MemoryCache 过期 + 容量(⏱️ 5 分钟,骨架)</h2>
+<p><strong>题目</strong>:基于 <code>Microsoft.Extensions.Caching.Memory</code>,实现 TTL 过期 + 容量限制 + 过期回调。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">public sealed class BoundedCache
+{
+    private readonly IMemoryCache _cache;
+    private readonly MemoryCacheEntryOptions _defaultOptions;
+
+    public BoundedCache(long sizeLimit = 10_000_000)   // 10MB
+    {
+        _cache = new MemoryCache(new MemoryCacheOptions
+        {
+            SizeLimit = sizeLimit,
+            CompactionPercentage = 0.2,                 // 容量超限时压缩 20%
+            ExpirationScanFrequency = TimeSpan.FromMinutes(1)
+        });
+
+        _defaultOptions = new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),  // 绝对过期
+            SlidingExpiration = TimeSpan.FromMinutes(5),                 // 滑动过期
+            Size = 1                                                      // 必须配合 SizeLimit
+        };
+    }
+
+    public T GetOrCreate&lt;T&gt;(string key, Func&lt;T&gt; factory, TimeSpan? ttl = null)
+    {
+        var opts = ttl is null ? _defaultOptions : new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = ttl,
+            Size = 1,
+            PostEvictionCallbacks =
+            {
+                new PostEvictionCallbackRegistration
+                {
+                    EvictionCallback = (k, v, reason, state) =&gt;
+                        Console.WriteLine($&quot;驱逐 {k}: {reason}&quot;)
+                }
+            }
+        };
+
+        // GetOrCreate 是原子操作
+        return _cache.GetOrCreate(key, entry =&gt;
+        {
+            entry.SetOptions(opts);
+            return factory();
+        });
+    }
+
+    public void Remove(string key) =&gt; _cache.Remove(key);
+}
+
+// 用法
+var cache = new BoundedCache();
+var user = cache.GetOrCreate($&quot;user-{id}&quot;, () =&gt; LoadFromDb(id), TimeSpan.FromMinutes(10));
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>SizeLimit</code> 必须配合 entry <code>Size</code>,否则不生效
+- <code>CompactionPercentage=0.2</code> 表示超容量时驱逐 20%(LRU 算法)
+- 缓存大对象(&gt;1MB)用 redis,MemoryCache 是进程内</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: IMemoryCache 与 Redis 怎么选?</strong> A:单机用 MemoryCache(快但易失);分布式用 Redis(共享但慢)。生产常 two-layer:MemoryCache(L1) + Redis(L2),L1 miss 查 L2,L2 miss 查 DB。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></p>
+<h2 id="sec-2-43">B30. 手写单元测试(xUnit + Moq 完整一条)(⏱️ 10 分钟,骨架)</h2>
+<p><strong>题目</strong>:为 <code>AcquisitionPipeline.Register(device)</code> 写单元测试:① 设备成功注册;② 设备 <code>Connect()</code> 抛异常时管道不崩;③ 设备数据通过 <code>BatchReady</code> 事件传出。</p>
+<p><strong>💻 关键代码</strong>:</p>
+<pre><code class="language-csharp">using Moq;
+using Xunit;
+
+public class AcquisitionPipelineTests
+{
+    [Fact]
+    public async Task Register_Connected_Device_Forwards_Data_To_BatchReady()
+    {
+        // Arrange
+        var deviceMock = new Mock&lt;IDevice&gt;();
+        deviceMock.SetupAllProperties();                       // 让 State 可写
+        deviceMock.Setup(d =&gt; d.State).Returns(DeviceState.Online);
+
+        EventHandler&lt;DataEventArgs&gt;? raisedHandler = null;
+        // 捕获 DataReceived 的订阅,后续手动触发
+        deviceMock.SetupAdd(d =&gt; d.DataReceived += It.IsAny&lt;EventHandler&lt;DataEventArgs&gt;&gt;())
+                  .Callback&lt;EventHandler&lt;DataEventArgs&gt;&gt;(h =&gt; raisedHandler = h);
+
+        var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+        var batches = new List&lt;IReadOnlyList&lt;DataEventArgs&gt;&gt;();
+        pipeline.BatchReady += (_, args) =&gt; batches.Add(args);
+
+        pipeline.Register(deviceMock.Object);
+        deviceMock.Verify(d =&gt; d.Connect(), Times.Once);
+
+        // Act:模拟设备推数据
+        raisedHandler?.Invoke(deviceMock.Object,
+            new DataEventArgs { PointId = 1, Value = 42.0, Timestamp = DateTime.Now });
+
+        await Task.Delay(200);     // 等管道批处理周期
+
+        // Assert
+        Assert.NotEmpty(batches);
+        Assert.Contains(batches.SelectMany(b =&gt; b), e =&gt; e.PointId == 1 &amp;&amp; e.Value == 42.0);
+    }
+
+    [Fact]
+    public void Register_Device_Connect_Throws_Does_Not_Crash_Pipeline()
+    {
+        // Arrange
+        var deviceMock = new Mock&lt;IDevice&gt;();
+        deviceMock.Setup(d =&gt; d.Connect()).Throws(new IOException(&quot;port in use&quot;));
+
+        var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+
+        // Act + Assert:不抛
+        var ex = Record.Exception(() =&gt; pipeline.Register(deviceMock.Object));
+        Assert.Null(ex);
+    }
+
+    [Theory]
+    [InlineData(DeviceState.Offline, false)]
+    [InlineData(DeviceState.Online, true)]
+    public void Register_Respects_Device_State(DeviceState state, bool shouldRaiseBatch)
+    {
+        var deviceMock = new Mock&lt;IDevice&gt;();
+        deviceMock.Setup(d =&gt; d.State).Returns(state);
+
+        var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+        var count = 0;
+        pipeline.BatchReady += (_, _) =&gt; count++;
+
+        pipeline.Register(deviceMock.Object);
+
+        Assert.Equal(shouldRaiseBatch ? 1 : 0, count);     // 简化断言
+    }
+}
+</code></pre>
+<p><strong>⚠️ 易错点</strong>:
+- <code>Mock.SetupAdd</code> 捕获事件订阅:测试 event 触发链路的标准技巧
+- <code>Mock.Verify(..., Times.Once)</code> 验证方法调用次数,Times.AtLeastOnce / Exactly(n)
+- <code>[Theory] + [InlineData]</code> 参数化测试,比写 5 个 [Fact] 简洁
+- 测试异步方法用 <code>async Task</code>,不要 <code>async void</code>(xUnit 不识别)
+- 测试不要共享状态(并行运行),每个 [Fact] 独立 setup</p>
+<p><strong>🎤 面试官追问</strong>:
+- <strong>Q: 测并发竞态怎么写?</strong> A:<code>Channel&lt;T&gt;</code> 测试用 <code>Throws.Any&lt;InvalidOperationException&gt;</code> 验证 Closed 后写抛;并发用 <code>Parallel.For</code> 触发,断言 <code>Interlocked.Increment</code> 计数正确。
+- <strong>Q: 集成测试 vs 单元测试?</strong> A:单元测 mock 所有依赖(快、隔离);集成测用真实 DbContext + 内存 SQLite(测组合是否正确)。DAQMonitor 里 <code>PointStoreTests.cs</code> 是单元,<code>CompositionSmokeTests.cs</code> 是集成。
+- <strong>Q: 覆盖率工具?</strong> A:<code>coverlet</code> + <code>dotnet test --collect:"XPlat Code Coverage"</code>,生产建议 70%+ 覆盖核心路径。</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · DAQMonitor <code>Tests/</code> 目录全部测试代码</p>
+<hr />
+<hr />
+<h1 id="sec-1-4">Part C · Debug 题(10 道)</h1>
+<blockquote>
+<p><strong>目标</strong>:5 分钟内找出 bug 并说出修复方案。Debug 能力 = 真技术硬实力(用户特别强调)。</p>
+</blockquote>
+<h2 id="sec-2-44">C1. async void 吞异常</h2>
+<pre><code class="language-csharp">public class Subscriber
+{
+    public Subscriber(EventBus bus) =&gt; bus.DataArrived += async (s, e) =&gt; 
+        await SaveToDatabaseAsync(e);
+
+    async Task SaveToDatabaseAsync(DataEvent e) { 
+        await _db.Records.AddAsync(e.Record); 
+        await _db.SaveChangesAsync(); 
+    }
+}
+</code></pre>
+<p><strong>Bug</strong>:<code>async (s, e) =&gt; await ...</code> 是 <code>async void</code>(EventHandler 签名),<code>SaveToDatabaseAsync</code> 抛异常时进程直接崩,没 Task 能 catch。</p>
+<p><strong>修复</strong>:</p>
+<pre><code class="language-csharp">bus.DataArrived += OnDataArrived;   // 同步入队
+
+private void OnDataArrived(object? s, DataEvent e)
+{
+    _ = Task.Run(async () =&gt;
+    {
+        try { await SaveToDatabaseAsync(e); }
+        catch (Exception ex) { _log.Error(ex, &quot;保存失败&quot;); }
+    });
+}
+</code></pre>
+<p>或更优:用 <code>Channel&lt;T&gt;</code> 串行化(详 <a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA 修正版</a>)。</p>
+<h2 id="sec-2-45">C2. .Result 死锁</h2>
+<pre><code class="language-csharp">// WPF UI 线程
+private void BtnSave_Click(object sender, RoutedEventArgs e)
+{
+    var data = LoadFromApiAsync().Result;   // ← 死锁
+    Display(data);
+}
+</code></pre>
+<p><strong>Bug</strong>:<code>.Result</code> 阻塞 UI 线程,<code>LoadFromApiAsync</code> 内部 <code>await</code> 要回 UI 线程(SynchronizationContext),两边互等 = 死锁。</p>
+<p><strong>修复</strong>:</p>
+<pre><code class="language-csharp">private async void BtnSave_Click(object sender, RoutedEventArgs e)
+{
+    try { 
+        var data = await LoadFromApiAsync();   // 全异步
+        Display(data); 
+    }
+    catch (Exception ex) { _log.Error(ex, &quot;加载失败&quot;); }
+}
+</code></pre>
+<p>详 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a>。</p>
+<h2 id="sec-2-46">C3. 多线程竞态丢数</h2>
+<pre><code class="language-csharp">public class Counter
+{
+    public int Count { get; private set; }
+    public void Increment() =&gt; Count++;   // ← 并发丢数
+}
+</code></pre>
+<p><strong>Bug</strong>:<code>Count++</code> 不是原子操作(读-改-写 3 步),多线程并发丢数。</p>
+<p><strong>修复</strong>(三选一):</p>
+<pre><code class="language-csharp">// 1. Interlocked
+public void Increment() =&gt; Interlocked.Increment(ref _count);
+private int _count;
+
+// 2. lock
+private readonly object _gate = new();
+private int _count;
+public void Increment() { lock (_gate) _count++; }
+public int Count =&gt; _count;
+
+// 3. AtomicInteger(无,但 Interlocked 够)
+</code></pre>
+<h2 id="sec-2-47">C4. 内存泄漏(event 没退订)</h2>
+<pre><code class="language-csharp">public class ChartViewModel
+{
+    public ChartViewModel(EventBus bus)
+    {
+        bus.DataArrived += OnData;   // ← VM 销毁后 bus 仍持有,VM 无法 GC
+    }
+    private void OnData(object? s, DataEvent e) { /* ... */ }
+}
+</code></pre>
+<p><strong>Bug</strong>:订阅没退订,VM 销毁后 bus 还持有 OnData 引用 → VM 永不 GC → 内存泄漏。</p>
+<p><strong>修复</strong>:实现 IDisposable + 退订,或用弱事件:</p>
+<pre><code class="language-csharp">public class ChartViewModel : IDisposable
+{
+    private readonly EventBus _bus;
+    public ChartViewModel(EventBus bus) 
+    { 
+        _bus = bus;
+        _bus.DataArrived += OnData;
+    }
+    public void Dispose() =&gt; _bus.DataArrived -= OnData;
+}
+</code></pre>
+<p>详 <a href="M3_PLC_深度版.md">M3 PLC 修正版 退订模式</a>。</p>
+<h2 id="sec-2-48">C5. DbContext 线程不安全</h2>
+<pre><code class="language-csharp">public class Repository
+{
+    private readonly AppDb _db;   // ← 单例 DbContext,多线程共用炸
+    public Repository(AppDb db) =&gt; _db = db;
+
+    public async Task SaveAsync(Record r)
+    {
+        _db.Records.Add(r);
+        await _db.SaveChangesAsync();
+    }
+}
+</code></pre>
+<p><strong>Bug</strong>:DbContext 不是线程安全,多个并发调用 SaveChangesAsync 抛 <code>InvalidOperationException</code>。</p>
+<p><strong>修复</strong>:用 <code>IDbContextFactory</code> + 短作用域,详 <a href="M4_数据持久化_深度版.md">M4 修正版</a>。</p>
+<h2 id="sec-2-49">C6. struct 拷贝丢修改</h2>
+<pre><code class="language-csharp">public struct Point { public double X; public double Y; }
+
+var list = new List&lt;Point&gt; { new() { X = 1, Y = 2 } };
+list[0].X = 99;   // ← 编译报错!
+</code></pre>
+<p><strong>Bug</strong>:<code>list[0]</code> 返回 struct 副本,修改副本无意义,编译器禁止。</p>
+<p><strong>修复</strong>(三选一):</p>
+<pre><code class="language-csharp">// 1. 改 class
+public class Point { public double X; public double Y; }
+
+// 2. 改字段
+var p = list[0]; p.X = 99; list[0] = p;
+
+// 3. 用 ref
+public ref Point GetRef(int i) =&gt; ref list[i];
+GetRef(0).X = 99;
+</code></pre>
+<p>详 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 1</a>。</p>
+<h2 id="sec-2-50">C7. TCP 缓冲区泄漏</h2>
+<pre><code class="language-csharp">// 半包留到下次拼接
+var keep = new MemoryStream();
+buf.CopyTo(keep);
+buf.SetLength(0);
+keep.CopyTo(buf);
+</code></pre>
+<p><strong>Bug</strong>:<code>MemoryStream.CopyTo</code> byte-by-byte 循环,高频小包性能炸(每帧 GC 压力 + 10 倍 CPU)。</p>
+<p><strong>修复</strong>:用 <code>Array.Copy</code> + 重置 Position:</p>
+<pre><code class="language-csharp">int remaining = (int)(buf.Length - buf.Position);
+if (remaining &gt; 0)
+    Array.Copy(buf.GetBuffer(), buf.Position, buf.GetBuffer(), 0, remaining);
+buf.SetLength(remaining);
+buf.Position = 0;
+</code></pre>
+<p>详 <a href="M11_TCP_Socket_深度版.md">M11 修正版</a>。</p>
+<h2 id="sec-2-51">C8. 闭包捕获循环变量</h2>
+<pre><code class="language-csharp">for (int i = 0; i &lt; 5; i++)
+{
+    Task.Run(() =&gt; Console.WriteLine(i));   // ← 全打印 5!
+}
+</code></pre>
+<p><strong>Bug</strong>:Lambda 捕获的是变量 <code>i</code> 的引用(不是值),循环结束 i=5,5 个 Task 全打印 5。</p>
+<p><strong>修复</strong>(C# 5+ 已修,但老代码可能踩):</p>
+<pre><code class="language-csharp">for (int i = 0; i &lt; 5; i++)
+{
+    var local = i;   // 局部副本
+    Task.Run(() =&gt; Console.WriteLine(local));
+}
+</code></pre>
+<h2 id="sec-2-52">C9. async lambda 没等待</h2>
+<pre><code class="language-csharp">public async Task ProcessAllAsync(IEnumerable&lt;int&gt; ids)
+{
+    foreach (var id in ids)
+    {
+        ProcessAsync(id);   // ← 没 await,fire-and-forget
+    }
+}
+</code></pre>
+<p><strong>Bug</strong>:<code>ProcessAsync</code> 没 await,任务发出但没等结果,异常被吞。</p>
+<p><strong>修复</strong>(两种):</p>
+<pre><code class="language-csharp">// 1. 串行
+foreach (var id in ids) await ProcessAsync(id);
+
+// 2. 并行
+await Task.WhenAll(ids.Select(ProcessAsync));
+</code></pre>
+<h2 id="sec-2-53">C10. 字节序搞反</h2>
+<pre><code class="language-csharp">byte[] resp = { 0x01, 0x03, 0x04, 0x00, 0x0A, 0x00, 0x14, 0xC4, 0x0B };
+//                                ↑ 寄存器1   ↑ 寄存器2
+
+// 错误:小端拼
+ushort reg1 = (ushort)(resp[3] | (resp[4] &lt;&lt; 8));   // 0x0A00 = 2560(错!)
+
+// 正确:大端拼(Modbus 寄存器大端)
+ushort reg1 = (ushort)((resp[3] &lt;&lt; 8) | resp[4]);   // 0x000A = 10(对)
+</code></pre>
+<p><strong>Bug</strong>:Modbus 寄存器是大端,但 Modbus CRC 是小端,<strong>别搞反</strong>。</p>
+<p>详 <a href="M2_Modbus_深度版.md">M2 Modbus 讲义 Day 3</a>。</p>
+<hr />
+<h1 id="sec-1-5">Part D · 30 天训练计划</h1>
+<blockquote>
+<p><strong>每天 1 小时</strong>,跟 30 天作战路线同步刷题。</p>
+</blockquote>
+<h2 id="sec-2-54">Week 1(Day 1-7)· 前端迁移 + 主干打底</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>翻译题</th>
+<th>手写题</th>
+<th>Debug 题</th>
+<th>总时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>A1-A4(Promise→Task 等)</td>
+<td>B1(CRC16)</td>
+<td>C1(async void)</td>
+<td>60min</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A5-A8(map/filter/event/useState)</td>
+<td>B2(Channel 生产消费)</td>
+<td>C2(.Result 死锁)</td>
+<td>60min</td>
+</tr>
+<tr>
+<td>3</td>
+<td>A9-A12(fetch/HttpClient 等)</td>
+<td>B3(IDevice 实现)</td>
+<td>C3(竞态丢数)</td>
+<td>60min</td>
+</tr>
+<tr>
+<td>4</td>
+<td>A13-A16</td>
+<td>B4(Retry 指数退避)</td>
+<td>C4(event 没退订)</td>
+<td>60min</td>
+</tr>
+<tr>
+<td>5</td>
+<td>A17-A20</td>
+<td>B5(AlarmRule 回滞)</td>
+<td>C5(DbContext 并发)</td>
+<td>60min</td>
+</tr>
+<tr>
+<td>6</td>
+<td>复习 A 全部</td>
+<td>B1+B2 二刷(限时 80%)</td>
+<td>C1+C2 二刷</td>
+<td>60min</td>
+</tr>
+<tr>
+<td>7</td>
+<td>复习 A 全部</td>
+<td>B3+B4 二刷</td>
+<td>C3+C4 二刷</td>
+<td>60min</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Week 1 检查点</strong>:不查文档能 5 分钟手写 CRC16 + Channel 生产消费 + IDevice 实现。</p>
+<h2 id="sec-2-55">Week 2(Day 8-14)· 协议代码</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>手写题</th>
+<th>Debug 题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8</td>
+<td>B6(帧解析 AA55)</td>
+<td>C6(struct 拷贝)</td>
+</tr>
+<tr>
+<td>9</td>
+<td>B7(ModbusDevice)</td>
+<td>C7(TCP 缓冲区)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>B8(Bootstrapper)</td>
+<td>C8(闭包循环变量)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>B9(RelayCommand) + B10(INotifyPropertyChanged)</td>
+<td>C9(async lambda 没 await)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>B11(PointStore SQLite)</td>
+<td>C10(字节序搞反)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>B12(HttpClient Polly) + B13(MQTT 双向)</td>
+<td>C1-C10 抽 2 题二刷</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Week 2 二刷 + 综合题</td>
+<td>综合</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Week 2 检查点</strong>:能 10 分钟白板写完一个 ModbusDevice 完整实现。</p>
+<h2 id="sec-2-56">Week 3(Day 15-21)· 架构代码</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>手写题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>15</td>
+<td>B14(OPC UA 异步)</td>
+</tr>
+<tr>
+<td>16</td>
+<td>B15(PlcDevice S7 异步) + B16(TcpDevice 粘包)</td>
+</tr>
+<tr>
+<td>17</td>
+<td>B17(EventAggregator) + B18(ViewModelLocator)</td>
+</tr>
+<tr>
+<td>18</td>
+<td>B19(IDialogService) + B20(LogLevel 中间件)</td>
+</tr>
+<tr>
+<td>19</td>
+<td>B21(白名单) + B22(AuditLogger)</td>
+</tr>
+<tr>
+<td>20</td>
+<td>B23(Recipe 配方)</td>
+</tr>
+<tr>
+<td>21</td>
+<td>B24(EngineeringConverter) + B25(PerformanceCounter)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-57">Week 4(Day 22-30)· 综合 + Debug</h2>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>任务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>22-23</td>
+<td>B26-B30(IDisposable/CancellationToken/Cache/单测)</td>
+</tr>
+<tr>
+<td>24-25</td>
+<td>Debug 全 10 题二刷(限时 50%)</td>
+</tr>
+<tr>
+<td>26-27</td>
+<td><strong>模拟面试</strong>:白板随机抽 5 题(2 翻译 + 2 手写 + 1 Debug),限时 60 分钟</td>
+</tr>
+<tr>
+<td>28-29</td>
+<td>缺漏补强(看哪些题没合格,集中二刷)</td>
+</tr>
+<tr>
+<td>30</td>
+<td><strong>毕业测试</strong>:白板写完一个完整 ModbusDevice + 单测,30 分钟内</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-58">训练纪律</h2>
+<ol>
+<li><strong>白板</strong>:不准用 IDE 自动补全,VS Code 关闭 IntelliSense 或用记事本</li>
+<li><strong>限时</strong>:超时也算完成,但要标"未达标",二刷时降低时间</li>
+<li><strong>错题本</strong>:每道错的题写到错题本.md,每天复习</li>
+<li><strong>可讲</strong>:写完必须能口头讲清思路(模拟面试官追问)</li>
+<li><strong>二刷</strong>:错题 3 天后二刷,7 天后三刷,直到不假思索写出</li>
+</ol>
+<h2 id="sec-2-59">评估标准(每周)</h2>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🟢 优秀</td>
+<td>80% 题目在限时内完成,代码能跑</td>
+</tr>
+<tr>
+<td>🟡 合格</td>
+<td>60% 题目在限时内完成,主要题 OK</td>
+</tr>
+<tr>
+<td>🔴 不合格</td>
+<td>&lt; 60%,该题必须重刷</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-60">真技术硬实力判据(30 天后自测)</h2>
+<ul>
+<li>[ ] 不查文档,5 分钟白板写完 Modbus CRC16</li>
+<li>[ ] 不查文档,10 分钟白板写完 Channel 生产者消费者(含 CancellationToken)</li>
+<li>[ ] 不查文档,15 分钟白板写完 IDevice 完整实现</li>
+<li>[ ] 不查文档,15 分钟白板写完 Bootstrapper + DI</li>
+<li>[ ] 不查文档,20 分钟白板写完一个完整的 ModbusDevice(含协议解析)</li>
+<li>[ ] 任意一段代码 5 秒内能说"这里有什么坑"</li>
+<li>[ ] 30 道手写题能 100% 通过,10 道 Debug 题 100% 找出 bug</li>
+</ul>
+<hr />
+<h2 id="sec-2-61">📌 配套讲义交叉引用</h2>
+<ul>
+<li>Part A 翻译题 → <a href="M0_每日讲义_深度版.md">M0 C# 基础</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></li>
+<li>Part B 手写题 → 对应模块讲义(M1/M2/M3/M4/M7/M9 等)</li>
+<li>Part C Debug 题 → <a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></li>
+<li>Part D 训练计划 → <a href="30天作战路线_转行冲刺版.md">30 天作战路线</a></li>
+</ul>
+<h2 id="sec-2-62">📚 延伸刷题资源</h2>
+<ul>
+<li>LeetCode C# 题解(数据结构/算法基础)</li>
+<li>Exercism C# track(免费,代码 review)</li>
+<li>Codewars C# kata(从小到大)</li>
+<li>面试白板题:《Cracking the Coding Interview》C# 版</li>
+</ul>
+<h2 id="sec-2-63">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('muscle',1)"> 打卡</label></h2>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:<strong>前端能"看代码瞬间开发"靠的是 5 年的代码量</strong>。你只有 30 天,但每天 1 小时刷这份手册,30 天 = 30 小时纯手敲,加上学习讲义 + 项目代码,你能形成上位机的肌肉记忆。<strong>面试时让你白板写 CRC,你 5 分钟写完,面试官问你 5 个细节你都答上来 —— 这就是 13-15K 和 8-10K 的差距</strong>。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="roadmap30.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">📅 30 天作战路线 · 转行冲刺版</div></a>
+  <a class="next" href="audit-v2.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">🔍 整体串联审计 v2 · 由粗到细</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

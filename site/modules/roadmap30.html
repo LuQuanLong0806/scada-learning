@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📅 30 天作战路线 · 转行冲刺版 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="roadmap30">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">0. 开始之前(必读 30 分钟)</a><ul>
+<li class="l3"><a href="#sec-3-1">心态校准</a></li>
+<li class="l3"><a href="#sec-3-2">代码肌肉训练的纪律(🔑 转行核心)</a></li>
+<li class="l3"><a href="#sec-3-3">环境清单</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Week 1 · 主干打底(Day 1-7)</a><ul>
+<li class="l3"><a href="#sec-3-4">Day 1(周一)· 立骨架 + C# 陷阱专项</a></li>
+<li class="l3"><a href="#sec-3-5">Day 2-3(周二-周三)· 串口 + Modbus RTU 全套</a></li>
+<li class="l3"><a href="#sec-3-6">Day 4-5(周四-周五)· PLC(西门子 S7)</a></li>
+<li class="l3"><a href="#sec-3-7">Day 6(周六)· 多设备抽象 + 收口</a></li>
+<li class="l3"><a href="#sec-3-8">Day 7(周日)· 调试入门 + 错题二刷</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Week 2 · 数据落库 + 可视化 + Prism(Day 8-14)</a><ul>
+<li class="l3"><a href="#sec-3-9">Day 8-9(周一-周二)· 数据持久化(EF Core + SQLite)</a></li>
+<li class="l3"><a href="#sec-3-10">Day 10(周三)· 实时可视化(LiveCharts2)</a></li>
+<li class="l3"><a href="#sec-3-11">Day 11(周四)· 报警 + 日志 + 内存排查实操</a></li>
+<li class="l3"><a href="#sec-3-12">Day 12-14(周五-周末)· 工程素养 + Prism 重构</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Week 3 · TCP + 上云 + 报表(Day 15-21)</a><ul>
+<li class="l3"><a href="#sec-3-13">Day 15-16(周一-周二)· TCP Socket 自定义协议【必做】</a></li>
+<li class="l3"><a href="#sec-3-14">Day 17(周三)· MQTT 上云双向【必做】 + 工程量转换</a></li>
+<li class="l3"><a href="#sec-3-15">Day 18(周四)· OPC UA【选做 P2】 + 性能压测</a></li>
+<li class="l3"><a href="#sec-3-16">Day 19(周五)· 报表 + 安装包【必做】</a></li>
+<li class="l3"><a href="#sec-3-17">Day 20(周六)· MES 对接【选做 P2】 + 工业安全</a></li>
+<li class="l3"><a href="#sec-3-18">Day 21(周日)· 配方管理【选做 P2】 + M19 调试综合实操</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">Week 4 · 文档 + 简历 + 面试冲刺(Day 22-30)</a><ul>
+<li class="l3"><a href="#sec-3-19">Day 22-23(周一-周二)· 交付文档 + M15 工程协作速过</a></li>
+<li class="l3"><a href="#sec-3-20">Day 24-25(周三-周四)· 简历 + 面试材料</a></li>
+<li class="l3"><a href="#sec-3-21">Day 26-28(周五-周日)· 投递 + 模拟面试</a></li>
+<li class="l3"><a href="#sec-3-22">Day 29-30 · 真面试 + 边面边补</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">应急预案(进度滞后怎么办)</a><ul>
+<li class="l3"><a href="#sec-3-23">滞后 1 周 → 砍 P2 内容</a></li>
+<li class="l3"><a href="#sec-3-24">滞后 2 周 → 砍到 W1+W2+W4</a></li>
+<li class="l3"><a href="#sec-3-25">完全来不及 → 项目当"学习项目"投</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">边面试边学策略</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">学习节奏(每天 4-5h 怎么分配)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">检查点总览(每周自测)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">最终交付物清单(30 天后你应该有)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-11">📚 配套材料导航</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">30 天作战路线 · 转行冲刺版(代码练习融入日常版)</h1>
+<blockquote>
+<p><strong>北极星</strong>:30 天后,简历上有一个真能跑、敢演示、面试官挖不倒的「DAQ Monitor 工业数据采集监控系统」,投 13-15K 上位机岗。
+<strong>核心策略</strong>:<strong>讲义 + 项目代码 + 代码肌肉 + 面试材料</strong> 四线同步推进。每天 = 看讲义 + 写项目代码 + <strong>手写 1 小时白板题</strong>(融入日常,不是单独 track)+ 打卡。
+<strong>节奏</strong>:每天 4-5 小时(深度学习 2h + 项目实战 1.5h + <strong>代码肌肉 1h</strong> + 打卡复盘 0.5h)。周末加量。
+<strong>前置</strong>:你是中高级前端,所以 <strong>M0 大部分速过</strong>(只精读"C# 陷阱专项")。</p>
+<p>📕 <strong>配套讲义</strong>:<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱</a> · <a href="代码肌肉训练手册_30天刷题版.md">代码肌肉训练手册(题库)</a> · <a href="面试问答_逐字稿_30题.md">面试逐字稿 30 题</a> · <a href="简历模板_上位机_13-15K.md">简历模板</a> · <a href="JD调研_13-15K上位机岗位对照.md">JD 调研</a> · <a href="审计_整体串联复核_v2.md">整体串联审计</a></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">0. 开始之前(必读 30 分钟)</h2>
+<h3 id="sec-3-1">心态校准</h3>
+<ul>
+<li><strong>前端 vs 上位机的本质差</strong>:前端是「快速迭代+用户体验」,上位机是「7×24 稳定+协议正确+现场排错」。<strong>慢就是快,稳就是好</strong>。</li>
+<li><strong>三大致命坑</strong>(前端背景必踩):① struct 值类型拷贝 ② 字节序/CRC 位运算 ③ async void 吞异常。<strong>Day 1 必读</strong> <a href="C#_陷阱_前端转上位机必看_深度版.md">C#_陷阱_前端转上位机必看_深度版.md</a>。</li>
+</ul>
+<h3 id="sec-3-2">代码肌肉训练的纪律(🔑 转行核心)</h3>
+<ul>
+<li><strong>白板</strong>:不准用 IDE 自动补全,VS Code 关闭 IntelliSense 或用记事本写</li>
+<li><strong>限时</strong>:超时也算完成,但标"未达标",二刷时降低时间</li>
+<li><strong>错题本</strong>:错的题写到 <code>错题本.md</code>,每天复习</li>
+<li><strong>可讲</strong>:写完必须能口头讲清思路(模拟面试官追问)</li>
+<li><strong>二刷</strong>:错题 3 天后二刷,7 天后三刷,直到不假思索写出</li>
+</ul>
+<h3 id="sec-3-3">环境清单</h3>
+<ul>
+<li>.NET 8 SDK + Visual Studio 2022(勾「.NET 桌面开发」)</li>
+<li>VS Code(写 md / Python 脚本 / 白板刷题)</li>
+<li>Git + GitHub(每天 commit)</li>
+<li>可选:VMware + Ubuntu(后续 OPC UA/MQTT broker 用)</li>
+</ul>
+<hr />
+<h2 id="sec-2-2">Week 1 · 主干打底(Day 1-7)</h2>
+<blockquote>
+<p><strong>目标</strong>:能独立用串口/Modbus 跟设备通信,理解"工业协议"是怎么回事。项目里多出 ModbusDevice / PlcDevice 两个真设备。
+<strong>代码肌肉目标</strong>:<strong>5 分钟白板写完 Modbus CRC16 + 10 分钟白板写完 Channel 生产消费者</strong></p>
+</blockquote>
+<h3 id="sec-3-4">Day 1(周一)· 立骨架 + C# 陷阱专项</h3>
+<p><strong>学习</strong>(2h):
+- 速过 <a href="M0_每日讲义_深度版.md">M0_每日讲义_深度版.md</a> Day 1-6(前端背景,C# 语法/WPF 基础大部分能迁移)
+- <strong>精读</strong> <a href="C#_陷阱_前端转上位机必看_深度版.md">C#_陷阱_前端转上位机必看_深度版.md</a> — 重点 struct/字节序/async void 三节
+- 速过 <a href="实操入门_从零搭建企业级工程.md">实操入门_从零搭建企业级工程.md</a></p>
+<p><strong>项目</strong>(1.5h):
+- <code>git clone</code> 当前项目,<code>dotnet build</code> 跑通
+- 跑 <code>dotnet run --project DAQMonitor/src/DaqMonitor.UI</code>,启动采集看到点位跳动
+- 阅读一遍 DAQMonitor/src/DaqMonitor.Core/Devices/IDevice.cs 理解抽象</p>
+<p><strong>代码肌肉</strong>(1h):
+- 翻译题 A1-A4(<a href="代码肌肉训练手册_30天刷题版.md#part-a--前端--c-翻译题20-道">代码肌肉手册 Part A</a>)— Promise→Task / Promise.all→Task.WhenAll / Array.map→LINQ Select
+- Debug 题 C1(async void 吞异常)— 5 分钟找 bug + 看答案</p>
+<p><strong>打卡</strong>:✅ 跑通项目 ✅ 看懂 IDevice 接口 ✅ 手算 1 道 CRC 题 ✅ A1-A4 + C1 限时完成</p>
+<h3 id="sec-3-5">Day 2-3(周二-周三)· 串口 + Modbus RTU 全套</h3>
+<p><strong>学习</strong>(4h):
+- <a href="M1_串口通信_深度版.md">M1_串口通信_深度版.md</a> 全文(波特率/RS232/RS485/CRC/半包)
+- <a href="M2_Modbus_深度版.md">M2_Modbus_深度版.md</a> 全文 — <strong>手算 CRC 必须过关</strong></p>
+<p><strong>项目</strong>(3h):
+- 新建 <code>DAQMonitor/src/DaqMonitor.Core/Devices/ModbusDevice.cs</code>(已存在则读+理解+加注释)
+- 用 NModbus4 实现连接 + 循环读保持寄存器
+- 在 Bootstrapper 里把 SimulatedDevice 换成 ModbusDevice(用虚拟串口 + Modbus Slave 软件测)
+- 写完 <code>dotnet test</code> 必须全绿</p>
+<p><strong>代码肌肉</strong>(2h):
+- Day 2: <strong>手写题 B1(CRC16,5 分钟白板)</strong> — 这是 13-15K 面试高频白板题
+- Day 2: 翻译题 A5-A8(filter/reduce/event/useState 翻译)
+- Day 3: Debug 题 C2(.Result 死锁) + C10(字节序搞反)
+- Day 3: 翻译题 A9-A12(fetch/HttpClient/JSON 等)</p>
+<p><strong>打卡</strong>:✅ 手算 CRC 16 题 ✅ ModbusDevice 跑通虚拟从站 ✅ B1 5 分钟白板过关 ✅ C2/C10 5 分钟找 bug</p>
+<h3 id="sec-3-6">Day 4-5(周四-周五)· PLC(西门子 S7)</h3>
+<p><strong>学习</strong>(3h):
+- <a href="M3_PLC_深度版.md">M3_PLC_深度版.md</a> 全文 — 重点 S7.Net 用法/DB 块/优化访问/错误模型
+- 不用精通,会用 S7.Net 读 DB1.DBX0.0 / DB1.DBD4 这种地址就行</p>
+<p><strong>项目</strong>(3h):
+- 新建 <code>DAQMonitor/src/DaqMonitor.Core/Devices/PlcDevice.cs</code>(已存在则读+理解)
+- 用 S7.Net 连接(没有真实 PLC 用 PLCSIM 或跳过实测,代码必须写对)
+- 接进 Bootstrapper</p>
+<p><strong>代码肌肉</strong>(2h):
+- Day 4: <strong>手写题 B2(Channel 生产消费者,10 分钟白板)</strong> — 13-15K 必考
+- Day 4: Debug 题 C3(多线程竞态丢数) + C4(event 没退订)
+- Day 5: 翻译题 A13-A16(闭包/async/继承/泛型)
+- Day 5: Debug 题 C5(DbContext 线程不安全)</p>
+<p><strong>打卡</strong>:✅ PlcDevice 编译通过 ✅ 能讲清 S7.Net 优势 vs Modbus ✅ B2 10 分钟白板过关</p>
+<h3 id="sec-3-7">Day 6(周六)· 多设备抽象 + 收口</h3>
+<p><strong>学习</strong>(2h):
+- 复习 M0 Day 7(并发/Channel/CancellationToken)
+- 看 <a href="硬件替代方案与讲解_深度版.md">硬件替代方案与讲解_深度版.md</a> — 没硬件怎么练</p>
+<p><strong>项目</strong>(3h):
+- 让 SimulatedDevice + SerialDevice + ModbusDevice + PlcDevice 同时跑(IDevice 抽象验证)
+- 写一个简单的"设备管理器"切换不同 IDevice</p>
+<p><strong>代码肌肉</strong>(1h):
+- <strong>手写题 B3(IDevice 完整实现,15 分钟白板)</strong> — 含 Connect/Read/Disconnect/异常处理
+- 翻译题 A17-A20(模块化/枚举/接口/反射)</p>
+<p><strong>打卡</strong>:✅ 4 种设备同时跑 ✅ B3 15 分钟白板过关 ✅ A1-A20 翻译题全过</p>
+<h3 id="sec-3-8">Day 7(周日)· 调试入门 + 错题二刷</h3>
+<p><strong>学习</strong>(2h):
+- <strong>精读</strong> <a href="M19_问题排查与调试_深度版.md">M19_问题排查与调试_深度版.md</a> Day 1(VS 调试器高级功能:条件断点 / 数据断点 / 调用栈 / Threads 窗口)
+- 装 Wireshark + 串口监视器</p>
+<p><strong>项目</strong>(2h):
+- 拿你 Day 2-5 写的代码实操:在 ModbusDevice.ReadAsync 下条件断点(<code>pointId == 42 &amp;&amp; value &gt; 100</code>)
+- 用 Wireshark 抓一次本机 Modbus TCP,看真实字节</p>
+<p><strong>代码肌肉</strong>(2h):
+- B1+B2+B3 三刷(限时 80%,即 CRC 4 分钟、Channel 8 分钟、IDevice 12 分钟)
+- Debug C1+C2 二刷</p>
+<p><strong>Week 1 检查点</strong>(自测):
+- [ ] 能背 Modbus RTU 帧格式 + 异常码 0x01-0x04 含义
+- [ ] 能 5 分钟白板手算 <code>01 03 00 00 00 02</code> 的 CRC
+- [ ] 能讲清 IDevice 抽象为什么这么设计
+- [ ] 能讲清 struct vs class 在多线程的差异
+- [ ] DAQMonitor 项目能跑 4 种以上设备
+- [ ] <strong>代码肌肉</strong>:CRC 5min / Channel 10min / IDevice 15min,不查文档能写
+- [ ] <strong>调试</strong>:会用 VS 条件断点 + Wireshark 抓 Modbus 字节</p>
+<hr />
+<h2 id="sec-2-3">Week 2 · 数据落库 + 可视化 + Prism(Day 8-14)</h2>
+<blockquote>
+<p><strong>目标</strong>:数据真的进 SQLite,UI 上有曲线/仪表盘/报警,用 Prism 重构 MVVM。这周结束项目就达到"13K 简历可投"线。
+<strong>代码肌肉目标</strong>:<strong>10 分钟白板写完完整 ModbusDevice + 5 分钟写完 RelayCommand</strong></p>
+</blockquote>
+<h3 id="sec-3-9">Day 8-9(周一-周二)· 数据持久化(EF Core + SQLite)</h3>
+<p><strong>学习</strong>(3h):
+- <a href="M4_数据持久化_深度版.md">M4_数据持久化_深度版.md</a> 全文 — 重点 EF Core 变更追踪/迁移/DbContext 生命周期/异步查询
+- 学习 SQLite 浏览工具(DB Browser for SQLite)</p>
+<p><strong>项目</strong>(3h):
+- 读+理解 <code>DAQMonitor/src/DaqMonitor.Core/Store/PointStore.cs</code>(双写内存+异步 SQLite)
+- 读+理解 <code>AppDbContext.cs</code> + <code>SensorRecord.cs</code>
+- 写一个历史查询方法(按时间范围 + 点位 ID 查)</p>
+<p><strong>代码肌肉</strong>(2h):
+- Day 8: <strong>手写题 B11(PointStore 内存索引+SQLite 落库,15 分钟白板)</strong> — 含 Channel 异步消费
+- Day 8: 翻译题 A1-A10 二刷(限时 50%)
+- Day 9: <strong>手写题 B4(Retry 指数退避,10 分钟白板)</strong>
+- Day 9: Debug C5 二刷 + C6(struct 拷贝)</p>
+<p><strong>打卡</strong>:✅ 数据真的进 .db 文件 ✅ 用 DB Browser 能看到数据 ✅ B11 15 分钟白板过关</p>
+<h3 id="sec-3-10">Day 10(周三)· 实时可视化(LiveCharts2)</h3>
+<p><strong>学习</strong>(1.5h):
+- <a href="M5_实时可视化_深度版.md">M5_实时可视化_深度版.md</a> — 重点实时曲线性能(高频滚动)、ObservableCollection 更新策略</p>
+<p><strong>项目</strong>(2.5h):
+- 读+理解 <code>Views/ChartView.xaml</code>(LiveCharts2 实时曲线,60 秒滚动)
+- 自定义仪表盘控件(已有 GaugeControl,改样式)
+- 在 MainWindow 里加一个 Tab 显示 ChartView</p>
+<p><strong>代码肌肉</strong>(1h):
+- 手写题 B9(RelayCommand 实现 ICommand,5 分钟白板)
+- 手写题 B10(INotifyPropertyChanged,5 分钟白板,无 Prism 基类)</p>
+<p><strong>打卡</strong>:✅ 实时曲线显示 2 个点位 60 秒滚动 ✅ B9 + B10 各 5 分钟白板</p>
+<h3 id="sec-3-11">Day 11(周四)· 报警 + 日志 + 内存排查实操</h3>
+<p><strong>学习</strong>(2h):
+- <a href="M6_报警引擎日志_深度版.md">M6_报警引擎日志_深度版.md</a> — 重点回滞机制 + Serilog 配置</p>
+<p><strong>项目</strong>(2h):
+- 验证现有 AlarmEngine(回滞已实现,看代码理解原理)
+- 加 Serilog 的 Rolling + 文件 + 控制台 sink
+- <strong>M19 实操</strong>:用 <code>dotnet counters</code> 监控 DAQMonitor 跑 10 分钟,看 GC / ThreadPool / 内存曲线</p>
+<p><strong>代码肌肉</strong>(1h):
+- <strong>手写题 B5(AlarmRule 回滞,15 分钟白板)</strong> — 这是 M6 的核心,面试高频</p>
+<p><strong>打卡</strong>:✅ Serilog 配置好 ✅ AlarmEngine 回滞能讲 ✅ dotnet counters 实操 ✅ B5 15 分钟白板</p>
+<h3 id="sec-3-12">Day 12-14(周五-周末)· 工程素养 + Prism 重构</h3>
+<p><strong>学习</strong>(3h):
+- <a href="M9_工程素养_测试DI容错_深度版.md">M9_工程素养_测试DI容错_深度版.md</a> — 速过(项目已实现大部分)
+- <strong>精读</strong> <a href="M8.5_Prism企业级MVVM_深度版.md">M8.5_Prism企业级MVVM_深度版.md</a> — 重点模块化/导航/事件聚合器/Region</p>
+<p><strong>项目</strong>(5h):
+- 安装 Prism.DryIoc(或 Prism.Unity)
+- 改造 <code>Bootstrapper.cs</code> → 继承 PrismBootstrapper
+- 改造 MainViewModel → 加 <code>[ObservableProperty]</code> / <code>[RelayCommand]</code>(或 BindableBase)
+- 拆分 MainWindow 为多个 View(Header / DeviceList / Chart / Alarm),用 RegionManager 注入</p>
+<p><strong>代码肌肉</strong>(3h):
+- Day 12: <strong>手写题 B8(Bootstrapper DI 配置,10 分钟白板)</strong> + B12(HttpClient Polly 重试,10 分钟)
+- Day 13: <strong>手写题 B17(EventAggregator 简化版,10 分钟)</strong> + B18(ViewModelLocator 命名约定,10 分钟)
+- Day 14: Week 1+2 错题二刷(限时 50%)+ 综合题(随机抽 5 题白板)</p>
+<p><strong>Week 2 检查点</strong>:
+- [ ] 数据能从 SQLite 查历史
+- [ ] UI 有曲线/仪表盘/报警/日志
+- [ ] 用了 Prism + DI + 模块化
+- [ ] <strong>代码肌肉</strong>:CRC/Channel/IDevice/PointStore/AlarmRule 五大件不假思索写完
+- [ ] <strong>调试</strong>:<code>dotnet counters</code> + <code>dotnet gcdump</code> 能用
+- [ ] <strong>简历可以开始投 10-13K 岗位练手</strong></p>
+<hr />
+<h2 id="sec-2-4">Week 3 · TCP + 上云 + 报表(Day 15-21)</h2>
+<blockquote>
+<p><strong>目标</strong>:补齐 JD 必考点(TCP/MES/上云/报表),把项目拉到"15K 稳"线。
+<strong>本周拆为「必做 3 + 选做 3」</strong>:必做 = TcpDevice / MQTT 双向 / 报表 Excel;选做 = OPC UA / MES / Recipe(应急预案可砍)</p>
+</blockquote>
+<h3 id="sec-3-13">Day 15-16(周一-周二)· TCP Socket 自定义协议【必做】</h3>
+<p><strong>学习</strong>(3h):
+- <a href="M11_TCP_Socket_深度版.md">M11_TCP_Socket_深度版.md</a> — 重点粘包/拆包/帧头+长度+payload+CRC 结构</p>
+<p><strong>项目</strong>(4h):
+- 读+理解 <code>DaqMonitor.Core/Devices/TcpDevice.cs</code>(长度前缀帧 + 心跳 + 重连)
+- 读+理解 <code>Protocol/TcpFrameParser.cs</code>(状态机解析)
+- 写一个测试用 TCP Server(Python 或 C#)模拟设备</p>
+<p><strong>代码肌肉</strong>(2h):
+- Day 15: <strong>手写题 B16(TcpDevice 粘包处理状态机,15 分钟白板)</strong> — 这是 13-15K 面试高频白板题
+- Day 15: Debug C7(TCP 缓冲区 MemoryStream 性能坑) + C8(闭包捕获循环变量)
+- Day 16: 手写题 B6(帧解析 AA55 + 长度 + payload + CRC,10 分钟)
+- Day 16: Debug C9(async lambda 没 await)二刷</p>
+<p><strong>打卡</strong>:✅ TcpDevice 真粘包处理 ✅ 模拟设备能通 ✅ B16 15 分钟白板</p>
+<h3 id="sec-3-14">Day 17(周三)· MQTT 上云双向【必做】 + 工程量转换</h3>
+<p><strong>学习</strong>(2h):
+- <a href="M7_OPCUA_MQTT_深度版.md">M7_OPCUA_MQTT_深度版.md</a> — <strong>重点:全程 async/await + MQTT 双向</strong>
+- <a href="M12_工程量转换与多数据库_深度版.md">M12_工程量转换与多数据库_深度版.md</a> — 重点量程标定公式 + 字节序交换
+- 装本地 Mosquitto 或用 broker.emqx.io 测试</p>
+<p><strong>项目</strong>(3h):
+- 读+理解 <code>DaqMonitor.Core/Cloud/MqttPublisher.cs</code>(MQTTnet 4.x 双向 + Channel 缓冲)
+- 读+理解 <code>DaqMonitor.Core/Engineering/EngineeringConverter.cs</code>(线性标定 + 字节序)
+- 用 MQTTX 工具订阅 <code>daq/+/telemetry</code> 看到上位机发的数据
+- 从 MQTTX 发命令到 <code>daq/{deviceId}/command</code>,PLC 真的写入</p>
+<p><strong>代码肌肉</strong>(1h):
+- <strong>手写题 B13(MQTT Publish+Subscribe 双向,15 分钟白板)</strong> — 这是修正版核心
+- <strong>手写题 B24(EngineeringConverter 量程标定,5 分钟白板)</strong></p>
+<p><strong>打卡</strong>:✅ MQTTX 看到上位机发的数据 ✅ 从 MQTTX 发命令,PLC 真的写入 ✅ B13 15 分钟白板</p>
+<h3 id="sec-3-15">Day 18(周四)· OPC UA【选做 P2】 + 性能压测</h3>
+<p><strong>学习</strong>(2h):
+- <a href="M7_OPCUA_MQTT_深度版.md">M7_OPCUA_MQTT_深度版.md</a> OPC UA 部分 — 全程 async(不再 .Result)
+- <a href="M9.5_性能压测与长跑稳定性_深度版.md">M9.5_性能压测与长跑稳定性_深度版.md</a> — BenchmarkDotNet / dotnet counters / dotMemory</p>
+<p><strong>项目</strong>(3h,选做):
+- 新建 <code>DaqMonitor.Core/Cloud/OpcUaClient.cs</code>(用 OpcUaNet or MQTTnet 绑定,真异步)
+- <strong>M9.5 实操</strong>:写一个 BenchmarkDotNet 项目,压 PointStore.QueryHistoryAsync 的性能
+- 跑 1 小时长跑,记录内存曲线(应该平稳不涨)</p>
+<p><strong>代码肌肉</strong>(1h):
+- 手写题 B14(OPC UA 异步客户端,15 分钟白板)
+- Debug C1-C10 全二刷(限时 50%,即每题 2.5 分钟)</p>
+<p><strong>打卡</strong>(选做):✅ OpcUaClient 编译通过 ✅ BenchmarkDotNet 报告 ✅ 1 小时长跑内存平稳</p>
+<h3 id="sec-3-16">Day 19(周五)· 报表 + 安装包【必做】</h3>
+<p><strong>学习</strong>(1.5h):
+- <a href="M10_报表_深度版.md">M10_报表_深度版.md</a> + <a href="M8_工程化收尾_深度版.md">M8_工程化收尾_深度版.md</a></p>
+<p><strong>项目</strong>(2.5h):
+- 用 ClosedXML 导出 Excel(按时间范围 + 点位聚合)— 读+增强 <code>ReportService.cs</code> / <code>ReportExporter.cs</code>
+- 用 Inno Setup 或 WiX 打安装包</p>
+<p><strong>代码肌肉</strong>(1h):
+- 手写题 B19(IDialogService 标准对话框,10 分钟)
+- 手写题 B20(Serilog + TraceId 日志中间件,10 分钟)</p>
+<p><strong>打卡</strong>:✅ Excel 报表能导 ✅ 安装包能装 ✅ B19+B20 白板过关</p>
+<h3 id="sec-3-17">Day 20(周六)· MES 对接【选做 P2】 + 工业安全</h3>
+<p><strong>学习</strong>(2h):
+- <a href="M17_工业安全与MES对接_深度版.md">M17_工业安全与MES对接_深度版.md</a> — HttpClient + REST + Polly + JWT + IT/OT 分层</p>
+<p><strong>项目</strong>(3h,选做):
+- 新建 <code>DaqMonitor.Core/Mes/MesApiClient.cs</code> — HttpClient + Polly + JWT
+- 加白名单验证器(IpAllowedHosts)+ 审计日志</p>
+<p><strong>代码肌肉</strong>(1h):
+- 手写题 B21(白名单验证器,10 分钟)
+- 手写题 B22(AuditLogger,10 分钟)</p>
+<p><strong>打卡</strong>(选做):✅ MesApiClient 跑通本地 mock ✅ B21+B22 白板过关</p>
+<h3 id="sec-3-18">Day 21(周日)· 配方管理【选做 P2】 + M19 调试综合实操</h3>
+<p><strong>学习</strong>(2h):
+- <a href="M18_配方管理_深度版.md">M18_配方管理_深度版.md</a> — 工艺参数版本 / ISA-88 / 审计
+- <strong>复习</strong> <a href="M19_问题排查与调试_深度版.md">M19_问题排查与调试_深度版.md</a> Day 2-5(异常/竞态/内存/性能/物理工具)</p>
+<p><strong>项目</strong>(3h,选做):
+- 新建 <code>DaqMonitor.Core/Recipe/RecipeManager.cs</code> — JSON 配方 + 版本化 + 回滚</p>
+<p><strong>代码肌肉 + 调试综合实操</strong>(2h):
+- 手写题 B23(Recipe 配方管理,15 分钟)
+- <strong>M19 综合实操</strong>:故意造一个 bug(event 没退订导致内存泄漏),用 <code>dotnet gcdump</code> 抓快照,找出泄漏对象 → 修复
+- <strong>M19 综合实操</strong>:用 Wireshark 抓一次 Modbus RTU,从字节解释每个字段</p>
+<p><strong>Week 3 检查点</strong>:
+- [ ] 项目有 5 种设备(Simulated/Serial/Modbus/PLC/TCP)
+- [ ] MQTT 双向跑通(选做:OPC UA + MES + Recipe)
+- [ ] 报表能导 Excel
+- [ ] <strong>代码肌肉</strong>:TcpDevice 粘包 / MQTT 双向 / 报表导出,10-15 分钟白板
+- [ ] <strong>调试</strong>:dotnet gcdump 抓泄漏 + Wireshark 抓协议
+- [ ] <strong>简历可以投 13-15K 岗位</strong></p>
+<hr />
+<h2 id="sec-2-5">Week 4 · 文档 + 简历 + 面试冲刺(Day 22-30)</h2>
+<blockquote>
+<p><strong>目标</strong>:敢演示、能讲透、面试不卡。这周不再写新代码,只补文档/练讲法/投简历/真面试。</p>
+</blockquote>
+<h3 id="sec-3-19">Day 22-23(周一-周二)· 交付文档 + M15 工程协作速过</h3>
+<p><strong>学习</strong>(2h):
+- <a href="文档能力_设计协议操作测试文档_深度版.md">文档能力_设计协议操作测试文档_深度版.md</a>
+- 速过 <a href="M15_工程协作与联调_深度版.md">M15_工程协作与联调_深度版.md</a> Day 1(Git 协作流程 + 联调方法,30 分钟)</p>
+<p><strong>项目</strong>(4h):
+- 写 <code>DAQMonitor/README.md</code>(项目讲法,带截图)
+- 写 <code>DAQMonitor/docs/架构设计.md</code>(分层 + 时序图,用 PlantUML)
+- 写 <code>DAQMonitor/docs/协议文档.md</code>(Modbus 寄存器表 + 自定义 TCP 协议帧格式)
+- 写 <code>DAQMonitor/docs/操作手册.md</code>(怎么跑起来,操作员视角)
+- 写 <code>DAQMonitor/docs/测试报告.md</code>(套 M9.5 BenchmarkDotNet 数据)</p>
+<p><strong>代码肌肉</strong>(1h):
+- 手写题 B25(PerformanceCounter 业务指标上报,10 分钟)
+- 手写题 B26(IDisposable 完整模式含 finalizer,10 分钟)</p>
+<p><strong>打卡</strong>:✅ 4 份文档完成 ✅ GitHub 仓库 docs/ 目录完整 ✅ B25+B26 白板过关</p>
+<h3 id="sec-3-20">Day 24-25(周三-周四)· 简历 + 面试材料</h3>
+<p><strong>学习</strong>(2h):
+- 速过 <a href="面试高频知识点_速记卡.md">面试高频知识点_速记卡.md</a>
+- <strong>精读</strong> <a href="面试问答_逐字稿_30题.md">面试问答_逐字稿_30题.md</a>(30 题覆盖 C#/并发/Modbus/PLC/EF/Prism/TCP/报警/性能/调试 10 大主题)</p>
+<p><strong>产出</strong>(4h):
+- 用 <a href="简历模板_上位机_13-15K.md">简历模板_上位机_13-15K.md</a> 改出自己的简历(3 个版本:13K / 14-15K / 15K+)
+- 把 DAQMonitor 项目讲法背 3 遍(STAR 法)
+- 准备 5 个"项目难点+怎么解决"故事(对应 <a href="JD调研_13-15K上位机岗位对照.md">JD 调研</a> 行业偏好)
+- 对照 <a href="JD调研_13-15K上位机岗位对照.md">JD 调研</a> 第 7 节"按 JD 调简历 5 建议",每投一家改一遍关键词</p>
+<p><strong>代码肌肉</strong>(2h):
+- <strong>毕业测试预演</strong>:不查文档白板写 B1+B2+B5+B16+B13 五大件,目标 60 分钟(总限时 65 分钟)
+- 错题三刷</p>
+<p><strong>打卡</strong>:✅ 简历 3 版本 ✅ 项目 STAR 讲法 3 遍 ✅ 30 题逐字稿背完 ✅ 毕业测试预演过关</p>
+<h3 id="sec-3-21">Day 26-28(周五-周日)· 投递 + 模拟面试</h3>
+<ul>
+<li><strong>周五</strong>:<strong>开始投简历</strong>(BOSS / 智联 / 拉勾 / 猎聘),先投 10-13K 练手,关键词镜像 JD</li>
+<li><strong>周六</strong>:找朋友或对着镜头模拟面试,录音回听;用 <a href="面试问答_逐字稿_30题.md">面试逐字稿</a> 自测</li>
+<li><strong>周日</strong>:复盘 + 补漏(根据面试反馈)</li>
+</ul>
+<p><strong>代码肌肉</strong>(每天 1h):
+- 每天白板 3 题(随机抽,模拟面试官出题)
+- 错题集中刷</p>
+<h3 id="sec-3-22">Day 29-30 · 真面试 + 边面边补</h3>
+<ul>
+<li>真去面试,每场面试后立刻记录"被问倒的题"</li>
+<li>当晚针对问倒的题查文档/补代码/补到逐字稿</li>
+<li>投递提级到 13-15K,争取拿 2-3 个 offer 比较</li>
+</ul>
+<p><strong>代码肌肉</strong>:
+- Day 30 <strong>真毕业测试</strong>:不查文档白板写完一个完整 ModbusDevice(含协议解析 + CRC + 异常处理 + IDisposable),30 分钟内
+- 任意一段代码 5 秒内能说"这里有什么坑"</p>
+<hr />
+<h2 id="sec-2-6">应急预案(进度滞后怎么办)</h2>
+<h3 id="sec-3-23">滞后 1 周 → 砍 P2 内容</h3>
+<ul>
+<li>砍 M16(CAN/USB-HID 详学,保留概念)、M14(WinForm 详学)、M18(配方管理)</li>
+<li>砍 Day 18(OPC UA)/ Day 20(MES)/ Day 21(Recipe)3 个选做日</li>
+<li>重点保 W1+W2 主干 + W3 必做 3 项 + W4</li>
+</ul>
+<h3 id="sec-3-24">滞后 2 周 → 砍到 W1+W2+W4</h3>
+<ul>
+<li>只做 串口/Modbus/PLC/SQLite/可视化/报警/Prism + 简历面试</li>
+<li>TCP/上云/报表 简历"了解"即可,不写代码</li>
+<li>这样也能投 10-13K</li>
+</ul>
+<h3 id="sec-3-25">完全来不及 → 项目当"学习项目"投</h3>
+<ul>
+<li>老老实实说"自学项目,做到 M9",投助理岗(8-10K)</li>
+<li>边工作边补完</li>
+</ul>
+<hr />
+<h2 id="sec-2-7">边面试边学策略</h2>
+<p><strong>Week 2 末就可以开始投练手</strong>(10-13K),目标不是拿 offer,是:
+1. 摸清楚 JD 真实要求(对照 <a href="JD调研_13-15K上位机岗位对照.md">JD 调研</a> 补漏)
+2. 练面试表达(尤其是项目讲法)
+3. 知道面试官常挖的坑(记下来背答案,补到 <a href="面试问答_逐字稿_30题.md">面试逐字稿</a>)</p>
+<p><strong>Week 3 末投 13-15K 主力</strong>:
+- 这时候项目已经完整,简历硬通货
+- 把面试当"免费模考",每场回来补强
+- 通常 5-10 场面试后能拿到第一个 offer</p>
+<hr />
+<h2 id="sec-2-8">学习节奏(每天 4-5h 怎么分配)</h2>
+<p><strong>最优时间块</strong>:
+- 上午 1h:看讲义(理论,大脑最清醒)
+- 下午 1.5h:写代码(项目实战)
+- <strong>傍晚 1h:代码肌肉(白板刷题,形成肌肉记忆)</strong>
+- 晚上 0.5h:打卡 + 复盘 + 第二天预览
+- 周末加量:5-7h 集中突破</p>
+<p><strong>前端背景的偷懒技巧</strong>:
+- C#/WPF 速过(M0 Day 1-6 不要全做练习,看懂就行)
+- LINQ 不用学,你 JS 数组方法熟 → 直接迁移
+- async/await 不用学,你已经熟
+- <strong>节省的时间全压到</strong>:多线程/锁/struct/字节序/CRC(前端没概念的)+ <strong>每天 1h 代码肌肉</strong></p>
+<hr />
+<h2 id="sec-2-9">检查点总览(每周自测)</h2>
+<table>
+<thead>
+<tr>
+<th>周</th>
+<th>自测题</th>
+<th>代码肌肉</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>W1</td>
+<td>手算 Modbus CRC + 讲 IDevice 抽象</td>
+<td>CRC 5min + Channel 10min + IDevice 15min</td>
+<td>5 分钟内答完,白板过关</td>
+</tr>
+<tr>
+<td>W2</td>
+<td>讲 EF Core 变更追踪 + Prism 模块化</td>
+<td>PointStore 15min + AlarmRule 15min + RelayCommand 5min</td>
+<td>不卡壳,白板过关</td>
+</tr>
+<tr>
+<td>W3</td>
+<td>讲 TCP 粘包怎么解 + MQTT 双向怎么实现</td>
+<td>TcpDevice 粘包 15min + MQTT 双向 15min</td>
+<td>能画图,白板过关</td>
+</tr>
+<tr>
+<td>W4</td>
+<td>项目讲法 STAR + 30 题面试速记</td>
+<td>5 大件 60min 毕业测试</td>
+<td>通关模拟面 + 白板过关</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-10">最终交付物清单(30 天后你应该有)</h2>
+<ul>
+<li>✅ DAQMonitor 完整项目(7+ 设备/协议类、SQLite、Prism、上云、报表)</li>
+<li>✅ 33+ 测试全绿(项目原有 28 + 你新加的 5-8)</li>
+<li>✅ 完整文档(README + 架构 + 协议 + 操作 + 测试报告)</li>
+<li>✅ 简历定稿 3 版本(13K / 14-15K / 15K+,项目讲法 STAR 化)</li>
+<li>✅ 面试逐字稿背熟(30 题)</li>
+<li>✅ GitHub 仓库 commit 历史清晰(每天 commit,面试官看)</li>
+<li>✅ <strong>代码肌肉</strong>:30 道手写题 + 10 道 Debug 题白板过关,看代码 5 秒知坑</li>
+</ul>
+<hr />
+<h2 id="sec-2-11">📚 配套材料导航</h2>
+<table>
+<thead>
+<tr>
+<th>材料</th>
+<th>用途</th>
+<th>何时用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="C#_陷阱_前端转上位机必看_深度版.md">C#_陷阱_前端转上位机必看_深度版.md</a></td>
+<td>8 大前端→C# 陷阱</td>
+<td>Day 1 必读,Week 1 反复回看</td>
+</tr>
+<tr>
+<td><a href="代码肌肉训练手册_30天刷题版.md">代码肌肉训练手册_30天刷题版.md</a></td>
+<td>20 翻译 + 30 手写 + 10 Debug 题库</td>
+<td><strong>每天 1 小时</strong>,按本路线打卡</td>
+</tr>
+<tr>
+<td><a href="面试问答_逐字稿_30题.md">面试问答_逐字稿_30题.md</a></td>
+<td>30 题标准答 + 逐字稿</td>
+<td>Week 4 背诵 + 面试前复习</td>
+</tr>
+<tr>
+<td><a href="简历模板_上位机_13-15K.md">简历模板_上位机_13-15K.md</a></td>
+<td>3 版本简历 + 投递策略</td>
+<td>Week 4 改简历,每投一家调一次</td>
+</tr>
+<tr>
+<td><a href="JD调研_13-15K上位机岗位对照.md">JD调研_13-15K上位机岗位对照.md</a></td>
+<td>JD 必考点 + 行业偏好 + 缺口 Top 10</td>
+<td>投简历前对照,面试前看行业</td>
+</tr>
+<tr>
+<td><a href="审计_整体串联复核_v2.md">审计_整体串联复核_v2.md</a></td>
+<td>整体串联审计 + Top 10 必修问题</td>
+<td>学习中遇到疑问时回看</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:这不是 30 天速成,是 30 天<strong>集中突破</strong>。前端背景让你代码不慌,但<strong>协议正确性、稳定性、现场排错</strong>这三件事必须从零练。每天 commit,每周自测,边面边补,<strong>每天 1 小时白板刷题形成肌肉记忆</strong>,<strong>30 天后你会发现自己已经能跟中级上位机工程师平等对话</strong>。</p>
+</blockquote>
+<p>开始 Day 1 → <a href="C#_陷阱_前端转上位机必看_深度版.md">C#_陷阱_前端转上位机必看_深度版.md</a></p>
+<div class="pager">
+  <a class="prev" href="traps.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">⚠️ C# 陷阱 · 前端转上位机必看</div></a>
+  <a class="next" href="muscle.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">💪 代码肌肉训练手册 · 30 天刷题版</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M19 · 问题排查与调试 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M19">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 5 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — VS 调试器高级功能（从 console.log 升级）🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-6">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-7">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-8">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-9">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-10">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-11">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 异常排查 + 多线程竞态 🔴</a><ul>
+<li class="l3"><a href="#sec-3-12">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-13">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-14">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-15">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-16">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-17">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-18">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-19">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-20">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-21">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-22">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Day 3 — 内存泄漏排查（4 种典型）🔴</a><ul>
+<li class="l3"><a href="#sec-3-23">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-24">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-25">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-26">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-27">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-28">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-29">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-30">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-31">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-32">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-33">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">Day 4 — 性能分析 + 协议抓包 🔴</a><ul>
+<li class="l3"><a href="#sec-3-34">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-35">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-36">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-37">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-38">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-39">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-40">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-41">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-42">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-43">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-44">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">Day 5 — 工业现场物理工具 + Serilog 关联追踪 🔴</a><ul>
+<li class="l3"><a href="#sec-3-45">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-46">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-47">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-48">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-49">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-50">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-51">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-52">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-53">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-54">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-55">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">🏗️ 项目综合任务</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M19 — 问题排查与调试（深度版）🔧</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学 · 工业现场 80% 时间在调试不是写新代码（13→15K 硬要求，面试必问"遇到过什么难 bug，怎么排查"）
+<strong>技术来源</strong>：🟦 VS 调试器（条件断点 / 数据断点 / 调用栈 / Threads / Parallel Stacks / IntelliTrace）、🟧 <code>dotnet</code> 全局工具（<code>dotnet dump</code> / <code>dotnet counters</code> / <code>dotnet trace</code> / <code>dotnet gcdump</code>）、🟧 Wireshark + 串口监视器 + Modbus Poll、🟧 <code>PerfView</code> / <code>dotMemory</code>、🟦 <code>Serilog</code>（结构化日志 + TraceId 关联）。
+<strong>前端类比总纲</strong>：前端有 Chrome DevTools 五件套（Elements / Console / Sources / Network / Memory），上位机这一套全是新东西——VS 调试器是 Sources 面板的超集，<code>dotnet dump</code> 是 Memory 快照的命令行版，Wireshark 是 Network 面板的物理层版，Serilog 是 Sentry 的本地版。前端的调试直觉 60% 能迁移，剩下 40% 是<strong>多线程 + 内存 + 协议</strong>三座大山，本模块就是翻这三座山。
+<strong>给简历加的能力</strong>：能在面试讲出<strong>真实排过的三种难 bug</strong> —— "7×24 跑 3 天后内存从 100MB 涨到 1GB"、"现场设备偶发性掉线 30 秒自动恢复"、"UI 偶发卡顿 200ms"——并讲清用了什么工具、怎么定位、怎么修。这三句话顶得过你写十个 CRUD 模块。
+<strong>前置</strong>：M0（多线程基础，Threads 窗口要看懂）、M9（DI 容器 + 异步容错，Serilog 已落地）。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>学完你能：① 用 VS 调试器高级功能（条件断点 / 数据断点 / 调用栈 / 多线程窗口）定位<strong>任意一处异常的"第一现场"</strong>；② 排查 4 类典型 bug（异常吞 / 多线程竞态 / 内存泄漏 / 性能瓶颈）；③ 抓包分析工业协议（串口字节 / Modbus TCP / CAN / OPC UA），分清是<strong>你代码错</strong>还是<strong>设备错</strong>；④ 知道什么时候该上<strong>万用表 / 示波器 / 逻辑分析仪</strong>——不是所有 bug 都在软件里；⑤ 用 <code>Serilog</code> 结构化日志 + <code>TraceId</code> 做<strong>跨线程、跨设备的关联追踪</strong>，把"现场偶发"变"日志里可查"。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — VS 调试器高级功能（从 console.log 升级）🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>前端调试靠 <code>console.log</code> + Chrome DevTools 的 Sources 面板；上位机调试靠 <strong>VS 调试器</strong>——后者比前者强 10 倍：能下条件断点、能监视内存地址被谁改、能看所有线程的调用栈、能暂停时执行任意表达式、甚至能"时间倒流"回放（IntelliTrace）。<strong>不会 VS 调试器高级功能，等于戴着墨镜找 bug</strong>。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>VS 调试器</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>断点（Breakpoint，F9）</td>
+<td><code>debugger</code> 语句</td>
+</tr>
+<tr>
+<td><strong>条件断点</strong>（Conditional BP）</td>
+<td><code>if (id === 42) debugger</code></td>
+</tr>
+<tr>
+<td><strong>数据断点</strong>（Data BP）</td>
+<td><code>Object.defineProperty</code> setter 监视 / Proxy</td>
+</tr>
+<tr>
+<td>调用栈（Call Stack）</td>
+<td><code>console.trace()</code></td>
+</tr>
+<tr>
+<td>Locals / Autos / Watch</td>
+<td>Chrome DevTools Scope 面板</td>
+</tr>
+<tr>
+<td><strong>Immediate Window</strong></td>
+<td>Console REPL（暂停时执行）</td>
+</tr>
+<tr>
+<td><strong>Threads 窗口</strong></td>
+<td>（前端单线程，无）</td>
+</tr>
+<tr>
+<td><strong>Parallel Stacks</strong></td>
+<td>（前端无）</td>
+</tr>
+<tr>
+<td><strong>Tasks 窗口</strong></td>
+<td>（前端无）</td>
+</tr>
+<tr>
+<td>Exception Settings</td>
+<td>全局 <code>window.onerror</code> + try-catch</td>
+</tr>
+<tr>
+<td><strong>IntelliTrace</strong>（企业版）</td>
+<td>时间倒流回放（前端无）</td>
+</tr>
+<tr>
+<td>Edit and Continue</td>
+<td>热重载（Vite HMR 的近亲）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 条件断点（⭐ 用得最多，节约 90% 时间）</strong>
+右键断点 → Conditions → 输入表达式，比如 <code>pointId == 42 &amp;&amp; value &gt; 100</code>。工业现场一个轮询循环里 1000 个点位，你想看"点位 42 的值什么时候超 100"，没条件断点只能在 <code>Console.WriteLine</code> 几万行里翻。前端类比：<code>if (id === 42 &amp;&amp; value &gt; 100) debugger;</code>。</p>
+<p>还能配 <strong>Hit Count</strong>（命中次数）："当本断点执行到第 500 次时断下"——排"循环跑到一定次数才出 bug"的神器；以及 <strong>Filter</strong>（只在某个线程断下）：<code>ThreadId == 12345</code>。</p>
+<p><strong>② 数据断点（🔥 排"字段被谁改了"的神器）</strong>
+当某个变量的值"莫名其妙变了"，你不知道是哪行代码改的——这时右键变量 → "Break when value changes"。VS 会在该内存地址下硬件断点，<strong>任何线程只要改这个地址就断下</strong>。</p>
+<blockquote>
+<p>⚠️ 限制：仅对<strong>值类型</strong>（int / double / struct）靠谱，引用类型（class）的"内容变"监视不了（因为地址没变）。<strong>栈变量</strong>函数返回后会失效。32 位进程最大 4 个硬件断点，64 位 8 个，超了 VS 会拒绝下断。</p>
+</blockquote>
+<p><strong>③ 调用栈（Call Stack）阅读姿势</strong>
+抛异常 / 命中断点时，调出 Debug → Windows → Call Stack（Ctrl+Alt+C）。<strong>从下往上读</strong>：最底下是"入口"（<code>Main</code> / 事件触发），最顶上是"当前正在执行的行"。
+- 找<strong>第一行"我写的代码"</strong>（不是 BCL / 第三方库），通常是 bug 现场；
+- 往下找<strong>调用者</strong>——"谁触发的"，能帮你理解数据流。</p>
+<p>右键 → "Include External Code" 可看到 .NET 内部栈帧（默认隐藏），追 BCL bug 时打开。<strong>右键 → Run to Cursor</strong> 跳过中间几帧回溯到调用现场。</p>
+<p><strong>④ Immediate Window（暂停时的 REPL）</strong>
+调试 → 窗口 → Immediate（Ctrl+Alt+I）。断点暂停时执行任意表达式：</p>
+<pre><code class="language-csharp">_points.Count                     // 看集合大小
+JsonSerializer.Serialize(p)       // 把对象序列化成 JSON 看内容
+p.Children.Select(x =&gt; x.Name)    // LINQ 临时查询
+_plc.ReadAsync(42).Result         // 临时调一下设备（注意死锁，下面坑点会讲）
+</code></pre>
+<p>前端类比：Sources 面板暂停时在 Console 里输入变量。C# 的 Immediate 比 JS Console 强 10 倍——支持 LINQ、反射、泛型。</p>
+<p><strong>⑤ Edit and Continue（C# 10+ 大幅增强）</strong>
+暂停时直接改代码 → 继续执行，VS 会<strong>热替换</strong>方法体，无需重启。前端类比：Vite HMR 但作用域是方法级别。</p>
+<blockquote>
+<p>限制：改方法签名 / 加字段 / 改泛型参数要重启。<strong>Release 配置下不支持</strong>，必须 Debug。</p>
+</blockquote>
+<p><strong>⑥ Exception Settings（⭐ 异常排查第一手段）</strong>
+Debug → Windows → Exception Settings（Ctrl+Alt+E）。勾选 "Common Language Runtime Exceptions" → <strong>任何 .NET 异常抛出的第一时机就断下</strong>（不管有没有 try-catch）。这能定位"哪一行抛的"，避免异常被层层 <code>catch(Exception ex) { log; }</code> 吞掉找不到源头。</p>
+<blockquote>
+<p>进阶：勾选 "First-Chance Exceptions" 看被吞掉的；勾选 "Native Exceptions" 看 AccessViolation。<strong>只勾你关心的类型</strong>——全勾会让程序每秒断 100 次。</p>
+</blockquote>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 关掉 "Just My Code"</td>
+<td>Tools → Options → Debugging → General → 取消 "Enable Just My Code"，才能断进第三方库源码</td>
+</tr>
+<tr>
+<td>⭐ Debug ≠ Release</td>
+<td>Release 会优化（内联 / 死代码消除），断点行号乱跳、变量被优化掉；线上 bug 复现要 <strong>Debug 配置 + <code>/debug:pdbonly</code></strong></td>
+</tr>
+<tr>
+<td>🔥 PDB 缺失</td>
+<td>没符号文件断点不命中（"No symbols loaded"），发布时 <code>.pdb</code> 必须随包同目录</td>
+</tr>
+<tr>
+<td>🔥 Source Link</td>
+<td>配 <code>&lt;PublishRepositoryUrl&gt;true&lt;/PublishRepositoryUrl&gt;</code> + NuGet 包带 source link，能直接断进 NuGet 源码</td>
+</tr>
+<tr>
+<td>⭐ 关 JIT 优化</td>
+<td>Release 调试时 <code>[assembly: Debuggable(DebuggableAttribute.DebuggingModes.None)]</code> 改 <code>Default</code>，或 attach 时勾 "Native code" + "Mixed mode"</td>
+</tr>
+<tr>
+<td>⭐ 同步阻塞 Immediate</td>
+<td><code>_plc.ReadAsync(42).Result</code> 在 UI 线程会死锁；切到非 UI 线程或用 <code>.GetAwaiter().GetResult()</code> 仍可能死，最好另起 Task</td>
+</tr>
+<tr>
+<td>⭐ 符号缓存</td>
+<td>Tools → Options → Debugging → Symbols → 勾 "Microsoft Symbol Servers"，否则看不懂 .NET 内部栈</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：写一个循环 <code>for (int i = 0; i &lt; 1000; i++) { var x = i * 2; }</code>，下一个<strong>条件断点</strong>让它在 <code>i == 500</code> 时断下；再用 <strong>Hit Count</strong> 让它在第 100 次迭代断下。</p>
+<p><strong>🟡 进阶题</strong>：写一个类有 <code>public int Counter</code>，被两个线程并发 <code>Interlocked.Increment(ref c.Counter)</code>。下一个<strong>数据断点</strong>监视 <code>Counter</code> 字段变化，观察哪个线程改它（用 Filter <code>ThreadId == ...</code> 区分）。</p>
+<p><strong>🔴 挑战题</strong>：开 VS Enterprise 的 <strong>IntelliTrace</strong>（Debug → Windows → Show IntelliTrack / 历史调试），跑一段会抛异常的代码，<strong>事件后退</strong>到异常抛出前，看当时的 Locals 值。简述它和普通调试的区别。</p>
+<h3 id="sec-3-6">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>新人刚来，给他排一个 50Hz 高频采集里"偶发某个点位值 &gt; 100"的问题。他第一反应是 <code>Console.WriteLine</code> 打日志，跑了一晚上几十万行日志找花眼。我教他用<strong>条件断点</strong> <code>value &gt; 100</code>——3 秒断下，调用栈一看是 PLC 通信层某个寄存器映射错位，5 分钟搞定。从此他再也不写 <code>Console.WriteLine</code> 调试了。
+<strong>铁律</strong>：能下断点别打日志——日志只是"现场不在身边"的妥协（生产环境）。</p>
+</blockquote>
+<h3 id="sec-3-7">🎓 职业建议</h3>
+<p>面试官问"你怎么调试 bug"——
+- <strong>13K 答</strong>："打 Console.WriteLine，看哪一行报错。" → 难。
+- <strong>15K 答</strong>："VS 调试器条件断点 + 数据断点定位写入源头，Immediate Window 序列化对象看内容，Exception Settings 第一时机断下找异常第一现场，多线程问题开 Threads + Parallel Stacks 看互锁。" → 入职。</p>
+<p>VS 调试器是 .NET 开发者的"主武器"，不会它就是赤手空拳上战场。</p>
+<h3 id="sec-3-8">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Release 优化导致断点跳行</td>
+<td>"The breakpoint will not currently be hit"</td>
+<td>关 JIT 优化 / 改 Debug 配置</td>
+</tr>
+<tr>
+<td>PDB 没生成</td>
+<td>看不到局部变量值</td>
+<td>项目属性 → Build → Advanced → "Full" 或 "Portable"</td>
+</tr>
+<tr>
+<td>Just My Code 误开</td>
+<td>第三方库断不进去</td>
+<td>Options → Debugging → 取消勾选</td>
+</tr>
+<tr>
+<td>Immediate 死锁</td>
+<td>UI 线程 <code>.Result</code> 卡死</td>
+<td>切线程或改 <code>.GetAwaiter().GetResult()</code></td>
+</tr>
+<tr>
+<td>数据断点丢失</td>
+<td>函数返回后失效</td>
+<td>把变量提到字段</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-9">📚 延伸阅读</h3>
+<ul>
+<li>VS 调试器官方文档：https://learn.microsoft.com/visualstudio/debugger/</li>
+<li>条件断点 + Hit Count：https://learn.microsoft.com/visualstudio/debugger/using-breakpoints</li>
+<li>IntelliTrace 历史：https://learn.microsoft.com/visualstudio/debugger/walkthrough-using-intellitrace</li>
+</ul>
+<h3 id="sec-3-10">🏗️ 项目任务</h3>
+<p>DAQMonitor 里找一个有循环的方法（比如采集轮询），下条件断点 <code>pointId == 你最关心的点位 &amp;&amp; value 异常条件</code>，命中时用 Immediate Window 序列化整个点位对象，把 JSON 贴到工单里作为排查证据。</p>
+<h3 id="sec-3-11">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M19',1)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-3">Day 2 — 异常排查 + 多线程竞态 🔴</h2>
+<h3 id="sec-3-12">一句话讲清楚</h3>
+<p>两类 bug 最难排：<strong>异常被吞</strong>（你看到的现象和真实异常隔了 5 层 try-catch）和<strong>多线程竞态</strong>（本地跑 100 次不出，现场跑 7 天必现）。前者靠 Exception Settings 找第一现场，后者靠 Threads / Parallel Stacks 看互锁。</p>
+<h3 id="sec-3-13">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机排查</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Exception Settings 第一时机断</td>
+<td><code>window.onerror</code> + source map</td>
+</tr>
+<tr>
+<td><code>Exception.ToString()</code> 看 Inner</td>
+<td>Error.stack / Error.cause</td>
+</tr>
+<tr>
+<td><code>$exception</code> 在 Immediate 看</td>
+<td>console 里 <code>console.error</code> 看完整 stack</td>
+</tr>
+<tr>
+<td><code>AggregateException.Flatten()</code></td>
+<td>Promise.all 的 reject</td>
+</tr>
+<tr>
+<td><strong>async void 吞异常</strong></td>
+<td>Promise 没 catch（UnhandledPromiseRejection）</td>
+</tr>
+<tr>
+<td>Threads 窗口</td>
+<td>（前端单线程无）</td>
+</tr>
+<tr>
+<td>Parallel Stacks</td>
+<td>（前端无）</td>
+</tr>
+<tr>
+<td>Sync Block 死锁</td>
+<td>（前端无）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-14">分点精讲</h3>
+<h4>1. 异常排查的标准套路</h4>
+<p><strong>① Exception Settings 抛第一时机</strong>
+勾"Common Language Runtime Exceptions"后，<strong>抛即断</strong>——不管有没有 catch。这能定位异常源头那一行。看完后<strong>取消勾选</strong>，免得后面每个 First-Chance 异常都打断你。</p>
+<p><strong>② <code>Exception.ToString()</code> 看完整链</strong></p>
+<pre><code class="language-csharp">catch (Exception ex)
+{
+    _log.Error(ex, &quot;处理失败&quot;);           // Serilog 这样打，会自动带上 ToString
+    _log.Error(&quot;{Exception}&quot;, ex.ToString());  // 或显式打完整链（含 InnerException）
+}
+</code></pre>
+<blockquote>
+<p>坑：<code>ex.Message</code> 只看最外层一句话；<code>ex.ToString()</code> 才包含类型 + Stack + Inner 链。<strong>永远打 ToString 不打 Message</strong>。</p>
+</blockquote>
+<p><strong>③ <code>$exception</code> 隐式变量</strong>
+刚抛异常还没 <code>catch</code> 时，在 Immediate Window 输入 <code>$exception</code> → 看当前异常对象。或在 Exception Settings 触发的断点里，Locals 窗口也看得到。</p>
+<p><strong>④ <code>AggregateException.Flatten()</code> 解包 Task 异常</strong>
+多个 Task 并发出错，会包成 <code>AggregateException</code>，里面嵌套多个 InnerException。一次解包：</p>
+<pre><code class="language-csharp">catch (AggregateException ae)
+{
+    foreach (var inner in ae.Flatten().InnerExceptions)
+        _log.Error(inner, &quot;Task 异常&quot;);
+}
+</code></pre>
+<p><strong>⑤ async void 异常吞（🔥 C# 最大的坑之一）</strong></p>
+<pre><code class="language-csharp">// ❌ 错：async void 异常会直接抛到 SynchronizationContext，进程崩 / 无法捕获
+private async void OnClick(object sender, EventArgs e)
+{
+    await DoSomethingAsync();   // 内部抛异常 = 整个进程崩
+}
+
+// ✅ 对：async Task + 事件包装
+private async void OnClick(object sender, EventArgs e)
+    =&gt; await SafeCallAsync(DoSomethingAsync);
+
+private async Task SafeCallAsync(Func&lt;Task&gt; action)
+{
+    try { await action(); }
+    catch (Exception ex) { _log.Error(ex, &quot;UI 异步操作失败&quot;); }
+}
+</code></pre>
+<blockquote>
+<p>详见 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a>。<strong>事件处理器只能 async void，所以必须自己包 try-catch</strong>。</p>
+</blockquote>
+<h4>2. 多线程竞态调试</h4>
+<p><strong>① Threads 窗口</strong>：Debug → Windows → Threads（Ctrl+Alt+H）。看到所有线程的"当前位置"，<strong>双击切到任意线程</strong>查看其调用栈和 Locals。</p>
+<p><strong>② Parallel Stacks</strong>：Debug → Windows → Parallel Stacks（Ctrl+Shift+D, Q）。<strong>所有线程的调用栈同时画在一张图上</strong>——哪个方法上挤了一堆线程一目了然，能瞬间看出"线程都在等同一个锁"。</p>
+<p><strong>③ Tasks 窗口</strong>：看所有 Task 的状态（Scheduled / Running / Waiting / Faulted），Faulted 的能看到内部异常。</p>
+<p><strong>④ 死锁排查实战</strong>：Tools → Parallel Stacks 看到线程 A 卡在 <code>lock(A) → 等 lock(B)</code>，线程 B 卡在 <code>lock(B) → 等 lock(A)</code>，经典互等。改：<strong>全局统一锁顺序</strong>（按字母序上锁）。</p>
+<h4>3. SOS 命令行死锁检测（生产 dump 分析）</h4>
+<pre><code class="language-bash"># 抓 dump（生产环境）
+dotnet dump collect -p &lt;pid&gt; -o dump.dmp
+
+# 分析
+dotnet dump analyze dump.dmp
+&gt; syncblk                    # 查看所有 SyncBlock（监视器锁）
+# 输出：
+# Index SyncBlock MonitorHeld Recursion Thread Thread-Id
+# 1     02c8f3c0 1            0         0a    12 abcd (持锁线程)
+&gt; ~*s clrstack                # 看所有线程的 .NET 调用栈
+&gt; dumpheap -stat              # 内存统计（明天讲）
+</code></pre>
+<p><code>syncblk</code> 输出会显示哪个线程持有哪个锁——再 <code>~*s clrstack</code> 看那个线程在干啥，互锁死锁一眼看出。</p>
+<h4>4. 真实战例（4 个经典 race condition）</h4>
+<p><strong>Race 1：ConcurrentDictionary 用错</strong></p>
+<pre><code class="language-csharp">// ❌ 错：ContainsKey + 索引两步不原子，中间可能被插
+if (!_dict.ContainsKey(k)) _dict[k] = v;
+
+// ✅ 对：原子操作
+_dict.TryAdd(k, v);
+_dict.GetOrAdd(k, _ =&gt; v);
+</code></pre>
+<p><strong>Race 2：List 跨线程读写</strong></p>
+<pre><code class="language-csharp">// ❌ 错
+if (_list.Count &gt; 0) return _list[0];   // 中间另一线程 RemoveAt(0) → IndexOutOfRange
+
+// ✅ 对
+lock (_list) { if (_list.Count &gt; 0) return _list[0]; }
+// 或用 ConcurrentQueue&lt;T&gt;
+</code></pre>
+<p><strong>Race 3：死锁（两个锁顺序不一致）</strong></p>
+<pre><code class="language-csharp">// ❌ 线程 1
+lock (A) { lock (B) { /* ... */ } }
+// ❌ 线程 2
+lock (B) { lock (A) { /* ... */ } }
+// → 偶发互等
+
+// ✅ 统一锁顺序（按字段名字母序）
+lock (A) { lock (B) { /* ... */ } }   // 所有地方都 A→B
+</code></pre>
+<p><strong>Race 4：async void 异常吞</strong>
+事件处理器 <code>async void</code> 内抛异常 → 进程崩溃，没 try-catch 找半天。修：见上文 SafeCallAsync 模式，或用 <code>Channel&lt;T&gt;</code> 把事件转成"队列消费"。</p>
+<h3 id="sec-3-15">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 永远打 <code>ex.ToString()</code></td>
+<td>不打 <code>ex.Message</code>——丢失 InnerException 链是排错大忌</td>
+</tr>
+<tr>
+<td>⭐ 第一时机用 Exception Settings</td>
+<td>异常被吞找源头，这是唯一手段</td>
+</tr>
+<tr>
+<td>🔥 async void 必加 try-catch</td>
+<td>事件处理器是 async void 高发区</td>
+</tr>
+<tr>
+<td>🔥 跨线程访问 UI 控件</td>
+<td>直接 <code>.Text = ...</code> 抛 InvalidOperationException；用 <code>Dispatcher.Invoke</code> / <code>Control.Invoke</code></td>
+</tr>
+<tr>
+<td>⭐ <code>lock(this)</code> / <code>lock(typeof(X))</code></td>
+<td>公共对象上锁会被外部 lock 死锁；用 <code>private readonly object _lock = new()</code></td>
+</tr>
+<tr>
+<td>⭐ await 前后可能不同线程</td>
+<td><code>await</code> 后续可能切线程，<code>Thread.CurrentThread</code> 变了，[ThreadStatic] 变量丢失</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-16">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：写一个 <code>async void</code> 事件处理器，内部抛 <code>InvalidOperationException</code>。先用 Exception Settings 捕获它第一时机；再改成 <code>SafeCallAsync</code> 包装模式正确处理。</p>
+<p><strong>🟡 进阶题</strong>：起两个 Task，A 锁 <code>object1</code> 后等 <code>object2</code>，B 反过来。用 Parallel Stacks 窗口截图显示互锁，再用 <code>dotnet dump collect</code> + <code>syncblk</code> 命令验证你的判断。</p>
+<p><strong>🔴 挑战题</strong>：写一个并发场景，<code>ConcurrentDictionary&lt;int, List&lt;int&gt;&gt;</code> 多线程往 List 里 Add。代码"看起来对"（用了 ConcurrentDictionary），但 List 本身不是线程安全的。复现一次崩溃，改成 <code>ConcurrentDictionary&lt;int, ConcurrentBag&lt;int&gt;&gt;</code> 或加锁修复，并解释为什么。</p>
+<h3 id="sec-3-17">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>某次现场上位机每周偶发崩一次，没任何规律。开发同事抓不到 dump，因为不知道啥时候崩。我让他装个 <strong>Windows 任务计划 + Procdump</strong>：<code>procdump -ma -e -w DaqMonitor.UI.exe C:\dumps\</code> —— 程序一崩，自动抓完整 dump。
+一周后抓到 dump，<code>dotnet dump analyze</code> 打开 → <code>syncblk</code> + <code>~*s clrstack</code> → 发现是 OPC UA 订阅回调线程和 UI 线程互锁：UI 线程同步等 OPC 完工（<code>.Result</code>），OPC 回调在 UI Dispatcher 上等执行——经典 async 死锁。改 <code>.Result</code> 为 <code>await</code>，再没崩过。
+<strong>铁律</strong>：偶发崩必须有 dump 机制。生产环境没 dump 你就是在算命。</p>
+</blockquote>
+<h3 id="sec-3-18">🎓 职业建议</h3>
+<p>面试问"你遇到过最难的 bug"——
+- <strong>15K 答</strong>："上位机 7×24 跑 3 天偶发崩，我装 Procdump 抓 dump，用 dotnet dump analyze 的 syncblk 命令发现是 async + 同步阻塞（.Result）导致 UI 线程和 OPC 回调线程死锁，改 await 后稳定运行半年。"
+- <strong>13K 答</strong>："我打了日志看不出来，重启就好了。" → 被刷。</p>
+<p>死锁排查是 15K 面试官最爱问的——因为新人最怕，老人都趟过。</p>
+<h3 id="sec-3-19">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lock(typeof(X))</code></td>
+<td>AppDomain 多实例 / 反射型死锁</td>
+<td>锁 <code>private readonly object</code></td>
+</tr>
+<tr>
+<td>async void</td>
+<td>异常吞 / 进程崩</td>
+<td>包 SafeCallAsync / 改 async Task</td>
+</tr>
+<tr>
+<td><code>.Result</code> 在 UI 线程</td>
+<td>死锁（SynchronizationContext）</td>
+<td>全 <code>await</code>，禁 <code>.Result</code></td>
+</tr>
+<tr>
+<td><code>await</code> 不在 ConfigureAwait(false)</td>
+<td>库代码死锁 UI</td>
+<td>库默认 <code>ConfigureAwait(false)</code>，UI 层显式 true</td>
+</tr>
+<tr>
+<td>异常打 Message 不打 ToString</td>
+<td>丢失 Inner</td>
+<td>Serilog <code>Log.Error(ex, "...")</code> 自动 ToString</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-20">📚 延伸阅读</h3>
+<ul>
+<li><code>dotnet dump</code> 工具：https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-dump</li>
+<li>SOS 命令完整列表：https://learn.microsoft.com/dotnet/framework/tools/sos-dll-sos-debugging-extension</li>
+<li>async void 阮一峰级中文讲解：见 <code>C#_陷阱_前端转上位机必看_深度版.md</code></li>
+</ul>
+<h3 id="sec-3-21">🏗️ 项目任务</h3>
+<p>DAQMonitor 加 <strong>全局未处理异常兜底</strong>：<code>AppDomain.CurrentDomain.UnhandledException</code> + <code>TaskScheduler.UnhandledException</code> + <code>Dispatcher.UnhandledException</code>（WPF）三件套，全部记到 Serilog + 落文件，避免任何异常"无声崩"。</p>
+<h3 id="sec-3-22">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M19',2)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-4">Day 3 — 内存泄漏排查（4 种典型）🔴</h2>
+<h3 id="sec-3-23">一句话讲清楚</h3>
+<p>.NET 有 GC 不代表不会泄漏——<strong>事件订阅忘退订 / static 集合无限增长 / 闭包捕获 this / GDI 句柄没 Dispose</strong>，这四类典型泄漏能让你 7×24 跑的程序从 100MB 涨到 1GB，最后 OOM 崩溃。Chrome DevTools 的 Memory 三件套（Heap snapshot / Allocation timeline / Detached DOM）在 C# 这边对应 <code>dotnet gcdump</code> + <code>dotnet counters</code> + <code>dotnet dump</code>。</p>
+<h3 id="sec-3-24">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>C# 内存排查</th>
+<th>Chrome DevTools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dotnet gcdump</code>（堆快照）</td>
+<td>Memory → Heap snapshot</td>
+</tr>
+<tr>
+<td><code>dotnet counters</code> 实时监控</td>
+<td>Memory → Allocation timeline</td>
+</tr>
+<tr>
+<td><code>dotnet dump analyze</code> + <code>gcroot</code></td>
+<td>Memory → Retainers（dominator 树）</td>
+</tr>
+<tr>
+<td><code>dotMemory</code>（JetBrains）</td>
+<td>Memory 面板完整版</td>
+</tr>
+<tr>
+<td><code>weak</code> event / WeakReference</td>
+<td>WeakMap / WeakRef</td>
+</tr>
+<tr>
+<td>GDI 句柄（Bitmap 等）</td>
+<td>Detached DOM 节点</td>
+</tr>
+<tr>
+<td><code>IDisposable</code></td>
+<td>清理 callback</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-25">分点精讲</h3>
+<h4>1. 4 种典型泄漏</h4>
+<p><strong>泄漏 1：事件订阅忘退订（⭐ 最常见）</strong></p>
+<pre><code class="language-csharp">// ❌ 错
+public MainWindow()
+{
+    _plc.ValueChanged += OnValueChanged;   // 订阅
+}
+// 窗体关闭时没退订 → _plc 持有窗体引用 → 窗体永远 GC 不掉
+// 每开一次窗体就泄漏一个
+
+// ✅ 对
+protected override void OnClosed(EventArgs e)
+{
+    _plc.ValueChanged -= OnValueChanged;   // 显式退订
+    base.OnClosed(e);
+}
+</code></pre>
+<blockquote>
+<p>详见 [M3 PLC 修正版] 的"事件订阅规范"。<strong>事件源长存活、订阅者短存活</strong>的场景必加 <code>-=</code>。</p>
+</blockquote>
+<p><strong>泄漏 2：static 集合无限增长</strong></p>
+<pre><code class="language-csharp">// ❌ 错：缓存没限制
+private static readonly List&lt;SensorPoint&gt; _recent = new();
+void OnNewPoint(SensorPoint p) =&gt; _recent.Add(p);   // 永远只增不减 → OOM
+
+// ✅ 对：上限 / 过期
+private static readonly Queue&lt;SensorPoint&gt; _recent = new();
+void OnNewPoint(SensorPoint p)
+{
+    _recent.Enqueue(p);
+    while (_recent.Count &gt; 1000) _recent.Dequeue();   // 环形缓冲
+}
+</code></pre>
+<p><strong>泄漏 3：闭包 / 异步 lambda 捕获 this</strong></p>
+<pre><code class="language-csharp">// ❌ 错：lambda 捕获 this，长存活对象持有它
+_scheduler.Schedule(async () =&gt;
+{
+    await Task.Delay(TimeSpan.FromHours(1));
+    this.TextBox.Text = &quot;done&quot;;   // 1 小时后 this 还活着，本该释放
+});
+
+// ✅ 对：用弱引用 / 显式释放 / 缩短闭包生命周期
+</code></pre>
+<p><strong>泄漏 4：GDI 句柄（Bitmap / Pen / Brush / Font 没 Dispose）</strong></p>
+<pre><code class="language-csharp">// ❌ 错
+void OnRender(PaintEventArgs e)
+{
+    var bmp = new Bitmap(width, height);   // 没 using
+    var pen = new Pen(Color.Red);
+    e.Graphics.DrawImage(bmp, 0, 0);
+}   // bmp 和 pen 直到 GC 才释放 GDI 句柄
+
+// ✅ 对：using 包裹
+using var bmp = new Bitmap(width, height);
+using var pen = new Pen(Color.Red);
+e.Graphics.DrawImage(bmp, 0, 0);
+</code></pre>
+<blockquote>
+<p>现象：Task Manager → 查看 → 选择列 → 勾 "GDI Objects"，跑到 10000 就崩。</p>
+</blockquote>
+<h4>2. 工具链（免费 4 件套）</h4>
+<pre><code class="language-bash"># ① 实时监控（生产环境零侵入）
+dotnet counters monitor -n DaqMonitor.UI --counters System.Runtime
+# 关注：
+#   gen-2-heap-size    （大对象堆，持续涨=泄漏）
+#   working-set        （工作集）
+#   gc-heap-size       （GC 总堆）
+#   time-in-gc         （GC 占用 %，&gt;20% 说明 GC 压力大）
+#   # of Assemblies    （程序集数，持续涨=动态加载泄漏）
+
+# ② 抓堆快照（小文件，便于对比）
+dotnet gcdump -p &lt;pid&gt;
+# 生成 DaqMonitor.UI_20260804_001.gcdump
+# 用 PerfView / dotMemory / VS 打开 → 按&quot;类型分组大小&quot;看哪些对象多
+
+# ③ 抓完整 dump（大文件，深度分析）
+dotnet dump collect -p &lt;pid&gt; -o dump.dmp
+dotnet dump analyze dump.dmp
+&gt; dumpheap -stat              # 按类型统计实例数和大小
+&gt; dumpheap -type SensorPoint  # 看具体类型所有实例
+&gt; gcroot &lt;address&gt;            # 看某对象被谁持有（retained path）
+
+# ④ dotnet-trace（性能瓶颈见 Day 4）
+</code></pre>
+<h4>3. 真实战例（必讲）</h4>
+<blockquote>
+<p><strong>场景</strong>：DAQMonitor 跑 3 天后内存 1GB（正常 100MB）。
+<strong>步骤</strong>：
+1. <code>dotnet counters monitor</code> → 看到 <code>gen-2-heap-size</code> 持续涨 → 确认是泄漏不是高峰。
+2. <code>dotnet gcdump -p &lt;pid&gt;</code> → 用 PerfView 打开，按类型排序 → <code>SensorPoint</code> 实例数 5000 万，正常应该 0（消费完就该 GC）。
+3. <code>dotnet dump collect</code> + <code>dumpheap -type SensorPoint</code> → 拿到一个地址。
+4. <code>gcroot &lt;address&gt;</code> → 输出 <code>DOMAIN(LONG)... → List&lt;SensorPoint&gt; _recentInMemoryCache → SensorPoint[] ...</code> → 根是 <code>_recentInMemoryCache</code> 静态 List。
+5. 看代码：<code>_recentInMemoryCache.Add(p)</code> 永远不减 → 改 <code>Queue&lt;SensorPoint&gt;(1000)</code> 环形缓冲 → 内存稳定 100MB。</p>
+</blockquote>
+<h3 id="sec-3-26">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 事件订阅必退订</td>
+<td>长存活源 + 短存活订阅者必 <code>-=</code>；或用 <code>WeakEventManager</code></td>
+</tr>
+<tr>
+<td>⭐ static 集合必加上限</td>
+<td>List / Dictionary 用做缓存必加容量限制或 LRU</td>
+</tr>
+<tr>
+<td>🔥 lambda 捕获 this</td>
+<td>长存活调度器（Quartz / Timer）订阅 lambda 持有 this</td>
+</tr>
+<tr>
+<td>🔥 Bitmap / Pen / Brush / Font</td>
+<td>必须 using / Dispose，靠 GC 不可靠</td>
+</tr>
+<tr>
+<td>🔥 WPF Binding to non-INPC</td>
+<td>绑定到普通属性 → 强引用永不释放（少见但痛）</td>
+</tr>
+<tr>
+<td>⭐ GC.Collect 不解决</td>
+<td>不是 GC 不工作，是对象被引用，要先找 root</td>
+</tr>
+<tr>
+<td>⭐ WeakReference 不是万能</td>
+<td>弱引用本身有开销，且对象会被随时回收不可控</td>
+</tr>
+<tr>
+<td>⭐ Timer 回调闭包</td>
+<td><code>new Timer(_ =&gt; this.X())</code> 持有 this 直到 Timer Dispose</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-27">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：写一个故意泄漏的小程序：<code>static List&lt;byte[]&gt; _cache = new();</code> 每 100ms <code>Add(new byte[1024*1024])</code>。用 <code>dotnet counters monitor</code> 观察 <code>gen-2-heap-size</code> 增长；加上限后观察稳定。</p>
+<p><strong>🟡 进阶题</strong>：写一个事件订阅泄漏：<code>Publisher.ValueChanged += Subscriber.OnValue;</code> 反复创建 Subscriber，订阅后忘记 <code>-=</code>。用 <code>dotnet gcdump</code> 抓两次快照（VS 直接对比），找出"实例数增长最快的类型"。</p>
+<p><strong>🔴 挑战题</strong>：用 <code>dotnet dump analyze</code> 的 <code>gcroot</code> 命令追踪一个泄漏对象的完整 retained path，截图命令输出。然后改成 <code>WeakReference</code> / <code>-=</code> 退订后验证内存稳定。</p>
+<h3 id="sec-3-28">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>某客户产线上 6 台上位机轮换用，每台跑一周内存到 2GB，必须人工重启。运维半夜被告警吵醒，骂开发。
+我去现场：装 dotnet-counters 看一晚上，确认是 gen-2 堆涨；早班用 gcdump 抓快照，PerfView 打开按类型排序，<code>Bitmap</code> 类 200 万个实例——立刻定位是绘图代码。看绘图模块，发现自定义控件每帧 <code>new Bitmap(...)</code> 没 Dispose。
+改成 <code>using var bmp = ...</code> + 一周后内存稳定 300MB，运维从此睡整觉。
+<strong>铁律</strong>：长跑程序必上 <code>dotnet counters monitor</code> 监控大盘，内存涨幅超过 10MB/天就是泄漏信号。</p>
+</blockquote>
+<h3 id="sec-3-29">🎓 职业建议</h3>
+<p>面试问"你排过内存泄漏吗"——
+- <strong>15K 答</strong>："7×24 上位机跑 3 天从 100MB 涨到 1GB。用 <code>dotnet counters</code> 看 gen-2-heap-size 持续涨确认泄漏，<code>dotnet gcdump</code> 抓快照发现某类型 5000 万实例，<code>dotnet dump analyze</code> 的 <code>gcroot</code> 追到 static List 缓存无上限，改成环形 Buffer 后稳定。"
+- <strong>13K 答</strong>："加内存条解决了。" → 直接出局。</p>
+<p>内存排查是 15K 的"硬通货技能"，能讲清这套工具链 + 真实案例就是 2K 差距。</p>
+<h3 id="sec-3-30">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>事件订阅忘退订</td>
+<td>窗体反复打开后内存涨</td>
+<td><code>-=</code> 或 <code>WeakEventManager</code></td>
+</tr>
+<tr>
+<td>static 集合无上限</td>
+<td>OOM 崩溃</td>
+<td>LRU / 环形 / 过期清理</td>
+</tr>
+<tr>
+<td>lambda 捕获 this</td>
+<td>短存活对象被长存活持有</td>
+<td>显式 BreakLink / Nullify</td>
+</tr>
+<tr>
+<td>GDI 句柄泄漏</td>
+<td>GDI Objects 计数到 10000 崩</td>
+<td>using / Dispose</td>
+</tr>
+<tr>
+<td>大对象堆碎片</td>
+<td>LOH 涨但实例少</td>
+<td>池化 / ArrayPool</td>
+</tr>
+<tr>
+<td>GC.Collect 当救命稻草</td>
+<td>治标不治本</td>
+<td>找 root，别迷信 GC</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-31">📚 延伸阅读</h3>
+<ul>
+<li><code>dotnet-dump</code> 官方：https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-dump</li>
+<li><code>dotnet-gcdump</code>：https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-gcdump</li>
+<li>《Pro .NET Memory Management》by Konrad Kokosa（圣经级）</li>
+<li>PerfView 教程：https://github.com/Microsoft/perfview</li>
+</ul>
+<h3 id="sec-3-32">🏗️ 项目任务</h3>
+<p>DAQMonitor 跑 1 小时，期间用 <code>dotnet counters monitor --counters System.Runtime</code> 记录内存曲线。如果 gen-2-heap 持续涨，用 <code>dotnet gcdump</code> 抓快照定位泄漏源。修复后对比曲线。</p>
+<h3 id="sec-3-33">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay('M19',3)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-5">Day 4 — 性能分析 + 协议抓包 🔴</h2>
+<h3 id="sec-3-34">一句话讲清楚</h3>
+<p>"启动慢 5 秒 / UI 偶发卡 200ms / 采集卡顿"——前两个靠 <strong>VS Performance Profiler</strong> 或 <code>dotnet-trace</code> 抓火焰图定位热点；后者往往是通信问题，要靠 <strong>Wireshark + 串口监视器</strong> 抓协议字节，分清是"你代码错"还是"设备错"还是"网络错"。</p>
+<h3 id="sec-3-35">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机性能/抓包</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VS Performance Profiler</td>
+<td>Chrome DevTools Performance 面板</td>
+</tr>
+<tr>
+<td><code>dotnet-trace</code> 火焰图</td>
+<td>speedscope / flamegraph</td>
+</tr>
+<tr>
+<td><code>BenchmarkDotNet</code></td>
+<td>benchmark.js / Vitest bench</td>
+</tr>
+<tr>
+<td>Wireshark</td>
+<td>Network 面板（物理层版）</td>
+</tr>
+<tr>
+<td>串口调试助手</td>
+<td>浏览器 Console REPL</td>
+</tr>
+<tr>
+<td>Modbus Poll</td>
+<td>Postman（工业协议版）</td>
+</tr>
+<tr>
+<td><code>AccessPort</code> / <code>Eltima Serial Port Monitor</code></td>
+<td>Network 面板的".bytes" 视图</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-36">分点精讲</h3>
+<h4>1. 性能分析三件套</h4>
+<p><strong>① VS Performance Profiler（最易上手）</strong>
+Debug → Performance Profiler（Alt+F2）。勾选要分析的：
+- <strong>CPU Usage</strong>：哪些方法烧 CPU 多（火焰图）。
+- <strong>Memory Usage</strong>：哪些对象占内存多（接 Day 3）。
+- <strong>GPU Usage</strong>：WPF 渲染 / DirectX 烧显卡。
+- <strong>Concurrency Visualizer</strong>：线程时序图（看阻塞 / 等待）。
+- <strong>Event Tracing for Windows (ETW)</strong>：底层事件追踪。</p>
+<blockquote>
+<p>用法：<strong>Start → 操作 UI（复现卡顿）→ Stop → 看火焰图找热点</strong>。新人最爱用 <code>Stopwatch</code> 测，效率是 Profiler 的 1/10。</p>
+</blockquote>
+<p><strong>② dotnet-trace 抓火焰图（生产环境零侵入）</strong></p>
+<pre><code class="language-bash"># 抓 30 秒 trace
+dotnet trace collect -n DaqMonitor.UI --duration 00:00:30 --format Speedscope -o trace.speedscope
+
+# 用 speedscope.app 打开（浏览器拖进去就行）
+# 看 OnRender 占 60% → 优化方向明确
+</code></pre>
+<blockquote>
+<p>优势：<strong>生产环境不开 VS 也能抓</strong>。文件小（几 MB），可邮件给同事分析。</p>
+</blockquote>
+<p><strong>③ BenchmarkDotNet 量化对比（代码级）</strong></p>
+<pre><code class="language-csharp">[MemoryDiagnoser]
+public class FrameParserBench
+{
+    private readonly byte[] _frame = new byte[] { 0x01, 0x03, 0x02, 0x12, 0x34 };
+
+    [Benchmark(Baseline = true)]
+    public int Parse_Old() =&gt; /* 老实现 */;
+
+    [Benchmark]
+    public int Parse_New() =&gt; /* 新实现 */;
+}
+// 输出：
+// Method     Mean      Ratio  Allocated
+// Parse_Old  245.3 ns  1.00   128 B
+// Parse_New  78.1 ns   0.32   0 B     ← 快 3 倍且零分配
+</code></pre>
+<blockquote>
+<p>详见 <a href="M9.5_性能压测与长跑稳定性_深度版.md">M9.5 性能压测</a>。<strong>优化前先 Benchmark，别拍脑袋</strong>。</p>
+</blockquote>
+<h4>2. 性能优化实战例</h4>
+<p><strong>例 1：启动慢 5 秒</strong>
+- VS Profiler → 发现 <code>Bootstrapper.ConfigureServices</code> 同步建 SQLite 库 + 加载 1 万行配置。
+- 改：建库改异步、配置改 lazy 加载 → 启动 1 秒。</p>
+<p><strong>例 2：UI 偶发卡 200ms</strong>
+- dotnet-trace 抓 30 秒 → 火焰图显示 <code>Timer_Tick</code> 里同步调 <code>_plc.Read()</code>（阻塞 UI 线程）。
+- 改：<code>async void Timer_Tick</code> + <code>await _plc.ReadAsync()</code> → 卡顿消失。</p>
+<p><strong>例 3：实时图表掉帧</strong>
+- VS Profiler GPU Usage → 发现 <code>OxyPlot</code> 重绘整张图。
+- 改：用 <code>MinimumSegmentLength</code> / 增量更新 → 60fps 稳定。</p>
+<h4>3. 协议抓包（工业现场必备）</h4>
+<p><strong>① 串口抓包</strong>：<code>AccessPort</code> / <code>串口网络调试助手</code> / <code>Eltima Serial Port Monitor</code>。
+- 监听 COM3 收发的原始字节，hex 显示。
+- 看你发的帧对不对、设备回的对不对、回得及时不。</p>
+<p><strong>② Modbus 抓包</strong>：<code>Modbus Poll</code>（Master）+ <code>Modbus Slave</code>（Slave）模拟器。
+- 用 Modbus Poll 直连设备，验证你代码发的帧和它发的帧字节级一致。
+- 排"PLC 给值对，我代码读错了"问题。</p>
+<p><strong>③ TCP 抓包</strong>：<strong>Wireshark</strong>（必学）。
+- 选本机网口（"捕获" → 选项 → 勾网卡）。
+- 捕获过滤 <code>tcp.port == 502</code>（Modbus TCP 默认端口）。
+- 抓到的包右键 → Decode As → Modbus → 显示成协议字段（Function Code / Starting Address / Value）。</p>
+<p><strong>④ CAN 抓包</strong>：<code>PCAN-View</code>（免费） / <code>Vector CANalyzer</code>（贵）。
+- 看 CAN 帧 ID / DLC / 数据字节。
+- 实时统计错误帧（Bus-Off 警告）。</p>
+<p><strong>⑤ OPC UA 抓包</strong>：OpcUaClient（统一架构） / <code>Opc.Ua.Client</code>（开源）。
+- 直接连 Server 看节点列表，验证你代码订阅的 NodeId 对不对。</p>
+<h4>4. Wireshark 实战（必讲）</h4>
+<pre><code># 1. 启动 → 选网卡（以太网 / WLAN）→ Start
+# 2. 捕获过滤：tcp.port == 502 and ip.addr == 192.168.10.5
+# 3. 复现问题（点一下读取 / 写入）
+# 4. 停止 → 右键某包 → Decode As → 选 Modbus
+# 5. 看每个请求/响应的字节
+
+# Modbus TCP 帧结构（看抓包对照）：
+# Transaction ID (2) | Protocol ID (2=0) | Length (2) | Unit ID (1) | Function Code (1) | Data...
+</code></pre>
+<p><strong>典型问题排查</strong>：
+- 你以为发的是 <code>Read Holding Registers (FC=03)</code>，抓包一看发的是 <code>FC=10</code>（Write Multiple）→ 代码功能码字节错了。
+- 设备 1 秒后才回，超时设的 500ms → 不是设备错，是超时太短。
+- CRC 错误帧多 → 线缆干扰 / 接地问题，物理故障。</p>
+<h3 id="sec-3-37">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 别用 Stopwatch 优化</td>
+<td>用 Profiler / dotnet-trace，热点一目了然</td>
+</tr>
+<tr>
+<td>⭐ Benchmark 量化优化效果</td>
+<td>凭感觉"快了"等于没优化</td>
+</tr>
+<tr>
+<td>🔥 混合模式抓网卡</td>
+<td>Wireshark + Npcap 装错版本抓不到包</td>
+</tr>
+<tr>
+<td>🔥 网卡 offloading</td>
+<td>TCP Checksum 错（验证卸载到网卡），不是真错</td>
+</tr>
+<tr>
+<td>⭐ 串口监视器占用 COM</td>
+<td>同一 COM 不能两个程序同时开；用"嗅探"模式（Elmia 支持）</td>
+</tr>
+<tr>
+<td>⭐ Wireshark 抓本机回环</td>
+<td>选 "Adapter for loopback traffic capture"，不是默认网卡</td>
+</tr>
+<tr>
+<td>⭐ Modbus TCP 字节序</td>
+<td>大端 / 小端，寄存器高低字在前；抓包对照</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-38">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：用 VS Performance Profiler 跑 DAQMonitor，找出 Top 3 占 CPU 方法。用 dotnet-counters 看运行时 <code>time-in-gc</code>，理解 GC 压力。</p>
+<p><strong>🟡 进阶题</strong>：用 <code>dotnet-trace collect --format Speedscope</code> 抓 30 秒 trace，speedscope.app 打开火焰图截图。找出最宽的"火焰柱"（CPU 占用最久的方法）。</p>
+<p><strong>🔴 挑战题</strong>：用 Wireshark 抓一次 Modbus TCP 读取（FC=03）的完整请求/响应，对照协议文档逐字节解释：Transaction ID / Protocol ID / Length / Unit ID / Function Code / Starting Address / Quantity / CRC（TCP 无 CRC，RTU 才有）。说明你代码里如何解析这些字段。</p>
+<h3 id="sec-3-39">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>某次现场客户反馈"读取 PLC 偶发超时，几小时一次"。本地复现不出，去了现场。
+装 Wireshark 抓 502 端口，几小时抓到一次：设备在收到请求 1.2 秒后才回，而我们的 timeout 是 1 秒——所以触发了超时重试。看 PLC 工程师，他说 PLC 那个扫描周期里在跑"长任务"会偶发慢。
+解决：把 timeout 从 1 秒提到 3 秒 + 重试一次（Polly），偶发超时消失。<strong>抓包证明了不是代码错，是设备慢</strong>——这是关键证据。
+<strong>铁律</strong>：现场所有"偶发问题"，第一步必抓包。日志说不清的，字节能说清。</p>
+</blockquote>
+<h3 id="sec-3-40">🎓 职业建议</h3>
+<p>面试问"你怎么优化性能"——
+- <strong>15K 答</strong>："VS Profiler / dotnet-trace 找热点，BenchmarkDotNet 量化优化效果，生产用 dotnet-counters 监控 GC 压力。串口 / Modbus 问题先抓包看字节，分清代码错还是设备错。"
+- <strong>13K 答</strong>："加 StopWatch 看哪行慢。" → 13K。</p>
+<p>性能和抓包是 15K 工程师的"双修课"，二者都要会。</p>
+<h3 id="sec-3-41">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stopwatch 当救命</td>
+<td>测得到但低效</td>
+<td>用 Profiler / dotnet-trace</td>
+</tr>
+<tr>
+<td>同步阻塞 UI 线程</td>
+<td>UI 偶发卡顿</td>
+<td>全 async / ConfigureAwait(false)</td>
+</tr>
+<tr>
+<td>Wireshark 选错网卡</td>
+<td>抓不到包</td>
+<td>选 Npcap loopback / 物理网卡</td>
+</tr>
+<tr>
+<td>字节序解析错</td>
+<td>值对不上</td>
+<td>大端 / 小端逐字节对照</td>
+</tr>
+<tr>
+<td>超时设得太短</td>
+<td>偶发超时</td>
+<td>设 1.5× 正常响应时间</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-42">📚 延伸阅读</h3>
+<ul>
+<li>dotnet-trace：https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-trace</li>
+<li>speedscope 火焰图：https://www.speedscope.app/</li>
+<li>Wireshark 中文教程：https://www.wireshark.org/docs/wsug_html/</li>
+<li>Modbus Protocol Spec：https://www.modbus.org/specs.php</li>
+</ul>
+<h3 id="sec-3-43">🏗️ 项目任务</h3>
+<p>DAQMonitor 加一段性能基线测试：用 BenchmarkDotNet 给 FrameParser / PointStore 写基准测试，CI 跑完后输出报告。用 Wireshark 抓一次完整 Modbus 读取流程，写一份"协议字节对照说明"文档。</p>
+<h3 id="sec-3-44">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="4" onchange="toggleDay('M19',4)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-6">Day 5 — 工业现场物理工具 + Serilog 关联追踪 🔴</h2>
+<h3 id="sec-3-45">一句话讲清楚</h3>
+<p>不是所有 bug 都在软件里——<strong>电压不稳 / 线缆虚接 / RS485 终端电阻没接</strong> 都会让你的"完美代码"出问题。所以 13K 工程师必备：① <strong>物理工具</strong>（万用表 / 示波器 / 逻辑分析仪）；② <strong>结构化日志 + TraceId</strong>，把"现场偶发"变"日志可查"。</p>
+<h3 id="sec-3-46">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>工业现场工具 / Serilog</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>万用表（测电压电流通断）</td>
+<td>DevTools 的 Network → Status</td>
+</tr>
+<tr>
+<td>示波器（看波形）</td>
+<td>Network → Timing（瀑布图）</td>
+</tr>
+<tr>
+<td>逻辑分析仪（解协议）</td>
+<td>Network → Bytes</td>
+</tr>
+<tr>
+<td>网络测线仪</td>
+<td>ping + traceroute</td>
+</tr>
+<tr>
+<td>Serilog 结构化日志</td>
+<td>Sentry / Datadog Logs</td>
+</tr>
+<tr>
+<td><code>LogContext.PushProperty("TraceId")</code></td>
+<td>X-Request-Id / correlationId</td>
+</tr>
+<tr>
+<td><code>CompactJsonFormatter</code></td>
+<td><code>JSON.stringify</code> 结构化输出</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-47">分点精讲</h3>
+<h4>1. 物理工具（13K 必问）</h4>
+<p><strong>① 万用表</strong>（最基础）
+- 测<strong>电压</strong>：PLC 模拟量输入卡是不是给到 24V？传感器供电是否正常？
+- 测<strong>电流</strong>：4-20mA 回路是工业标准，回路里串万用表（mA 档）测实际电流值，反推工程量 <code>(电流 - 4) / 16 * 量程</code>。
+- 测<strong>通断</strong>：线缆虚接？蜂鸣档一搭就知道。
+- <strong>铁律</strong>：现场所有"通信不通"，先量电压。RS485 A/B 之间应该有 0.5-1V 压差。</p>
+<p><strong>② 示波器</strong>（看信号质量）
+- 看 RS485 差分信号波形（A-B）：电平、上升沿、噪声。
+- 看模拟量噪声：传感器信号是否被电磁干扰。
+- 看继电器触点抖动。
+- 入门款：Rigol DS1054Z（约 2000 元）足够。</p>
+<p><strong>③ 逻辑分析仪</strong>（解协议）
+- 便宜版 Saleae 8 通道（约 100-500 元）足够用。
+- 抓 I2C / SPI / UART / CAN / 1-Wire 原始波形，自动解码。
+- 排"我发的字节对，但设备收错了"问题——直接在物理层看。</p>
+<p><strong>④ 网络测线仪</strong>
+- RJ45 8 根线通断测试，1 秒确认网线是不是做错线序。
+- 现场调试第一件事。</p>
+<p><strong>⑤ USB 转串口 / 网口 / CAN</strong>
+- 笔记本通常没有这些接口，调试必备。</p>
+<h4>2. Serilog 结构化日志 + TraceId（关联追踪）</h4>
+<p><strong>为什么需要 TraceId？</strong>
+工业现场一条数据流要经过：UI → 采集层 → PLC 驱动 → 物理层 → PLC → 反向回来。出问题时，10 个点位并发读取，你不知道哪条日志对应哪个点位。</p>
+<p><strong>解决方案</strong>：每次请求开始时分配一个唯一 <code>TraceId</code>，通过 <code>LogContext.PushProperty</code> 推入日志上下文，<strong>整条调用链的所有日志自动带上这个字段</strong>。事后查询："TraceId=xxx" 一搜就能看到完整链路。</p>
+<pre><code class="language-csharp">// 入口处分配 TraceId
+public async Task&lt;SensorPoint&gt; ReadPointAsync(int pointId, CancellationToken ct)
+{
+    using (LogContext.PushProperty(&quot;TraceId&quot;, Guid.NewGuid().ToString(&quot;N&quot;).Substring(0, 8)))
+    using (LogContext.PushProperty(&quot;PointId&quot;, pointId))
+    {
+        _log.Information(&quot;开始读取&quot;);
+        try
+        {
+            var raw = await _plc.ReadAsync(pointId, ct);
+            _log.Information(&quot;PLC 返回 Raw={Raw}&quot;, raw);
+            var value = _scaler.Scale(raw);
+            _log.Information(&quot;工程量={Value}&quot;, value);
+            return new SensorPoint(pointId, value, DateTime.UtcNow);
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, &quot;读取失败&quot;);
+            throw;
+        }
+    }
+}
+</code></pre>
+<p><strong>Serilog 完整配置</strong>：</p>
+<pre><code class="language-csharp">// Bootstrap 一次性配置
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .Enrich.FromLogContext()                  // 自动加 TraceId / PointId 等上下文属性
+    .Enrich.WithMachineName()                 // 区分多台上位机
+    .Enrich.WithEnvironmentUserName()
+    .Enrich.WithProperty(&quot;App&quot;, &quot;DaqMonitor&quot;)
+    .WriteTo.Console(formatter: new CompactJsonFormatter())    // JSON 结构化，便于 ES / Loki 索引
+    .WriteTo.File(&quot;logs/daq-.log&quot;,
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,            // 7 天滚动
+        formatter: new CompactJsonFormatter())
+    .WriteTo.SQLite(&quot;logs/daq.db&quot;)            // 落库便于查询
+    .WriteTo.Seq(&quot;http://localhost:5341&quot;)     // 可选：Seq 可视化日志
+    .CreateLogger();
+</code></pre>
+<blockquote>
+<p>关键：<strong>Console / File / SQLite 都用 CompactJsonFormatter</strong>——以后想导到 ELK / Loki 不用改代码。打日志别用字符串插值 <code>$"PointId={id}"</code>，用模板 <code>"PointId={PointId}"</code> 让 Serilog 结构化（保留字段名）。</p>
+</blockquote>
+<h4>3. 排查 SOP（标准流程）</h4>
+<p><strong>第 1 步：复现</strong>
+- 找到稳定的复现路径，不能复现的 bug 等于猜。
+- 现场偶发：装 <strong>Procdump</strong> / <code>dotnet-dump</code> 监控（崩溃自动抓）。</p>
+<p><strong>第 2 步：抓日志</strong>
+- TraceId 反查整条调用链：<code>grep "TraceId=ab12cd34" logs/*.log</code>
+- 看 5 秒前后上下文，往往能看到"前 1 秒网络断了"、"前 3 秒 CPU 飙到 100%"。</p>
+<p><strong>第 3 步：抓 dump / trace</strong>
+- 内存问题 → <code>dotnet dump collect</code> + <code>dumpheap -stat</code>
+- 性能问题 → <code>dotnet trace collect</code> 火焰图
+- 崩溃问题 → Procdump 自动抓 first-chance + crash dump</p>
+<p><strong>第 4 步：二分法注释代码</strong>
+- 找不到具体在哪？注释一半代码看 bug 还在不。
+- 不断二分，半小时定位到一行。</p>
+<p><strong>第 5 步：写最小复现单元测试</strong>
+- 隔离环境变量，最小依赖（不用真 PLC，用 Mock）。
+- 既是验证修复，也是回归测试。</p>
+<h3 id="sec-3-48">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 现场先量电压</td>
+<td>不通电 / 电压不稳是工业现场 #1 故障源</td>
+</tr>
+<tr>
+<td>⭐ RS485 终端电阻</td>
+<td>长线缆两端必须接 120Ω 终端电阻，否则信号反射通信乱</td>
+</tr>
+<tr>
+<td>⭐ 共地（GND）</td>
+<td>RS485 即便差分也要共地，否则烧接口</td>
+</tr>
+<tr>
+<td>🔥 日志用模板不用插值</td>
+<td><code>_log.Info("X={X}", x)</code> 而非 <code>$"X={x}"</code>，才能结构化</td>
+</tr>
+<tr>
+<td>⭐ TraceId 要短</td>
+<td>8 位足够，避免日志变长</td>
+</tr>
+<tr>
+<td>⭐ 敏感字段打码</td>
+<td>密码 / Token / 工艺配方核心字段打码</td>
+</tr>
+<tr>
+<td>⭐ 日志级别合理</td>
+<td>Error = 系统挂了 / Warn = 异常但能跑 / Info = 关键业务 / Debug = 调试细节</td>
+</tr>
+<tr>
+<td>⭐ 异步日志 sinks</td>
+<td>SQLite 等慢 sink 要异步，否则拖垮采集</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-49">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：DAQMonitor 加 Serilog 配置，控制台输出 CompactJsonFormatter 格式。读一个点位，控制台看到带 <code>TraceId</code> 和 <code>PointId</code> 的日志。</p>
+<p><strong>🟡 进阶题</strong>：故意制造一个 bug（比如 <code>_plc.ReadAsync</code> 内 50% 概率抛超时）。用 TraceId 在日志里串起"开始 → 失败 → 重试 → 成功"完整链路，截图日志。</p>
+<p><strong>🔴 挑战题</strong>：写一份"DAQMonitor 排查 SOP"文档，覆盖 4 类典型问题：通信超时 / 内存涨 / UI 卡顿 / 数据错。每个场景写明：第 1 步看什么日志、第 2 步抓什么 dump/trace、第 3 步抓什么包。</p>
+<h3 id="sec-3-50">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>某次产线"上位机偶发读 PLC 超时"，开发同事改了 3 天代码没解决。我去现场，第一步拿万用表量 RS485 A/B——0V！原来是接线端子松了。拧紧就好。
+第二条："为什么 A/B 是 0V？" 因为端子被设备移动震松。从此我要求所有现场调试<strong>先量电压再看代码</strong>——50% 问题是接线。
+Serilog + TraceId 那套更值钱：现场客户报"昨晚 3 点某次读取失败了"，没 TraceId 你只能查时间戳猜；有了 TraceId 一搜就是完整链路 + 上下文 5 秒内所有事件。<strong>这是 7×24 系统的必备能力</strong>。</p>
+</blockquote>
+<h3 id="sec-3-51">🎓 职业建议</h3>
+<p>面试问"你怎么排查工业现场问题"——
+- <strong>15K 答</strong>："先量物理层电压 / 信号，再上 Serilog + TraceId 关联日志，必要时抓 dump（内存）/ trace（性能）/ Wireshark（协议）。我们项目里有完整的排查 SOP：复现 → 抓日志 → 抓 dump → 二分定位 → 写最小复现测试。"
+- <strong>13K 答</strong>："重启试试 / 加日志看看。" → 出局。</p>
+<p>工业现场排查能力是 13→15K 的核心分水岭。能讲物理工具 + 结构化日志 + SOP 的，企业直接 15K 谈。</p>
+<h3 id="sec-3-52">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RS485 没接终端电阻</td>
+<td>长线通信乱码</td>
+<td>两端接 120Ω</td>
+</tr>
+<tr>
+<td>不共地</td>
+<td>烧接口 / 通信错</td>
+<td>接 GND</td>
+</tr>
+<tr>
+<td>日志用字符串插值</td>
+<td>无法结构化检索</td>
+<td>用模板 <code>_log.Info("X={X}", x)</code></td>
+</tr>
+<tr>
+<td>TraceId 没透传</td>
+<td>跨 await 丢失</td>
+<td><code>LogContext.PushProperty</code> + <code>using</code></td>
+</tr>
+<tr>
+<td>同步 SQLite sink</td>
+<td>阻塞采集线程</td>
+<td><code>WriteTo.Async(a =&gt; a.SQLite(...))</code></td>
+</tr>
+<tr>
+<td>日志量大没采样</td>
+<td>磁盘爆</td>
+<td>高频日志用 <code>If()</code> / Sampling</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-53">📚 延伸阅读</h3>
+<ul>
+<li>Serilog 官方文档：https://serilog.net/</li>
+<li>Serilog 最佳实践（结构化日志）：https://github.com/serilog/serilog/wiki/Structured-Data</li>
+<li>RS485 接线规范：见 <code>M1_串口通信_深度版.md</code> / <code>M2_Modbus_深度版.md</code></li>
+<li>工业示波器使用：https://www.rigol.com/products/DigitalOscilloscopes.html</li>
+<li>Seq 日志可视化：https://datalust.co/seq</li>
+</ul>
+<h3 id="sec-3-54">🏗️ 项目任务</h3>
+<p>DAQMonitor 三件套：① Serilog 配置 + CompactJsonFormatter + TraceId；② 全局异常兜底（AppDomain / TaskScheduler / Dispatcher）三处都打 Error 日志；③ 写一份 <code>TROUBLESHOOTING.md</code> 排查 SOP 文档（4 类典型问题各 1 页）。</p>
+<h3 id="sec-3-55">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="5" onchange="toggleDay('M19',5)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-7">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M0 多线程 → 这里 Threads/Parallel Stacks</strong>：M0 讲了 <code>lock</code>/<code>async</code> 基础，这里讲怎么<strong>调试</strong>多线程 bug——理论基础 + 工具实操合起来才完整。</li>
+<li><strong>M3 PLC 通信 → 这里事件订阅泄漏</strong>：M3 修正版讲了"事件必退订"，本模块用 <code>dotnet gcdump</code> 在生产环境<strong>证明</strong>这一点。</li>
+<li><strong>M4 EF Core → 这里异常日志</strong>：EF 的 <code>DbUpdateException</code> 内含 <code>Entries</code> 集合，用 <code>ex.ToString()</code> 才看得到完整信息——参考 Day 2 异常排查。</li>
+<li><strong>M6 报警引擎 / 日志 → 这里 Serilog 关联追踪</strong>：M6 的基础日志升级成<strong>带 TraceId 的结构化日志</strong>，跨模块串成完整调用链。</li>
+<li><strong>M9 DI / 容错 → 这里全局异常兜底</strong>：M9 的容错理念落地成"未处理异常三件套兜底"。</li>
+<li><strong>M9.5 性能压测 → 这里火焰图 / Profiler</strong>：M9.5 的 BenchmarkDotNet 量化，本模块的 dotnet-trace 找热点——前者微观、后者宏观，<strong>配合使用</strong>。</li>
+<li><strong>M17 MES 对接 / 安全 → 这里审计日志</strong>：M17 的 <code>AuditLog</code> 用 Serilog <code>[AUDIT]</code> 标签 + TraceId 串起来，构成完整合规链路。</li>
+</ul>
+<h2 id="sec-2-8">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>《Pro .NET Memory Management》by Konrad Kokosa — 内存管理圣经</li>
+<li>Serilog 官方结构与最佳实践：https://serilog.net/</li>
+<li>Wireshark 中文教程：https://www.wireshark.org/docs/wsug_html/</li>
+<li><code>dotnet</code> 诊断工具全套：https://learn.microsoft.com/dotnet/core/diagnostics/</li>
+<li>IEC 62443 工业安全（接 M17）：https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards</li>
+<li>VS 调试器完整文档：https://learn.microsoft.com/visualstudio/debugger/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-9">🏗️ 项目综合任务</h2>
+<p><strong>DAQMonitor 工程化升级（M19 综合）</strong>：
+1. <strong>Serilog 结构化日志</strong>：CompactJsonFormatter + TraceId + PointId + 异步 SQLite sink。
+2. <strong>全局异常兜底</strong>：<code>AppDomain.UnhandledException</code> + <code>TaskScheduler.UnhandledException</code> + <code>Dispatcher.UnhandledException</code> 三处 Error 日志 + 落文件。
+3. <strong>性能监控大盘</strong>：<code>dotnet counters monitor</code> 记录启动 / 1 小时 / 24 小时的内存 + GC 曲线，证明无泄漏。
+4. <strong>排查 SOP 文档</strong>：<code>TROUBLESHOOTING.md</code>，覆盖通信超时 / 内存涨 / UI 卡顿 / 数据错四类场景。
+5. <strong>CI 性能基线</strong>：BenchmarkDotNet 给 FrameParser / PointStore / AlarmEngine 写基准测试，PR 自动跑。</p>
+<p>完成后简历可写：</p>
+<blockquote>
+<p>"负责 7×24 工业上位机 DAQMonitor 的稳定性保障。建立 Serilog 结构化日志 + TraceId 全链路追踪体系；用 dotnet-dump/gcdump/trace 排查并修复多处内存泄漏与性能瓶颈（gen-2-heap 从日均涨 200MB 降到稳定）；建立 VS 调试器 + Wireshark + 物理工具（万用表/示波器）的多层次排查 SOP。"</p>
+</blockquote>
+<p>这段话 = 13K → 15K 的差距。</p>
+<div class="pager">
+  <a class="prev" href="M18.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M18 · 配方管理</div></a>
+  <a class="next" href="M8.5.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M8.5 · Prism 企业级 MVVM</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

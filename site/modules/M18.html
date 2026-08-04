@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M18 · 配方管理 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M18">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — 配方数据模型 + 增删改查</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂（每个概念都对上）</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">🧪 今日三档练习</a></li>
+<li class="l3"><a href="#sec-3-6">💡 工控导师说</a></li>
+<li class="l3"><a href="#sec-3-7">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-8">📅 明日预告</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 配方下发到设备 + 实时切换</a><ul>
+<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-10">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-12">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-13">🧪 今日三档练习</a></li>
+<li class="l3"><a href="#sec-3-14">💡 工控导师说</a></li>
+<li class="l3"><a href="#sec-3-15">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-16">📅 明日预告</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Day 3 — 配方导入导出 + 版本对比</a><ul>
+<li class="l3"><a href="#sec-3-17">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-18">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-19">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-20">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-21">🧪 今日三档练习</a></li>
+<li class="l3"><a href="#sec-3-22">💡 工控导师说</a></li>
+<li class="l3"><a href="#sec-3-23">🎓 职业建议</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🏗️ 项目任务（边学边做，落到 DAQMonitor）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">模块交付清单（M18）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">✅ 打卡</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M18 — 配方管理（工艺参数版本化）</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟡 加分项 · 配方管理（13-15K JD 偶尔点名，注塑机/包装线/食品配方场景刚需）
+<strong>技术来源</strong>：🟦 <code>System.Text.Json</code>（参数 JSON 列）+ 🟧 <code>Microsoft.EntityFrameworkCore.Sqlite</code>（EF Core，沿用 M4）+ 🟧 <code>ClosedXML</code>（Excel 导入导出，沿用 M10）
+<strong>给简历加的能力</strong>：让上位机支持「切换产品配方」——一键把工艺参数（温度设定 / 压力阈值 / 时间序列）从一组切换到另一组，并带版本化 + 审计。这是真实工厂里最常见的一个「软需求」，能讲出来就比只做采集的同行多一项能打的牌。
+<strong>前置</strong>：M4（EF Core / DbContext / 迁移）、M9（DI / 单测 / 工程分层）、M10（ClosedXML 导出）。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p><strong>配方 = 一组工艺参数（温度设定 / 压力阈值 / 时间序列）的命名版本</strong>。本模块让上位机：① 编辑 / 保存配方；② 切换产品时一键下发到设备；③ 版本化（可回滚到任意历史版本）；④ 审计（谁什么时候改了啥、激活了哪个版本）。学完你能讲清：「JSON 列 vs 关联表」的权衡、配方切换的「写入 + 回读 + 失败回滚」事务思想、版本 diff 的实现——这三点是「做过配方系统」和「只听过这个词」的分界线。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — 配方数据模型 + 增删改查</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>配方 = 命名的参数集合 + 版本号 + 创建时间 + 创建人，<strong>前端类比：Git 的 tag + <code>package.json</code> 的 version</strong>——同一个 <code>Name</code>（项目名）下可以有多个 <code>Version</code>（tag），任何时候只有一个「当前生效」（<code>main</code> / <code>HEAD</code>）。</p>
+<h3 id="sec-3-2">前端类比秒懂（每个概念都对上）</h3>
+<table>
+<thead>
+<tr>
+<th>配方管理概念</th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配方 <code>Recipe</code></td>
+<td><code>package.json</code> / <code>docker-compose.yml</code></td>
+<td>一份命名 + 版本化的参数集合</td>
+</tr>
+<tr>
+<td>版本号 <code>v1.2.3</code>（SemVer）</td>
+<td>SemVer</td>
+<td>大.中.小，可字符串比较</td>
+</tr>
+<tr>
+<td>当前生效配方 <code>IsActive=true</code></td>
+<td>Active branch（<code>main</code> / <code>HEAD</code>）</td>
+<td>同名下只允许一个生效</td>
+</tr>
+<tr>
+<td>切换配方（<code>ActivateAsync</code>）</td>
+<td><code>git checkout &lt;tag&gt;</code></td>
+<td>切换前要落库审计</td>
+</tr>
+<tr>
+<td>配方历史列表</td>
+<td><code>git log --oneline</code></td>
+<td>按创建时间倒序</td>
+</tr>
+<tr>
+<td>配方 diff（Day 3）</td>
+<td><code>git diff v1..v2</code></td>
+<td>增 / 删 / 改三类变更</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 数据模型 <code>Recipe</code> + <code>RecipeParameter</code></strong>（🟦）
+配方主体放关系列（<code>Name</code>/<code>Version</code>/<code>IsActive</code>/<code>CreatedBy</code>/<code>CreatedAt</code>），<strong>参数本身放 JSON 列</strong>（<code>ParametersJson</code>）。这是一个<strong>刻意权衡</strong>：参数 schema 经常变（今天加一个新温度点，明天加一个保压时间），用 JSON 列不用改表结构；但用于查询 / 唯一约束的字段仍然在关系列，索引能用。</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/Recipe.cs
+public class Recipe
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = &quot;&quot;;            // 如 &quot;饮料瓶_500ml&quot;
+    public string Version { get; set; } = &quot;1.0.0&quot;;    // SemVer 字符串
+    public bool IsActive { get; set; }                // 当前生效（同名仅一个 true）
+    public bool IsDeleted { get; set; }               // 软删除标记（防误删历史）
+    public string CreatedBy { get; set; } = &quot;&quot;;       // 创建人（工号 / 用户名）
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string ParametersJson { get; set; } = &quot;{}&quot;; // 灵活参数（JSON 列）
+}
+
+// 配方里的一个参数（仅作为 JSON 反序列化的 DTO，不建表）
+public class RecipeParameter
+{
+    public string Key { get; set; } = &quot;&quot;;        // &quot;temperature_setpoint&quot;
+    public double Value { get; set; }            // 85.5
+    public string Unit { get; set; } = &quot;&quot;;       // &quot;℃&quot;
+    public string? Description { get; set; }     // 可选注释
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>Name + Version</code>：配方的「身份证」。同名下不同版本，像 <code>docker-compose.yml</code> 的 <code>v1</code> / <code>v2</code>。
+- <code>IsActive</code>：同 <code>Name</code> 下<strong>只允许一个 <code>true</code></strong>（Day 1 末尾的坑点）。前端类比 React Router 的「当前激活路由」——同时只能有一个。
+- <code>IsDeleted</code>：<strong>软删除</strong>——不真删行，只标记。理由：配方是工艺历史，删了就回滚不了（Day 3 的 diff / 回滚都靠历史还在）。
+- <code>ParametersJson</code>：参数列表序列化成 JSON 字符串存进去。SQLite 自带 JSON 函数（<code>json_extract</code>），需要按参数查也能查（见坑点表）。</p>
+<p><strong>② EF Core 配置：唯一约束 + 索引</strong>（🟧，关联 M4）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Persistence/AppDb.cs（在 M4 已有的 AppDb 上加）
+public class AppDb : DbContext
+{
+    public DbSet&lt;Recipe&gt; Recipes =&gt; Set&lt;Recipe&gt;();
+    public DbSet&lt;AuditEntry&gt; AuditLog =&gt; Set&lt;AuditEntry&gt;();
+
+    protected override void OnModelCreating(ModelBuilder b)
+    {
+        // 唯一约束:Name + Version 不能重复(且只针对未软删的)
+        b.Entity&lt;Recipe&gt;()
+            .HasIndex(r =&gt; new { r.Name, r.Version })
+            .IsUnique()
+            .HasFilter(&quot;[IsDeleted] = 0&quot;);   // SQLite 的 partial index,软删的版本可重建
+
+        b.Entity&lt;Recipe&gt;().Property(r =&gt; r.ParametersJson).IsRequired();
+        b.Entity&lt;AuditEntry&gt;().HasIndex(a =&gt; a.At);
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>HasIndex(...).IsUnique()</code>：让数据库帮我们拦「同一 <code>Name</code> 下重复 <code>Version</code>」。前端类比：唯一邮箱约束，重复注册直接拒。
+- <code>.HasFilter("[IsDeleted] = 0")</code>：partial index——软删的版本不算重复，可以重建同版本号（小写 SQLite 语法，迁移到 SQL Server 要改 <code>WHERE</code> 大小写）。</p>
+<p><strong>③ CRUD + 激活服务 <code>RecipeService</code></strong>（🟦+🟧）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/RecipeService.cs
+public class RecipeService
+{
+    private readonly IDbContextFactory&lt;AppDb&gt; _factory;     // M4 / M9 的 DI 注入
+    private readonly IAuditLogger _audit;
+
+    public RecipeService(IDbContextFactory&lt;AppDb&gt; factory, IAuditLogger audit)
+    { _factory = factory; _audit = audit; }
+
+    public async Task&lt;Recipe&gt; CreateAsync(string name, string version,
+                                          RecipeParameter[] parameters, string user)
+    {
+        await using var db = _factory.CreateDbContext();   // M4:短生命周期,用完即弃
+        var recipe = new Recipe
+        {
+            Name = name,
+            Version = version,
+            CreatedBy = user,
+            ParametersJson = JsonSerializer.Serialize(parameters),
+        };
+        db.Recipes.Add(recipe);
+        await db.SaveChangesAsync();                       // 唯一约束会在这里拦重复
+        await _audit.LogAsync(user, &quot;CreateRecipe&quot;, $&quot;{name}@{version}&quot;, null, null);
+        return recipe;
+    }
+
+    public async Task ActivateAsync(int recipeId, string user)
+    {
+        await using var db = _factory.CreateDbContext();
+        var target = await db.Recipes.FindAsync(recipeId)
+                     ?? throw new InvalidOperationException(&quot;配方不存在&quot;);
+
+        // 同名配方只允许一个 IsActive:true
+        var siblings = db.Recipes.Where(r =&gt; r.Name == target.Name &amp;&amp; !r.IsDeleted);
+        foreach (var s in siblings) s.IsActive = (s.Id == recipeId);
+
+        await _audit.LogAsync(user, &quot;ActivateRecipe&quot;, $&quot;{target.Name}@{target.Version}&quot;, null, null);
+        await db.SaveChangesAsync();
+    }
+
+    // 软删除(保留历史,不真删行)
+    public async Task DeleteAsync(int recipeId, string user)
+    {
+        await using var db = _factory.CreateDbContext();
+        var r = await db.Recipes.FindAsync(recipeId)
+                ?? throw new InvalidOperationException(&quot;配方不存在&quot;);
+        if (r.IsActive) throw new InvalidOperationException(&quot;不能删除当前生效配方,先切换到其他版本&quot;);
+        r.IsDeleted = true;
+        await _audit.LogAsync(user, &quot;DeleteRecipe&quot;, $&quot;{r.Name}@{r.Version}&quot;, null, null);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task&lt;Recipe?&gt; GetActiveAsync(string name)
+    {
+        await using var db = _factory.CreateDbContext();
+        return await db.Recipes
+            .Where(r =&gt; r.Name == name &amp;&amp; r.IsActive &amp;&amp; !r.IsDeleted)
+            .FirstOrDefaultAsync();
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>CreateAsync</code>：唯一约束兜底，重复的 <code>Name+Version</code> 直接抛异常，不用自己加锁。
+- <code>ActivateAsync</code>：先把同名所有配方的 <code>IsActive</code> 算出来「只有目标是 true」，再一次性 <code>SaveChanges</code>——<strong>EF Core 在一个事务里把所有兄弟置 false、目标置 true</strong>，避免「先 A 置 false 再 B 置 true」之间被人读到「没有任何生效」的中间态。
+- <code>DeleteAsync</code>：<strong>禁止删当前生效配方</strong>——否则设备就找不到下个版本可切，必须先切到别的再删。这条规则面试讲出来直接证明你做过。</p>
+<p><strong>④ 审计入口 <code>IAuditLogger</code> + <code>AuditEntry</code></strong>（🟦）
+审计是「谁什么时候改了啥」的黑匣子。定义成接口便于 Mock 测试（关联 M9 的 DI 思想）：</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Audit/AuditEntry.cs
+public class AuditEntry
+{
+    public int Id { get; set; }
+    public string User { get; set; } = &quot;&quot;;
+    public string Action { get; set; } = &quot;&quot;;     // &quot;ActivateRecipe&quot;
+    public string Target { get; set; } = &quot;&quot;;     // &quot;饮料瓶_500ml@1.2.0&quot;
+    public string? Detail { get; set; }          // 可选 JSON(改了哪些字段)
+    public DateTime At { get; set; } = DateTime.UtcNow;
+}
+
+public interface IAuditLogger
+{
+    Task LogAsync(string user, string action, string target, string? before, string? after);
+}
+</code></pre>
+<blockquote>
+<p><strong>为什么审计独立成服务</strong>：① 单测能 Mock（M9 思想）；② 以后想接 Serilog（M6）或上报 MES（M7）只换实现，不动业务代码。</p>
+</blockquote>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ JSON 列查询性能</td>
+<td>按参数过滤（<code>WHERE json_extract(ParametersJson,'$.temp')&gt;80</code>）走不了普通索引，高频查要建 <strong>生成列 + 索引</strong> 或把热字段提到关系列</td>
+</tr>
+<tr>
+<td>⭐ 并发激活（同名 IsActive 唯一）</td>
+<td>用 EF Core 事务把「兄弟置 false + 目标置 true」一次性提交，避免中间态被人读到「没有任何生效」</td>
+</tr>
+<tr>
+<td>⭐ 软删除而不是硬删</td>
+<td>配方是工艺历史，硬删就回滚不了；partial index 让软删的版本号可重建</td>
+</tr>
+<tr>
+<td>🔥 禁止删除生效配方</td>
+<td>删了设备找不到下个版本，必须先切到别的再删——这条规则是面试加分点</td>
+</tr>
+<tr>
+<td>🔥 参数验证放 Service 层</td>
+<td><code>temperature_setpoint</code> 超过物理上限（如 &gt; 500℃）应在 <code>CreateAsync</code> 拦下，不是写库后才报错</td>
+</tr>
+<tr>
+<td>🔥 审计追溯</td>
+<td>创建 / 激活 / 删除 / 应用全部走 <code>IAuditLogger</code>，无审计的配方系统过不了 GMP / ISO 审计</td>
+</tr>
+<tr>
+<td>🔥 权限控制</td>
+<td>编辑 / 激活 / 删除必须分角色（操作员只能切，工艺工程师才能改），见 Day 3 末尾</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🧪 今日三档练习</h3>
+<ul>
+<li>🟢 <strong>基础题</strong>：建 <code>Recipe</code> + <code>AppDb</code>（含 <code>Recipes</code> DbSet），用 <code>RecipeService.CreateAsync</code> 写一份「<code>饮料瓶_500ml@1.0.0</code>」配方（含 <code>temperature_setpoint=185℃</code>、<code>pressure_setpoint=120bar</code>），并 <code>GetActiveAsync("饮料瓶_500ml")</code> 验证 <code>null</code>（因为还没激活）。
+  <strong>✅ 答案</strong>：调用 <code>CreateAsync("饮料瓶_500ml","1.0.0", new[]{ new RecipeParameter{Key="temperature_setpoint",Value=185,Unit="℃"} }, "u1")</code> 后查 <code>GetActiveAsync</code> 返回 <code>null</code>（IsActive 默认 false）。再调 <code>ActivateAsync(id,"u1")</code> 后 <code>GetActiveAsync</code> 返回该对象。</li>
+<li>🟡 <strong>进阶题</strong>：同一 <code>Name</code> 下插两个相同 <code>Version</code>，验证第二次抛 <code>DbUpdateException</code>（唯一约束生效）；并写一个 xUnit 测试用 Moq 替身 <code>IAuditLogger</code>，验证激活时 <code>LogAsync</code> 被调用一次、<code>action == "ActivateRecipe"</code>。</li>
+<li>🔴 <strong>挑战题</strong>：给 <code>RecipeService</code> 加一个 <code>ValidateParameters</code> 私有方法，按一份硬编码的「参数白名单 + 范围表」（如 <code>temperature_setpoint ∈ [0, 500]</code>）校验，超出范围抛 <code>ArgumentException</code>；写测试覆盖「正常 / 超上限 / 未知 key」三种用例。</li>
+</ul>
+<h3 id="sec-3-6">💡 工控导师说</h3>
+<blockquote>
+<p>我在某注塑厂做过一个项目：操作员误删了正在用的配方，机器停了 4 小时找不回参数，损失几万块。从那以后我们做了两条铁律：① 配方<strong>只软删不硬删</strong>；② <strong>当前生效配方不允许删除</strong>（先切换才能删）。这两条是面试时讲「配方管理」最有说服力的故事。
+另一条：JSON 列很灵活，但<strong>别滥用</strong>。如果某个参数（如 <code>temperature_setpoint</code>）几乎所有报表都要按它过滤，提到关系列建索引；JSON 列只放「偶尔回读、几乎不查」的参数。</p>
+</blockquote>
+<h3 id="sec-3-7">🎓 职业建议</h3>
+<p>13-15K 的 JD 里，配方管理偶尔出现，但<strong>一旦出现你做过就是差异化</strong>。面试时能讲出：「我用 EF Core 的 partial index 做了软删 + 唯一约束」「激活用事务保证同名只有一个生效」「审计走独立接口便于 Mock 测试」——这三条直接证明你做过生产级配方系统，不是「写个 CRUD 就完事」。</p>
+<h3 id="sec-3-8">📅 明日预告</h3>
+<p>Day 2 讲<strong>配方下发到设备 + 实时切换</strong>——把 JSON 参数转成 PLC 地址写入，关键点是「写入 + 回读校验 + 失败回滚」的事务思想，对应工厂最怕的「切到一半配方」。</p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 配方下发到设备 + 实时切换</h2>
+<h3 id="sec-3-9">一句话讲清楚</h3>
+<p>配方切换 = 把 JSON 参数按「地址映射表」转成一组 <code>PlcDevice.Write(addr, value)</code>，<strong>前端类比：切换主题（切换前先卸载旧主题，逐项加载新参数，加载失败回滚到旧主题）</strong>。</p>
+<h3 id="sec-3-10">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>配方切换</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>地址映射表 <code>_addressMap</code></td>
+<td>i18n 资源文件的「key → 文本」映射</td>
+</tr>
+<tr>
+<td>暂停采集 → 写入 → 恢复</td>
+<td><code>loading=true → fetch → loading=false</code></td>
+</tr>
+<tr>
+<td>回读校验</td>
+<td>写完 input 再 <code>expect(getValue()).toBe(setValue)</code></td>
+</tr>
+<tr>
+<td>失败回滚</td>
+<td>切主题失败,回滚到原主题的 <code>&lt;link href&gt;</code></td>
+</tr>
+<tr>
+<td><code>RecipeApplyException</code></td>
+<td>自定义 Error 子类,带上下文（哪步炸的）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-11">分点精讲</h3>
+<p><strong>① 地址映射表：参数 key → PLC 地址</strong>（🟦）
+配方里存的是「逻辑参数名」（<code>temperature_setpoint</code>），但 PLC 只认「DB 块地址」（<code>DB1.DBD100</code>）。映射表是两者的桥梁——和前端的 i18n 字典一样，集中在一处维护，不散在代码里。</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/RecipeApplier.cs
+public class RecipeApplier
+{
+    private readonly PlcDevice _plc;             // M3 的 PLC 设备抽象
+    private readonly RecipeService _recipes;
+    private readonly IAuditLogger _audit;
+
+    // 地址映射:参数 key → PLC DB 偏移(DB1 内的偏移,DWORD=4 字节)
+    private readonly Dictionary&lt;string, int&gt; _addressMap = new()
+    {
+        [&quot;temperature_setpoint&quot;] = 100,   // DB1.DBD100
+        [&quot;pressure_setpoint&quot;]    = 104,   // DB1.DBD104
+        [&quot;cycle_time&quot;]           = 108,   // DB1.DBD108
+        [&quot;holding_time&quot;]         = 112,   // DB1.DBD112
+    };
+
+    public RecipeApplier(PlcDevice plc, RecipeService recipes, IAuditLogger audit)
+    { _plc = plc; _recipes = recipes; _audit = audit; }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>_addressMap</code>：硬编码在工程里，<strong>也可以从配置文件读</strong>（<code>appsettings.json</code> 的 <code>RecipeMaps</code> 节）。前端类比：从硬编码常量改成 i18n 资源文件加载。
+- <code>PlcDevice</code> 是 M3 讲过的 PLC 抽象（S7 / Modbus 都包成一个 <code>PlcDevice</code>），这里假设它有 <code>Read(addr)</code> / <code>Write(addr, value)</code>。</p>
+<p><strong>② 切换流程：暂停 → 写入 → 回读校验 → 恢复（含失败回滚）</strong>（🟦）</p>
+<pre><code class="language-csharp">    public async Task ApplyAsync(int recipeId, string user, CancellationToken ct)
+    {
+        // 1. 取配方 + 解析参数
+        var recipe = await _recipes.GetAsync(recipeId)
+                     ?? throw new InvalidOperationException(&quot;配方不存在&quot;);
+        var parameters = JsonSerializer.Deserialize&lt;RecipeParameter[]&gt;(recipe.ParametersJson)
+                         ?? throw new InvalidOperationException(&quot;配方参数无效&quot;);
+
+        // 2. 切换前快照旧值(用于失败回滚)
+        var snapshot = new Dictionary&lt;string, double&gt;();
+        foreach (var p in parameters)
+        {
+            if (!_addressMap.TryGetValue(p.Key, out var addr))
+                throw new InvalidOperationException($&quot;参数 {p.Key} 没有地址映射,无法下发&quot;);
+            snapshot[p.Key] = _plc.Read(addr);
+        }
+
+        // 3. 暂停采集(避免写入过程被读出&quot;中间态&quot;值)
+        _plc.SuspendAcquisition();
+        try
+        {
+            // 4. 逐项写入 + 回读校验
+            foreach (var p in parameters)
+            {
+                ct.ThrowIfCancellationRequested();          // 用户取消立刻停
+                int addr = _addressMap[p.Key];
+                _plc.Write(addr, p.Value);
+
+                // 回读校验:写入 50.0,读出来应在 49.9-50.1 之间(1% 容差)
+                double readBack = _plc.Read(addr);
+                double tolerance = Math.Max(Math.Abs(p.Value) * 0.01, 0.1);
+                if (Math.Abs(readBack - p.Value) &gt; tolerance)
+                    throw new InvalidOperationException(
+                        $&quot;写入 {p.Key}={p.Value},回读 {readBack},超出 1% 容差,校验失败&quot;);
+            }
+
+            // 5. 全部成功:激活 + 审计
+            await _recipes.ActivateAsync(recipeId, user);
+            await _audit.LogAsync(user, &quot;ApplyRecipe&quot;,
+                $&quot;{recipe.Name}@{recipe.Version}&quot;, null, recipe.ParametersJson);
+        }
+        catch (Exception ex)
+        {
+            // 6. 失败回滚:把所有参数写回旧值
+            foreach (var kv in snapshot)
+                _plc.Write(_addressMap[kv.Key], kv.Value);
+            await _audit.LogAsync(user, &quot;ApplyRecipeFailed&quot;,
+                $&quot;{recipe.Name}@{recipe.Version}&quot;, null, ex.Message);
+            throw new RecipeApplyException($&quot;配方 {recipe.Name}@{recipe.Version} 应用失败,已回滚&quot;, ex);
+        }
+        finally
+        {
+            _plc.ResumeAcquisition();   // 无论成败都恢复采集
+        }
+    }
+</code></pre>
+<pre><code class="language-csharp">// 自定义异常,带上下文(对应前端的 class AppError extends Error)
+public class RecipeApplyException : Exception
+{
+    public RecipeApplyException(string msg, Exception inner) : base(msg, inner) { }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <strong>快照 <code>snapshot</code></strong>：切换前先把 PLC 当前值读出来备份。万一中途失败，按快照逐项写回，<strong>回到切换前的状态</strong>而不是「半个新配方 + 半个旧配方」。这是工厂最怕的「配方写到一半炸了」的兜底。
+- <code>SuspendAcquisition</code> / <code>ResumeAcquisition</code>：写入期间暂停后台轮询（M2 / M3 讲过的 <code>PollLoop</code>），避免 UI 读到「温度已切到 200 但压力还是旧值」的中间态。
+- <strong>回读校验</strong>：写完立刻读回来比，差超过 1% 就抛异常。理由：PLC 通信可能丢包 / 写入失败但没报错（M3 讲过的「写完不回读」是现场最隐蔽的坑），<strong>必须显式校验</strong>。
+- <strong><code>finally</code> 恢复采集</strong>：无论成功失败，最后都要 <code>ResumeAcquisition</code>。<code>finally</code> 块保证即使异常抛出也不漏。前端类比：<code>try { fetch() } finally { setLoading(false) }</code>。
+- <strong><code>CancellationToken</code></strong>：用户在切换中途按「取消」能立即停下，不卡 UI。关联 M0 Day7 / M9 讲的优雅退出。</p>
+<p><strong>③ UI 实时刷新（事件通知）</strong></p>
+<pre><code class="language-csharp">// RecipeApplier 加一个事件,UI 订阅(关联 M0 Day6 观察者模式)
+public event EventHandler&lt;RecipeAppliedEvent&gt;? RecipeApplied;
+public record RecipeAppliedEvent(string Name, string Version, bool Success, string? Error);
+
+// UI 端(MainActivityViewModel)
+_applier.RecipeApplied += (s, e) =&gt;
+{
+    Application.Current.Dispatcher.Invoke(() =&gt;   // 跨线程更新 UI(M5)
+    {
+        StatusText = e.Success
+            ? $&quot;已切换到 {e.Name}@{e.Version}&quot;
+            : $&quot;切换失败:{e.Error}(已回滚)&quot;;
+    });
+};
+</code></pre>
+<h3 id="sec-3-12">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 快照 + 回滚</td>
+<td>切换前读旧值备份,失败时按快照写回。<strong>没有回滚的配方切换是定时炸弹</strong></td>
+</tr>
+<tr>
+<td>⭐ 回读校验</td>
+<td>写完立刻读回来比,1% 容差内才算成功。PLC 写入可能「不报错但没写进去」</td>
+</tr>
+<tr>
+<td>⭐ 暂停 / 恢复采集</td>
+<td>写入期间停后台轮询,避免 UI 读到中间态</td>
+</tr>
+<tr>
+<td>🔥 写入中途异常</td>
+<td>必须 <code>try/catch/finally</code>,<code>finally</code> 里恢复采集,否则线程泄漏 + 采集永远停</td>
+</tr>
+<tr>
+<td>🔥 大配方写入慢</td>
+<td>几十个参数逐项写 + 回读可能要几秒,UI 要给进度条 / 可取消(<code>CancellationToken</code>)</td>
+</tr>
+<tr>
+<td>🔥 并发切换</td>
+<td>同一设备不能两个操作员同时切配方,<code>ApplyAsync</code> 入口加 <code>SemaphoreSlim(1,1)</code> 串行化</td>
+</tr>
+<tr>
+<td>🔥 设备掉线</td>
+<td>写入前先检查 <code>_plc.IsConnected</code>,掉线直接抛 <code>RecipeApplyException</code>,别等到回读失败</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-13">🧪 今日三档练习</h3>
+<ul>
+<li>🟢 <strong>基础题</strong>：用 Moq 造一个 <code>PlcDevice</code>，<code>Setup</code> 它的 <code>Read/Write</code>，调 <code>ApplyAsync(recipeId,"u1",default)</code>，验证 <code>Write</code> 被调用的次数 = 参数数量，且最后 <code>ActivateAsync</code> 被调用了。
+  <strong>✅ 答案</strong>：<code>mock.Verify(p =&gt; p.Write(It.IsAny&lt;int&gt;(), It.IsAny&lt;double&gt;()), Times.Exactly(parameters.Length))</code>；<code>recipeServiceMock.Verify(s =&gt; s.ActivateAsync(recipeId,"u1",default), Times.Once)</code>。</li>
+<li>🟡 <strong>进阶题</strong>：让 Moq 的 <code>Read</code> 在第二个参数（<code>pressure_setpoint</code>）回读时返回一个偏离写入值 5% 的值，验证 <code>ApplyAsync</code> 抛 <code>RecipeApplyException</code>，且<strong>所有参数被写回旧值</strong>（用 <code>Verify</code> 检查 <code>Write</code> 被调了「参数数 × 2」次：N 次新值 + N 次回滚）。</li>
+<li>🔴 <strong>挑战题</strong>：给 <code>RecipeApplier</code> 加 <code>SemaphoreSlim(1,1)</code> 串行化入口，写两个并发测试：① 两个 <code>ApplyAsync</code> 串行执行（第二个等第一个完成）；② 第二个在 <code>CancellationToken</code> 触发后立即抛 <code>OperationCanceledException</code> 而不是死等。</li>
+</ul>
+<h3 id="sec-3-14">💡 工控导师说</h3>
+<blockquote>
+<p>切配方是工厂里<strong>最容易出事故</strong>的操作——温度设定一下从 180℃ 切到 220℃，注塑件可能直接烧糊、模具受损。我做过一个项目，配方切换写了一半 PLC 通信断了，机器停在「温度 220 但保压时间还是旧的 5 秒」，废了一批料。从那以后我们：① 强制回读校验；② 强制失败回滚；③ 切换期间屏幕大红字「正在切换配方，禁止开模」，操作员一秒不能马虎。这三条进简历就是「做过生产级配方切换」。
+另一条：<strong>别在切换里搞「写完一项立刻校验」 vs 「全部写完再校验」的犹豫</strong>。前者更早发现失败、回滚的数据少，<strong>永远是正确选择</strong>。</p>
+</blockquote>
+<h3 id="sec-3-15">🎓 职业建议</h3>
+<p>面试时被问「你怎么保证配方切换的可靠性」，能讲出「快照 + 回读校验 + 失败回滚 + 暂停采集 + finally 恢复」五点的人，比只说「调 PLC.Write 写下去」的人薪资能多 2K。这五点对应「事务」思想——SQL 数据库的事务你早懂了，把这套思想搬到 PLC 写入就是配方切换的工程化。</p>
+<h3 id="sec-3-16">📅 明日预告</h3>
+<p>Day 3 讲<strong>配方导入导出 + 版本对比</strong>——用 ClosedXML 把配方导出 Excel 给工艺工程师离线改、JSON 导入做校验，再做两个版本的 key-value diff（像 Git diff），这是配方系统最后一个能打的牌。</p>
+<hr />
+<h2 id="sec-2-4">Day 3 — 配方导入导出 + 版本对比</h2>
+<h3 id="sec-3-17">一句话讲清楚</h3>
+<p>配方支持 Excel / JSON 导入导出，版本对比像 Git diff，<strong>前端类比：导出 JSON 配置 + 在线 diff 工具</strong>——工艺工程师在自己电脑上离线改 Excel，传回上位机导入校验，diff 一眼看出改了啥。</p>
+<h3 id="sec-3-18">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>配方导入导出 / diff</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Excel 导出（ClosedXML）</td>
+<td>SheetJS (<code>xlsx</code>) 前端导出</td>
+</tr>
+<tr>
+<td>Excel 导入 + schema 校验</td>
+<td>表单提交前 <code>zod</code> / <code>Yup</code> 校验</td>
+</tr>
+<tr>
+<td>JSON 导入</td>
+<td><code>JSON.parse</code> + schema 验证</td>
+</tr>
+<tr>
+<td>版本 diff（增 / 删 / 改）</td>
+<td>Git diff / <code>diff-match-patch</code></td>
+</tr>
+<tr>
+<td>配方权限（只读 / 编辑 / 激活）</td>
+<td>RBAC 中间件</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-19">分点精讲</h3>
+<p><strong>① Excel 导出（ClosedXML，沿用 M10）</strong>（🟧）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/RecipeExporter.cs
+using ClosedXML.Excel;
+
+public static class RecipeExporter
+{
+    public static void ExportToExcel(Recipe recipe, string path)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add(&quot;配方&quot;);
+        // 头部:配方信息
+        ws.Cell(1,1).Value = &quot;配方名&quot;; ws.Cell(1,2).Value = recipe.Name;
+        ws.Cell(2,1).Value = &quot;版本&quot;;   ws.Cell(2,2).Value = recipe.Version;
+        ws.Cell(3,1).Value = &quot;创建人&quot;; ws.Cell(3,2).Value = recipe.CreatedBy;
+        ws.Cell(4,1).Value = &quot;创建时间&quot;; ws.Cell(4,2).Value = recipe.CreatedAt;
+
+        // 参数表(从 JSON 反序列化)
+        var parameters = JsonSerializer.Deserialize&lt;RecipeParameter[]&gt;(recipe.ParametersJson)
+                         ?? Array.Empty&lt;RecipeParameter&gt;();
+        ws.Cell(6,1).Value = &quot;Key&quot;; ws.Cell(6,2).Value = &quot;Value&quot;;
+        ws.Cell(6,3).Value = &quot;Unit&quot;; ws.Cell(6,4).Value = &quot;Description&quot;;
+        int row = 7;
+        foreach (var p in parameters)
+        {
+            ws.Cell(row,1).Value = p.Key;
+            ws.Cell(row,2).Value = p.Value;
+            ws.Cell(row,3).Value = p.Unit;
+            ws.Cell(row,4).Value = p.Description ?? &quot;&quot;;
+            row++;
+        }
+        ws.Columns().AdjustToContents();
+        wb.SaveAs(path);
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：和 M10 的报表导出同款套路，只是数据源换成「配方的 JSON 参数」。<code>using</code> 包 <code>XLWorkbook</code> 保证文件锁释放（M10 已强调）。工艺工程师拿到这个 Excel 离线改完，用下面的导入。</p>
+<p><strong>② Excel / JSON 导入 + schema 校验</strong>（🟦+🟧）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/RecipeImporter.cs
+public class RecipeImporter
+{
+    private readonly RecipeService _service;
+
+    // 参数白名单 + 范围(真实项目从 appsettings.json 读)
+    private readonly Dictionary&lt;string, (double Min, double Max)&gt; _ranges = new()
+    {
+        [&quot;temperature_setpoint&quot;] = (0, 500),
+        [&quot;pressure_setpoint&quot;]    = (0, 300),
+        [&quot;cycle_time&quot;]           = (0, 600),
+        [&quot;holding_time&quot;]         = (0, 3600),
+    };
+
+    public RecipeImporter(RecipeService service) =&gt; _service = service;
+
+    public async Task&lt;Recipe&gt; ImportFromJsonAsync(string json, string name,
+                                                  string version, string user)
+    {
+        // 1. schema 校验:能不能反序列化
+        var parameters = JsonSerializer.Deserialize&lt;RecipeParameter[]&gt;(json)
+                         ?? throw new ArgumentException(&quot;JSON 不符合 RecipeParameter[] 格式&quot;);
+
+        // 2. 业务校验:key 白名单 + value 范围
+        foreach (var p in parameters)
+        {
+            if (!_ranges.TryGetValue(p.Key, out var range))
+                throw new ArgumentException($&quot;未知参数 key:{p.Key}&quot;);
+            if (p.Value &lt; range.Min || p.Value &gt; range.Max)
+                throw new ArgumentException(
+                    $&quot;参数 {p.Key}={p.Value} 超出允许范围 [{range.Min}, {range.Max}]&quot;);
+        }
+
+        // 3. 校验通过,交给 Service 入库
+        return await _service.CreateAsync(name, version, parameters, user);
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <strong>两层校验</strong>：① schema 校验（JSON 能不能解析成 <code>RecipeParameter[]</code>）；② 业务校验（key 在白名单、值在范围内）。前端类比：先 <code>zod.parse()</code> 验类型，再 <code>if (value &gt; MAX)</code> 验业务。
+- 校验失败抛 <code>ArgumentException</code>，调用方决定 UI 怎么提示（红字 / 弹窗）。<strong>永远不要把不合法的配方写库</strong>——回去重新改。</p>
+<p><strong>③ 版本 diff：两个配方的 key-value 对比</strong>（🟦）</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/RecipeDiff.cs
+public record RecipeDiff(
+    IReadOnlyList&lt;string&gt; Added,                                      // b 有,a 没有
+    IReadOnlyList&lt;string&gt; Removed,                                    // a 有,b 没有
+    IReadOnlyDictionary&lt;string, (double Old, double New)&gt; Changed);   // 都有但值变
+
+public class RecipeDiffer
+{
+    public RecipeDiff Compare(Recipe a, Recipe b)
+    {
+        var pa = JsonSerializer.Deserialize&lt;Dictionary&lt;string, double&gt;&gt;(a.ParametersJson)
+                 ?? new Dictionary&lt;string, double&gt;();
+        var pb = JsonSerializer.Deserialize&lt;Dictionary&lt;string, double&gt;&gt;(b.ParametersJson)
+                 ?? new Dictionary&lt;string, double&gt;();
+
+        return new RecipeDiff(
+            Added:   pb.Keys.Except(pa.Keys).ToList(),
+            Removed: pa.Keys.Except(pb.Keys).ToList(),
+            Changed: pa.Keys.Intersect(pb.Keys)
+                .Where(k =&gt; Math.Abs(pa[k] - pb[k]) &gt; 0.001)         // 浮点比较用容差
+                .ToDictionary(k =&gt; k, k =&gt; (pa[k], pb[k]))
+        );
+    }
+
+    // 人可读的 diff 文本(像 git diff)
+    public string FormatDiff(Recipe a, Recipe b, RecipeDiff diff)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($&quot;diff {a.Name}@{a.Version} → {b.Name}@{b.Version}&quot;);
+        foreach (var k in diff.Added)   sb.AppendLine($&quot;+ {k}&quot;);                       // 新增
+        foreach (var k in diff.Removed) sb.AppendLine($&quot;- {k}&quot;);                       // 删除
+        foreach (var (k, v) in diff.Changed)
+            sb.AppendLine($&quot;~ {k}: {v.Old} → {v.New}&quot;);                                // 修改
+        return sb.ToString();
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>Keys.Except</code> / <code>Intersect</code>：LINQ 集合运算，前端类比 JS 的 <code>arr1.filter(x =&gt; !arr2.includes(x))</code>。
+- 浮点比较用 <code>&gt; 0.001</code> 容差，不用 <code>==</code>——浮点 <code>0.1 + 0.2 != 0.3</code> 是经典坑（M2 讲过 IEEE754）。
+- <code>FormatDiff</code> 输出像 <code>git diff</code> 的格式：<code>+ 新增 / - 删除 / ~ 修改</code>。UI 绑定到文本框直接展示。</p>
+<p><strong>④ 配方权限（RBAC，基于角色）</strong>（🟦）
+真实工厂里：操作员只能「切换」，工艺工程师能「编辑 + 切换」，管理员才能「删除」。基于角色拦截：</p>
+<pre><code class="language-csharp">// DaqMonitor.Core/Recipes/RecipePermissions.cs
+public enum RecipePermission { Activate, Edit, Delete }
+
+public static class RecipePermissions
+{
+    // 角色 → 允许的操作
+    private static readonly Dictionary&lt;string, HashSet&lt;RecipePermission&gt;&gt; _roleMap = new()
+    {
+        [&quot;Operator&quot;]     = new() { RecipePermission.Activate },
+        [&quot;Engineer&quot;]     = new() { RecipePermission.Activate, RecipePermission.Edit },
+        [&quot;Administrator&quot;]= new() { RecipePermission.Activate, RecipePermission.Edit, RecipePermission.Delete },
+    };
+
+    public static bool Can(string role, RecipePermission p)
+        =&gt; _roleMap.TryGetValue(role, out var perms) &amp;&amp; perms.Contains(p);
+}
+
+// Service 入口加守卫
+public async Task DeleteAsync(int recipeId, string user, string role)
+{
+    if (!RecipePermissions.Can(role, RecipePermission.Delete))
+        throw new UnauthorizedAccessException($&quot;角色 {role} 无删除权限&quot;);
+    // ... 原有删除逻辑
+}
+</code></pre>
+<blockquote>
+<p><strong>前端类比</strong>：和前端路由守卫 <code>if (!hasRole('admin')) redirect('/login')</code> 一模一样，只是这里拦的是「业务操作」而不是「页面跳转」。</p>
+</blockquote>
+<h3 id="sec-3-20">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 导入两层校验</td>
+<td>schema(JSON 能不能解析) + 业务(key 白名单 / 值范围),永远别把不合法配方写库</td>
+</tr>
+<tr>
+<td>⭐ Excel 模板下载</td>
+<td>导入前先让用户下载「标准模板」,避免他自己乱排版</td>
+</tr>
+<tr>
+<td>⭐ diff 用容差比较浮点</td>
+<td><code>Math.Abs(a-b) &gt; 0.001</code>,别用 <code>==</code>,IEEE754 经典坑</td>
+</tr>
+<tr>
+<td>🔥 Excel 单元格类型</td>
+<td>ClosedXML 的 <code>Cell.Value = double</code> 才是数值;赋 string <code>"3.14"</code> 会变文本,后续公式失效</td>
+</tr>
+<tr>
+<td>🔥 导入并发覆盖</td>
+<td>两人同时改一份 Excel 上传,后写的覆盖先写的;加乐观锁(<code>RowVersion</code> 列)</td>
+</tr>
+<tr>
+<td>🔥 权限拦截放 Service</td>
+<td>别只在 UI 隐藏按钮,Service 入口必须二次校验,API 直调绕不过</td>
+</tr>
+<tr>
+<td>🔥 导入大文件</td>
+<td>几千参数的配方 Excel 读取慢,用 <code>IXLWorksheet.RowsUsed()</code> 别遍历整张表</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-21">🧪 今日三档练习</h3>
+<ul>
+<li>🟢 <strong>基础题</strong>：用 <code>RecipeExporter.ExportToExcel</code> 导出一份配方，用 Excel 打开确认表头和参数都对。再用 <code>RecipeImporter.ImportFromJsonAsync</code> 把同一份 JSON 字符串导入并校验通过。</li>
+<li>🟡 <strong>进阶题</strong>：写一份「<code>temperature_setpoint=9999</code>」（超 500 上限）的 JSON，调用 <code>ImportFromJsonAsync</code>，验证抛 <code>ArgumentException</code> 且消息包含「超出允许范围」；写测试覆盖「正常 / 超上限 / 未知 key」三种用例。</li>
+<li>🔴 <strong>挑战题</strong>：给 <code>RecipeDiffer.Compare</code> 写 xUnit 测试：构造两份配方（a 有 <code>temp=180</code>、<code>pressure=120</code>；b 有 <code>temp=185</code>、<code>cycle_time=30</code>），断言 <code>Added=["cycle_time"]</code>、<code>Removed=["pressure"]</code>、<code>Changed={"temp":(180,185)}</code>。再用 <code>FormatDiff</code> 输出文本，肉眼看像 <code>git diff</code>。</li>
+</ul>
+<h3 id="sec-3-22">💡 工控导师说</h3>
+<blockquote>
+<p>我在某食品厂，工艺工程师不在上位机改配方（嫌界面慢），喜欢在自己电脑 Excel 里改完发邮件。我们做了「Excel 模板下载 + 导入校验」之后，他改完上传，系统自动 diff 给他看「你改了 3 个参数：temp 180→185、pressure 120→125、新增 cycle_time=30」，他确认才入库。<strong>这套流程是工厂最欢迎的</strong>——尊重用户习惯 + 强制校验兜底。
+权限那条更关键：没权限控制的配方系统，操作员一不小心删了工艺工程师调好的配方，事故就来了。RBAC 是「企业级」和「玩具」的分水岭。</p>
+</blockquote>
+<h3 id="sec-3-23">🎓 职业建议</h3>
+<p>能讲出「Excel 模板下载 + 导入校验 + diff 展示 + RBAC」四点的候选人，面试官会直接把你定位为「做过企业级上位机」——这是 15K 岗位的差异化。配方管理不是「写个 CRUD」就完事，<strong>真正值钱的是这套围绕配方的工程化流程</strong>。</p>
+<hr />
+<h2 id="sec-2-5">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M4 EF Core → 这里 DbContext + 唯一约束</strong>：<code>Recipe</code> 实体 / <code>IDbContextFactory</code> 短生命周期 / 迁移 partial index，全部沿用 M4 那套，不重复学。</li>
+<li><strong>M9 工程素养 → 这里分层 + 测试</strong>：<code>RecipeService</code> 放 Core，UI 只调不写业务；<code>IAuditLogger</code> 抽接口便于 Moq；测试覆盖「重复 Version / 超范围参数 / 回滚」三类用例，正是 M9 讲的「测行为不测实现」。</li>
+<li><strong>M10 报表 → 这里 Excel 导出</strong>：ClosedXML 同款用法，只是数据源换成「配方参数」，关联 M10 的 <code>ReportExporter</code>。</li>
+<li><strong>M2/M3 PLC → 这里地址映射 + 写入</strong>：<code>PlcDevice.Write(addr, value)</code> 是 M2 / M3 的设备抽象；写入 + 回读校验正是 M3 讲过的「PLC 写完不回读」的工程化。</li>
+<li><strong>M6 日志 → 这里审计</strong>：<code>IAuditLogger</code> 实现可桥接到 Serilog（M6），统一进一个日志管道。</li>
+<li><strong>前瞻（未来模块）</strong>：MES / SCADA 上报——配方变更通过 M7 的 MQTT 发给车间系统；电子签名（FDA 21 CFR Part 11）——审计 + 权限的合规化升级。</li>
+</ul>
+<h2 id="sec-2-6">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li><strong>ISA-88 批次控制标准</strong>：国际通用的「配方管理 + 批次生产」标准，化工 / 制药行业必读，<a href="https://www.isa.org/standards-and-publications/isa-standards/isa-standards-committees/isa88">https://www.isa.org/standards-and-publications/isa-standards/isa-standards-committees/isa88</a></li>
+<li><strong>S88 配方管理模型</strong>： procedural / formula / equipment 三层模型，面试讲「我参考 ISA-88 设计」直接加分，<a href="https://en.wikipedia.org/wiki/S88">https://en.wikipedia.org/wiki/S88</a></li>
+<li><strong>FDA 21 CFR Part 11</strong>：电子记录 + 电子签名法规（制药 / 医疗器械），配方审计的法理依据，<a href="https://www.fda.gov/regulatory-information/search-fda-guidance-documents">https://www.fda.gov/regulatory-information/search-fda-guidance-documents</a></li>
+<li>EF Core 唯一索引 + partial index：<a href="https://learn.microsoft.com/ef/core/modeling/indexes">https://learn.microsoft.com/ef/core/modeling/indexes</a></li>
+<li>ClosedXML（Excel）：<a href="https://github.com/ClosedXML/ClosedXML">https://github.com/ClosedXML/ClosedXML</a></li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<h2 id="sec-2-7">🏗️ 项目任务（边学边做，落到 DAQMonitor）</h2>
+<ol>
+<li>在 <code>src/DaqMonitor.Core/Recipes/</code> 加 <code>Recipe.cs</code> / <code>RecipeParameter.cs</code> / <code>RecipeService.cs</code> / <code>RecipeApplier.cs</code> / <code>RecipeDiffer.cs</code> / <code>RecipeImporter.cs</code> / <code>RecipeExporter.cs</code> / <code>RecipePermissions.cs</code>。</li>
+<li>在 <code>src/DaqMonitor.Core/Audit/</code> 加 <code>AuditEntry.cs</code> + <code>IAuditLogger</code>（实现可写 Serilog，关联 M6）。</li>
+<li>在 <code>src/DaqMonitor.Core/Persistence/AppDb.cs</code>（M4 已有）加 <code>Recipes</code> + <code>AuditLog</code> DbSet，配 partial index 唯一约束。</li>
+<li>在 <code>Bootstrapper</code>（M9 DI）注册 <code>IDbContextFactory&lt;AppDb&gt;</code> / <code>RecipeService</code> / <code>RecipeApplier</code> / <code>IAuditLogger</code>。</li>
+<li>UI 加「配方管理」页：列表 + 新建 / 编辑 / 删除 / 激活 / Excel 导入导出 / diff 对比 + 一个「RBAC 角色选择下拉框」演示权限。</li>
+<li>配套 xUnit 测试（<code>DaqMonitor.Tests</code>）：重复 Version 拦截、超范围参数、激活原子性、diff 输出、回滚行为——目标 6+ 个测试全绿。</li>
+</ol>
+<h2 id="sec-2-8">模块交付清单（M18）</h2>
+<ul>
+<li>[ ] <code>Recipe</code> + <code>RecipeParameter</code> 数据模型（含软删 + JSON 参数列）</li>
+<li>[ ] EF Core 唯一约束（<code>Name + Version</code>）+ partial index（仅未软删）</li>
+<li>[ ] <code>RecipeService</code> CRUD + <code>ActivateAsync</code>（事务保证同名唯一生效）</li>
+<li>[ ] <code>IAuditLogger</code> + <code>AuditEntry</code> 审计管道（创建 / 激活 / 删除 / 应用全记录）</li>
+<li>[ ] <code>RecipeApplier</code> 含快照 + 回读校验 + 失败回滚 + 暂停 / 恢复采集</li>
+<li>[ ] <code>RecipeExporter</code>（ClosedXML）/ <code>RecipeImporter</code>（两层校验）</li>
+<li>[ ] <code>RecipeDiffer</code> 版本对比（增 / 删 / 改三类）</li>
+<li>[ ] <code>RecipePermissions</code> RBAC（Operator / Engineer / Administrator）</li>
+<li>[ ] DAQMonitor 配方管理 UI 页 + 6+ 个 xUnit 测试全绿</li>
+</ul>
+<h2 id="sec-2-9">✅ 打卡</h2>
+<ul>
+<li>[ ] Day 1 配方数据模型 + 增删改查 + 审计入口</li>
+<li>[ ] Day 2 配方下发到设备（快照 + 回读校验 + 失败回滚）</li>
+<li>[ ] Day 3 导入导出 + 版本 diff + RBAC 权限</li>
+<li>[ ] 🏗️ DAQMonitor 配方管理页跑通（含测试）</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M17.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M17 · 工业安全 + MES 对接</div></a>
+  <a class="next" href="M19.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M19 · 问题排查与调试</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

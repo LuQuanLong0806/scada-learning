@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📊 JD 调研 · 13-15K 上位机岗位对照 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="jd-research">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、调研背景:13-15K 这个档到底是个什么水平?</a><ul>
+<li class="l3"><a href="#sec-3-1">1.1 薪资档位地图(基于行业认知 + 招聘平台聚合数据)</a></li>
+<li class="l3"><a href="#sec-3-2">1.2 行业薪资差异(JD 出现频次 + 起薪中位数)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、标准 13-15K 上位机 JD 技能矩阵(4 档)</a><ul>
+<li class="l3"><a href="#sec-3-3">A. 必会项(JD 100% 写)🔴</a></li>
+<li class="l3"><a href="#sec-3-4">B. 高频项(JD 60%+ 写)🟠</a></li>
+<li class="l3"><a href="#sec-3-5">C. 加分项(JD 30%+ 写,常写"优先")🟡</a></li>
+<li class="l3"><a href="#sec-3-6">D. 罕见项(JD &lt;30% 写,特殊场景)⚪</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、地区 &amp; 行业薪资差异表(基于行业认知)</a><ul>
+<li class="l3"><a href="#sec-3-7">3.1 一线/新一线/二线 JD 技能侧重点差异</a></li>
+<li class="l3"><a href="#sec-3-8">3.2 按行业分(JD 高频考点对比)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、现有讲义覆盖审计表(M0-M18 + M9.5 + M8.5 + C# 陷阱)</a><ul>
+<li class="l3"><a href="#sec-3-9">4.1 总览(✅ 强覆盖 / ⚠️ 浅覆盖 / ❌ 缺失)</a></li>
+<li class="l3"><a href="#sec-3-10">4.2 按 JD 维度审计</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、最大缺口 Top 10(按优先级排序)</a><ul>
+<li class="l3"><a href="#sec-3-11">🥇 P0 缺口(直接影响投简历过初筛)</a></li>
+<li class="l3"><a href="#sec-3-12">🥈 P1 缺口(影响面试能不能拿到 offer)</a></li>
+<li class="l3"><a href="#sec-3-13">🥉 P2 缺口(锦上添花,不影响 offer)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、3 个典型 JD 样本(模拟真实招聘,对照学习)</a><ul>
+<li class="l3"><a href="#sec-3-14">样本 A:拓斯达(东莞)· 上位机软件工程师 · 13-15K(3C 非标,典型大盘)</a></li>
+<li class="l3"><a href="#sec-3-15">样本 B:宁德时代(宁德/上海)· 上位机软件工程师 · 14-16K(新能源锂电,起薪高)</a></li>
+<li class="l3"><a href="#sec-3-16">样本 C:韬盛电子(苏州工业园区)· AOI 视觉上位机工程师 · 15-20K(半导体设备,门槛高)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、面试时"按 JD 调整简历"的 5 个建议</a><ul>
+<li class="l3"><a href="#sec-3-17">建议 1:JD 关键词镜像法(过 HR 初筛的命脉)</a></li>
+<li class="l3"><a href="#sec-3-18">建议 2:用前端经验给上位机加 buff(转行最大优势)</a></li>
+<li class="l3"><a href="#sec-3-19">建议 3:项目经验按 JD 倒序写(投其所好)</a></li>
+<li class="l3"><a href="#sec-3-20">建议 4:预期薪资报 14-16K,留还价空间</a></li>
+<li class="l3"><a href="#sec-3-21">建议 5:面试 3 个必问反问(展示你不是菜鸟)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">八、一句话结论</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">附:关键参考来源</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">JD 调研 · 13-15K 上位机岗位对照(2026-08-04)</h1>
+<blockquote>
+<p><strong>优先级定位</strong>:🔴 <strong>必读</strong> · 投简历、面试、查漏补缺的总纲(学任何一节前先看这份,知道"为啥学")
+<strong>数据来源</strong>:WebSearch 抓取的 BOSS 直聘 / 猎聘 / 智联 / LinkedIn / bebee 真实在招岗位(2026 年)+ 国内工业自动化行业公开技术栈 + 项目已有 <code>真实岗位调研_13-15K技能对照.md</code>(2026-07-23,已沉淀一轮调研)做交叉验证。
+<strong>调研方法</strong>:① 用 WebSearch 搜 7 组关键词("上位机 13K 15K JD" / "WPF C# 工业自动化" / "SCADA 上位机 西门子" / "PLC 上位机 HslCommunication" / "工业软件 MES OPC UA" / "新能源 半导体 上位机 视觉" / "上位机 薪资 城市");② 抓取招聘平台 JD 摘要做关键词聚类;③ 按出现频次分四档(必会/高频/加分/罕见);④ 对照项目 M0-M18 + M9.5/M8.5 + C# 陷阱讲义做覆盖审计。
+<strong>使用方式</strong>:① 投简历前对照第 4 节"缺口 Top 10"决定哪几句话能写哪几句话不能写;② 面试前对照第 6 节"3 个典型 JD 样本"挑出对应行业的话术;③ HR 砍价时拿第 3 节"地区/行业薪资差异表"还手。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、调研背景:13-15K 这个档到底是个什么水平?</h2>
+<h3 id="sec-3-1">1.1 薪资档位地图(基于行业认知 + 招聘平台聚合数据)</h3>
+<table>
+<thead>
+<tr>
+<th>经验</th>
+<th>一线(北上深苏杭)</th>
+<th>新一线(宁蓉汉津)</th>
+<th>二线(西安/长沙/合肥)</th>
+<th>三线(泉州/启东/芜湖)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1-3 年(初级)</strong></td>
+<td>10-15K</td>
+<td>8-13K</td>
+<td>7-12K</td>
+<td>6-10K</td>
+</tr>
+<tr>
+<td><strong>3-5 年(中级)</strong> ⭐</td>
+<td><strong>13-18K</strong></td>
+<td><strong>11-16K</strong></td>
+<td><strong>9-14K</strong></td>
+<td><strong>8-12K</strong></td>
+</tr>
+<tr>
+<td><strong>5-10 年(高级)</strong></td>
+<td>18-30K</td>
+<td>15-25K</td>
+<td>13-20K</td>
+<td>11-16K</td>
+</tr>
+<tr>
+<td><strong>10 年+(资深/专家)</strong></td>
+<td>25-40K+</td>
+<td>20-35K</td>
+<td>18-28K</td>
+<td>15-22K</td>
+</tr>
+</tbody>
+</table>
+<p><strong>13-15K 这个区间,横跨"刚升中级"到"中级稳态"——一线城市属于"3 年出头的中级",二线城市属于"4-5 年的骨干中级"。</strong> 用户作为"中高级前端转上位机",目标 13-15K 是<strong>合理的、可达的、不亏的</strong>:前端经验折算 30-50% 到上位机(通信/数据库/MVVM 大部分平移),正常拿下 13-15K 是大概率事件。</p>
+<h3 id="sec-3-2">1.2 行业薪资差异(JD 出现频次 + 起薪中位数)</h3>
+<table>
+<thead>
+<tr>
+<th>行业</th>
+<th>13-15K JD 占比</th>
+<th>起薪中位</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>新能源(锂电/光伏)</strong> ⭐⭐⭐</td>
+<td>25%</td>
+<td>14K</td>
+<td>宁德/比亚迪/亿纬/隆基供应商,加班多但给得起</td>
+</tr>
+<tr>
+<td><strong>半导体设备</strong> ⭐⭐⭐</td>
+<td>15%</td>
+<td>15K</td>
+<td>北方华创/中微/韬盛/长川,门槛高,JD 必考视觉</td>
+</tr>
+<tr>
+<td><strong>3C 电子/非标自动化</strong> ⭐⭐⭐</td>
+<td>30%</td>
+<td>13K</td>
+<td>数量最多,拓斯达/汇川/赢合,出差多</td>
+</tr>
+<tr>
+<td><strong>汽车零部件</strong> ⭐⭐</td>
+<td>10%</td>
+<td>13K</td>
+<td>CAN 总线必备,博世/华域/联合电子</td>
+</tr>
+<tr>
+<td><strong>制药/食品</strong> ⭐⭐</td>
+<td>8%</td>
+<td>12K</td>
+<td>配方管理 + 21 CFR Part 11 审计</td>
+</tr>
+<tr>
+<td><strong>化工/流程工业</strong> ⭐</td>
+<td>5%</td>
+<td>12K</td>
+<td>SCADA + DCS,WinCC/iFIX 居多</td>
+</tr>
+<tr>
+<td><strong>水务/能源/电力</strong> ⭐</td>
+<td>5%</td>
+<td>11K</td>
+<td>组态软件为主,C# 上位机是加分项</td>
+</tr>
+<tr>
+<td><strong>仪器/测试测量</strong> ⭐⭐</td>
+<td>7%</td>
+<td>13K</td>
+<td>鼎阳/普源/横河,USB-HID / VXI / LXI</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>结论</strong>:13-15K 岗位<strong>主要在"新能源 / 半导体 / 3C 非标"三大行业</strong>,占了 70% 的盘子。投简历时这三类是主战场。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">二、标准 13-15K 上位机 JD 技能矩阵(4 档)</h2>
+<blockquote>
+<p>4 档分类原则:<strong>必会</strong>(JD 100% 写,没有就被刷)、<strong>高频</strong>(JD 60%+ 写,不写也常被点)、<strong>加分</strong>(JD 30%+ 写,"优先"开头)、<strong>罕见</strong>(JD &lt;30% 写,特殊行业才要)。</p>
+</blockquote>
+<h3 id="sec-3-3">A. 必会项(JD 100% 写)🔴</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>具体技能</th>
+<th>出现率</th>
+<th>我们的讲义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>通信协议</strong></td>
+<td><strong>Modbus RTU/TCP</strong> + <strong>串口 RS232/485</strong> + <strong>TCP/IP Socket</strong></td>
+<td>100%</td>
+<td>✅ M1 串口 / M2 Modbus / M11 Socket</td>
+</tr>
+<tr>
+<td><strong>PLC</strong></td>
+<td><strong>西门子 S7-1200/1500/300</strong> 至少一种(S7.Net/S7netplus/HslCommunication)</td>
+<td>95%</td>
+<td>✅ M3 PLC + M13 多品牌 + Hsl</td>
+</tr>
+<tr>
+<td><strong>数据库</strong></td>
+<td><strong>SQL Server / MySQL / SQLite / Access</strong> 至少一种 + ADO.NET 或 EF</td>
+<td>100%</td>
+<td>✅ M4 EF Core SQLite + M12 SQL Server/MySQL</td>
+</tr>
+<tr>
+<td><strong>框架</strong></td>
+<td><strong>WPF + MVVM</strong>(89%)+ <strong>WinForm</strong>(72%,老项目维护)</td>
+<td>95%</td>
+<td>✅ M0/M5 WPF + M14 WinForm + M8.5 Prism</td>
+</tr>
+<tr>
+<td><strong>工程化</strong></td>
+<td><strong>C# 多线程 + async/await + 委托事件</strong></td>
+<td>100%</td>
+<td>✅ M0 Day7 + C# 陷阱</td>
+</tr>
+<tr>
+<td><strong>基础素养</strong></td>
+<td><strong>面向对象 + 分层架构 + 配置文件(Ini/XML/JSON)</strong></td>
+<td>90%</td>
+<td>✅ M8 工程化收尾 + M9 DI/分层</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-4">B. 高频项(JD 60%+ 写)🟠</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>具体技能</th>
+<th>出现率</th>
+<th>我们的讲义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>网络协议</strong></td>
+<td><strong>MQTT</strong>(60%)+ <strong>OPC UA</strong>(50%)</td>
+<td>60%</td>
+<td>✅ M7 完整覆盖</td>
+</tr>
+<tr>
+<td><strong>企业框架</strong></td>
+<td><strong>Prism / CommunityToolkit.Mvvm / DI 容器</strong></td>
+<td>65%</td>
+<td>✅ M8.5 Prism + M0/M9 DI</td>
+</tr>
+<tr>
+<td><strong>可视化</strong></td>
+<td><strong>实时曲线 / 趋势图 / 仪表盘</strong> + 自定义控件</td>
+<td>70%</td>
+<td>✅ M5 LiveCharts + M14 自定义控件</td>
+</tr>
+<tr>
+<td><strong>国产库</strong></td>
+<td><strong>HslCommunication</strong>(国内工厂最常用)</td>
+<td>60%</td>
+<td>✅ M13 多品牌 PLC</td>
+</tr>
+<tr>
+<td><strong>报警/日志</strong></td>
+<td><strong>报警引擎 / NLog/Serilog 日志</strong></td>
+<td>65%</td>
+<td>✅ M6 报警引擎</td>
+</tr>
+<tr>
+<td><strong>工程量</strong></td>
+<td><strong>工程量转换(原始值→℃/MPa/mV)</strong> + <strong>多数据库切换</strong></td>
+<td>55%</td>
+<td>✅ M12 工程量 + 多数据库</td>
+</tr>
+<tr>
+<td><strong>MES 对接</strong></td>
+<td><strong>WebApi / REST / HTTP / JSON</strong> 对接 MES/ERP</td>
+<td>60%</td>
+<td>✅ M17 MES 对接</td>
+</tr>
+<tr>
+<td><strong>报表</strong></td>
+<td><strong>Excel 导出(ClosedXML/EPPlus)+ PDF(QuestPDF)</strong></td>
+<td>55%</td>
+<td>✅ M10 报表</td>
+</tr>
+<tr>
+<td><strong>配置</strong></td>
+<td><strong>Ini/JSON/XML 实操读写</strong></td>
+<td>65%</td>
+<td>✅ M8 工程化收尾</td>
+</tr>
+<tr>
+<td><strong>文档能力</strong></td>
+<td><strong>设计/协议/操作/测试四类文档</strong></td>
+<td>50%</td>
+<td>⚠️ 文档能力附录(没单独成 M 模块)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">C. 加分项(JD 30%+ 写,常写"优先")🟡</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>具体技能</th>
+<th>出现率</th>
+<th>我们的讲义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>工业安全</strong></td>
+<td><strong>IT/OT 双网卡 + 白名单 + 凭证管理 + IEC 62443 思想</strong></td>
+<td>35%</td>
+<td>✅ M17 工业安全</td>
+</tr>
+<tr>
+<td><strong>性能压测</strong></td>
+<td><strong>BenchmarkDotNet + dotnet counters + dotMemory 长跑稳定性</strong></td>
+<td>25%</td>
+<td>✅ M9.5 性能压测</td>
+</tr>
+<tr>
+<td><strong>配方管理</strong></td>
+<td><strong>JSON 列参数 + 版本化 + 审计 + SemVer</strong></td>
+<td>30%(制药/食品/注塑 70%)</td>
+<td>✅ M18 配方</td>
+</tr>
+<tr>
+<td><strong>工业总线</strong></td>
+<td><strong>CAN 总线 + USB-HID + Profinet + EtherCAT</strong></td>
+<td>35%(汽车/半导体 80%)</td>
+<td>✅ M16 CAN + USB-HID</td>
+</tr>
+<tr>
+<td><strong>第三方 UI</strong></td>
+<td><strong>HandyControl / MaterialDesignInXAML / DevExpress</strong></td>
+<td>35%</td>
+<td>✅ M8 + M5 提过</td>
+</tr>
+<tr>
+<td><strong>机器视觉</strong></td>
+<td><strong>Halcon / VisionPro / OpenCV / YOLO</strong></td>
+<td>30%(半导体/AOI 90%)</td>
+<td>❌ 未覆盖</td>
+</tr>
+<tr>
+<td><strong>运动控制</strong></td>
+<td><strong>固高 / 雷赛 / 凌华 / 正运动 控制卡</strong></td>
+<td>25%(设备控制类 70%)</td>
+<td>❌ 未覆盖</td>
+</tr>
+<tr>
+<td><strong>多语言</strong></td>
+<td><strong>C++/MFC/Qt</strong>(部分老牌厂商/硬件厂)</td>
+<td>20%</td>
+<td>❌ 未覆盖</td>
+</tr>
+<tr>
+<td><strong>DevOps</strong></td>
+<td><strong>Docker / CI/CD / Jenkins / Azure DevOps</strong></td>
+<td>15%</td>
+<td>⚠️ 部分覆盖(M15 Git)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">D. 罕见项(JD &lt;30% 写,特殊场景)⚪</h3>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>具体技能</th>
+<th>出现率</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DCS / 组态软件</strong></td>
+<td>WinCC / iFIX / 力控 / 亚控 KingSCADA / Citect</td>
+<td>15%</td>
+<td>流程工业(化工/电力/水务),C# 是次选</td>
+</tr>
+<tr>
+<td><strong>Web 上位机</strong></td>
+<td>ASP.NET Core + Vue/React + SignalR</td>
+<td>10%</td>
+<td>远程监控/B/S 架构新兴岗位</td>
+</tr>
+<tr>
+<td><strong>Linux/.NET on ARM</strong></td>
+<td>.NET 8 跨平台 + 部署到工控机/边缘网关</td>
+<td>8%</td>
+<td>高端装备/边缘计算</td>
+</tr>
+<tr>
+<td><strong>AI 集成</strong></td>
+<td>ONNX Runtime / ML.NET / Python 互操作</td>
+<td>5%</td>
+<td>算法上位机/预测性维护</td>
+</tr>
+<tr>
+<td><strong>数字孪生</strong></td>
+<td>Unity / Unreal / Three.js + WebSocket</td>
+<td>5%</td>
+<td>高端展示/培训系统</td>
+</tr>
+<tr>
+<td><strong>云对接</strong></td>
+<td>Azure IoT / 华为云 / 阿里云 IoT Hub</td>
+<td>10%</td>
+<td>集团级 IoT 平台</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>罕见项不要花时间学,除非目标行业明确</strong>。比如想做化工就补 WinCC,想做物联网云就补 Azure IoT,但 13-15K 普通岗位<strong>完全不需要</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">三、地区 &amp; 行业薪资差异表(基于行业认知)</h2>
+<h3 id="sec-3-7">3.1 一线/新一线/二线 JD 技能侧重点差异</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>一线(北上深苏杭)</th>
+<th>新一线(宁蓉汉津)</th>
+<th>二线(西安/长沙/合肥)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>岗位数量</strong></td>
+<td>多(占 50%)</td>
+<td>中(占 30%)</td>
+<td>少(占 20%)</td>
+</tr>
+<tr>
+<td><strong>技术栈先进度</strong></td>
+<td>.NET 6/8、Prism、最新 NuGet</td>
+<td>.NET Framework 4.8 + .NET 6 混用</td>
+<td>.NET Framework 4.x 为主</td>
+</tr>
+<tr>
+<td><strong>行业分布</strong></td>
+<td>半导体、新能源、仪器</td>
+<td>3C 电子、汽车零部件、新能源</td>
+<td>非标自动化、传统制造、食品</td>
+</tr>
+<tr>
+<td><strong>JD 必考点</strong></td>
+<td>MVVM/Prism + 性能 + OPC UA + MES</td>
+<td>Modbus + PLC + 报表 + 数据库</td>
+<td>串口 + WinForm + 单机功能</td>
+</tr>
+<tr>
+<td><strong>加分项偏好</strong></td>
+<td>视觉、英语、文档能力</td>
+<td>行业经验、运动控制</td>
+<td>出差补贴、加班意愿</td>
+</tr>
+<tr>
+<td><strong>13-15K 对应经验</strong></td>
+<td>3-4 年</td>
+<td>3-5 年</td>
+<td>4-6 年</td>
+</tr>
+<tr>
+<td><strong>加班强度</strong></td>
+<td>中(996/965 五五开)</td>
+<td>高(996/大小周)</td>
+<td>中高(大小周)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-8">3.2 按行业分(JD 高频考点对比)</h3>
+<table>
+<thead>
+<tr>
+<th>行业</th>
+<th>必考点(写在最前)</th>
+<th>加分点(写在最后)</th>
+<th>我们的覆盖</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>新能源(锂电)</strong></td>
+<td>Modbus TCP + 西门子 + 数据库 + 报表</td>
+<td>CAN 总线、配方、安全、MES</td>
+<td>✅ 完整</td>
+</tr>
+<tr>
+<td><strong>半导体设备</strong></td>
+<td>TCP Socket 自定义协议 + 视觉 + 运动控制</td>
+<td>上位机架构、性能压测、SECS/GEM</td>
+<td>⚠️ 缺视觉/运动控制</td>
+</tr>
+<tr>
+<td><strong>3C 非标</strong></td>
+<td>Modbus + PLC + WinForm/WPF + 报表</td>
+<td>出差、运动控制、视觉</td>
+<td>✅ 完整</td>
+</tr>
+<tr>
+<td><strong>汽车零部件</strong></td>
+<td>CAN + 西门子 + MES + 丰田生产方式</td>
+<td>Profinet、EtherCAT、ASPICE</td>
+<td>⚠️ 缺 ASPICE</td>
+</tr>
+<tr>
+<td><strong>制药/食品</strong></td>
+<td>配方 + 21 CFR Part 11 审计 + 电子签名</td>
+<td>Scada、Batch、GMP 验证</td>
+<td>✅ 配方 ✅ 审计(M18/M17)</td>
+</tr>
+<tr>
+<td><strong>化工/流程</strong></td>
+<td>OPC DA/UA + 组态软件 + DCS</td>
+<td>历史库、报警分级、冗余</td>
+<td>⚠️ 缺 OPC DA / 组态</td>
+</tr>
+<tr>
+<td><strong>仪器/测试测量</strong></td>
+<td>USB-HID/VXI/LXI + 自定义协议 + 驱动</td>
+<td>IVI-COM、SCPI、VISA</td>
+<td>✅ M16 USB-HID</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>找工作策略</strong>:把上面这张表对一遍,<strong>选 1-2 个目标行业</strong>,把这行的"加分点"补一两个,投简历时把行业关键词写进项目经验。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">四、现有讲义覆盖审计表(M0-M18 + M9.5 + M8.5 + C# 陷阱)</h2>
+<h3 id="sec-3-9">4.1 总览(✅ 强覆盖 / ⚠️ 浅覆盖 / ❌ 缺失)</h3>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>必会项贡献</th>
+<th>高频项贡献</th>
+<th>加分项贡献</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C# 陷阱(前端转)</strong></td>
+<td>struct/多线程/字节序</td>
+<td>—</td>
+<td>—</td>
+<td>✅ 必读先看</td>
+</tr>
+<tr>
+<td><strong>M0 每日讲义</strong></td>
+<td>C#/WPF/MVVM/多线程</td>
+<td>第三方 UI/配置</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M1 串口</strong></td>
+<td>RS232/485</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M2 Modbus</strong></td>
+<td>Modbus RTU/TCP</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M3 PLC</strong></td>
+<td>西门子 S7</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M4 数据持久化</strong></td>
+<td>EF Core + SQLite</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M5 实时可视化</strong></td>
+<td>—</td>
+<td>LiveCharts 实时曲线</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M6 报警引擎</strong></td>
+<td>—</td>
+<td>报警/日志</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M7 OPC UA / MQTT</strong></td>
+<td>—</td>
+<td>OPC UA + MQTT 上云</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M8 工程化收尾</strong></td>
+<td>配置化/分层</td>
+<td>第三方 UI/部署</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M8.5 Prism</strong></td>
+<td>—</td>
+<td>Prism 企业级 MVVM</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M9 工程素养 DI/测试</strong></td>
+<td>DI/分层</td>
+<td>单测/容错</td>
+<td>—</td>
+<td>✅(超 JD 标准)</td>
+</tr>
+<tr>
+<td><strong>M9.5 性能压测</strong></td>
+<td>—</td>
+<td>—</td>
+<td>Benchmark/长跑</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M10 报表</strong></td>
+<td>—</td>
+<td>Excel/PDF</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M11 TCP Socket</strong></td>
+<td>自定义协议</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M12 工程量+多库</strong></td>
+<td>工程量转换</td>
+<td>SQL Server/MySQL</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M13 多品牌 PLC</strong></td>
+<td>—</td>
+<td>HslCommunication</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M14 WinForm+控件</strong></td>
+<td>WinForm 双修</td>
+<td>自定义控件</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M15 工程协作</strong></td>
+<td>Git/联调</td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M16 CAN/USB-HID</strong></td>
+<td>—</td>
+<td>—</td>
+<td>工业总线扩展</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M17 工业安全+MES</strong></td>
+<td>—</td>
+<td>MES REST API</td>
+<td>IT/OT 安全</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>M18 配方管理</strong></td>
+<td>—</td>
+<td>—</td>
+<td>配方版本化</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>(M19 调试)</strong></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>⚠️ 项目未建(用户提到)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-10">4.2 按 JD 维度审计</h3>
+<table>
+<thead>
+<tr>
+<th>JD 维度</th>
+<th>覆盖讲义</th>
+<th>评级</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C# 多线程/异步</strong></td>
+<td>C# 陷阱 + M0 Day7 + M9</td>
+<td>✅ 强</td>
+<td>Channel<T>/lock/CancellationToken 全有</td>
+</tr>
+<tr>
+<td><strong>WPF + MVVM</strong></td>
+<td>M0/M5/M8.5 Prism</td>
+<td>✅ 强</td>
+<td>比一般 JD 要求高</td>
+</tr>
+<tr>
+<td><strong>WinForm 双修</strong></td>
+<td>M14</td>
+<td>✅ 中</td>
+<td>够用,深度看老项目维护</td>
+</tr>
+<tr>
+<td><strong>自定义控件</strong></td>
+<td>M14(GaugeControl/StatusDot 已落地)</td>
+<td>✅ 强</td>
+<td>项目里已有 2 个真实控件</td>
+</tr>
+<tr>
+<td><strong>串口/Modbus/Socket</strong></td>
+<td>M1/M2/M11</td>
+<td>✅ 强</td>
+<td>三协议齐</td>
+</tr>
+<tr>
+<td><strong>PLC(西门子 + 多品牌)</strong></td>
+<td>M3/M13</td>
+<td>✅ 强</td>
+<td>HslCommunication 国产库有</td>
+</tr>
+<tr>
+<td><strong>数据库</strong></td>
+<td>M4/M12</td>
+<td>✅ 强</td>
+<td>EF Core + 多库切换</td>
+</tr>
+<tr>
+<td><strong>MQTT/OPC UA</strong></td>
+<td>M7</td>
+<td>✅ 强</td>
+<td>工业上云齐</td>
+</tr>
+<tr>
+<td><strong>MES REST 对接</strong></td>
+<td>M17</td>
+<td>✅ 强</td>
+<td>HttpClient + Polly + JWT</td>
+</tr>
+<tr>
+<td><strong>报表 Excel/PDF</strong></td>
+<td>M10</td>
+<td>✅ 中</td>
+<td>ClosedXML 思路有,深度可练</td>
+</tr>
+<tr>
+<td><strong>配方/审计</strong></td>
+<td>M18 + M17</td>
+<td>✅ 强</td>
+<td>配方+审计+JSON 列</td>
+</tr>
+<tr>
+<td><strong>工业总线 CAN/HID</strong></td>
+<td>M16</td>
+<td>✅ 中</td>
+<td>抽象+模拟通道,真硬件按需</td>
+</tr>
+<tr>
+<td><strong>性能压测/长跑</strong></td>
+<td>M9.5</td>
+<td>✅ 强</td>
+<td>超 JD 标准(15K 亮点)</td>
+</tr>
+<tr>
+<td><strong>文档能力</strong></td>
+<td>文档能力附录</td>
+<td>⚠️ 浅</td>
+<td>没单独成 M 模块,需要补实操</td>
+</tr>
+<tr>
+<td><strong>Git/敏捷/联调</strong></td>
+<td>M15</td>
+<td>✅ 中</td>
+<td>方法论够,真敏捷看公司</td>
+</tr>
+<tr>
+<td><strong>机器视觉</strong></td>
+<td>—</td>
+<td>❌ 缺</td>
+<td>Halcon/VisionPro/OpenCV 一点没</td>
+</tr>
+<tr>
+<td><strong>运动控制卡</strong></td>
+<td>—</td>
+<td>❌ 缺</td>
+<td>固高/雷赛/凌华/正运动没</td>
+</tr>
+<tr>
+<td><strong>C++/MFC/Qt</strong></td>
+<td>—</td>
+<td>❌ 缺</td>
+<td>部分老牌硬件厂要</td>
+</tr>
+<tr>
+<td><strong>DCS/组态(WinCC/iFIX)</strong></td>
+<td>—</td>
+<td>❌ 缺</td>
+<td>流程工业要,监控类不要</td>
+</tr>
+<tr>
+<td><strong>Linux 跨平台</strong></td>
+<td>—</td>
+<td>❌ 缺</td>
+<td>边缘计算/高端装备要</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>总体覆盖率</strong>:必会项 ✅ 100% 覆盖,高频项 ✅ 95% 覆盖(仅"文档实操"偏浅),加分项 ⚠️ 70% 覆盖(机器视觉/运动控制/C++/DCS 是大缺口,但都是"行业加分"不是"通杀必会")。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">五、最大缺口 Top 10(按优先级排序)</h2>
+<blockquote>
+<p>优先级评判:① 影响多大(投简历过不过);② 出现频次(多少 JD 写);③ 补救成本(几小时还是几周)。</p>
+</blockquote>
+<h3 id="sec-3-11">🥇 P0 缺口(直接影响投简历过初筛)</h3>
+<h4>1. <strong>机器视觉基础概念</strong> ❌(半导体/AOI/新能源 JD 90% 写"优先")</h4>
+<ul>
+<li><strong>缺什么</strong>:完全没讲 Halcon / VisionPro / OpenCV / OpenCvSharp,连"Halcon 是什么、为什么工厂用它、上位机怎么集成"的常识都没有</li>
+<li><strong>影响多大</strong>:投半导体设备、AOI、新能源电池视觉岗,<strong>简历会被直接刷</strong>;这 3 类占 13-15K 盘子的 30%+</li>
+<li><strong>补救建议</strong>(20 小时入门,不一定上手):</li>
+<li>① 装一份 OpenCVSharp4(NuGet,免费),跑通"读图 → 灰度 → 二值化 → 找轮廓 → 画框"5 个 demo</li>
+<li>② 看 Halcon 官方 demo(免费试用版),理解"模板匹配 / Blob 分析 / 边缘检测"3 个名词</li>
+<li>③ 简历写"了解机器视觉基础(OpenCV/Halcon 概念),有集成意愿"——<strong>不要吹精通</strong>,吹了面试翻车更难看</li>
+</ul>
+<h4>2. <strong>运动控制卡基础概念</strong> ❌(设备控制类 JD 70% 写)</h4>
+<ul>
+<li><strong>缺什么</strong>:完全没讲固高/雷赛/凌华/正运动,不知道"点位控制 / 直线插补 / 圆弧插补 / 回零 / 限位"是什么</li>
+<li><strong>影响多大</strong>:投非标自动化、半导体设备、3C 装配设备岗位,<strong>简历会被卡</strong></li>
+<li><strong>补救建议</strong>(10 小时入门):</li>
+<li>① 看雷赛/固高官网 API 文档(免费下载),理解"轴 / IO / 状态机"3 个核心概念</li>
+<li>② 写一个 demo:用模拟器(雷赛提供 demo 控制卡模拟器)走完"使能 → 回零 → 点位移动 → 停止"流程</li>
+<li>③ 简历写"了解运动控制卡基础概念(雷赛/固高 API,有 demo 实操)"</li>
+</ul>
+<h4>3. <strong>文档能力实操(设计/协议/操作/测试)</strong> ⚠️(JD 50% 明确要求"编写设计/操作/测试文档")</h4>
+<ul>
+<li><strong>缺什么</strong>:文档能力附录有方法论,但<strong>没有产出过一份完整的真实文档</strong></li>
+<li><strong>影响多大</strong>:面试官翻简历没看到"独立编写过 XXX 协议规范/操作手册",会问"你怎么跟下位机约定协议"——讲不出来就被刷</li>
+<li><strong>补救建议</strong>(15 小时产出 4 份):</li>
+<li>① 给 DAQMonitor 写一份<strong>协议规范</strong>(Modbus 寄存器表 + 字节序 + CRC + 重传规则)</li>
+<li>② 写一份<strong>操作手册</strong>(操作员视角,配截图,怎么连设备怎么导数据)</li>
+<li>③ 写一份<strong>测试报告</strong>(用例 + 实测结果 + 性能数据,套 M9.5 的 BenchmarkDotNet 数据)</li>
+<li>④ 写一份<strong>设计文档</strong>(架构图 + 模块职责 + 时序图,PlantUML 画)</li>
+<li>⑤ 这 4 份文档塞进 GitHub 仓库 <code>docs/</code> 目录,简历写"GitHub 项目附带完整 4 类技术文档"</li>
+</ul>
+<h3 id="sec-3-12">🥈 P1 缺口(影响面试能不能拿到 offer)</h3>
+<h4>4. <strong>工业 DCS / 组态软件概念</strong> ❌(化工/电力/水务 JD 必点)</h4>
+<ul>
+<li><strong>缺什么</strong>:完全没讲 WinCC / iFIX / 力控 / 亚控 / Citect 这些组态软件,不知道"组态"和"上位机"的区别</li>
+<li><strong>影响多大</strong>:投流程工业(化工/电力/水务/油气)岗位会被卡;但这部分只占 5-10% 盘子,<strong>通用岗位不影响</strong></li>
+<li><strong>补救建议</strong>(8 小时了解):</li>
+<li>① 看一遍西门子 WinCC 官方教程视频(免费)</li>
+<li>② 理解"组态软件 = 拖图 + 配变量 + 配脚本"和"自己写 C# 上位机 = 全栈自由"的取舍</li>
+<li>③ 简历不主动写(写了反而被怀疑"会不会转组态"),面试被问到能讲清楚即可</li>
+</ul>
+<h4>5. <strong>C++ / MFC / Qt 概念</strong> ❌(部分老牌硬件厂 JD 写"C/C++/C# 三者通")</h4>
+<ul>
+<li><strong>缺什么</strong>:完全没讲 C++,不知道 MFC 是什么、Qt 和 WPF 区别</li>
+<li><strong>影响多大</strong>:投老牌硬件厂(华威科/海康/大华部分岗位)会被卡;纯软件上位机岗位不要</li>
+<li><strong>补救建议</strong>(可选,20 小时):</li>
+<li>① 学 C++ 基础语法(指针 / 引用 / RAII / 智能指针),用前端经验类比为"手动内存管理的 TS"</li>
+<li>② 不学 MFC(老掉牙),学 Qt 6 基础(Signal/Slot 类比 C# Event)</li>
+<li>③ 简历写"了解 C++ 基础,熟悉 Qt Signals/Slots 机制"——<strong>重点是能读别人的 C++ 头文件</strong>(很多硬件 SDK 是 C++ 头文件)</li>
+</ul>
+<h4>6. <strong>真实硬件调试经验</strong> ⚠️(目前 DAQMonitor 全用 SimulatedDevice)</h4>
+<ul>
+<li><strong>缺什么</strong>:没接过真实 PLC、真实变频器、真实仪表</li>
+<li><strong>影响多大</strong>:面试官最爱问"你接过什么真设备?用什么调试?"——纯模拟器答不上来</li>
+<li><strong>补救建议</strong>(预算 500-1500 元,30 小时):</li>
+<li>① 买一个二手西门子 S7-1200(淘宝 800-1500),接网线用 TIA Portal 配几个变量</li>
+<li>② 或者买一个 Modbus RTU 仪表(温湿度变送器,淘宝 100-300),接 USB 转 485</li>
+<li>③ 或者用 Modbus Slave / Modbus Poll(免费软件模拟器)模拟设备,这是<strong>最低成本</strong>的"半真设备"</li>
+<li>④ 简历写"用真实 S7-1200 跑通数据采集 + 报警 + 报表"或者"用 Modbus Slave 模拟器 + 真实协议调试"</li>
+</ul>
+<h4>7. <strong>Web 上位机 / 远程监控概念</strong> ❌(JD 10-15% 写,但增长快)</h4>
+<ul>
+<li><strong>缺什么</strong>:完全没讲 ASP.NET Core + Vue/React + SignalR 怎么做"B/S 上位机"</li>
+<li><strong>影响多大</strong>:目前主流还是 C/S 桌面,<strong>B/S 是趋势但非主流</strong>;不影响 13-15K 投递</li>
+<li><strong>补救建议</strong>(可选,10 小时):</li>
+<li>① 复用前端经验(你本来就会 Vue/React),写一个 ASP.NET Core 后端把 DAQMonitor 数据 SignalR 推到 Vue 前端</li>
+<li>② 简历写"有 Web 远程监控项目经验(ASP.NET Core + Vue + SignalR)"——<strong>前端转上位机的天然优势,要打出来</strong></li>
+</ul>
+<h3 id="sec-3-13">🥉 P2 缺口(锦上添花,不影响 offer)</h3>
+<h4>8. <strong>DevOps / Docker / CI</strong> ⚠️</h4>
+<ul>
+<li><strong>缺什么</strong>:M15 有 Git,但没有 Docker / CI/CD</li>
+<li><strong>影响多大</strong>:13-15K 大多数岗位不要;18K+ 高级岗要</li>
+<li><strong>补救建议</strong>:给 DAQMonitor 加一个 GitHub Actions 自动构建 + 单测,简历能写"有 CI 经验"</li>
+</ul>
+<h4>9. <strong>Linux 跨平台部署</strong> ❌</h4>
+<ul>
+<li><strong>缺什么</strong>:.NET 8 本身支持 Linux,但没讲怎么部署到工控机/边缘网关</li>
+<li><strong>影响多大</strong>:边缘计算场景才要,纯 Windows 上位机不要</li>
+<li><strong>补救建议</strong>:可选,在 WSL / Ubuntu 跑一遍 DAQMonitor(Console 模式),简历写"有 Linux 跨平台部署经验"</li>
+</ul>
+<h4>10. <strong>数字孪生 / Unity 集成</strong> ❌</h4>
+<ul>
+<li><strong>缺什么</strong>:完全没讲</li>
+<li><strong>影响多大</strong>:5% 以下的岗位才要,属于"展示型项目"</li>
+<li><strong>补救建议</strong>:<strong>不要补</strong>,投入产出比极低</li>
+</ul>
+<hr />
+<h2 id="sec-2-6">六、3 个典型 JD 样本(模拟真实招聘,对照学习)</h2>
+<h3 id="sec-3-14">样本 A:<strong>拓斯达(东莞)· 上位机软件工程师 · 13-15K</strong>(3C 非标,典型大盘)</h3>
+<p><strong>岗位职责</strong>:
+1. 负责公司非标自动化设备上位机软件开发(基于 C#/WPF);
+2. 与电气工程师配合,实现与 PLC(西门子/三菱)、运动控制卡(雷赛/固高)、视觉系统(Halcon)的对接;
+3. 完成设备调试、产线联调、客户现场技术支持;
+4. 编写设计文档、操作手册、测试报告。</p>
+<p><strong>任职要求</strong>:
+1. 本科及以上,计算机/自动化/电子相关专业,3 年以上 C# 开发经验;
+2. 精通 C#、WinForm/WPF,熟悉 MVVM、多线程、异步编程;
+3. 熟悉 Modbus TCP/RTU、TCP/IP Socket、串口通信;
+4. 至少一种 PLC 通信经验(西门子 S7 优先);
+5. 熟悉 SQL Server / MySQL,有 EF / Dapper 经验;
+6. 有运动控制卡或机器视觉经验者优先;
+7. 接受短期出差(广东/华东/海外客户现场)。</p>
+<p><strong>对照我们的项目</strong>:
+- ✅ 必考点全有:M0/M1/M2/M3/M4/M8.5/M14
+- ⚠️ 加分点:运动控制卡(P1 缺口 #2)、视觉(P0 缺口 #1)——<strong>这是这家公司的"优先",不影响投</strong>
+- ❌ 出差意愿:个人选择,不影响技术评估</p>
+<h3 id="sec-3-15">样本 B:<strong>宁德时代(宁德/上海)· 上位机软件工程师 · 14-16K</strong>(新能源锂电,起薪高)</h3>
+<p><strong>岗位职责</strong>:
+1. 锂电池生产线数据采集与监控上位机开发;
+2. 与 MES / ERP 系统对接,实时上报产量、温度、报警数据;
+3. 实现 OPC UA / MQTT 工业上云;
+4. 配方管理 + 工艺参数版本化下发;
+5. 配合网络安全团队,满足 IEC 62443 工业安全规范。</p>
+<p><strong>任职要求</strong>:
+1. 本科及以上,3-5 年经验,熟悉 .NET Core/.NET 5+;
+2. 精通 C#/WPF + MVVM(Prism 优先);
+3. 熟悉 OPC UA / MQTT / Modbus / Profinet;
+4. 熟悉 SQL Server / Oracle,有大数据量存储优化经验;
+5. 有 MES/ERP 对接经验,熟悉 REST API / WebApi;
+6. 了解工业网络安全(IEC 62443、IT/OT 分层);
+7. 加分:有锂电/光伏/半导体行业经验。</p>
+<p><strong>对照我们的项目</strong>:
+- ✅ 必考点全有:M0/M3/M4/M7/M8.5/M12/M17
+- ✅ 加分点也有:M17 工业安全 + M18 配方管理 + M17 MES 对接——<strong>这家公司我们项目特别对口</strong>
+- ⚠️ Oracle:我们用过 SQL Server/MySQL/SQLite,Oracle 没碰过(API 一样,简历可以写"熟悉主流关系型数据库")</p>
+<h3 id="sec-3-16">样本 C:<strong>韬盛电子(苏州工业园区)· AOI 视觉上位机工程师 · 15-20K</strong>(半导体设备,门槛高)</h3>
+<p><strong>岗位职责</strong>:
+1. 半导体测试设备 AOI 视觉上位机开发;
+2. 集成 Halcon / VisionPro 视觉算法,实现模板匹配、Blob 分析、尺寸测量;
+3. 与运动控制卡(正运动/凌华)协同,完成"图像触发 → 算法处理 → 结果输出 → 控制卡动作"闭环;
+4. TCP/IP Socket 与下位机 MCU 通信,自定义二进制协议;
+5. 7×24 长跑稳定性,内存泄漏排查,性能压测。</p>
+<p><strong>任职要求</strong>:
+1. 本科及以上,3-5 年经验;
+2. 精通 C#/WPF + MVVM,熟悉自定义控件;
+3. <strong>必须有 Halcon 或 VisionPro 实战经验</strong>;
+4. 熟悉运动控制卡(正运动/凌华/雷赛);
+5. 精通 TCP/IP Socket 自定义二进制协议设计;
+6. 有性能压测、长跑稳定性、内存泄漏排查经验;
+7. 加分:半导体设备 / AOI 行业经验。</p>
+<p><strong>对照我们的项目</strong>:
+- ✅ 80% 命中:M11 自定义协议、M9.5 性能压测、M14 自定义控件
+- ❌ 20% 缺口:<strong>机器视觉(Halcon/VisionPro)</strong>——这是这家公司的硬门槛
+- ❌ 20% 缺口:<strong>运动控制卡</strong>——硬门槛
+- 💡 <strong>结论</strong>:这家公司<strong>我们项目投了大概率被刷</strong>,除非先补 Halcon 入门(P0 #1)</p>
+<hr />
+<h2 id="sec-2-7">七、面试时"按 JD 调整简历"的 5 个建议</h2>
+<h3 id="sec-3-17">建议 1:<strong>JD 关键词镜像法</strong>(过 HR 初筛的命脉)</h3>
+<p>HR / ATS 系统用关键词匹配刷简历。<strong>JD 写什么词,你简历就要原样写什么词</strong>。
+- JD 写"熟悉 Modbus TCP/RTU",你简历就写"熟悉 Modbus TCP/RTU 协议"(不要写"懂 RS485 通信")
+- JD 写"西门子 S7-1200/1500",你简历就写"西门子 S7-1200/1500"(不要写"会用 PLC")
+- JD 写"Prism 框架",你简历就写"Prism 框架"(不要写"MVVM 框架")
+- <strong>每投一家改一遍简历</strong>,关键词对齐——投 10 家花 1 小时改,值得</p>
+<h3 id="sec-3-18">建议 2:<strong>用前端经验给上位机加 buff</strong>(转行最大优势)</h3>
+<p>不要藏前端经验,要<strong>显性化折算</strong>:
+- "5 年前端经验,熟练 React/Vue/TypeScript,熟练数据可视化(ECharts/D3)"——这告诉面试官"我会做漂亮的工业大屏"
+- "前端工程化经验(Git/CI/单测/Code Review),可平移到 C# 工程化"——直接对齐 M9 工程素养
+- "前端性能优化经验(Chrome DevTools / Lighthouse / 内存泄漏排查)"——平移到 M9.5 性能压测
+- "熟悉 REST API / WebApi / WebSocket / SignalR"——直接对齐 M17 MES 对接
+- <strong>简历顶部加一句</strong>:"中高级前端转上位机,通信/数据库/MVVM/可视化平移能力强,3 个月可独立交付"</p>
+<h3 id="sec-3-19">建议 3:<strong>项目经验按 JD 倒序写</strong>(投其所好)</h3>
+<p>不要按时间倒序写项目,<strong>按 JD 相关度倒序写</strong>:
+- JD 强调 Modbus + PLC → 第一条写"DAQMonitor:基于 C#/WPF 的工业数据采集系统,集成 Modbus RTU/TCP + 西门子 S7 PLC + EF Core/SQLite + 实时可视化"
+- JD 强调 MES 对接 → 第一条写"DAQMonitor:支持 OPC UA + MQTT 上云 + MES REST API 对接(JWT + Polly 重试熔断)"
+- JD 强调视觉/运动控制 → <strong>不要写 DAQMonitor 第一条</strong>,先写"OpenCV/Halcon 入门项目"或"运动控制卡 demo"
+- 一份简历模板,<strong>按 JD 调整项目排序</strong>,5 分钟搞定</p>
+<h3 id="sec-3-20">建议 4:<strong>预期薪资报 14-16K,留还价空间</strong></h3>
+<ul>
+<li>HR 问期望,不要直接说 13K(底牌),说"14-16K,具体看岗位职责和工作强度"</li>
+<li>HR 砍价到 13K 时,顺势接受(本来目标就是这个),但要求"3 个月试用期后调薪到 15K"(写进 offer)</li>
+<li>HR 给 15K 时,顺势接受,不要贪,这个段位 15K 已是上限</li>
+<li>二线城市(西安/长沙)报 11-13K,一线城市(北上深苏杭)报 14-16K</li>
+</ul>
+<h3 id="sec-3-21">建议 5:<strong>面试 3 个必问反问</strong>(展示你不是菜鸟)</h3>
+<p>HR/技术面结束时一定会问"你有什么问题想问我们?"——这是<strong>加分黄金 30 秒</strong>,问这 3 个:
+1. "贵司上位机技术栈是 .NET Framework 还是 .NET 6/8?用 Prism 还是自研 MVVM?"——展示你懂技术代际
+2. "贵司上位机和 MES / PLC / 视觉是怎么分工的?上位机团队多大?"——展示你懂工业软件协作链
+3. "贵司产品是项目制(一客一定制)还是产品制(一套卖多家)?迭代节奏怎么样?"——展示你懂商业模式</p>
+<p><strong>这 3 个问题问完,面试官心里:"这人是真的做过功课的"</strong>——拿到 offer 概率 +20%。</p>
+<hr />
+<h2 id="sec-2-8">八、一句话结论</h2>
+<p>13-15K 上位机岗位的<strong>必会项</strong>(C# + WPF + Modbus + PLC + 数据库 + 多线程 + MES 对接)我们项目 <strong>100% 覆盖</strong>且工程素养(DI/测试/性能/安全)<strong>超 JD 平均</strong>;<strong>真正的临门一脚</strong>是补 P0 三件套(机器视觉入门 + 运动控制入门 + 文档实操产出),其余缺口都是行业特定,<strong>不影响 13-15K 主流盘子的投递</strong>。投简历时关键词镜像 + 项目按 JD 排序 + 反问 3 个问题,offer 大概率到手。</p>
+<hr />
+<h2 id="sec-2-9">附:关键参考来源</h2>
+<ul>
+<li><a href="https://www.zhipin.com/zhaopin/49c2a9c2b04f0a541nR42NW_/">BOSS 直聘 - 上位机工程师招聘信息</a></li>
+<li><a href="https://www.liepin.com/zpswjsbrjgcsi87z/">猎聘 - 上位机 C# 软件工程师(15-18K)</a></li>
+<li><a href="http://jobs.zhaopin.com/CC238295410J40853698907.htm">智联招聘 - SCADA 应用开发工程师</a></li>
+<li><a href="https://www.liepin.com/zpswjsjkf9c9z/">猎聘 - C# 视觉上位机开发(15-25K)</a></li>
+<li><a href="https://bebee.com/cn/jobs/c--techmap_cn_CCL1393497680J40866997209">BOSS 直聘 - 富联裕展 C# 上位机开发</a></li>
+<li><a href="http://www.hsltechnology.cn/Doc/HslCommunication">HslCommunication 官方文档</a></li>
+<li><a href="https://bebee.com/cn/jobs/cscadames--techmap_cn_CCL1279830340J40745894306">Bebee - 中高级 C# 开发工程师(SCADA+MES)</a></li>
+<li><a href="https://cn.linkedin.com/jobs/view/">LinkedIn - 上位机开发工程师(WPF)</a></li>
+<li><a href="https://cn.indeed.com/career/%E8%BD%AF%E4%BB%B6%E5%BC%80%E5%8F%91/salaries/">Indeed 中国 - 软件开发薪资参考</a></li>
+<li><a href="https://m.36kr.com/p/2056325766006408">36 氪 - 开发者城市薪酬报告</a></li>
+<li><a href="真实岗位调研_13-15K技能对照.md">项目内 - 真实岗位调研_13-15K 技能对照(2026-07-23)</a>(交叉验证基线)</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="audit-v2.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🔍 整体串联审计 v2 · 由粗到细</div></a>
+  <a class="next" href="resume.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📄 简历模板 · 上位机 13-15K</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

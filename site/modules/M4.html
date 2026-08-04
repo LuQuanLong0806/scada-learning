@@ -37,14 +37,16 @@
 <li class="l3"><a href="#sec-3-7">🟢 基础题</a></li>
 <li class="l3"><a href="#sec-3-8">🟡 进阶题</a></li>
 <li class="l3"><a href="#sec-3-9">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-10">🔬 掰开揉碎：DbContext 三大性能利器</a></li>
+<li class="l3"><a href="#sec-3-11">🔬 掰开揉碎：迁移与回滚（生产必备）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">Day 2 — 查询 + 导出 CSV + 仓储模式 🟡</a><ul>
-<li class="l3"><a href="#sec-3-10">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-12">⚠️ 重点 &amp; 易踩坑</a></li>
-<li class="l3"><a href="#sec-3-13">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-14">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-15">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-12">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-13">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-15">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-16">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-17">🔴 挑战题</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
 </ul></li>
@@ -91,7 +93,7 @@
 <td>数据模型 schema</td>
 </tr>
 <tr>
-<td><code>SaveChanges()</code></td>
+<td><code>SaveChangesAsync()</code></td>
 <td><code>prisma.user.create()</code> 提交</td>
 </tr>
 <tr>
@@ -122,16 +124,21 @@ public class AppDb : DbContext
 }
 </code></pre>
 <p><strong>② 写入</strong>（🟧）</p>
-<pre><code class="language-csharp">using var db = new AppDb();
+<pre><code class="language-csharp">// 推荐:通过 IDbContextFactory&lt;AppDb&gt; 注入(见下面 Bootstrapper 注册)
+await using var db = _factory.CreateDbContext();   // 短生命周期,用完即释放
 db.Records.Add(new SensorRecord { PointId = 1, Value = 25.6, Time = DateTime.Now });
-db.SaveChanges();                          // 提交事务
+await db.SaveChangesAsync();                          // 提交事务(异步,不堵 UI 线程)
 </code></pre>
+<blockquote>
+<p><strong>为什么不 <code>new AppDb()</code></strong>:<code>DbContext</code> 不是线程安全,多人/多线程共享一个实例会炸(追踪缓存冲突 + 并发 <code>SaveChanges</code> 串行报错)。正确姿势 = DI 注册 <code>AddDbContextFactory</code>,每次用 <code>CreateDbContext()</code> 拿独立短命实例。前端类比:像 React Query 的 <code>queryClient</code>,不能跨组件共享 mutable state。
+<strong>Bootstrapper 注册</strong>:<code>services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlite("Data Source=daq.db"));</code></p>
+</blockquote>
 <h3 id="sec-3-4">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</h3>
-<p>很多人 <code>SaveChanges()</code> 调得好好的，但被面试官问「它怎么知道哪些改了」就懵。拆开讲：
+<p>很多人 <code>SaveChangesAsync()</code> 调得好好的，但被面试官问「它怎么知道哪些改了」就懵。拆开讲：
 - <strong>DbContext 是个「工作单元 + 缓存」</strong>：你 <code>db.Records.Add(x)</code> 或改 <code>r.Value=99</code>，它并<strong>不立刻写库</strong>，而是把实体记进内部「追踪缓存」并标记状态（Added/Modified/Deleted）。
-- <strong><code>SaveChanges()</code> 才一次性比对、生成 SQL、提交事务</strong>。这就是为什么你改了属性不调 <code>SaveChanges</code> 数据库没变化。
+- <strong><code>SaveChangesAsync()</code> 才一次性比对、生成 SQL、提交事务</strong>。这就是为什么你改了属性不调 <code>SaveChangesAsync</code> 数据库没变化。
 - <strong>为什么要「短生命周期」</strong>：追踪缓存会一直持有实体引用，一个 DbContext 用一辈子 = 缓存无限膨胀 + 并发写冲突。<strong>正确</strong>：每次操作 <code>new AppDb()</code> 用完 <code>Dispose</code>（<code>using</code>），或 DI 里用 <code>Scoped</code>（一次请求/一次批量任务一个实例）。
-- <strong>高频写入策略</strong>：每秒几千条别每条 <code>SaveChanges</code>（每次都开事务，慢 10 倍）。攒一批（如每秒 500 条）一次 <code>AddRange</code>+<code>SaveChanges</code>；或用 SQLite 的 WAL 模式（<code>PRAGMA journal_mode=WAL</code>）提升并发读写。</p>
+- <strong>高频写入策略</strong>：每秒几千条别每条 <code>SaveChangesAsync</code>（每次都开事务，慢 10 倍）。攒一批（如每秒 500 条）一次 <code>AddRange</code>+<code>SaveChangesAsync</code>；或用 SQLite 的 WAL 模式（<code>PRAGMA journal_mode=WAL</code>）提升并发读写。</p>
 <h3 id="sec-3-5">🔬 掰开揉碎：迁移（Migration）是干什么的</h3>
 <ul>
 <li><strong>问题</strong>：你改了 <code>SensorRecord</code> 加个字段，数据库表结构不会自动变。手动改表易错、不可复现。</li>
@@ -155,11 +162,15 @@ db.SaveChanges();                          // 提交事务
 <tbody>
 <tr>
 <td>⭐ DbContext 用完即弃</td>
-<td>用 <code>using</code> 短生命周期，别做成全局单例后长期不释放</td>
+<td>用 <code>IDbContextFactory.CreateDbContext()</code> + <code>await using</code> 短生命周期，别做成全局单例后长期不释放</td>
 </tr>
 <tr>
 <td>⭐ 异步 API</td>
 <td>生产用 <code>SaveChangesAsync</code> / <code>ToListAsync</code>，避免堵 UI 线程</td>
+</tr>
+<tr>
+<td>🔥 DbContext 非线程安全</td>
+<td>多线程共享实例会炸,用 Factory 每次新建;前端类比 = 不能跨组件共享 mutable state</td>
 </tr>
 <tr>
 <td>🔥 小数精度</td>
@@ -176,24 +187,84 @@ db.SaveChanges();                          // 提交事务
 <h3 id="sec-3-8">🟡 进阶题</h3>
 <p>插入 100 条随机温度（1~100℃），用 LINQ 查出平均值 &gt; 50 的条数。</p>
 <h3 id="sec-3-9">🔴 挑战题</h3>
-<p>写一个 <code>BulkInsert(IEnumerable&lt;SensorRecord&gt; batch)</code>，用 <code>AddRange</code> + 单次 <code>SaveChanges</code> 批量提交，并测量「单条循环 SaveChanges」vs「攒批一次 SaveChanges」的耗时差距（体会 10 倍性能差）。</p>
+<p>写一个 <code>BulkInsertAsync(IEnumerable&lt;SensorRecord&gt; batch)</code>，用 <code>AddRange</code> + 单次 <code>SaveChangesAsync</code> 批量提交，并测量「单条循环 SaveChangesAsync」vs「攒批一次 SaveChangesAsync」的耗时差距（体会 10 倍性能差）。</p>
 <p><strong>✅ 答案（挑战题核心）</strong></p>
-<pre><code class="language-csharp">public void BulkInsert(IEnumerable&lt;SensorRecord&gt; batch)
+<pre><code class="language-csharp">// 通过 DI 注入 AppDbContext(Scoped 生命周期,每次请求一个实例)
+public class PointRepository
 {
-    using var db = new AppDb();
-    db.Records.AddRange(batch);   // 一次加一批
-    db.SaveChanges();              // 一次事务提交 —— 比每条 SaveChanges 快约 10 倍
+    private readonly IDbContextFactory&lt;AppDb&gt; _factory;
+    public PointRepository(IDbContextFactory&lt;AppDb&gt; factory) =&gt; _factory = factory;
+
+    public async Task BulkInsertAsync(IEnumerable&lt;SensorRecord&gt; batch)
+    {
+        await using var db = _factory.CreateDbContext();   // 短生命周期,用完即释放
+        db.Records.AddRange(batch);                          // 一次加一批
+        await db.SaveChangesAsync();                         // 一次事务提交 —— 比每条 SaveChanges 快约 10 倍
+    }
 }
 </code></pre>
+<blockquote>
+<p><strong>为什么不用 <code>new</code>、为什么用 <code>IDbContextFactory</code></strong>:<code>DbContext</code> <strong>不是线程安全</strong>,多线程共享同一个实例会炸(追踪缓存冲突、<code>SaveChanges</code> 串行)。Factory 模式每次 <code>CreateDbContext()</code> 拿到独立实例,谁用谁借、用完即还。
+<strong>前端类比</strong>:像 React Query 的 <code>queryClient</code>,不能在多组件共享 mutable state —— 一旦并发 fetch 同时写,就出 race。
+<strong>Bootstrapper 注册</strong>(M9 DI 体系):
+<code>csharp
+services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlite("Data Source=daq.db"));</code></p>
+</blockquote>
 <p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core</code> 加 <code>Persistence/AppDb.cs</code> 与 <code>SensorRecord</code>；建 <code>HistoryRepository</code> 封装"批量写入 + 查询"（参考工程里已有的 <code>Store/PointStore.cs</code> 双索引思路）。DAQ Monitor 的 <code>DataReceived</code> 事件里把点存库。（EF 历史库接进工程为下一轮落地项。）</p>
-<p><strong>🎓 工控导师说</strong>：现场一个真实事故——某系统每秒 2000 条数据，每条都 <code>SaveChanges()</code>，结果数据库 CPU 跑满、写入积压、界面卡死。改成"每 500ms 攒一批 <code>AddRange</code> 提交"，CPU 直接掉到 5%。<strong>工业写入第一原则：攒批，别逐条提交。</strong></p>
+<p><strong>🎓 工控导师说</strong>：现场一个真实事故——某系统每秒 2000 条数据，每条都 <code>SaveChangesAsync()</code>，结果数据库 CPU 跑满、写入积压、界面卡死。改成"每 500ms 攒一批 <code>AddRange</code> 提交"，CPU 直接掉到 5%。<strong>工业写入第一原则：攒批，别逐条提交。</strong></p>
 <p><strong>💼 职业建议</strong>：数据库是 13K 必考。面试被问"EF Core 怎么优化写入"，答"短生命周期 DbContext + 攒批 AddRange + WAL 模式 + 异步 SaveChanges"这四点是满分答案，直接区分"用过"和"懂原理"。</p>
+<h3 id="sec-3-10">🔬 掰开揉碎：DbContext 三大性能利器</h3>
+<p>会写 <code>SaveChangesAsync</code> 只是及格,知道下面三招才是 15K 的写法:</p>
+<p><strong>① <code>AsNoTracking()</code> — 只读查询关掉变更追踪,性能 2-3 倍</strong></p>
+<pre><code class="language-csharp">// 查历史曲线(只读,不修改) → 关掉追踪,跳过状态字典维护
+var list = await db.Records.AsNoTracking()
+    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; from)
+    .ToListAsync();
+</code></pre>
+<p><strong>前端类比</strong>:像 React 的 <code>PureComponent</code> / <code>useMemo</code>,跳过不必要的 diff。读几万条历史时不开 <code>AsNoTracking</code>,DbContext 的追踪字典会一直膨胀,GC 压力炸裂。</p>
+<p><strong>② 索引策略 — <code>PointId + Time</code> 复合索引,按时间范围查点位 100 倍速</strong></p>
+<pre><code class="language-csharp">// 用特性声明(EF Core 5+),迁移自动生成 CREATE INDEX
+[Index(nameof(SensorRecord.PointId), nameof(SensorRecord.Time))]
+public class SensorRecord { ... }
+</code></pre>
+<p><strong>坑</strong>:索引顺序很关键 —— <code>(PointId, Time)</code> 适合"按点位 + 时间段查";如果反过来,查"某段时间所有点位"才用得上。索引不是越多越好,写入要维护 B+ 树,索引过多会让攒批变慢。</p>
+<p><strong>③ <code>AutoDetectChangesEnabled = false</code> — 大批量 <code>AddRange</code> 前关掉自动 DetectChanges</strong></p>
+<pre><code class="language-csharp">await using var db = _factory.CreateDbContext();
+db.ChangeTracker.AutoDetectChangesEnabled = false;   // 关掉自动 diff
+db.Records.AddRange(batch);                            // 几千条 Add 不再每条扫一次
+db.ChangeTracker.AutoDetectChangesEnabled = true;    // AddRange 完成后开回来
+await db.SaveChangesAsync();
+</code></pre>
+<p><strong>原理</strong>:<code>Add</code>/<code>AddRange</code> 默认会触发 <code>DetectChanges</code>,全量比对追踪字典,几千条会慢成 O(n²)。关掉后只在 <code>SaveChanges</code> 时一次性 diff,大批量插入提速明显。</p>
+<h3 id="sec-3-11">🔬 掰开揉碎：迁移与回滚（生产必备）</h3>
+<p>讲义上面讲了正向迁移(<code>migrations add</code> → <code>database update</code>),但<strong>回滚</strong>和<strong>种子数据</strong>也是 15K 必会:</p>
+<p><strong>① 加迁移命令(规范)</strong></p>
+<pre><code class="language-bash"># 把迁移文件输出到指定目录,团队协作必备(默认散在根目录难管)
+dotnet ef migrations add Init -o Migrations
+dotnet ef database update                          # 应用到库
+</code></pre>
+<p><strong>② 回滚到上一个迁移</strong>(面试常考,讲义只讲了正向)</p>
+<pre><code class="language-bash"># 假设你刚加了 BadMigration,发现问题要撤
+dotnet ef database update &lt;上一个迁移名&gt;   # 数据库回到上一个状态
+dotnet ef migrations remove                  # 删掉最近一次迁移文件(还没 push 才行)
+</code></pre>
+<p><strong>生产坑</strong>:已经 <code>update</code> 到客户机的迁移<strong>不能直接 <code>remove</code></strong>,要写一个<strong>新的反向迁移</strong>(把字段/表删掉)再 <code>update</code> 上去 —— 这才是企业级「前向修复」原则。</p>
+<p><strong>③ 种子数据(Seed Data)</strong> —— 初始化字典表/默认点位</p>
+<pre><code class="language-csharp">protected override void OnModelCreating(ModelBuilder b)
+{
+    b.Entity&lt;SensorRecord&gt;().HasData(
+        new SensorRecord { Id = 1, PointId = 1, Value = 25.0, Time = new DateTime(2026,1,1) }
+        // ... 初始化默认点位/字典表
+    );
+}
+// 迁移会自动生成 INSERT 语句,部署到客户机自动带初始数据
+</code></pre>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M4',1)"> 打卡</label></strong></p>
 <hr />
 <h2 id="sec-2-3">Day 2 — 查询 + 导出 CSV + 仓储模式 🟡</h2>
-<h3 id="sec-3-10">一句话讲清楚</h3>
+<h3 id="sec-3-12">一句话讲清楚</h3>
 <p>存进去是为了查：按点位 / 时间段捞历史，再导出 CSV 给 Excel 分析 —— 这是"数据价值"闭环。</p>
-<h3 id="sec-3-11">分点精讲</h3>
+<h3 id="sec-3-13">分点精讲</h3>
 <p><strong>① LINQ 查询</strong>（🟧🟦，呼应 M0 Day 3）</p>
 <pre><code class="language-csharp">var today = db.Records
     .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; DateTime.Now.AddHours(-1))
@@ -212,14 +283,19 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
 <p><strong>③ 仓储模式（解耦数据访问）</strong>（🟦）</p>
 <pre><code class="language-csharp">public class HistoryRepository
 {
-    private readonly AppDb _db;
-    public HistoryRepository(AppDb db) =&gt; _db = db;
-    public void AddRange(IEnumerable&lt;SensorRecord&gt; rs) { _db.Records.AddRange(rs); _db.SaveChanges(); }
-    public List&lt;SensorRecord&gt; Query(int pointId, DateTime from, DateTime to)
-        =&gt; _db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToList();
+    private readonly IDbContextFactory&lt;AppDb&gt; _factory;
+    public HistoryRepository(IDbContextFactory&lt;AppDb&gt; factory) =&gt; _factory = factory;
+    public async Task AddRangeAsync(IEnumerable&lt;SensorRecord&gt; rs)
+    {
+        await using var db = _factory.CreateDbContext();
+        db.Records.AddRange(rs);
+        await db.SaveChangesAsync();
+    }
+    public async Task&lt;List&lt;SensorRecord&gt;&gt; QueryAsync(int pointId, DateTime from, DateTime to)
+        =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToListAsync();
 }
 </code></pre>
-<h3 id="sec-3-12">⚠️ 重点 &amp; 易踩坑</h3>
+<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
 <thead>
 <tr>
@@ -246,11 +322,11 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-13">🟢 基础题</h3>
+<h3 id="sec-3-15">🟢 基础题</h3>
 <p>写 <code>HistoryRepository.Query</code> 按点位 + 时间段查询，返回列表。</p>
-<h3 id="sec-3-14">🟡 进阶题</h3>
+<h3 id="sec-3-16">🟡 进阶题</h3>
 <p>加 <code>ExportCsv(path)</code> 方法，把查询结果写成 CSV。</p>
-<h3 id="sec-3-15">🔴 挑战题</h3>
+<h3 id="sec-3-17">🔴 挑战题</h3>
 <p>写一个 <code>GetHourlyAverage(pointId, date)</code>：用 LINQ <code>GroupBy(r =&gt; r.Time.Hour)</code> 算出当天每小时的平均温度（M10 报表的预演）。</p>
 <p><strong>✅ 答案（挑战题核心）</strong></p>
 <pre><code class="language-csharp">var hourly = db.Records
@@ -282,19 +358,27 @@ public class SensorRecord
 public class AppDb : DbContext
 {
     public DbSet&lt;SensorRecord&gt; Records =&gt; Set&lt;SensorRecord&gt;();
+    // 注意:OnConfiguring 仅演示用;生产用 DI 注册 AddDbContextFactory(见 Day1 Bootstrapper)
     protected override void OnConfiguring(DbContextOptionsBuilder b)
         =&gt; b.UseSqlite(&quot;Data Source=daq.db&quot;);
 }
 
+// Bootstrapper / Program.cs —— DI 注册(Scoped Factory 模式)
+services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlite(&quot;Data Source=daq.db&quot;));
+
 // DaqMonitor.Core/Persistence/HistoryRepository.cs
 public class HistoryRepository
 {
-    private readonly AppDb _db;
-    public HistoryRepository(AppDb db) =&gt; _db = db;
-    public void BulkInsert(IEnumerable&lt;SensorRecord&gt; batch)
-    { _db.Records.AddRange(batch); _db.SaveChanges(); }
-    public List&lt;SensorRecord&gt; Query(int pointId, DateTime from, DateTime to)
-        =&gt; _db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToList();
+    private readonly IDbContextFactory&lt;AppDb&gt; _factory;
+    public HistoryRepository(IDbContextFactory&lt;AppDb&gt; factory) =&gt; _factory = factory;
+    public async Task BulkInsertAsync(IEnumerable&lt;SensorRecord&gt; batch)
+    {
+        await using var db = _factory.CreateDbContext();
+        db.Records.AddRange(batch);
+        await db.SaveChangesAsync();
+    }
+    public async Task&lt;List&lt;SensorRecord&gt;&gt; QueryAsync(int pointId, DateTime from, DateTime to)
+        =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToListAsync();
     public void ExportCsv(string path, List&lt;SensorRecord&gt; rows)
     {
         var sb = new StringBuilder();

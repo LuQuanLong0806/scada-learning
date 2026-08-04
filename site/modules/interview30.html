@@ -1,0 +1,1902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎤 面试问答 · 逐字稿 30 题 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="interview30">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、C# 核心 + 异步</a><ul>
+<li class="l3"><a href="#sec-3-1">Q1. struct vs class 的差异?为什么 List&lt;T&gt; 改字段会丢?</a></li>
+<li class="l3"><a href="#sec-3-2">Q2. async/await 的本质是什么?Task 和 Thread 区别?</a></li>
+<li class="l3"><a href="#sec-3-3">Q3. async void 为什么是炸弹?怎么改?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、多线程 + 并发</a><ul>
+<li class="l3"><a href="#sec-3-4">Q4. lock(this) / lock(typeof()) 为什么不行?</a></li>
+<li class="l3"><a href="#sec-3-5">Q5. Channel vs ConcurrentQueue,什么时候选哪个?</a></li>
+<li class="l3"><a href="#sec-3-6">Q6. CancellationTokenSource 怎么实现超时 + 取消?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、串口 + Modbus</a><ul>
+<li class="l3"><a href="#sec-3-7">Q7. 串口通信怎么处理半包/粘包?(RDBE 模式)</a></li>
+<li class="l3"><a href="#sec-3-8">Q8. 手算 Modbus RTU CRC16,01 03 00 00 00 02</a></li>
+<li class="l3"><a href="#sec-3-9">Q9. Modbus 浮点 ABCD/CDAB 字节序怎么处理?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、PLC + S7.Net</a><ul>
+<li class="l3"><a href="#sec-3-10">Q10. S7.Net 怎么读 DB1.DBX0.0 / DB1.DBD4?</a></li>
+<li class="l3"><a href="#sec-3-11">Q11. event 不退订会怎样?</a></li>
+<li class="l3"><a href="#sec-3-12">Q12. PLC 读写为什么必须异步?同步阻塞 UI 线程的后果?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、EF Core + SQLite</a><ul>
+<li class="l3"><a href="#sec-3-13">Q13. DbContext 生命周期?为什么不能 Singleton?</a></li>
+<li class="l3"><a href="#sec-3-14">Q14. IDbContextFactory vs 直接注入 DbContext,什么时候选哪个?</a></li>
+<li class="l3"><a href="#sec-3-15">Q15. AsNoTracking 什么时候用?变更追踪的成本多大?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、Prism + MVVM</a><ul>
+<li class="l3"><a href="#sec-3-16">Q16. Prism 的 RegionManager 干嘛的?和 ContentControl 区别?</a></li>
+<li class="l3"><a href="#sec-3-17">Q17. EventAggregator 内存泄漏怎么避免?</a></li>
+<li class="l3"><a href="#sec-3-18">Q18. Prism 模块化 vs 手写 DI 的核心优势?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、TCP Socket + 协议设计</a><ul>
+<li class="l3"><a href="#sec-3-19">Q19. TCP 粘包/拆包 4 种解法?</a></li>
+<li class="l3"><a href="#sec-3-20">Q20. SocketException 怎么处理?ReadAsync 返回 0 意味着什么?</a></li>
+<li class="l3"><a href="#sec-3-21">Q21. 设计一个工业协议帧:帧头 + 长度 + payload + CRC,字节级讲清楚</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">八、报警 + 日志</a><ul>
+<li class="l3"><a href="#sec-3-22">Q22. 报警回滞机制?为什么不能直接用 if(value &gt; threshold)?</a></li>
+<li class="l3"><a href="#sec-3-23">Q23. Serilog 的 Sink / Enricher / MinimumLevel 怎么用?</a></li>
+<li class="l3"><a href="#sec-3-24">Q24. TraceId 跨线程怎么传?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">九、性能 + 长跑稳定性</a><ul>
+<li class="l3"><a href="#sec-3-25">Q25. 7×24 跑 3 天后内存涨到 1GB,怎么排查?</a></li>
+<li class="l3"><a href="#sec-3-26">Q26. 事件订阅 / static 集合 / 闭包 / GDI 4 种典型内存泄漏</a></li>
+<li class="l3"><a href="#sec-3-27">Q27. 性能瓶颈定位:VS Profiler / dotnet-trace 火焰图 / BenchmarkDotNet</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">十、调试 + 工程素养</a><ul>
+<li class="l3"><a href="#sec-3-28">Q28. 条件断点 + 数据断点 + Hit Count 分别什么时候用?</a></li>
+<li class="l3"><a href="#sec-3-29">Q29. 工业现场设备偶发掉线 30 秒自动恢复,怎么排查?</a></li>
+<li class="l3"><a href="#sec-3-30">Q30. 你最满意的 bug 是怎么排查的?(STAR 法开放题)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-11">30 题自测清单(逐条打勾)</a><ul>
+<li class="l3"><a href="#sec-3-31">C# 核心 + 异步(3)</a></li>
+<li class="l3"><a href="#sec-3-32">多线程 + 并发(3)</a></li>
+<li class="l3"><a href="#sec-3-33">串口 + Modbus(3)</a></li>
+<li class="l3"><a href="#sec-3-34">PLC + S7.Net(3)</a></li>
+<li class="l3"><a href="#sec-3-35">EF Core + SQLite(3)</a></li>
+<li class="l3"><a href="#sec-3-36">Prism + MVVM(3)</a></li>
+<li class="l3"><a href="#sec-3-37">TCP Socket + 协议设计(3)</a></li>
+<li class="l3"><a href="#sec-3-38">报警 + 日志(3)</a></li>
+<li class="l3"><a href="#sec-3-39">性能 + 长跑稳定性(3)</a></li>
+<li class="l3"><a href="#sec-3-40">调试 + 工程素养(3)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-12">📚 参考来源</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">上位机面试逐字稿｜C#/.NET/WPF 30 题(中高级前端转行版)</h1>
+<blockquote>
+<p>适配对象:5 年前端工程师 → 转上位机(C#/.NET 8/WPF)→ 目标 13-15K 岗位
+使用说明:每题"逐字稿"段可直接念给面试官,<strong>关键代码块 + 口语化</strong>。30 题覆盖 10 大主题。
+配套简历:见 <code>简历模板_上位机_13-15K.md</code></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、C# 核心 + 异步</h2>
+<h3 id="sec-3-1">Q1. struct vs class 的差异?为什么 <code>List&lt;T&gt;</code> 改字段会丢?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:值类型 vs 引用类型本质区别 + 装箱 / 拆箱 + 陷阱场景。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>class</code> 是引用类型,分配在堆上,变量存的是引用(指针);<code>struct</code> 是值类型,通常分配在栈上(逃逸到堆是另一回事),变量存的是值本身,<strong>赋值 = 拷贝整个结构体</strong>。</p>
+<pre><code class="language-csharp">struct Point { public int X; public int Y; }
+class PointRef { public int X; public int Y; }
+
+var p1 = new Point { X = 1, Y = 2 };
+var p2 = p1;       // 值类型:整个结构体被拷贝
+p2.X = 99;
+Console.WriteLine(p1.X);  // 还是 1,因为 p1 和 p2 是两个独立副本
+
+var r1 = new PointRef { X = 1, Y = 2 };
+var r2 = r1;       // 引用类型:只拷贝引用,p1 和 p2 指向同一对象
+r2.X = 99;
+Console.WriteLine(r1.X);  // 99,因为 r1 和 r2 是同一对象
+</code></pre>
+<p><strong><code>List&lt;T&gt;</code> 改字段丢的根因</strong>:<code>List&lt;T&gt;</code> 索引器 <code>list[i]</code> 返回的是元素的<strong>值拷贝</strong>(对于 struct),你修改的是临时副本,写回去时未保存:</p>
+<pre><code class="language-csharp">struct Device { public int Id; }
+var list = new List&lt;Device&gt; { new Device { Id = 1 } };
+list[0].Id = 99;        // ❌ 编译错误(旧 C#)或静默丢失
+// 正确写法:
+var d = list[0]; d.Id = 99; list[0] = d;
+// 或:改 struct 为 class
+</code></pre>
+<p><strong>💡 加分话术</strong>:struct 适合"小、不可变、值语义"(如坐标、Point、DateTime);<strong>.NET 自带的 struct 大多是 readonly struct + record struct</strong>(C# 10+),配合 <code>in</code> 参数避免隐式拷贝。<strong>工业协议帧</strong>这种小对象(几十字节)用 struct 性能更好,但要小心装箱(<code>object o = device;</code> 会触发 box)。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ "struct 一定在栈上"——错误。struct 字段在 class 里就在堆上;闭包捕获的 struct 也在堆上。<strong>正确说法:struct 是值类型,语义是拷贝</strong>。</li>
+<li>❌ "struct 性能一定比 class 好"——错误。struct 大于 16 字节时拷贝成本陡增,反而慢。</li>
+<li>❌ "struct 不能有方法"——错误。struct 能有方法、字段、属性、构造(C# 10+ 还能有无参构造)。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"struct 和 class 最核心的区别是<strong>值类型 vs 引用类型</strong>。class 的变量存的是堆上对象的引用,赋值是浅拷贝引用;struct 的变量存的是值本身,赋值是把整个结构体拷贝过去。</p>
+<p>所以 <code>List&lt;T&gt;</code> 里如果 T 是 struct,你写 <code>list[0].Id = 99</code> 其实是先取出一份拷贝,改拷贝的 Id,再扔掉——<strong>原始对象没动</strong>。这就是值类型字段丢失的根因。</p>
+<p>解决方案有两个:要么把它改成 class;要么先取出整条、改完再写回。<strong>实战中我更倾向于把数据传输对象用 record 或 class</strong>,避免这种隐性坑。struct 我只用在两种场景:一是小且不可变的值对象(比如点、颜色、协议帧头),二是和 P/Invoke 互操作时需要值语义对齐内存。</p>
+<p>这个知识点前端没有直接对应,但本质就是 <strong>JS 的"原始值 vs 对象"</strong> —— 数字 / 字符串赋值是拷贝,对象赋值是引用。<strong>结构体 = 前端的原始值,类 = 前端的对象</strong>。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-2">Q2. async/await 的本质是什么?Task 和 Thread 区别?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:状态机编译产物 + I/O 异步本质 + Thread 是物理线程,Task 是抽象。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>async/await</code> 本质是 <strong>编译器生成的状态机</strong>。编译器把 <code>await</code> 后的代码"切割"成一个 <code>IAsyncStateMachine</code> 的 <code>MoveNext()</code> 回调,这样<strong>当前线程在 await 时不会被阻塞</strong>,而是把后续逻辑注册到 Task 的 continuation 上,Task 完成后由调度器(默认是 ThreadPool)恢复执行。</p>
+<pre><code class="language-csharp">// 你写的:
+async Task&lt;int&gt; ReadAsync() {
+    var data = await socket.ReadAsync(buf);  // 切割点 1
+    return Parse(data);                       // 切割点 2:成为 continuation
+}
+
+// 编译器生成(简化版):
+class StateMachine : IAsyncStateMachine {
+    public int state = -1;
+    public TaskAwaiter&lt;byte[]&gt; awaiter;
+    public void MoveNext() {
+        if (state == -1) {
+            awaiter = socket.ReadAsync(buf).GetAwaiter();
+            if (!awaiter.IsCompleted) {
+                state = 0;
+                awaiter.OnCompleted(MoveNext);  // 注册回调
+                return;  // 关键:立即返回,不阻塞
+            }
+        }
+        // state == 0 时继续
+        var data = awaiter.GetResult();
+        SetResult(Parse(data));
+    }
+}
+</code></pre>
+<p><strong>Task vs Thread</strong>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Thread</th>
+<th>Task</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>抽象层级</td>
+<td>物理线程(OS 线程)</td>
+<td>异步操作的抽象(可能跑在线程池,也可能根本没线程)</td>
+</tr>
+<tr>
+<td>创建成本</td>
+<td>高(1 MB 栈 + 内核态切换)</td>
+<td>低(线程池复用)</td>
+</tr>
+<tr>
+<td>异步本质</td>
+<td>仍占用线程等待</td>
+<td><strong>I/O 异步不占用任何线程</strong>(由 OS 完成端口驱动)</td>
+</tr>
+<tr>
+<td>取消</td>
+<td><code>Thread.Abort</code>(已废弃)</td>
+<td><code>CancellationToken</code></td>
+</tr>
+<tr>
+<td>异常处理</td>
+<td>难(进程级未处理异常)</td>
+<td><code>await</code> 自动传播</td>
+</tr>
+</tbody>
+</table>
+<p><strong>💡 加分话术</strong>:<code>async/await</code> 是<strong>为了 I/O 异步而生的</strong>,不是为了 CPU 并行。<strong>CPU 密集场景用 <code>Task.Run</code>,I/O 密集场景用真正的异步 API</strong>(如 <code>NetworkStream.ReadAsync</code>)。前端类比:<code>Promise</code> + <code>async/await</code> 几乎一一对应,只是 JS 是单线程事件循环,C# 是多线程 + 线程池。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ "async 就是开线程"——错。<code>await Task.Delay(1000)</code> 这 1 秒里<strong>没有任何线程</strong>在等。</li>
+<li>❌ 不加 <code>ConfigureAwait(false)</code> 在 WPF 会<strong>回到 UI 线程</strong>(可能死锁或性能差),库代码必须加。</li>
+<li>❌ 返回 <code>void</code> 而非 <code>Task</code> 的 async 方法是炸弹(见 Q3)。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"async/await 的本质是<strong>编译器生成的状态机</strong>。编译器看到 await 关键字,就把方法切成两半:await 之前是同步执行,await 之后被注册成 Task 完成时的回调。这样<strong>当前线程在 I/O 等待时立刻释放回线程池</strong>,不被阻塞。</p>
+<p>Task 和 Thread 的区别是<strong>抽象层级不同</strong>:Thread 是物理线程,创建昂贵;Task 是异步操作的抽象,可能跑在线程池上,也可能根本不占用任何线程——比如 <code>await socket.ReadAsync()</code>,这中间没有任何线程在傻等,是 OS 的 I/O 完成端口驱动的。</p>
+<p>这点前端工程师特别容易理解,<strong>JavaScript 的 Promise + async/await 就是 C# 这套的原型</strong>——其实 C# 是先有的,JS 是学 C# 的。区别在于 JS 是单线程事件循环,C# 是多线程 + 线程池,所以 C# 还要关心 ConfigureAwait(false) 这种上下文问题。</p>
+<p>实战建议:<strong>I/O 密集场景用 async API,不要用 Task.Run 包装同步阻塞调用</strong>——那是假异步,还浪费线程。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-3">Q3. async void 为什么是炸弹?怎么改?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:异常无法捕获 + 调用方无法 await + 进程崩溃。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>async void</code> 有 3 个致命问题:</p>
+<ol>
+<li><strong>调用方无法 await</strong>:void 不返回 Task,调用方不知道何时完成;</li>
+<li><strong>异常直接抛到 SynchronizationContext</strong>,在 WPF / Console 默认情况下会让<strong>进程崩溃</strong>(未观察到的异常);</li>
+<li><strong>编译器生成的状态机无法被外部观察</strong>:取消、超时、异常全部"消失"。</li>
+</ol>
+<pre><code class="language-csharp">// ❌ 炸弹
+async void Button_Click(object sender, EventArgs e) {
+    await Task.Delay(1000);
+    throw new Exception(&quot;boom&quot;);  // 直接挂掉进程
+}
+
+// ✅ 改法 1:事件处理器改为 async Task,然后包一层
+async Task Button_ClickAsync(object sender, EventArgs e) {
+    await Task.Delay(1000);
+    throw new Exception(&quot;boom&quot;);  // 调用方能 catch
+}
+
+// ✅ 改法 2:必须 async void(如 WPF 事件处理器),内部包 try-catch + 日志
+async void Button_Click(object sender, EventArgs e) {
+    try {
+        await DoWorkAsync();
+    } catch (Exception ex) {
+        _logger.LogError(ex, &quot;按钮处理失败&quot;);
+        MessageBox.Show(ex.Message);
+    }
+}
+</code></pre>
+<p><strong>唯一合法场景</strong>:<code>async void</code> 只用于 <strong>WPF / WinForms 事件处理器</strong>(因为事件签名要求 void),其他地方一律 <code>async Task</code>。</p>
+<p><strong>💡 加分话术</strong>:WPF 事件处理器用 async void 时,<strong>SynchronizationContext 会捕获异常并抛到 Dispatcher</strong>,在 .NET 4.x 会让进程崩溃;.NET Core 3.0+ 改进了,但仍然是未观察异常,会触发 <code>AppDomain.UnhandledException</code>。<strong>库代码里见到 async void,99% 是 bug</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 写 <code>async void FireAndForget()</code> 觉得"反正不等"——错,异常会让进程崩。</li>
+<li>❌ 在 <code>async void</code> 里写循环,异常中断后调用方完全无感知。</li>
+<li>❌ Test 项目里 <code>async void</code> 单测,NUnit / xUnit 不会等待,测试"假绿"。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"async void 是 C# 里最经典的炸弹,我前端写 Promise 的时候从来不会踩这种坑,因为 JS 的 async 函数一定返回 Promise。但 C# 的 async 方法可以返回 void、Task、Task<T> 三种——async void 就是编译器'特殊照顾'的灾难。</p>
+<p>它有三个问题:第一,<strong>调用方无法 await</strong>,你不知道它什么时候结束;第二,<strong>异常无法被 try-catch 捕获</strong>,因为异常直接抛到 SynchronizationContext,在 WPF / Console 默认会让进程崩溃;第三,<strong>取消、超时这些信号全部丢失</strong>,你连日志都没有。</p>
+<p>改法很清晰:<strong>业务方法一律 async Task,事件处理器被迫 async void 时,内部必须包 try-catch + 日志</strong>。</p>
+<p>实战中我自己的规则是:<strong>看到 async void,默认就是 bug,必须改</strong>。除非是 WPF 的 Button_Click 这种签名强制要求 void 的事件处理器——但即便如此,我也只在最外层留 async void,内部全部 async Task。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">二、多线程 + 并发</h2>
+<h3 id="sec-3-4">Q4. <code>lock(this)</code> / <code>lock(typeof())</code> 为什么不行?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:公开引用 = 死锁风险 + 被外部 lock 干扰。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>lock(obj)</code> 要求 <code>obj</code> 是<strong>私有且不可被外部访问</strong>的引用。<code>this</code> 和 <code>typeof(MyClass)</code> 都是公开引用,<strong>外部代码可以 lock 同一个对象</strong>,导致:</p>
+<ol>
+<li><strong>死锁</strong>:外部线程持有 <code>this</code>,你的内部 <code>lock(this)</code> 阻塞;</li>
+<li><strong>隐蔽的同步耦合</strong>:你不知道谁还能 lock 这个对象。</li>
+</ol>
+<pre><code class="language-csharp">// ❌ 危险
+class Cache {
+    public void Add(...) {
+        lock (this) { ... }   // 外部可以 lock(cacheInstance) 干扰
+    }
+}
+var cache = new Cache();
+lock (cache) {  // 外部线程
+    // cache.Add() 永远阻塞 → 死锁
+}
+
+// ✅ 正确
+class Cache {
+    private readonly object _sync = new();   // 私有 + readonly
+    public void Add(...) {
+        lock (_sync) { ... }
+    }
+}
+</code></pre>
+<p><strong>最佳实践</strong>:<code>private readonly object _sync = new();</code> —— <strong>私有</strong>防外部访问,<strong>readonly</strong> 防止误赋值,<strong>new object()</strong> 保证唯一性。</p>
+<p><strong>💡 加分话术</strong>:对于热点路径(每秒万次 lock),考虑 <code>ReaderWriterLockSlim</code>(读多写少)、<code>SemaphoreSlim</code>(异步等待)、<strong>不可变设计 + Interlocked / ConcurrentDictionary</strong>(无锁)。<strong>前端的"加锁"主要靠事件循环单线程,C# 是真并发,lock 必须显式</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ <code>lock("mykey")</code> —— 字符串是驻留的,全局共享,等于公开锁。</li>
+<li>❌ <code>lock(typeof(MyClass))</code> —— Type 对象跨 AppDomain 共享,容易死锁。</li>
+<li>❌ <code>lock</code> 一个值类型(int / struct)—— <strong>编译错误</strong>(值类型不装箱无法作为锁)。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"lock(this) 不行的核心是 <strong>this 是公开引用</strong>,类的实例可以被任何持有引用的代码访问。如果外部代码 lock 了你的实例,你内部的 lock(this) 就会阻塞——严重时就是死锁。</p>
+<p>lock(typeof() 同理,Type 对象在所有 AppDomain 里共享,等于全局公开锁。</p>
+<p>标准做法是<strong>声明一个 private readonly object _sync = new()</strong>,作为专门的锁对象。私有保证外部访问不到,readonly 保证不会被重新赋值,new object() 保证全局唯一。</p>
+<p>这个知识点前端没有直接对应,因为 JS 是单线程事件循环,根本不需要 lock。但前端工程师写过 Web Worker 的应该能理解——多线程同步是 C# 的必修课,我从写 Worker 时积累的'共享内存要小心'的直觉,直接迁移过来了。</p>
+<p>工业场景下,如果 lock 频率非常高(比如每秒上万次),我会换成 <code>ConcurrentDictionary</code> 或 <code>Interlocked</code> 无锁方案,减少锁竞争开销。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-5">Q5. Channel<T> vs ConcurrentQueue,什么时候选哪个?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:背压(Backpressure) + 单读者单写者优化 + Channel 的优势。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ConcurrentQueue<T></th>
+<th>Channel<T></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>设计目标</td>
+<td>多生产者多消费者(MPMC)通用队列</td>
+<td><strong>生产者-消费者管道</strong>(可单 P 单 C 优化)</td>
+</tr>
+<tr>
+<td>容量限制</td>
+<td>无界(需要自己加 Semaphore)</td>
+<td><strong>支持 Bounded,内置背压</strong></td>
+</tr>
+<tr>
+<td>异步 API</td>
+<td>❌ 主要同步(TryDequeue)</td>
+<td>✅ 原生 <code>WriteAsync</code> / <code>ReadAsync</code></td>
+</tr>
+<tr>
+<td>取消传播</td>
+<td>自己处理</td>
+<td><strong>原生 CancellationToken 集成</strong></td>
+</tr>
+<tr>
+<td>完成语义</td>
+<td>无</td>
+<td><code>Writer.Complete()</code> 让 Reader 自然停止</td>
+</tr>
+<tr>
+<td>性能</td>
+<td>通用优化</td>
+<td>单 P 单 C 时,<strong>比 ConcurrentQueue 快 2-3 倍</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">// 工业场景:采集线程 → Channel → 解析入库线程
+var channel = Channel.CreateBounded&lt;DataPoint&gt;(10000);
+
+// 生产者(采集线程)
+async Task ProduceAsync() {
+    while (true) {
+        var data = await device.ReadAsync();
+        await channel.Writer.WriteAsync(data);  // 满了会 await 等待
+    }
+}
+
+// 消费者(解析入库线程)
+async Task ConsumeAsync() {
+    await foreach (var data in channel.Reader.ReadAllAsync()) {
+        await db.InsertAsync(data);   // 慢了会让生产者自动背压
+    }
+}
+</code></pre>
+<p><strong>💡 加分话术</strong>:DAQMonitor 我选 Channel 的核心理由:<strong>Bounded + 异步天然背压</strong>。采集快、入库慢时,Channel 自动让采集线程 await,不会撑爆内存。ConcurrentQueue 没有原生 Bounded,要自己加 Semaphore 实现背压,代码丑且易错。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ "Channel 比 ConcurrentQueue 永远好"——错。<strong>MPMC 通用并发场景,ConcurrentQueue / ConcurrentBag 更合适</strong>。</li>
+<li>❌ Bounded 满了默认抛 <code>ChannelFullException</code>,需要传 <code>BoundedChannelFullMode.DropOldest / DropWrite / Wait</code>。</li>
+<li>❌ 单消费者忘 <code>Writer.Complete()</code>,Reader 永远等。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"Channel 和 ConcurrentQueue 的核心区别是 <strong>设计目标不同</strong>。ConcurrentQueue 是通用的 MPMC 队列,主要同步 API,无内置容量限制;Channel 是 .NET Core 2.1 专为生产者-消费者管道设计的,异步 API 原生、内置 Bounded 容量、天然支持背压和完成语义。</p>
+<p>我的选型规则很清晰:</p>
+<ul>
+<li>需要<strong>生产者-消费者管道</strong>(比如采集 → 入库、消息队列消费),选 Channel;</li>
+<li>需要<strong>通用并发队列</strong>(多线程共享一个集合),选 ConcurrentQueue;</li>
+<li>需要<strong>多线程无序任务池</strong>,选 ConcurrentBag。</li>
+</ul>
+<p>工业场景我_DAQMonitor 用的就是 Channel.CreateBounded(10000),采集线程生产、入库线程消费。采集快、入库慢时,WriteAsync 自动 await,等于天然背压,不会把内存撑爆。这个<strong>'背压'概念前端写 RxJS / Node Stream 时经常用</strong>,backpressure 是通用的,只是 C# 这边有语言级支持,更优雅。</p>
+<p>性能方面,Channel 在单生产者单消费者模式下比 ConcurrentQueue 快 2-3 倍,因为它能省掉大部分锁。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-6">Q6. CancellationTokenSource 怎么实现超时 + 取消?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:CTS 是取消令牌源 + CancelAfter + 用完 Dispose。</p>
+<p><strong>✅ 标准答案</strong></p>
+<pre><code class="language-csharp">// 模式 1:超时自动取消
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+try {
+    var data = await device.ReadAsync(cts.Token);
+} catch (OperationCanceledException) {
+    _logger.LogWarning(&quot;读设备超时&quot;);
+}
+
+// 模式 2:用户手动取消 + 超时 + 链式
+using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+    userCancelToken,
+    new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token
+);
+
+await Task.WhenAny(
+    device.ReadAsync(linkedCts.Token),
+    Task.Delay(-1, linkedCts.Token)
+);
+</code></pre>
+<p><strong>CTS 核心机制</strong>:</p>
+<ul>
+<li>内部维护一个 <code>CancellationToken</code>(只读);</li>
+<li>调用 <code>Cancel()</code> 或 <code>CancelAfter(ms)</code> 后,所有持有 Token 的异步操作抛 <code>OperationCanceledException</code>;</li>
+<li>异步 API 通过 <code>token.ThrowIfCancellationRequested()</code> 主动检查,或传给下层 await。</li>
+</ul>
+<p><strong>💡 加分话术</strong>:CTS 实现了一个<strong>内置 Timer</strong>(基于 TimerQueue),<code>CancelAfter</code> 比 <code>Task.Delay + WhenAny</code> 性能更好(后者每次创建一个 Task)。<strong>链式 CTS</strong>(<code>CreateLinkedTokenSource</code>)是组合超时 + 用户取消的标准模式。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ <strong>CTS 用完不 Dispose</strong>——内部 Timer 不会立即回收,长跑会泄漏(Gen2 堆积)。<strong><code>using var cts</code> 是标配</strong>。</li>
+<li>❌ <code>Token</code> 在 Cancel 后仍可用,只是 <code>IsCancellationRequested = true</code>。</li>
+<li>❌ <code>ThrowIfCancellationRequested</code> 忘了在循环里加——CPU 密集循环不会自动响应取消。</li>
+<li>❌ 把 <code>CancellationToken.None</code> 传给底层 API——等于永不取消,bug 隐蔽。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"CancellationTokenSource 是 C# 异步取消的核心机制。它内部维护一个 CancellationToken,调用 Cancel 或者 CancelAfter 之后,所有持有这个 Token 的异步操作都会抛 OperationCanceledException。</p>
+<p>实战中有两个标准模式:</p>
+<p>第一,<strong>超时取消</strong>——new CancellationTokenSource(TimeSpan.FromSeconds(5)),传给 device.ReadAsync,5 秒不返回就抛超时异常。</p>
+<p>第二,<strong>链式取消</strong>——CreateLinkedTokenSource 可以把'用户主动取消'和'超时'两个 token 合并成一个,任何一方触发都取消整个操作。</p>
+<p><strong>最大的坑是 CTS 用完必须 Dispose</strong>。因为 CTS 内部有个 Timer,不 Dispose 它会进 Gen2,长跑内存会涨。我都是 using var cts = new,出了作用域自动 Dispose。</p>
+<p>工业场景下我用得特别多——设备掉线重连、采集超时、用户点停止,全部走 CancellationToken。<strong>这个概念前端有类似——AbortController</strong>,fetch 请求可以传 signal 取消,思路完全一致,只是 C# 这边更系统化。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">三、串口 + Modbus</h2>
+<h3 id="sec-3-7">Q7. 串口通信怎么处理半包/粘包?(RDBE 模式)</h3>
+<p><strong>🎯 面试官想听到什么</strong>:SerialPort.DataReceived 事件 + 缓冲区累积 + 帧头扫描 + ReadExisting。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>串口是<strong>字节流</strong>,一次 DataReceived 事件读到的可能是一帧、半帧、或多帧粘在一起。标准处理流程(RDBE - Read-Decode-Build-Execute):</p>
+<pre><code class="language-csharp">private readonly ConcurrentQueue&lt;byte&gt; _rxBuffer = new();
+private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e) {
+    var sp = (SerialPort)sender;
+    var bytes = new byte[sp.BytesToRead];
+    sp.Read(bytes, 0, bytes.Length);
+    foreach (var b in bytes) _rxBuffer.Enqueue(b);
+
+    while (TryDecodeFrame(_rxBuffer, out var frame)) {
+        FrameReceived?.Invoke(frame);
+    }
+}
+
+// Modbus RTU 帧结构:[Address(1)] [Func(1)] [Data(N)] [CRC(2)]
+private bool TryDecodeFrame(ConcurrentQueue&lt;byte&gt; buf, out byte[] frame) {
+    frame = null;
+    if (buf.Count &lt; 5) return false;  // 最短帧
+
+    // 1. 找帧头(Modbus 地址,通常是 1-247)
+    // 2. 根据 Function Code 推断数据长度(读保持寄存器响应:3 + 字节数 + 2)
+    // 3. 校验 CRC
+    // 4. 出队一帧,丢弃残留字节
+    return false;
+}
+</code></pre>
+<p><strong>关键点</strong>:</p>
+<ol>
+<li><strong>缓冲区累积</strong>:用 Queue<byte> 或 List<byte> 累积字节,<strong>永远不要假设一次读到完整帧</strong>;</li>
+<li><strong>超时机制</strong>:缓冲区长时间不满一帧,认为是垃圾,清空重置;</li>
+<li><strong>CRC 校验</strong>:校验失败丢弃,<strong>重新同步</strong>(找下一个合法帧头);</li>
+<li><strong>互斥</strong>:ReadExisting / Read 操作和事件回调线程不同,要 lock 或 ConcurrentQueue。</li>
+</ol>
+<p><strong>💡 加分话术</strong>:Modbus RTU 协议本身规定"<strong>帧间静默 ≥ 3.5 个字符时间</strong>"作为帧边界。但实战中<strong>不要依赖静默检测</strong>(高波特率下 Windows 定时器精度不够),<strong>用 CRC + 长度推断</strong>最稳。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ <code>sp.ReadLine()</code> 等文本模式——Modbus 是二进制,会乱码。</li>
+<li>❌ DataReceived 不一定一次一帧,<strong>可能多次触发才凑齐一帧</strong>。</li>
+<li>❌ <code>BytesToRead</code> 在 Read 之前可能变化,不要假设稳定。</li>
+<li>❌ 主线程调用 Read 会阻塞 UI,必须放到后台线程或异步。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"串口半包粘包是上位机最经典的问题。本质是<strong>串口是字节流,不是消息流</strong>——你发 10 字节,接收方可能分两次收到 3+7,也可能一次性收到 10+下一条的 2 字节。</p>
+<p>我的处理模式叫 RDBE:Read 累积到缓冲区 → Decode 尝试解码一帧 → Build 出业务对象 → Execute 处理。</p>
+<p>具体实现:在 DataReceived 事件里把读到的字节全部塞进一个 ConcurrentQueue<byte> 缓冲区,然后循环尝试解码——Modbus RTU 帧结构是地址+功能码+数据+CRC,根据功能码能推断数据长度,CRC 校验通过就出队一帧。</p>
+<p><strong>关键坑有三个</strong>:第一,不要假设一次读到完整帧,要累积;第二,帧头丢失时要重新同步,扔掉前面的垃圾字节;第三,主线程不能读串口,会卡 UI。</p>
+<p>前端类似的概念是 <strong>WebSocket / TCP Socket 的消息边界问题</strong>——WebSocket 帮你处理了帧边界,但底层 TCP 是字节流,理解了 TCP 粘包,串口粘包就秒懂。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-8">Q8. 手算 Modbus RTU CRC16,<code>01 03 00 00 00 02</code></h3>
+<p><strong>🎯 面试官想听到什么</strong>:CRC16-Modbus 算法 + 手算步骤 + 验证。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>Modbus RTU 用 <strong>CRC-16-Modbus</strong>(多项式 0xA001,初始值 0xFFFF)。请求帧 <code>01 03 00 00 00 02</code> 的 CRC 应为 <strong>0xCBC0</strong>(低字节先发:0xC0 0xCB)。</p>
+<p><strong>手算过程</strong>(查表法思路):</p>
+<pre><code>初始化:CRC = 0xFFFF
+处理字节 0x01:CRC ^= 0x01 → 0xFFFE
+  循环 8 次:
+    若低位为 1:CRC = (CRC &gt;&gt; 1) ^ 0xA001
+    否则:CRC = CRC &gt;&gt; 1
+... (省略中间步骤,标准表查找)
+最终:CRC = 0xCBC0
+发送:C0 CB(小端序)
+</code></pre>
+<p><strong>标准代码</strong>:</p>
+<pre><code class="language-csharp">public static ushort Crc16Modbus(ReadOnlySpan&lt;byte&gt; data) {
+    ushort crc = 0xFFFF;
+    foreach (var b in data) {
+        crc ^= b;
+        for (int i = 0; i &lt; 8; i++) {
+            crc = (crc &amp; 0x0001) != 0
+                ? (ushort)((crc &gt;&gt; 1) ^ 0xA001)
+                : (ushort)(crc &gt;&gt; 1);
+        }
+    }
+    return crc;
+}
+
+// 验证:
+var crc = Crc16Modbus(new byte[] { 0x01, 0x03, 0x00, 0x00, 0x00, 0x02 });
+Console.WriteLine(crc.ToString(&quot;X4&quot;));  // CBC0
+</code></pre>
+<p><strong>完整请求帧</strong>:<code>01 03 00 00 00 02 C0 CB</code></p>
+<p><strong>💡 加分话术</strong>:实战中用查表法(256 项表)比逐位计算快 8 倍。NModbus4 库内部就是查表,<strong>永远不要在生产代码手写</strong>,但面试要会手算思路。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 字节序搞反:CRC 是<strong>小端发送</strong>(低字节在前)。</li>
+<li>❌ 多项式搞混:Modbus 用 0xA001(反转的 0x8005),不是 0x8005。</li>
+<li>❌ 初始值:Modbus 是 0xFFFF,不是 0x0000。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"Modbus RTU 的 CRC16 算法叫 CRC-16-Modbus,多项式是 0xA001,初始值 0xFFFF。</p>
+<p>手算步骤是:把 CRC 初始化为 0xFFFF,然后对每个字节做异或,接着循环 8 次——如果最低位是 1,右移一位再异或 0xA001;如果最低位是 0,只右移一位。</p>
+<p>我口算不行,但我记一个结论:<strong>01 03 00 00 00 02 这帧,CRC 是 0xCBC0,发送时是小端序,所以实际字节流是 ...00 02 C0 CB</strong>。</p>
+<p>实战代码我不手算,直接调 NModbus4 库,内部已经用查表法优化过,性能比逐位快 8 倍。<strong>但面试官可能要你手写算法</strong>,所以这个表查找的循环要能默写出来。</p>
+<p>这个知识点前端没有直接对应,因为前端不直接处理二进制协议。但<strong>理解了 CRC 思路,后面 TCP 校验和、协议帧设计都通用</strong>——任何工业协议都需要校验,只是多项式不同。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-9">Q9. Modbus 浮点 ABCD/CDAB 字节序怎么处理?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:协议不规定字节序 + 设备厂商各搞各的 + 4 种字节序 + <code>BinaryPrimitives</code>。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>Modbus 寄存器是 16 位,浮点占 2 个连续寄存器(4 字节)。<strong>协议本身不规定字节序</strong>,设备厂商自由选择,导致 4 种排列:</p>
+<pre><code>原始 4 字节:W1_H W1_L W2_H W2_L
+ABCD(Big-Endian):       W1_H W1_L W2_H W2_L   → 西门子 / 多数 PLC
+CDAB(Byte-Swap Word):   W2_H W2_L W1_H W1_L   → 部分仪表
+BADC(Word-Swap):        W1_L W1_H W2_L W2_H   → 部分国产设备
+DCBA(Little-Endian):    W2_L W2_H W2_L W1_H   → x86 / ARM
+</code></pre>
+<pre><code class="language-csharp">public static float ReadFloat(ushort reg1, ushort reg2, ByteOrder order) {
+    Span&lt;byte&gt; bytes = stackalloc byte[4];
+    switch (order) {
+        case ByteOrder.ABCD:
+            BinaryPrimitives.WriteUInt16BigEndian(bytes[..2], reg1);
+            BinaryPrimitives.WriteUInt16BigEndian(bytes[2..], reg2);
+            break;
+        case ByteOrder.CDAB:
+            BinaryPrimitives.WriteUInt16BigEndian(bytes[..2], reg2);
+            BinaryPrimitives.WriteUInt16BigEndian(bytes[2..], reg1);
+            break;
+        // ... 其他两种
+    }
+    return BitConverter.ToSingle(bytes);
+}
+
+public enum ByteOrder { ABCD, CDAB, BADC, DCBA }
+</code></pre>
+<p><strong>💡 加分话术</strong>:实战中字节序<strong>必须做设备配置项</strong>,不能硬编码。DAQMonitor 我用 JSON 配置文件,每个设备挂一个 ByteOrder 字段,<strong>接入新设备先拿仪表手册查字节序</strong>,这是 90% 工程师踩的第一个坑。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 默认 ABCD 写死代码——换设备就崩。</li>
+<li>❌ 用 <code>BitConverter.IsLittleEndian</code> 判断——那是 CPU 字节序,不是协议字节序。</li>
+<li>❌ <code>BitConverter.ToSingle</code> 在不同 CPU 架构行为不同,要用 <code>BinaryPrimitives</code>。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"Modbus 浮点字节序是协议最大的坑。Modbus 寄存器只有 16 位,浮点占 2 个连续寄存器共 4 字节。<strong>协议本身不规定字节序</strong>,设备厂商自由选择,导致 4 种排列方式:ABCD、CDAB、BADC、DCBA。</p>
+<p>比如读温度 25.5°C,西门子 PLC 可能是 ABCD,某国产仪表可能是 CDAB,同样 4 字节解读完全不同。</p>
+<p>我在 DAQMonitor 里把这个做成配置项——每个设备挂一个 ByteOrder 枚举,接入新设备先查手册、抓包看实际字节,然后配 JSON。<strong>实现上用 BinaryPrimitives.WriteUInt16BigEndian</strong>,不用 BitConverter,因为 BitConverter 受 CPU 架构影响,不稳定。</p>
+<p>这个坑所有工业上位机工程师都踩过,<strong>前端的'JSON 字段名混乱'比起这个就是小儿科</strong>——字节级调试比 JSON 字符串难 10 倍,所以我会用 Wireshark + 十六进制 dump 工具配合验证。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">四、PLC + S7.Net</h2>
+<h3 id="sec-3-10">Q10. S7.Net 怎么读 <code>DB1.DBX0.0</code> / <code>DB1.DBD4</code>?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:位/字节/字/双字寻址 + S7.Net API + 优化访问。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>S7 地址格式:<code>DB&lt;db&gt;.&lt;type&gt;&lt;offset&gt;[.bit]</code>,type 含义:</p>
+<table>
+<thead>
+<tr>
+<th>缩写</th>
+<th>类型</th>
+<th>大小</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DBX</td>
+<td>位(Bit)</td>
+<td>1 bit</td>
+<td><code>DB1.DBX0.0</code> → DB1 的第 0 字节的第 0 位</td>
+</tr>
+<tr>
+<td>DBB</td>
+<td>字节(Byte)</td>
+<td>1 字节</td>
+<td><code>DB1.DBB1</code></td>
+</tr>
+<tr>
+<td>DBW</td>
+<td>字(Word)</td>
+<td>2 字节</td>
+<td><code>DB1.DBW2</code></td>
+</tr>
+<tr>
+<td>DBD</td>
+<td>双字(DWord / Float)</td>
+<td>4 字节</td>
+<td><code>DB1.DBD4</code> → 浮点(DBD4..7)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">using S7.Net;
+
+using var plc = new Plc(CpuType.S71200, &quot;192.168.1.1&quot;, 0, 1);
+await plc.OpenAsync();
+
+// 单点读取
+bool bit = plc.Read(&quot;DB1.DBX0.0&quot;) is 1;
+ushort word = (ushort)plc.Read(&quot;DB1.DBW2&quot;);
+float real = ((uint)plc.Read(&quot;DB1.DBD4&quot;)).ConvertToFloat();  // S7 大端
+
+// 批量读取(强烈推荐,减少网络往返)
+var db = 1;
+var startByte = 0;
+var bytes = await plc.ReadBytesAsync(db, startByte, 16);
+// 自己解析:
+bool bit = (bytes[0] &amp; 0x01) != 0;
+float real = BitConverter.ToSingle(
+    bytes.Skip(4).Take(4).Select(b =&gt; b).Reverse().ToArray(), 0  // 大端转小端
+);
+</code></pre>
+<p><strong>优化访问 vs 绝对地址</strong>:</p>
+<ul>
+<li><strong>绝对地址</strong>(<code>DB1.DBD4</code>):S7.Net 直接读,简单直观,<strong>但每次请求一个点</strong>;</li>
+<li><strong>优化访问</strong>(S7-1200/1500 的 Symbolic Access):通过符号名访问,需要 TIA Portal 配置"启用优化访问",S7.Net v3+ 支持;</li>
+<li><strong>批量读取</strong>:<code>ReadBytesAsync(db, start, len)</code> 一次读一大块,然后本地解析,<strong>性能比逐点高 10-100 倍</strong>。</li>
+</ul>
+<p><strong>💡 加分话术</strong>:实战中<strong>永远用批量读取</strong>。100 个变量逐点读要 100 次 RTT,批量读 1 次 RTT 搞定。我在 DAQMonitor 里把整个 DB 块读下来,然后用偏移量本地解析,<strong>性能从 500ms 缩到 8ms</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 字节序:S7 是<strong>大端</strong>,x86 是小端,读 DWord / Float 必须 <code>Reverse()</code>。</li>
+<li>❌ DB 块编号和偏移要对得上,偏移算错读到别的变量,数据完全错乱。</li>
+<li>❌ <code>plc.Read</code> 是同步方法,主线程调用卡 UI,<strong>必须用 ReadAsync 或包 Task.Run</strong>。</li>
+<li>❌ 连接没释放:用完 <code>plc.Close()</code> 或 using。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"S7 地址格式是 DB 块号 + 类型 + 偏移。类型分四种:DBX 是位,1 bit;DBB 是字节;DBW 是字,2 字节;DBD 是双字,4 字节,通常存浮点。</p>
+<p>S7.Net 的 API 我用过三个层次:</p>
+<p>第一,<strong>单点读取</strong>,plc.Read('DB1.DBD4'),简单,但每次 RTT,慢;
+第二,<strong>批量读取</strong>,plc.ReadBytesAsync(db, start, len),一次读整个 DB 块,然后本地用偏移解析,性能提升 10-100 倍;
+第三,<strong>优化访问</strong>(S7-1200/1500 的 Symbolic),用变量名而不是地址,需要 TIA Portal 启用。</p>
+<p>实战我<strong>永远用批量读取</strong>,把整个 DB 块拉下来在内存里解析。我在 DAQMonitor 里把 100 个 PLC 变量的采集从 500ms 优化到 8ms,核心就是这一招。</p>
+<p>最大的坑是<strong>字节序</strong>——S7 是大端,x86 是小端,读 DWord / Float 必须反转 4 字节,否则温度显示成 1e+38 这种乱七八糟的值。</p>
+<p>这个知识点前端没对应,但<strong>理解了字节序,所有二进制协议都通</strong>——Modbus 浮点也是同样的问题。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-11">Q11. event 不退订会怎样?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:内存泄漏 + 弱引用 + DeviceHost 模式 + 退订时机。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>.NET event 是<strong>强引用</strong>——订阅者被 event 持有,<strong>只要 event 源活着,订阅者就 GC 不掉</strong>,这是经典内存泄漏。</p>
+<pre><code class="language-csharp">class Device {
+    public event EventHandler&lt;DataEventArgs&gt; DataReceived;
+}
+
+class ViewModel {
+    public ViewModel(Device device) {
+        device.DataReceived += OnData;  // ❌ device 持有 _vm 强引用
+    }
+    private void OnData(object s, DataEventArgs e) { ... }
+}
+
+// 即使 ViewModel 从 UI 移除,只要 device 活着,_vm 永远 GC 不掉
+</code></pre>
+<p><strong>DeviceHost 模式</strong>(集中退订):</p>
+<pre><code class="language-csharp">public class DeviceHost : IDisposable {
+    private readonly List&lt;Device&gt; _devices = new();
+    private readonly List&lt;(IDevice, EventHandler)&gt; _subscriptions = new();
+
+    public void Subscribe(IDevice device, EventHandler handler) {
+        device.DataReceived += handler;
+        _subscriptions.Add((device, handler));
+    }
+
+    public void Dispose() {
+        foreach (var (device, handler) in _subscriptions) {
+            device.DataReceived -= handler;  // 集中退订
+        }
+    }
+}
+</code></pre>
+<p><strong>其他解法</strong>:</p>
+<ul>
+<li><strong>WeakEventManager</strong>(WPF):弱引用订阅;</li>
+<li><strong>Reactive Extensions(IObservable)</strong>:<code>Subscribe</code> 返回 IDisposable,using 自动退订;</li>
+<li><strong>Prism EventAggregator</strong>:内部维护弱引用,但<strong>仍要 Unsubscribe</strong>。</li>
+</ul>
+<p><strong>💡 加分话术</strong>:长跑 7×24 系统中,<strong>事件泄漏是头号内存杀手</strong>。我在 DAQMonitor 里排查过——某 OPC UA 订阅没退订,3 天涨 800 MB,定位用 <code>dotnet-dump</code> + <code>gcroot</code> 找链路。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 以为 GC 能搞定 event——<strong>不能</strong>,强引用链断了 GC 才回收。</li>
+<li>❌ 匿名 lambda 订阅:<code>device.Event += (s, e) =&gt; ...</code>,<strong>永远退订不掉</strong>(没引用)。</li>
+<li>❌ <code>WeakReference</code> 包装不彻底,delegate.Target 可能持有别的东西。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"event 不退订是 .NET 经典的内存泄漏。本质是 event 源持有订阅者的强引用——只要 event 源活着,订阅者 GC 不掉。</p>
+<p>这个问题在工业上位机特别严重,因为设备对象生命周期长,ViewModel / Page 切换频繁,每次订阅都泄漏一点,7×24 跑 3 天就涨几个 GB。</p>
+<p>我的标准做法叫 <strong>DeviceHost 模式</strong>:有一个集中管理类,所有订阅通过它注册,内部维护订阅列表。Dispose 时一次性全部退订。这样新增设备时不容易漏掉 -= 操作。</p>
+<p>替代方案还有 <strong>WeakEventManager</strong>(WPF 弱引用事件)、<strong>Prism EventAggregator</strong>(也是弱引用)。但这些都要你显式 Unsubscribe 才是最稳的。</p>
+<p>排查这类泄漏我用 <strong>dotnet-dump + gcroot</strong> 命令——抓堆转储,找到泄漏对象,看 GC root 链路,定位到是哪个 event 还持有。</p>
+<p>前端类似的概念是 <strong>addEventListener 必须配 removeEventListener</strong>,React useEffect 清理函数就是这个意思。<strong>前端做 SPA 切换时漏清理 = 内存泄漏</strong>,C# 这边事件泄漏是一模一样的问题。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-12">Q12. PLC 读写为什么必须异步?同步阻塞 UI 线程的后果?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:同步 I/O 阻塞 + UI Dispatcher 死锁 + ConfigureAwait(false)。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>PLC 通信是<strong>网络 I/O</strong>,RTT 通常 10-100ms,<strong>同步阻塞会导致</strong>:</p>
+<ol>
+<li><strong>UI 线程卡死</strong>:WPF / WinForms 的 UI 线程不能阻塞超过 100ms,否则界面假死;</li>
+<li><strong>Dispatcher 死锁</strong>:同步调用 <code>plc.Read()</code> 等待网络,网络回调要回到 UI 线程,<strong>但 UI 线程被自己阻塞了</strong>,死锁;</li>
+<li><strong>吞吐降低</strong>:1 个采集线程阻塞 100ms,1 秒只能采 10 次;异步能并发 100 个设备。</li>
+</ol>
+<pre><code class="language-csharp">// ❌ 灾难:同步阻塞 UI
+private void Button_Click(...) {
+    var data = plc.Read(&quot;DB1.DBD4&quot;);  // 阻塞 100ms,UI 假死
+    Dispatcher.Invoke(() =&gt; label.Text = data.ToString());  // 死锁风险
+}
+
+// ✅ 正确:异步 + ConfigureAwait
+private async void Button_Click(...) {
+    var data = await plc.ReadAsync(&quot;DB1.DBD4&quot;).ConfigureAwait(true);  // 回 UI 线程
+    label.Text = data.ToString();
+}
+
+// ✅ 业务层不回 UI(库代码标配)
+public async Task&lt;float&gt; ReadTemperatureAsync() {
+    return await plc.ReadFloatAsync(&quot;DB1.DBD4&quot;).ConfigureAwait(false);
+}
+</code></pre>
+<p><strong>💡 加分话术</strong>:WPF 的 UI 线程有 <code>DispatcherSynchronizationContext</code>,<strong>所有 await 默认回到 UI 线程</strong>。业务层用 <code>ConfigureAwait(false)</code> 避免无谓切换,UI 层 await 后才回 UI 线程更新控件。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ <code>.Result</code> / <code>.Wait()</code> 在 UI 线程——<strong>经典死锁</strong>(同步阻塞 + 上下文回调)。</li>
+<li>❌ 异步方法在事件处理器里调,不 await——Fire-and-forget,异常丢失。</li>
+<li>❌ 同步 API 包 <code>Task.Run</code>——是假异步,仍占线程池线程。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"PLC 读写必须异步,核心是 <strong>PLC 通信是网络 I/O</strong>,RTT 通常 10 到 100ms。如果在 UI 线程同步调用 plc.Read(),整个界面就卡死 100ms,用户体感就是假死。</p>
+<p>更严重的是 <strong>Dispatcher 死锁</strong>:同步调用等网络回调,网络回调要回到 UI 线程,但 UI 线程被自己阻塞了,死锁,进程直接挂掉。这在 WPF 里特别常见。</p>
+<p>我的规则有三条:</p>
+<p>第一,<strong>业务层一律 async + ConfigureAwait(false)</strong>,避免无谓的上下文切换;
+第二,<strong>UI 层 await 后回 UI 线程更新控件</strong>,ConfigureAwait(true) 是默认;
+第三,<strong>绝对不写 .Result 或 .Wait()</strong>,在 UI 线程是定时炸弹。</p>
+<p>这个知识点的本质是 <strong>JS 的 event loop 模型——前端工程师天生不能写阻塞代码</strong>,因为 JS 是单线程。C# 多线程,但 UI 线程一样的规则:不能阻塞。所以前端转 C# 这块是天然优势,我从 Cypress 测试 Promise 链时积累的经验直接复用。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">五、EF Core + SQLite</h2>
+<h3 id="sec-3-13">Q13. DbContext 生命周期?为什么不能 Singleton?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:Scoped 生命周期 + 并发不安全 + ChangeTracker 状态。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>DbContext</code> <strong>不是线程安全的</strong>——内部维护 <code>ChangeTracker</code>、<code>IDbContextTransaction</code>、缓存。生命周期:</p>
+<table>
+<thead>
+<tr>
+<th>生命周期</th>
+<th>是否合适</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transient</td>
+<td>❌ 不推荐</td>
+<td>每次构造新实例,ChangeTracker 完全失效,但能用</td>
+</tr>
+<tr>
+<td>Scoped(默认)</td>
+<td>✅ 推荐</td>
+<td>一个请求 / 一次操作一个实例,操作完 Dispose</td>
+</tr>
+<tr>
+<td>Singleton</td>
+<td>❌ 灾难</td>
+<td><strong>多线程并发访问同一个 DbContext,ChangeTracker 会 race condition</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">// ❌ Singleton 注入 → 并发崩溃
+services.AddSingleton&lt;MyDbContext&gt;();  // 多线程并发 SaveChanges 直接炸
+
+// ✅ Scoped(默认)
+services.AddDbContext&lt;MyDbContext&gt;(opt =&gt; opt.UseSqlServer(&quot;...&quot;));
+
+// ✅ 长跑场景用 IDbContextFactory(.NET 5+)
+services.AddDbContextFactory&lt;MyDbContext&gt;(opt =&gt; opt.UseSqlServer(&quot;...&quot;));
+
+public class DataService {
+    private readonly IDbContextFactory&lt;MyDbContext&gt; _factory;
+    public async Task SaveAsync(Data d) {
+        using var db = await _factory.CreateDbContextAsync();  // 每次新建
+        db.Data.Add(d);
+        await db.SaveChangesAsync();
+    }  // 自动 Dispose
+}
+</code></pre>
+<p><strong>💡 加分话术</strong>:<strong>长跑 / 后台 Worker 场景必须用 <code>IDbContextFactory</code></strong>,因为 Scoped 在 ASP.NET Core 是"请求级",请求结束后 DbContext Dispose;但 Worker 没有请求概念,Singleton 又并发不安全,Factory 是唯一正确解。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ Singleton DbContext —— <code>InvalidOperationException: A second operation was started</code>。</li>
+<li>❌ DbContext 不 Dispose —— 数据库连接泄漏,SQLite 文件锁死。</li>
+<li>❌ 同一个 DbContext 跨线程 —— change tracker race condition。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"DbContext 不能 Singleton 的核心是 <strong>它不是线程安全的</strong>。内部维护 ChangeTracker(变更追踪)、连接、事务,这些状态都是非线程安全的。</p>
+<p>多个线程并发用同一个 DbContext,轻则 change tracker race condition,数据错乱,重则 SaveChangesAsync 抛 InvalidOperationException: A second operation was started。</p>
+<p>生命周期推荐:</p>
+<ul>
+<li><strong>Web 场景</strong>用 Scoped,一个请求一个实例,请求结束自动 Dispose;</li>
+<li><strong>长跑 / Worker 场景</strong>用 <strong>IDbContextFactory</strong>,每次操作 CreateDbContextAsync,using 自动 Dispose。</li>
+</ul>
+<p>我在 DAQMonitor 里就是用 IDbContextFactory,因为它是 7×24 后台服务,Scoped 在 Worker Service 里没有'请求'概念。<strong>这是 .NET 5+ 标准做法,EF Core 8 文档明确推荐</strong>。</p>
+<p>前端没有完全对应的概念,但<strong>类似 Redux 的 store 状态——你不能多线程同时改 store,要么加锁要么用单向数据流</strong>。DbContext 的 ChangeTracker 类似,需要一个明确的 owner。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-14">Q14. IDbContextFactory vs 直接注入 DbContext,什么时候选哪个?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:Scoped 的局限 + Factory 的优势 + 选型决策。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>选型</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASP.NET Core 请求响应</td>
+<td>注入 Scoped DbContext</td>
+<td>请求边界清晰,DI 自动 Dispose</td>
+</tr>
+<tr>
+<td>Worker Service / 后台任务</td>
+<td><strong>IDbContextFactory</strong></td>
+<td>没有请求边界,需要按操作粒度创建</td>
+</tr>
+<tr>
+<td>并行任务(Task.WhenAll 多个查询)</td>
+<td><strong>IDbContextFactory</strong></td>
+<td>每个 Task 独立 DbContext,避免并发</td>
+</tr>
+<tr>
+<td>Blazor Server</td>
+<td><strong>IDbContextFactory</strong></td>
+<td>长连接 + 多用户,Scoped 太宽泛</td>
+</tr>
+<tr>
+<td>简单 CRUD / 控制台</td>
+<td>注入 Scoped DbContext</td>
+<td>简单够用</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">// 并行场景必须用 Factory
+public async Task&lt;Summary&gt; GetSummaryAsync() {
+    var orderTask = Task.Run(async () =&gt; {
+        using var db = await _factory.CreateDbContextAsync();
+        return await db.Orders.CountAsync();
+    });
+    var userTask = Task.Run(async () =&gt; {
+        using var db = await _factory.CreateDbContextAsync();
+        return await db.Users.CountAsync();
+    });
+    await Task.WhenAll(orderTask, userTask);
+    return new Summary(orderTask.Result, userTask.Result);
+}
+</code></pre>
+<p><strong>💡 加分话术</strong>:<strong>默认选 Factory 不会错</strong>——它的额外开销只是 DI 多一次构造,EF Core 内部连接池会复用物理连接,成本几乎可以忽略。<strong>Scoped DbContext 是 ASP.NET Core 的便利语法糖,在复杂场景反而是负担</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ Scoped DbContext 跨 Task.WhenAll —— 并发 race condition。</li>
+<li>❌ Factory 创建后忘 using —— 连接泄漏。</li>
+<li>❌ 把 DbContext 放进 Singleton 类的构造注入 —— 间接 Singleton,死锁。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"选型决策的核心是 <strong>生命周期边界是否清晰</strong>。</p>
+<p>第一,<strong>ASP.NET Core Web 场景</strong>,请求边界很清晰,直接 Scoped 注入 DbContext 最简单,DI 容器自动 Dispose。</p>
+<p>第二,<strong>Worker Service / 长跑后台服务</strong>,没有'请求'这个概念,Scoped 在 Worker 里行为不确定,<strong>必须用 IDbContextFactory</strong>。</p>
+<p>第三,<strong>并行场景</strong>,比如同时跑 3 个查询做 Task.WhenAll,共用一个 DbContext 会并发炸,Factory 给每个 Task 独立实例,完美解决。</p>
+<p>第四,<strong>Blazor Server</strong>,用户长连接,Scoped DbContext 太宽泛,用户多了 DbContext 池压力很大,Factory 按操作粒度创建,更高效。</p>
+<p>我的默认选型规则:<strong>有疑问就用 Factory</strong>。开销几乎可以忽略,因为 EF Core 内部有数据库连接池,Factory 只是多构造一个 DbContext 包装对象。</p>
+<p>前端类似的概念是 <strong>Redux Saga / Effect 的每次执行创建独立作用域</strong>,不能多请求共享一个 Saga 上下文。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-15">Q15. AsNoTracking 什么时候用?变更追踪的成本多大?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:读多写少场景 + ChangeTracker 性能成本 + 全局禁用选项。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>AsNoTracking</code> 告诉 EF Core "<strong>这次查询的结果不要追踪变更</strong>",跳过 ChangeTracker 的快照机制。<strong>优势</strong>:</p>
+<ol>
+<li><strong>查询快 10-30%</strong>(无快照生成);</li>
+<li><strong>内存占用低</strong>(无追踪字典);</li>
+<li><strong>GC 压力小</strong>(无 ChangeTracker 内部对象)。</li>
+</ol>
+<pre><code class="language-csharp">// ✅ 读场景:展示用,不会 SaveChanges
+var devices = await db.Devices
+    .AsNoTracking()
+    .Where(d =&gt; d.Status == &quot;Online&quot;)
+    .ToListAsync();
+
+// ❌ 写场景:用了 AsNoTracking 就追踪不到变更
+var device = await db.Devices.AsNoTracking().FirstAsync(d =&gt; d.Id == 1);
+device.Status = &quot;Offline&quot;;
+await db.SaveChangesAsync();  // ❌ 不会更新!ChangeTracker 不知道变更
+
+// ✅ 写场景:用 Tracking(默认)
+var device = await db.Devices.FirstAsync(d =&gt; d.Id == 1);
+device.Status = &quot;Offline&quot;;
+await db.SaveChangesAsync();  // ✅ 正常更新
+</code></pre>
+<p><strong>全局禁用追踪</strong>:<code>optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)</code>,默认全局 NoTracking,只在需要时 <code>AsTracking()</code>。这是<strong>工业上位机推荐配置</strong>(大部分场景是读)。</p>
+<p><strong>💡 加分话术</strong>:ChangeTracker 成本不是免费的——每个 Entity 多一份快照 + 字典条目 + 状态机。<strong>10 万条数据的查询,Tracking 模式可能多占 50 MB 内存 + 200ms</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 写场景误用 AsNoTracking —— SaveChanges 不报错但静默不更新。</li>
+<li>❌ 误以为 AsNoTracking 影响 SQL 生成 —— 不影响,只影响追踪。</li>
+<li>❌ 复杂关系(Include)在 Tracking 模式下行为不同 —— 导航属性自动 fixup。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"AsNoTracking 的本质是 <strong>告诉 EF Core 这次查询结果不要追踪变更</strong>。EF Core 默认会给每个查询到的实体生成快照,SaveChanges 时对比快照找出变更。这个追踪是有成本的——10 万条查询,Tracking 模式可能多占 50MB 内存,慢 10-30%。</p>
+<p>我的选型规则:</p>
+<p>第一,<strong>读展示场景</strong>(列表、详情、报表)一律 AsNoTracking;
+第二,<strong>写场景</strong>(更新、删除)用默认 Tracking;
+第三,<strong>长跑 / 高频查询场景</strong>,我直接全局 UseQueryTrackingBehavior.NoTracking,需要写时显式 AsTracking。</p>
+<p>工业上位机 90% 是读场景(实时显示设备状态、历史曲线、报表),<strong>全局 NoTracking 是标配</strong>。</p>
+<p>这个知识点的本质是 <strong>'只读视图不需要双向绑定'</strong> —— 前端用 React 时,纯展示组件不应该 connect 到 store,因为 store 订阅有成本。AsNoTracking 就是 C# 版的'memoize / pure component',告诉框架别多管闲事。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-6">六、Prism + MVVM</h2>
+<h3 id="sec-3-16">Q16. Prism 的 RegionManager 干嘛的?和 ContentControl 区别?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:Region 抽象 + 视图注入 + 导航 + 模块解耦。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><code>ContentControl</code> 是 WPF 的<strong>容器控件</strong>,直接 <code>Content = new SomeView()</code> 设置内容,<strong>强耦合</strong>。</p>
+<p><code>RegionManager</code> 是 Prism 的<strong>区域管理器</strong>,把 UI 切成命名区域(Region),<strong>通过注册 + 导航动态切换视图</strong>:</p>
+<pre><code class="language-xml">&lt;!-- XAML:声明区域 --&gt;
+&lt;ContentControl prism:RegionManager.RegionName=&quot;MainRegion&quot; /&gt;
+
+&lt;!-- C#:导航 --&gt;
+_regionManager.RequestNavigate(&quot;MainRegion&quot;, &quot;DeviceView&quot;);
+</code></pre>
+<p><strong>核心优势</strong>:</p>
+<ol>
+<li><strong>解耦</strong>:View 和 ViewModel 通过 DI 注册,Region 不知道具体类型;</li>
+<li><strong>导航</strong>:RequestNavigate 支持 URI 参数、Journal(前进/后退);</li>
+<li><strong>模块化</strong>:跨程序集的 View 可以注册到 Region;</li>
+<li><strong>生命周期</strong>:Region 自动管理 View 的 Activate/Deactivate。</li>
+</ol>
+<p><strong>💡 加分话术</strong>:Prism 的 RegionManager 本质是<strong>前端的"路由 + 视图插槽"</strong>——React 的 <code>&lt;Outlet /&gt;</code>、Vue 的 <code>&lt;router-view /&gt;</code> 概念完全一致。<strong>前端工程师理解 Prism 比理解 WPF 原生控件快</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ View 注册名拼错 → Region 找不到,默默无显示。</li>
+<li>❌ View 没在 DI 容器注册 → RegionManager 解析失败。</li>
+<li>❌ ViewModel 没继承 BindableBase / 没用 ViewModelLocator → 绑定不生效。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"Prism 的 RegionManager 本质是 <strong>UI 区域抽象 + 视图动态注入</strong>。它把界面切成命名区域,比如 MainRegion、MenuRegion、StatusBarRegion,然后通过 RequestNavigate 在运行时把不同 View 注入到对应区域。</p>
+<p>这个概念前端工程师秒懂——<strong>就是 React Router 的 <Outlet /> 或 Vue Router 的 <router-view /></strong>。ContentControl 是 WPF 原生容器,你写 Content = new SomeView() 是强耦合;RegionManager 通过 DI + 字符串注册解耦,支持模块化、导航、前进后退。</p>
+<p>实战中我用 RegionManager 做 DAQMonitor 的主界面:左侧菜单点击,RequestNavigate 把对应 View 注入到 MainRegion,业务模块完全解耦。</p>
+<p>这个类比是前端转上位机最大的优势——<strong>MVVM 思想 + 路由思想前端用了 5 年,迁移到 Prism 一模一样</strong>。面试时强调这点,面试官会立刻 get 到你不是从零起步。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-17">Q17. EventAggregator 内存泄漏怎么避免?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:弱引用 + Unsubscribe + 生命周期配对。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>Prism <code>EventAggregator</code> 内部维护<strong>强引用订阅列表</strong>,不退订 = 内存泄漏。</p>
+<pre><code class="language-csharp">public class MyViewModel : IConfirmNavigationRequest {
+    private readonly SubscriptionToken _token;
+
+    public MyViewModel(IEventAggregator ea) {
+        _token = ea.GetEvent&lt;DeviceOnlineEvent&gt;()
+                   .Subscribe(OnDeviceOnline, ThreadOption.UIThread);
+    }
+
+    // ✅ 退出导航时退订
+    public void OnNavigatedFrom(NavigationContext c) {
+        _token.Dispose();  // 或 ea.GetEvent&lt;...&gt;().Unsubscribe(OnDeviceOnline);
+    }
+}
+</code></pre>
+<p><strong>避免方案</strong>:</p>
+<ol>
+<li><strong>保存 SubscriptionToken,Dispose / Unsubscribe 配对</strong>;</li>
+<li><strong>导航离开时退订</strong>(OnNavigatedFrom / Dispose);</li>
+<li><strong>KeepSubscriberReferenceAlive = false</strong>(默认就是 false,弱引用订阅,但仍建议显式退订);</li>
+<li><strong>集中管理</strong>:用一个 <code>CompositeDisposable</code>(类似 Rx),Dispose 时统一清理。</li>
+</ol>
+<p><strong>💡 加分话术</strong>:Prism EventAggregator 默认 <code>ThreadOption.PublisherThread</code>——同步触发,订阅者抛异常会<strong>冒泡到发布者</strong>。生产代码用 <code>ThreadOption.UIThread</code> 或 <code>BackgroundThread</code>,异常隔离。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ Subscribe 后忘 Unsubscribe —— ViewModel 切换后旧实例泄漏。</li>
+<li>❌ Lambda 订阅:<code>ea.GetEvent&lt;...&gt;().Subscribe(e =&gt; ...)</code> —— <strong>永远退不掉</strong>,必须保存 token。</li>
+<li>❌ 跨模块发布事件,订阅者模块还没加载 —— 事件丢失(默认非持久)。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"EventAggregator 内存泄漏和 event 是同一类问题,但 Prism 提供了更友好的 API。Subscribe 返回 SubscriptionToken,我把 token 存到 ViewModel 字段,导航离开时 Dispose。</p>
+<p>标准模式是 ViewModel 实现 IDisposable 或 IConfirmNavigationRequest,在 OnNavigatedFrom / Dispose 里统一清理订阅。</p>
+<p>还有几个细节:第一,<strong>Lambda 订阅永远退不掉</strong>,必须把 lambda 改成命名方法或保存 token;第二,<strong>默认 ThreadOption.PublisherThread 同步触发</strong>,订阅者抛异常会冒泡,生产用 UIThread 或 BackgroundThread 隔离;第三,<strong>KeepSubscriberReferenceAlive = false</strong> 是默认,弱引用订阅,但即便如此,<strong>显式退订仍是最稳的做法</strong>。</p>
+<p>前端类似的概念是 <strong>RxJS Subscription 必须 unsubscribe</strong>,否则内存泄漏。React useEffect 清理函数就是这个意思。<strong>前端 5 年积累的'订阅必清理'直觉,在 C# 里完全适用</strong>。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-18">Q18. Prism 模块化 vs 手写 DI 的核心优势?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:运行时加载 + 解耦 + 团队协作 + 大型项目架构。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>Prism 模块化(IModule)的核心价值:</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>手写 DI</th>
+<th>Prism 模块化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>注册时机</td>
+<td>启动时全部注册</td>
+<td><strong>运行时按需加载</strong>(目录扫描 / 配置文件 / 远程)</td>
+</tr>
+<tr>
+<td>程序集分离</td>
+<td>单一启动工程</td>
+<td><strong>多 DLL 独立开发部署</strong></td>
+</tr>
+<tr>
+<td>团队协作</td>
+<td>容易冲突</td>
+<td>各模块独立,接口契约</td>
+</tr>
+<tr>
+<td>启动性能</td>
+<td>全部加载慢</td>
+<td><strong>延迟加载,启动快</strong></td>
+</tr>
+<tr>
+<td>插件化</td>
+<td>难</td>
+<td><strong>天然支持</strong>(类似 VS Code 插件)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">// 模块定义
+[Module(&quot;DeviceModule&quot;)]
+[ModuleDependency(&quot;CommonModule&quot;)]
+public class DeviceModule : IModule {
+    public void RegisterTypes(IContainerRegistry cr) {
+        cr.RegisterForNavigation&lt;DeviceView, DeviceViewModel&gt;();
+        cr.RegisterSingleton&lt;IDeviceService, DeviceService&gt;();
+    }
+    public void OnInitialized(IContainerProvider c) {
+        // 模块初始化逻辑
+    }
+}
+
+// App.xaml.cs 启动时加载
+protected override void ConfigureModuleCatalog(IModuleCatalog catalog) {
+    catalog.AddModule&lt;DeviceModule&gt;();
+    // 或从目录扫描:
+    // catalog.AddDirectory(&quot;Modules&quot;);
+}
+</code></pre>
+<p><strong>💡 加分话术</strong>:中型项目(&gt;5 模块 / 3+ 团队)模块化明显优于手写 DI。<strong>模块化本质是"插件式架构"</strong>,类似前端的"微前端"——每个团队独立部署自己的模块。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 模块循环依赖 —— 启动崩溃。</li>
+<li>❌ 模块初始化顺序错乱 —— 用 ModuleDependency 显式声明。</li>
+<li>❌ 模块直接引用其他模块的类型 —— 失去解耦意义,只能通过 EventAggregator / 共享接口通信。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"Prism 模块化的核心优势是 <strong>运行时按需加载 + 团队解耦</strong>。</p>
+<p>手写 DI 启动时全部注册,适合小项目;但中型项目——比如 5 个以上业务模块、3 个团队协作——手写 DI 会让所有人改同一个 Startup.cs,冲突频繁,启动慢。</p>
+<p>Prism 模块化把每个业务领域拆成独立 IModule + 独立 DLL,各团队独立开发独立部署。启动时按需加载,启动快。本质上类似<strong>前端的微前端 / Module Federation</strong>——每个微前端是一个独立 bundle,运行时组合。</p>
+<p>实战我用模块化做 DAQMonitor:DeviceModule 管设备、AlarmModule 管报警、ReportModule 管报表,各自独立 DLL。未来加一个 EnergyModule,只需要新工程 + 注册,不影响现有模块。</p>
+<p>这个架构思路前端写过微前端的同学秒懂,<strong>模块化是软件工程通用的解耦思想,不是 C# 专属</strong>。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-7">七、TCP Socket + 协议设计</h2>
+<h3 id="sec-3-19">Q19. TCP 粘包/拆包 4 种解法?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:TCP 是字节流 + 4 种定界方案 + 各自优缺点。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>TCP 不维护消息边界,4 种定界方案:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>实现</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>固定长度</strong></td>
+<td>每包 N 字节</td>
+<td>简单</td>
+<td>浪费带宽,不够灵活</td>
+<td>简单协议</td>
+</tr>
+<tr>
+<td><strong>分隔符</strong></td>
+<td>包尾加 \n / \0</td>
+<td>灵活</td>
+<td>内容含分隔符要转义</td>
+<td>文本协议(FTP/HTTP)</td>
+</tr>
+<tr>
+<td><strong>长度前缀</strong>(最常用)</td>
+<td>Header 含 Length 字段</td>
+<td>高效、可变长</td>
+<td>解析稍复杂</td>
+<td><strong>工业协议主流</strong>(Modbus TCP、自定义)</td>
+</tr>
+<tr>
+<td><strong>协议自定义</strong></td>
+<td>帧头 + 校验 + 帧尾</td>
+<td>高可靠</td>
+<td>实现复杂</td>
+<td>高可靠场景</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">// 长度前缀协议(最常用)
+// 帧结构:[Magic(2)] [Length(4)] [Payload(N)] [CRC(2)]
+
+public async Task&lt;byte[]&gt; ReadFrameAsync(NetworkStream stream, CancellationToken ct) {
+    // 1. 读 6 字节头
+    var header = new byte[6];
+    await ReadExactAsync(stream, header, 6, ct);
+
+    // 2. 校验 Magic
+    if (header[0] != 0xAA || header[1] != 0x55) throw new InvalidFrameException();
+
+    // 3. 解析长度
+    var length = BitConverter.ToInt32(header, 2);
+
+    // 4. 读 Payload + CRC
+    var payload = new byte[length + 2];
+    await ReadExactAsync(stream, payload, length + 2, ct);
+
+    // 5. 校验 CRC
+    if (!VerifyCrc(payload, ..)) throw new CrcMismatchException();
+
+    return payload[..^2];
+}
+
+private async Task ReadExactAsync(NetworkStream s, byte[] buf, int count, CancellationToken ct) {
+    var offset = 0;
+    while (offset &lt; count) {
+        var read = await s.ReadAsync(buf.AsMemory(offset, count - offset), ct);
+        if (read == 0) throw new ConnectionClosedException();
+        offset += read;
+    }
+}
+</code></pre>
+<p><strong>💡 加分话术</strong>:<strong>长度前缀是工业协议最常见方案</strong>——Modbus TCP(MBAP Header 含 Length)、MQTT(Remaining Length 编码)、HTTP/2(帧头 9 字节含 Length)都用这个思路。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 假设 <code>ReadAsync</code> 一次读完一帧 —— 字节流不保证。</li>
+<li>❌ Length 字段不校验上限 —— 恶意包声明 1GB 长度直接 OOM。</li>
+<li>❌ 长度前缀用变长编码(如 MQTT VarInt)—— 解析复杂,理解 varint 是关键。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"TCP 粘包拆包是字节流协议的固有问题,4 种解法:固定长度、分隔符、长度前缀、协议自定义。</p>
+<p>工业场景<strong>最常用的是长度前缀</strong>——帧头放固定 Magic 字节,接着 4 字节 Length,然后 Payload,最后 CRC。Modbus TCP 的 MBAP、MQTT 的 Remaining Length 都是这套思路。</p>
+<p>实现关键:<strong>循环读直到读满指定字节数</strong>,绝不能假设 ReadAsync 一次读完一帧。我封装了 ReadExactAsync 方法,offset 累加直到 count 读满,中间连接断开会抛异常。</p>
+<p>还有几个坑:第一,<strong>Length 字段必须校验上限</strong>,否则恶意包声明 1GB 长度直接 OOM;第二,<strong>Magic 字节防误同步</strong>,帧错位时丢弃直到下一个 Magic;第三,<strong>CRC 必须包含 Length</strong>,否则 Length 被篡改检测不到。</p>
+<p>前端类似的概念是 <strong>WebSocket 帧边界</strong>——WebSocket 协议帮我们处理了,但底层 TCP 是字节流。理解了 TCP 定界,任何应用层协议都通。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-20">Q20. SocketException 怎么处理?ReadAsync 返回 0 意味着什么?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:返回 0 = 对端关闭 + SocketError 枚举 + 重连策略。</p>
+<p><strong>✅ 标准答案</strong></p>
+<pre><code class="language-csharp">try {
+    var n = await stream.ReadAsync(buf, ct);
+    if (n == 0) {
+        // ✅ 对端正常关闭(调用 Socket.Close / Shutdown)
+        throw new ConnectionClosedException(&quot;对端正常关闭&quot;);
+    }
+} catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset) {
+    // 对端强制关闭(RST)
+    _logger.LogWarning(&quot;对端 RST 关闭&quot;);
+} catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut) {
+    // 超时
+} catch (OperationCanceledException) {
+    // 取消
+}
+</code></pre>
+<p><strong>ReadAsync 返回值的含义</strong>:</p>
+<ul>
+<li><code>&gt; 0</code>:读到 n 字节;</li>
+<li><code>= 0</code>:<strong>对端正常关闭连接</strong>(FIN),必须当作 EOF 处理;</li>
+<li>抛 <code>SocketException</code>:网络异常(RST、超时、断网)。</li>
+</ul>
+<p><strong>重连策略</strong>(基于 Polly):</p>
+<pre><code class="language-csharp">var retry = Policy
+    .Handle&lt;SocketException&gt;()
+    .Or&lt;ConnectionClosedException&gt;()
+    .WaitAndRetryAsync(
+        retryCount: 5,
+        sleepDurationProvider: attempt =&gt; TimeSpan.FromSeconds(Math.Min(30, Math.Pow(2, attempt))),
+        onRetry: (ex, delay, attempt, ctx) =&gt; {
+            _logger.LogWarning($&quot;第 {attempt} 次重连,{delay.TotalSeconds}s 后重试&quot;);
+        });
+await retry.ExecuteAsync(ConnectAndReadAsync);
+</code></pre>
+<p><strong>💡 加分话术</strong>:<strong>返回 0 不抛异常是 .NET 设计选择</strong>——很多新人误以为抛异常,结果一直 ReadAsync 空转,实际是连接已关。<strong>必须显式判断 n == 0</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 漏判 n == 0 —— 死循环空读。</li>
+<li>❌ 重连无指数退避 —— 雪崩,服务器被打挂。</li>
+<li>❌ 重连不取消订阅旧事件 —— 事件叠加,一条数据触发多次。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"TCP Socket 异常处理的关键是 <strong>ReadAsync 返回 0 意味着对端正常关闭</strong>——FIN 握手,这是 TCP 协议的优雅关闭。如果不处理 0,会死循环空读。</p>
+<p>SocketException 看 SocketErrorCode:ConnectionReset 是对端 RST 强制关闭,TimedOut 是超时,ConnectionAborted 是本地中止。每种异常的重连策略不同。</p>
+<p>重连我用 <strong>Polly 的 WaitAndRetryAsync + 指数退避</strong>:1s → 2s → 4s → ... → 30s 封顶。这是工业场景的标配,既不让服务器雪崩,又能尽快恢复。</p>
+<p>重连时还有几个细节:第一,<strong>取消旧的事件订阅</strong>,否则数据触发多次;第二,<strong>重建 Channel / 缓冲区</strong>,清空半包数据;第三,<strong>重连成功后发心跳</strong>,确认连接稳定。</p>
+<p>前端类似的概念是 <strong>WebSocket 的 onclose 事件 + 自动重连库(ReconnectingWebSocket)</strong>,思路完全一致——监听关闭、指数退避、重建连接。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-21">Q21. 设计一个工业协议帧:帧头 + 长度 + payload + CRC,字节级讲清楚</h3>
+<p><strong>🎯 面试官想听到什么</strong>:帧结构 + 字段含义 + 边界情况 + 错误恢复。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><strong>协议帧设计</strong>(工业主流模式):</p>
+<pre><code>偏移  长度  字段       说明
+0     2    Magic      0xAA 0x55(防误同步)
+2     1    Version    协议版本(1 byte)
+3     1    MsgType    消息类型(Command/Response/Event)
+4     2    DeviceId   设备 ID(大端,小端按需)
+6     4    Sequence   序列号(请求响应对齐)
+10    4    Length     Payload 长度(不含 CRC)
+14    N    Payload    业务数据
+14+N  2    CRC16      从 Magic 到 Payload 末尾的 CRC
+</code></pre>
+<p><strong>字节级示例</strong>(读温度请求):</p>
+<pre><code>AA 55        Magic
+01           Version 1
+02           MsgType = Read
+00 01        DeviceId = 1
+00 00 00 05  Sequence = 5
+00 04        Length = 4 (Payload 4 字节)
+00 00 00 0A  Payload: Read Register 10
+XX XX        CRC16
+</code></pre>
+<p><strong>错误恢复</strong>:</p>
+<ol>
+<li><strong>Magic 错位</strong>:扫描字节流直到找到 AA 55,丢弃前面字节;</li>
+<li><strong>Length 异常</strong>(&gt; MaxFrameSize):丢弃整帧,等待下一个 Magic;</li>
+<li><strong>CRC 错</strong>:丢弃整帧,<strong>可选</strong>回复 NACK 让对端重发;</li>
+<li><strong>超时</strong>:固定时间内未收到完整帧,清空缓冲区。</li>
+</ol>
+<p><strong>💡 加分话术</strong>:<strong>Sequence 字段是协议的灵魂</strong>——请求响应配对、乱序检测、重传去重,工业协议必须有。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ Magic 只用 1 字节 —— 误判概率高,推荐 2 字节。</li>
+<li>❌ Length 不限上限 —— 恶意包 OOM。</li>
+<li>❌ 大小端不统一 —— 解析错乱,文档必须明确。</li>
+<li>❌ CRC 范围不清晰 —— 容易漏算 Magic 或多算 CRC 本身。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"工业协议帧设计我有一套固定模板:Magic + Version + MsgType + DeviceId + Sequence + Length + Payload + CRC。</p>
+<p>字节级讲清楚:</p>
+<p>第一,<strong>Magic 是 2 字节,我选 AA 55</strong>,防误同步。如果只 1 字节,误判概率是 1/256,2 字节降到 1/65536。</p>
+<p>第二,<strong>Version 留作升级</strong>,不然后续协议改不动。我见过几个老协议没有 Version,扩展时只能开新端口。</p>
+<p>第三,<strong>MsgType 区分 Command / Response / Event</strong>,异步协议必须区分。</p>
+<p>第四,<strong>DeviceId 多设备场景必须</strong>,Modbus 也是这么设计的。</p>
+<p>第五,<strong>Sequence 是协议灵魂</strong>,请求响应配对、乱序检测、重传去重全靠它。</p>
+<p>第六,<strong>Length 限上限</strong>,我通常设 64KB,超过直接拒绝,防止恶意包 OOM。</p>
+<p>第七,<strong>CRC 范围明确</strong>——从 Magic 到 Payload 末尾,文档里必须写清楚,CRC 本身不算。</p>
+<p>错误恢复:Magic 错位扫描同步、Length 异常丢弃、CRC 错可选 NACK、超时清空。这套思路 <strong>Modbus、MQTT、HTTP/2 都在用</strong>,工业协议设计是通用方法论。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-8">八、报警 + 日志</h2>
+<h3 id="sec-3-22">Q22. 报警回滞机制?为什么不能直接用 <code>if(value &gt; threshold)</code>?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:阈值抖动 + Hysteresis + 双阈值设计。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p>直接 <code>if (value &gt; threshold)</code> 的问题:<strong>值在阈值附近抖动时,报警反复触发和清除</strong>(每秒触发几十次,日志爆炸,操作员崩溃)。</p>
+<p><strong>回滞算法</strong>(Hysteresis):</p>
+<pre><code class="language-csharp">public class HysteresisAlarm {
+    public double HighThreshold { get; }   // 触发阈值(如 80)
+    public double LowThreshold { get; }    // 清除阈值(如 75),必须 &lt; HighThreshold
+    public bool IsAlarmed { get; private set; }
+
+    public bool Update(double value) {
+        if (!IsAlarmed &amp;&amp; value &gt;= HighThreshold) {
+            IsAlarmed = true;   // 触发
+            return true;        // 报警事件
+        }
+        if (IsAlarmed &amp;&amp; value &lt;= LowThreshold) {
+            IsAlarmed = false;  // 清除
+            return false;       // 清除事件
+        }
+        return IsAlarmed;       // 状态不变
+    }
+}
+</code></pre>
+<p><strong>回滞区</strong> = HighThreshold - LowThreshold(如 80-75=5)。值在回滞区内时,<strong>状态保持不变</strong>,避免抖动。</p>
+<p><strong>举例</strong>:</p>
+<pre><code>原始值:    78 79 80 81 80 79 78 77 76 75 74 75 76 77
+直接判定:  -  -  ✗  ✗  ✗  -  -  -  -  -  -  -  -  -     (80-80 反复)
+回滞判定:  -  -  ✗  ✗  ✗  ✗  ✗  ✗  ✗  ✗  ✓  ✓  ✓  ✓    (稳定)
+</code></pre>
+<p><strong>💡 加分话术</strong>:回滞算法源自<strong>继电器控制</strong>(避免触点抖动),工业控制 50 年标准实践。<strong>前端类似的概念是 debounce / throttle</strong>,防止按钮被疯狂点击。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ Low = High —— 没回滞,等于没做。</li>
+<li>❌ Low &gt; High —— 逻辑反转,永远不报警。</li>
+<li>❌ 只设阈值,没设持续时间 —— 瞬时尖峰误报,加 <code>OnDelay(500ms)</code>。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"报警回滞是工业控制最经典的算法之一。直接 if(value &gt; 80) 的问题是值在 80 附近抖动时,报警反复触发清除,每秒几十次,日志爆炸,操作员崩溃。</p>
+<p>回滞算法用双阈值:High 是触发线,Low 是清除线,中间是回滞区。值在回滞区时,<strong>状态保持不变</strong>,无论从上往下还是从下往上穿。</p>
+<p>我在 DAQMonitor 里默认回滞区是阈值的 5%,比如温度报警 80°C,清除线就是 76°C。还可以加 OnDelay / OffDelay——持续 500ms 超过阈值才报警,避免瞬时尖峰。</p>
+<p>回滞算法源自继电器控制,叫 Hysteresis,工业用了 50 年。<strong>前端类似的概念是 debounce / throttle</strong>,防止按钮疯狂点击触发。本质都是'加缓冲区避免高频抖动'。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-23">Q23. Serilog 的 Sink / Enricher / MinimumLevel 怎么用?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:结构化日志 + Sink 多通道 + Enricher 上下文 + Level 动态。</p>
+<p><strong>✅ 标准答案</strong></p>
+<pre><code class="language-csharp">// 配置
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()                                  // 全局最低级别
+    .MinimumLevel.Override(&quot;Microsoft&quot;, LogEventLevel.Warning)  // 命名空间覆盖
+    .Enrich.FromLogContext()                                // 上下文注入
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console()
+    .WriteTo.File(&quot;logs/app-.log&quot;, rollingInterval: RollingInterval.Day)
+    .WriteTo.Seq(&quot;http://localhost:5341&quot;)                   // 集中查询
+    .CreateLogger();
+
+// 使用
+var deviceId = 1;
+Log.Information(&quot;设备 {DeviceId} 上线,温度 {Temp}°C&quot;, deviceId, 25.5);
+// 结构化字段 DeviceId 和 Temp 被独立存储,Seq 可单独查询
+
+// LogContext 跨方法注入
+using (LogContext.PushProperty(&quot;TraceId&quot;, Guid.NewGuid()))
+{
+    Log.Information(&quot;开始处理&quot;);
+    DoSomething();   // 内部日志自动带 TraceId
+}
+</code></pre>
+<p><strong>Sink</strong>(输出通道):Console / File / Seq / ElasticSearch / MSSqlServer / ApplicationInsights,可同时多个。</p>
+<p><strong>Enricher</strong>(上下文增强):FromLogContext / MachineName / ThreadId / 自定义 Enricher 注入业务字段。</p>
+<p><strong>MinimumLevel</strong>:Verbose &lt; Debug &lt; Information &lt; Warning &lt; Error &lt; Fatal,<strong>Override 可以按命名空间覆盖</strong>。</p>
+<p><strong>💡 加分话术</strong>:<strong>结构化日志</strong>是 Serilog 最大优势——字段独立存储,Seq 可以 SQL 式查询 <code>where Temp &gt; 30</code>,<strong>比传统字符串日志强 100 倍</strong>。前端类似的是 <strong>Winston / Bunyan 的 JSON 日志</strong>,ELK 栈的核心。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 用字符串插值 <code>$"设备 {id}"</code> —— <strong>失去结构化字段</strong>,必须用模板 <code>"设备 {Id}"</code>。</li>
+<li>❌ Sink 性能瓶颈 —— File 写入阻塞,用 <code>Async</code> wrapper。</li>
+<li>❌ MinimumLevel 设 Debug 长跑 —— 日志爆炸,生产用 Information。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"Serilog 三大核心概念:Sink、Enricher、MinimumLevel。</p>
+<p>第一,<strong>Sink 是输出通道</strong>,可以同时多个——控制台、文件、Seq、ElasticSearch。我项目里至少配 Console + File + Seq 三件套,Seq 是结构化日志查询神器。</p>
+<p>第二,<strong>Enricher 是上下文增强</strong>,自动给每条日志加字段——机器名、线程 ID、TraceId。最重要的是 FromLogContext,配合 LogContext.PushProperty 可以跨方法注入,所有内部日志自动带这个字段。</p>
+<p>第三,<strong>MinimumLevel 控制级别</strong>,Verbose 到 Fatal 6 档。我用 Override 按命名空间覆盖——比如 Microsoft 命名空间设 Warning,过滤掉 EF Core 的 SQL 噪音。</p>
+<p><strong>最大的坑是用字符串插值</strong>——Log.Information($'设备 {id}') 失去结构化字段,id 变成字符串的一部分,Seq 查不到。<strong>必须用模板语法</strong> '设备 {Id}',id 才能被独立存储为字段。</p>
+<p>前端类似的是 <strong>Winston / Bunyan 的 JSON 日志</strong>——结构化日志是 ELK 栈的核心,Serilog 思路完全一致。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-24">Q24. TraceId 跨线程怎么传?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:AsyncLocal<T> + LogContext + 显式传递。</p>
+<p><strong>✅ 标准答案</strong></p>
+<pre><code class="language-csharp">// 方案 1:AsyncLocal&lt;T&gt;(推荐,.NET 标准)
+public static class TraceContext {
+    private static readonly AsyncLocal&lt;string&gt; _traceId = new();
+    public static string Current {
+        get =&gt; _traceId.Value;
+        set =&gt; _traceId.Value = value;
+    }
+}
+
+// 使用
+TraceContext.Current = Guid.NewGuid().ToString(&quot;N&quot;);
+await DoSomethingAsync();  // 内部任何线程都能读到
+// await 完成后,AsyncLocal 自动恢复
+
+// 方案 2:Serilog LogContext(本质也是 AsyncLocal)
+using (LogContext.PushProperty(&quot;TraceId&quot;, traceId)) {
+    await ProcessAsync();  // 内部 Serilog 自动带 TraceId
+}
+
+// 方案 3:显式参数(最稳但侵入)
+await Task.Run(() =&gt; DoWork(traceId));
+</code></pre>
+<p><strong>AsyncLocal<T> 原理</strong>:<strong>基于 ExecutionContext</strong>,异步调用链自动流转,await 前后值一致。<strong>与 ThreadLocal 区别</strong>:ThreadLocal 绑定物理线程(线程池切换会丢),AsyncLocal 跟着异步流(任何线程都能读到)。</p>
+<p><strong>💡 加分话术</strong>:工业场景 TraceId 用于<strong>全链路日志关联</strong>——用户操作 → 设备命令 → 报警触发 → 报表生成,所有日志带同一 TraceId,Seq 里查询一键拉出全链路。这是<strong>分布式追踪的基础</strong>,前端微服务、Node.js 也是同样的 requestId / correlationId 模式。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 用 ThreadLocal —— await 切线程后丢值。</li>
+<li>❌ static 变量 —— 多请求并发互相覆盖。</li>
+<li>❌ Parallel.For 里修改 AsyncLocal —— 父子任务可能不一致(Parallel 内部行为复杂)。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"TraceId 跨线程传递的核心是 <strong>AsyncLocal<T></strong>。它是 .NET 提供的异步上下文存储,基于 ExecutionContext,在 await 调用链里自动流转。</p>
+<p>与 ThreadLocal 的区别:ThreadLocal 绑定物理线程,线程池切换会丢值;AsyncLocal 跟着异步流,任何线程都能读到。</p>
+<p>实战我两种方式都用:第一种是自己包 TraceContext.Current = AsyncLocal<string>,业务代码可读;第二种是 <strong>Serilog LogContext.PushProperty</strong>,底层也是 AsyncLocal,但和日志深度集成,所有 Serilog 调用自动带这个字段。</p>
+<p>工业场景 TraceId 用于<strong>全链路日志关联</strong>:用户操作 → 设备命令 → 报警触发 → 报表生成,所有日志带同一 TraceId,Seq 查询一键拉全链路。这是分布式追踪的基础。</p>
+<p>前端类似的概念是 <strong>HTTP 请求的 X-Request-Id / X-Correlation-Id</strong>,Node.js 用 cls-hooked 或 AsyncLocalStorage 实现跨函数传递。<strong>前端微服务的 correlationId 模式,C# 这边叫 TraceId,完全一样的思想</strong>。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-9">九、性能 + 长跑稳定性</h2>
+<h3 id="sec-3-25">Q25. 7×24 跑 3 天后内存涨到 1GB,怎么排查?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:三层定位法 - counters / dump / gcroot。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><strong>Step 1:dotnet counters 实时监控</strong></p>
+<pre><code class="language-bash">dotnet counters monitor --process-id &lt;pid&gt; --counters System.Runtime
+# 看 GC Heap Size、Gen 2 Size、Working Set 趋势
+</code></pre>
+<p>观察:Working Set 是否单调增长?Gen 2 / LOH 是否堆积?如果是 → 内存泄漏。</p>
+<p><strong>Step 2:抓 gcdump(GC 堆转储,轻量)</strong></p>
+<pre><code class="language-bash">dotnet-gcdump collect -p &lt;pid&gt;
+# 生成 .gcdump 文件,Visual Studio / PerfView 打开
+</code></pre>
+<p>看类型分布:哪个类型对象最多?哪些对象占内存最大?<strong>重点看 event handlers、static collections、闭包</strong>。</p>
+<p><strong>Step 3:抓完整 dump(重量级,慎用)</strong></p>
+<pre><code class="language-bash">dotnet-dump collect -p &lt;pid&gt;
+dotnet-dump analyze core.dmp
+&gt; dumpheap -stat       # 按类型统计
+&gt; dumpheap -mt &lt;MT&gt;    # 看具体类型的对象
+&gt; gcroot &lt;address&gt;     # 找 GC root 链路
+</code></pre>
+<p><strong>常见泄漏模式</strong>:</p>
+<ol>
+<li><strong>event 不退订</strong>(最常见)—— 找 <code>EventHandler</code> 类型对象,gcroot 看是哪个 event 持有;</li>
+<li><strong>static 集合只加不删</strong> —— 找 List / Dictionary 类型的 static 字段;</li>
+<li><strong>闭包捕获</strong> —— 找 DisplayClass 类型的对象(编译器生成的闭包类);</li>
+<li><strong>GDI 对象</strong>(WPF) —— HBITMAP / HBRUSH 句柄泄漏,看 PerformanceCounter;</li>
+</ol>
+<p><strong>💡 加分话术</strong>:<strong>dotMemory / ANTS Memory Profiler 是付费神器</strong>,免费就用 PerfView + dotnet-gcdump。<strong>3 天内存涨到 1GB 是明显泄漏</strong>,正常工业上位机应该稳定在 200-500MB。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 直接看任务管理器内存 —— 包含 GC 未回收但可回收的部分,不准确。</li>
+<li>❌ 抓 dump 时进程 STW,生产环境谨慎。</li>
+<li>❌ 只看一次 dump —— <strong>要看增长趋势</strong>,对比两次 dump 找差异。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"7×24 跑 3 天涨到 1GB 是明显泄漏,我有一套固定排查流程。</p>
+<p><strong>Step 1</strong>:dotnet counters monitor 看趋势——GC Heap Size、Gen 2 Size、Working Set 单调增长就是泄漏。</p>
+<p><strong>Step 2</strong>:dotnet-gcdump collect 抓 GC 堆转储,这是轻量级,不影响生产。生成 .gcdump 文件用 Visual Studio 打开,按类型排序看哪个对象最多。</p>
+<p><strong>Step 3</strong>:如果有可疑对象,dotnet-dump collect 抓完整 dump,dotnet-dump analyze 进交互式命令行,dumpheap -stat 看类型分布,gcroot <address> 找 GC root 链路,定位是谁在持有这个对象。</p>
+<p>我在 DAQMonitor 排查过一次泄漏:某 OPC UA 订阅没退订,3 天涨 800MB。gcroot 链路显示是 Subscription 持有 ViewModel,ViewModel 持有大量缓存数据。修复后退订逻辑,7×24 跑 3 天稳定 280MB。</p>
+<p>常见泄漏模式 4 种:event 不退订、static 集合只加不删、闭包捕获、GDI 句柄。<strong>前端类似的概念是 Chrome DevTools 的 Memory 标签</strong>——Heap Snapshot、Retaining Tree,我用 Cypress 调 ECharts 时积累的内存排查经验,直接迁移到 C#。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-26">Q26. 事件订阅 / static 集合 / 闭包 / GDI 4 种典型内存泄漏</h3>
+<p><strong>🎯 面试官想听到什么</strong>:每种泄漏的成因 + 检测 + 修复。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>成因</th>
+<th>检测</th>
+<th>修复</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>事件订阅</strong></td>
+<td>event 持有订阅者强引用</td>
+<td>gcroot 看 EventHandler</td>
+<td>-= 退订或弱事件</td>
+</tr>
+<tr>
+<td><strong>static 集合</strong></td>
+<td>全局缓存只 Add 不 Remove</td>
+<td>dumpheap 看 List/Dict 类型</td>
+<td>加 LRU 过期 / 用 WeakReference</td>
+</tr>
+<tr>
+<td><strong>闭包捕获</strong></td>
+<td>Lambda 捕获大对象,编译器生成 DisplayClass</td>
+<td>dumpheap 看 DisplayClass</td>
+<td>避免 capture this,用弱引用包</td>
+</tr>
+<tr>
+<td><strong>GDI 句柄</strong></td>
+<td>Bitmap/Pen/Brush 不 Dispose</td>
+<td>Task Manager 看句柄数</td>
+<td>using 或显式 Dispose</td>
+</tr>
+</tbody>
+</table>
+<p><strong>事件订阅泄漏</strong>:</p>
+<pre><code class="language-csharp">// ❌ 订阅了不退订
+device.DataReceived += OnData;
+// ViewModel 销毁时没 -=,device 持有 _vm
+
+// ✅ 修复
+public void Dispose() {
+    device.DataReceived -= OnData;
+}
+</code></pre>
+<p><strong>static 集合泄漏</strong>:</p>
+<pre><code class="language-csharp">// ❌ 全局缓存只增不减
+public static Dictionary&lt;int, Device&gt; Cache = new();
+Cache[id] = device;
+// device 永远 GC 不掉
+
+// ✅ 用 MemoryCache 或 WeakReference
+private static readonly ConditionalWeakTable&lt;Device, object&gt; _cache = new();
+</code></pre>
+<p><strong>闭包泄漏</strong>:</p>
+<pre><code class="language-csharp">// ❌ Lambda 捕获 this,_bigList 永不释放
+class MyClass {
+    private List&lt;int&gt; _bigList = Enumerable.Range(0, 1_000_000).ToList();
+    public void Register() {
+        device.Event += (s, e) =&gt; Process(_bigList);  // 编译器生成 DisplayClass 持有 this
+    }
+}
+
+// ✅ 解耦:不捕获 this
+public void Register() {
+    var weakRef = new WeakReference&lt;MyClass&gt;(this);
+    device.Event += (s, e) =&gt; {
+        if (weakRef.TryGetTarget(out var target)) target.ProcessInternal();
+    };
+}
+</code></pre>
+<p><strong>GDI 泄漏</strong>:</p>
+<pre><code class="language-csharp">// ❌ Bitmap 不 Dispose
+var bmp = new Bitmap(1920, 1080);
+// 使用后不释放,句柄泄漏,几百次后 GDI 崩溃
+
+// ✅ using 自动 Dispose
+using var bmp = new Bitmap(1920, 1080);
+</code></pre>
+<p><strong>💡 加分话术</strong>:<strong>ConditionalWeakTable<TKey, TValue></strong> 是 .NET 提供的弱引用字典,Key 是弱引用,Key 被 GC 时 Value 自动移除。<strong>适合附加数据到外部对象</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 闭包捕获 this 但以为没事 —— DisplayClass 隐式持有。</li>
+<li>❌ 静态事件最危险 —— 永远活着的 event 源。</li>
+<li>❌ Bitmap 用 <code>new Bitmap(stream)</code> 不 Dispose —— stream 也泄漏。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"4 种典型内存泄漏我背得滚瓜烂熟,因为每种都踩过。</p>
+<p>第一,<strong>事件订阅泄漏</strong>——event 持有订阅者强引用,ViewModel 切换时没 -= 就泄漏。我用 DeviceHost 集中管理订阅。</p>
+<p>第二,<strong>static 集合泄漏</strong>——全局缓存只 Add 不 Remove,对象永远 GC 不掉。我改用 ConditionalWeakTable 或 MemoryCache,自带过期机制。</p>
+<p>第三,<strong>闭包泄漏</strong>——Lambda 捕获 this,编译器生成 DisplayClass 隐式持有外部类。我把 this 改成 WeakReference<MyClass>,断开强引用链。</p>
+<p>第四,<strong>GDI 泄漏</strong>——Bitmap、Pen、Brush 不 Dispose,句柄泄漏,几百次后 GDI 崩溃。统一用 using 自动 Dispose。</p>
+<p>排查工具:dotnet-gcdump 看类型分布,dotnet-dump analyze 进交互式命令行,gcroot 找持有链路。</p>
+<p>前端类似的概念是 <strong>React useEffect 清理函数 + Cypress 内存检测</strong>——前端内存泄漏主要是 DOM 引用 / 闭包 / 事件监听,C# 这边类型多但本质一样:<strong>谁持有引用,谁就要负责释放</strong>。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-27">Q27. 性能瓶颈定位:VS Profiler / dotnet-trace 火焰图 / BenchmarkDotNet</h3>
+<p><strong>🎯 面试官想听到什么</strong>:三套工具各自定位 + 实战流程。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>定位</th>
+<th>用法</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VS Profiler</strong></td>
+<td>CPU / 内存 / GPU 综合</td>
+<td>F5 启动 + Performance Profiler</td>
+<td>开发期定位热点</td>
+</tr>
+<tr>
+<td><strong>dotnet-trace</strong></td>
+<td>生产环境低侵入</td>
+<td><code>dotnet-trace collect -p &lt;pid&gt; --format speedscope</code></td>
+<td>生产瓶颈</td>
+</tr>
+<tr>
+<td><strong>BenchmarkDotNet</strong></td>
+<td>单方法微基准</td>
+<td><code>[Benchmark]</code> 注解 + Release 跑</td>
+<td>算法对比</td>
+</tr>
+</tbody>
+</table>
+<p><strong>dotnet-trace 火焰图</strong>:</p>
+<pre><code class="language-bash">dotnet-trace collect --process-id &lt;pid&gt; --format Speedscope --duration 00:00:30
+# 生成 .speedscope 文件,https://speedscope.app 打开
+# 看火焰图最宽的栈就是热点
+</code></pre>
+<p><strong>BenchmarkDotNet 示例</strong>:</p>
+<pre><code class="language-csharp">[MemoryDiagnoser]
+public class CrcBenchmark {
+    private byte[] _data = new byte[] { 0x01, 0x03, 0x00, 0x00, 0x00, 0x02 };
+
+    [Benchmark(Baseline = true)]
+    public ushort BitByBit() =&gt; Crc16BitByBit(_data);
+
+    [Benchmark]
+    public ushort LookupTable() =&gt; Crc16LookupTable(_data);
+}
+
+// 输出:
+// | Method      | Mean      | Ratio | Allocated |
+// |------------ |----------:|------:|----------:|
+// | BitByBit    | 120.5 ns  |  1.00 |         - |
+// | LookupTable |  15.3 ns  |  0.13 |         - |
+</code></pre>
+<p><strong>VS Profiler 流程</strong>:Debug → Performance Profiler → CPU Usage → Run → 看热点函数。</p>
+<p><strong>💡 加分话术</strong>:<strong>性能优化的第一原则:先测量再优化</strong>。BenchmarkDotNet 用于算法层对比,VS Profiler 用于开发期定位, dotnet-trace 用于生产环境。<strong>前端类似的是 Chrome DevTools Performance 标签 + Lighthouse</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ Debug 模式跑 Benchmark —— 编译器没优化,数据失真。必须 Release。</li>
+<li>❌ 抓 trace 时间太短 —— 噪音多,看不到真实负载。</li>
+<li>❌ 微优化空转 —— 1ms 优化到 0.9ms 没意义,先看大局。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"性能优化我有三套工具,各有定位:</p>
+<p>第一,<strong>BenchmarkDotNet</strong> 做单方法微基准。我要对比两种 CRC 实现,加 [Benchmark] 注解,Release 跑一次,自动输出 Mean、Ratio、Allocated。这种数据驱动决策,避免拍脑袋。</p>
+<p>第二,<strong>VS Profiler</strong> 开发期综合定位。F5 启动 + Performance Profiler,CPU Usage 一目了然,看热点函数。开发期最方便。</p>
+<p>第三,<strong>dotnet-trace</strong> 生产环境低侵入。dotnet-trace collect -p pid --format Speedscope,生成 speedscope 文件,打开看火焰图,最宽的栈就是热点。生产环境不能装 VS,这个最实用。</p>
+<p>性能优化第一原则:<strong>先测量再优化</strong>。我看到很多同事拍脑袋说'This 应该用 ref',结果 BenchmarkDotNet 一跑没区别,纯属浪费时间。</p>
+<p>前端类似的是 <strong>Chrome DevTools Performance + Lighthouse</strong>——录制、看火焰图、找长任务。<strong>这套性能分析方法论,前端做了 5 年的我直接迁移过来</strong>。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-10">十、调试 + 工程素养</h2>
+<h3 id="sec-3-28">Q28. 条件断点 + 数据断点 + Hit Count 分别什么时候用?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:三种断点的场景 + 实战经验。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>断点类型</th>
+<th>场景</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>条件断点</strong></td>
+<td>循环里只对特定值停</td>
+<td>右键断点 → Conditions → <code>device.Id == 5</code></td>
+</tr>
+<tr>
+<td><strong>数据断点</strong></td>
+<td>内存被谁改了不知道</td>
+<td>Debug → New Breakpoint → Data Breakpoint → 输入地址</td>
+</tr>
+<tr>
+<td><strong>Hit Count</strong></td>
+<td>第 N 次才停</td>
+<td>右键断点 → Hit Count → "Break when hit count = 1000"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实战场景</strong>:</p>
+<ol>
+<li><strong>条件断点</strong>:循环遍历 1000 个设备,只有 Id=42 的有问题,加条件 <code>device.Id == 42</code> 而不是 F10 一千次;</li>
+<li><strong>数据断点</strong>:某个 static 字段被神秘修改,数据断点 watch 字段地址,<strong>任何修改都会停</strong>——类似 GDB 的 watch;</li>
+<li><strong>Hit Count</strong>:循环第 1000 次才崩,设 "Break when hit count is a multiple of 1000" 或 "= 1000",直接定位。</li>
+</ol>
+<p><strong>💡 加分话术</strong>:VS 还支持 <strong>Tracepoint</strong>(轨迹点,不停只输出日志)、<strong>Logpoint</strong>(类似 console.log 不打断运行)。<strong>生产场景用 Tracepoint 比打断点更优雅</strong>。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 条件断点表达式写错 —— 永远不触发或永远触发。</li>
+<li>❌ Hit Count 在异步多线程场景不直观 —— 可能多个线程累计。</li>
+<li>❌ 数据断点只能 watch 4/8 字节 —— 大对象不行。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"三种断点我用得非常多,各有定位:</p>
+<p><strong>条件断点</strong>用于循环里找特定值。遍历 1000 个设备,只有 Id=42 的有问题,加条件 device.Id == 42,不用 F10 一千次。前端在 Chrome DevTools 调 React 时也是这种思路—— conditional breakpoint 加在数组的特定 index 上。</p>
+<p><strong>数据断点</strong>用于追踪内存被谁改了。某个 static 字段神秘变化,设数据断点 watch 字段地址,任何修改都会停,栈回溯就能找到元凶。这个 GDB 老用户特别熟悉,前端调试 JS 没有直接对应。</p>
+<p><strong>Hit Count</strong> 用于第 N 次才崩的场景。循环 1000 次后崩,设 hit count = 1000,直接跳到崩的位置。</p>
+<p>还有 <strong>Tracepoint / Logpoint</strong>——不停只输出日志,生产场景特别有用,相当于不重新编译加 Console.WriteLine。</p>
+<p>这些工具前端 DevTools 都有类似—— conditional breakpoint、logpoint。<strong>Chrome DevTools 调了 5 年,VS 这套断点我上手 1 天就熟</strong>。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-29">Q29. 工业现场设备偶发掉线 30 秒自动恢复,怎么排查?</h3>
+<p><strong>🎯 面试官想听到什么</strong>:三层排查法 - 物理层 / 协议层 / 应用层 + 排除法。</p>
+<p><strong>✅ 标准答案</strong></p>
+<p><strong>Step 1:物理层(Physical Layer)</strong></p>
+<ul>
+<li>网线 / 串口线是否松动?</li>
+<li>交换机 / 路由器日志是否记录端口 down / up?</li>
+<li>电源是否闪断?(车间电源问题最常见)</li>
+<li>EMC 干扰:大功率设备启动是否干扰通信线?(屏蔽线、双绞、隔离器)</li>
+</ul>
+<p><strong>Step 2:协议层(Protocol Layer)</strong></p>
+<ul>
+<li>Wireshark 抓包看 TCP 是否有 RST / FIN?</li>
+<li>心跳包是否正常发送?(Keep-Alive 配置)</li>
+<li>设备端固件是否有 bug?(联系厂家)</li>
+</ul>
+<p><strong>Step 3:应用层(Application Layer)</strong></p>
+<ul>
+<li>我的代码是否有内存 / 句柄泄漏导致卡顿?</li>
+<li>GC 是否 STW 时间过长?(LOH 压缩可能 100ms+)</li>
+<li>线程池是否饥饿?(默认 1 秒才创建新线程,长任务用 Task.Run 可能阻塞)</li>
+</ul>
+<p><strong>排查日志(必须)</strong>:</p>
+<ul>
+<li>Serilog 记录每次连接 / 断开 + 原因;</li>
+<li>时间戳精确到毫秒,和现场 SCADA 对比;</li>
+<li>设备掉线和恢复的事件 ID 配对,排除单边日志。</li>
+</ul>
+<p><strong>💡 加分话术</strong>:<strong>30 秒是关键线索</strong>——TCP 默认 Keep-Alive 是 2 小时,但应用层心跳通常 30 秒一轮。如果是 30 秒自动恢复,<strong>很可能是心跳超时后重连</strong>,根本问题是心跳逻辑或网络抖动。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ 只看应用层日志 —— 物理层问题被掩盖。</li>
+<li>❌ 没抓包就猜 —— 瞎调一通。</li>
+<li>❌ 改了代码不验证 —— 问题没解决还引入新 bug。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"工业现场设备掉线排查我有一套固定的三层方法。</p>
+<p><strong>Step 1 物理层</strong>——网线松没松、电源闪没闪、车间大功率设备启动是否 EMC 干扰。30 秒这个数字很关键:车间电焊机启动可能 10 秒干扰,电源 UPS 切换可能 5-10 秒。<strong>先排除物理问题,再查软件</strong>。</p>
+<p><strong>Step 2 协议层</strong>——Wireshark 抓包看 TCP 是否有 RST/FIN,心跳包是否正常发送。如果是 Modbus TCP,看是否有 Retry。设备端固件是否有 bug,联系厂家要新固件。</p>
+<p><strong>Step 3 应用层</strong>——我的代码是否有 GC STW 时间过长、线程池饥饿、内存泄漏。30 秒 GC 通常不至于,但 LOH 压缩可能几十毫秒,叠加多次会卡顿。</p>
+<p>关键线索是 <strong>30 秒这个数字</strong>——TCP Keep-Alive 默认 2 小时,但应用层心跳通常 30 秒一轮。如果心跳超时后自动重连,<strong>根本问题可能是心跳逻辑或网络抖动</strong>,不是真的掉线。</p>
+<p>排查必须<strong>排除法</strong>:先物理、再协议、最后应用。<strong>工业现场 70% 问题在物理层</strong>,工程师只看软件日志会走弯路。"</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-30">Q30. 你最满意的 bug 是怎么排查的?(STAR 法开放题)</h3>
+<p><strong>🎯 面试官想听到什么</strong>:STAR 结构 + 技术深度 + 思维流程。</p>
+<p><strong>✅ 标准答案</strong>(参考答案,可改写)</p>
+<p><strong>S(背景)</strong>:DAQMonitor 上线后,某客户的西门子 S7-1200 PLC 在每天凌晨 3 点准时重启采集服务,<strong>白天完全正常</strong>。</p>
+<p><strong>T(任务)</strong>:定位为什么凌晨崩溃,白天稳定。客户投诉,<strong>必须在 24 小时内修复</strong>。</p>
+<p><strong>A(行动)</strong>:</p>
+<ol>
+<li><strong>复现</strong>:让客户每天凌晨留人,我们抓 dump,确认是 <code>OutOfMemoryException</code>;</li>
+<li><strong>抓 gcdump</strong>:凌晨 2:50 抓一次,3:00 抓一次,3:01 抓一次,对比发现 <strong>3:00 时 List<Task> 容器从 100 涨到 50万</strong>;</li>
+<li><strong>gcroot 找链路</strong>:50 万 Task 全部由一个 static <code>_pendingTasks</code> 持有,看代码:
+   <code>csharp
+   private static List&lt;Task&gt; _pendingTasks = new();
+   public async Task FireAndForget(Func&lt;Task&gt; action) {
+       var t = action();
+       _pendingTasks.Add(t);  // ❌ 只加不清
+       await t;
+   }</code></li>
+<li><strong>业务背景</strong>:客户每天凌晨 3 点跑批处理报表,触发大量 Task,Task 完成后没从 List 移除,内存累积;</li>
+<li><strong>修复</strong>:改用 <code>ConcurrentBag&lt;Task&gt;</code> + 定期清理已完成任务,或直接用 <code>Task.Run</code> 不缓存;</li>
+<li><strong>验证</strong>:连续 7 天凌晨监控,内存稳定 280MB。</li>
+</ol>
+<p><strong>R(结果)</strong>:修复后 7×24 稳定运行,客户续约。</p>
+<p><strong>💡 加分话术</strong>:这种开放题,<strong>核心展示三层能力</strong>:技术深度(dump 分析)、业务理解(批处理场景)、沟通(让客户配合)。<strong>前端类似的是排查 SPA 内存泄漏</strong>——Chrome Memory Snapshot 对比,思路一致。</p>
+<p><strong>⚠️ 坑点预警</strong></p>
+<ul>
+<li>❌ "我搜了下 StackOverflow 解决了" —— 没技术深度。</li>
+<li>❌ 只讲结果不讲过程 —— 面试官想看思维。</li>
+<li>❌ 编故事被戳穿 —— 选真实 bug,细节到位。</li>
+</ul>
+<p><strong>🎤 逐字稿</strong></p>
+<blockquote>
+<p>"我最满意的 bug 是 DAQMonitor 上线后,某客户的西门子 PLC 在每天凌晨 3 点准时重启采集服务,白天完全正常。客户投诉,必须在 24 小时内修复。</p>
+<p>排查流程我用了 STAR 法:</p>
+<p><strong>Situation</strong> 是凌晨崩溃,白天稳定,看起来像定时任务触发。</p>
+<p><strong>Task</strong> 是定位为什么凌晨崩。</p>
+<p><strong>Action</strong> 我分四步:</p>
+<p>第一步,<strong>让客户配合复现</strong>,凌晨 2:50 / 3:00 / 3:01 各抓一次 gcdump;</p>
+<p>第二步,<strong>对比 dump</strong>,发现 3:00 时一个 List<Task> 从 100 涨到 50 万,明显异常;</p>
+<p>第三步,<strong>gcroot 找链路</strong>,50 万 Task 全部由 static <code>_pendingTasks</code> 持有;</p>
+<p>第四步,<strong>业务关联</strong>,客户每天凌晨跑批处理报表,触发大量 Task,只加不清,内存累积;</p>
+<p><strong>Result</strong> 改成 ConcurrentBag + 定期清理已完成任务,7×24 稳定运行,客户续约。</p>
+<p>这个 bug 给我的启示:<strong>长跑系统的内存泄漏,本质都是'只加不减'模式</strong>。前端类似的是 React useEffect 漏清理导致 DOM 节点泄漏,本质一样。</p>
+<p>我把这个经验固化成代码规范:<strong>所有集合容器必须有移除策略,LRU / 过期 / 弱引用任选其一</strong>。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-11">30 题自测清单(逐条打勾)</h2>
+<blockquote>
+<p>面试前一夜,把这 30 条过一遍,<strong>每条都能用自己的话讲 1 分钟</strong> 就稳了。</p>
+</blockquote>
+<h3 id="sec-3-31">C# 核心 + 异步(3)</h3>
+<ul>
+<li>[ ] 1. 我能解释 struct vs class,能复述 <code>List&lt;struct&gt;</code> 改字段丢失的根因。</li>
+<li>[ ] 2. 我能画出 async/await 状态机的伪代码,能区分 Task 和 Thread。</li>
+<li>[ ] 3. 我能说出 async void 的 3 个致命问题,知道唯一合法场景。</li>
+</ul>
+<h3 id="sec-3-32">多线程 + 并发(3)</h3>
+<ul>
+<li>[ ] 4. 我能解释为什么 lock(this) 危险,知道标准的 <code>_sync</code> 模式。</li>
+<li>[ ] 5. 我能说出 Channel<T> 比 ConcurrentQueue 多了什么,知道何时选哪个。</li>
+<li>[ ] 6. 我能写出 CancellationTokenSource 超时 + 链式取消的代码,知道 Dispose 重要性。</li>
+</ul>
+<h3 id="sec-3-33">串口 + Modbus(3)</h3>
+<ul>
+<li>[ ] 7. 我能复述串口半包粘包的 RDBE 处理模式。</li>
+<li>[ ] 8. 我能手算 Modbus RTU CRC16,知道 0xA001 多项式 + 0xFFFF 初值。</li>
+<li>[ ] 9. 我能解释浮点 4 种字节序 ABCD/CDAB/BADC/DCBA,知道必须做成配置项。</li>
+</ul>
+<h3 id="sec-3-34">PLC + S7.Net(3)</h3>
+<ul>
+<li>[ ] 10. 我能复述 S7 地址格式 DBX/DBB/DBW/DBD,知道批量读取优化。</li>
+<li>[ ] 11. 我能解释 event 不退订的内存泄漏,知道 DeviceHost 模式。</li>
+<li>[ ] 12. 我能解释 PLC 同步阻塞 UI 的死锁,知道 ConfigureAwait(false)。</li>
+</ul>
+<h3 id="sec-3-35">EF Core + SQLite(3)</h3>
+<ul>
+<li>[ ] 13. 我能解释 DbContext 为什么不能 Singleton,知道 Scoped 和 Factory 选型。</li>
+<li>[ ] 14. 我能复述 IDbContextFactory vs 直接注入 DbContext 的 5 个场景。</li>
+<li>[ ] 15. 我能解释 AsNoTracking 的性能收益,知道全局 NoTracking 配置。</li>
+</ul>
+<h3 id="sec-3-36">Prism + MVVM(3)</h3>
+<ul>
+<li>[ ] 16. 我能复述 RegionManager 抽象,能类比 React Router / Vue Router。</li>
+<li>[ ] 17. 我能说出 EventAggregator 泄漏避免方案,知道 SubscriptionToken 用法。</li>
+<li>[ ] 18. 我能解释 Prism 模块化 vs 手写 DI 的核心优势,能类比微前端。</li>
+</ul>
+<h3 id="sec-3-37">TCP Socket + 协议设计(3)</h3>
+<ul>
+<li>[ ] 19. 我能复述 TCP 粘包 4 种解法,知道长度前缀是工业主流。</li>
+<li>[ ] 20. 我能解释 ReadAsync 返回 0 的含义,知道 Polly 重连策略。</li>
+<li>[ ] 21. 我能设计一个完整的工业协议帧,字节级讲清 7 个字段。</li>
+</ul>
+<h3 id="sec-3-38">报警 + 日志(3)</h3>
+<ul>
+<li>[ ] 22. 我能解释回滞算法,知道为什么不能直接 if(value &gt; threshold)。</li>
+<li>[ ] 23. 我能复述 Serilog Sink / Enricher / MinimumLevel 的用法。</li>
+<li>[ ] 24. 我能解释 AsyncLocal<T> 跨线程传 TraceId 的原理。</li>
+</ul>
+<h3 id="sec-3-39">性能 + 长跑稳定性(3)</h3>
+<ul>
+<li>[ ] 25. 我能用 dotnet counters + gcdump + dump 三件套排查内存泄漏。</li>
+<li>[ ] 26. 我能背出 4 种典型内存泄漏:event / static / 闭包 / GDI。</li>
+<li>[ ] 27. 我能用 BenchmarkDotNet / VS Profiler / dotnet-trace 三套工具定位瓶颈。</li>
+</ul>
+<h3 id="sec-3-40">调试 + 工程素养(3)</h3>
+<ul>
+<li>[ ] 28. 我能复述条件断点 / 数据断点 / Hit Count 各自场景。</li>
+<li>[ ] 29. 我能讲清"设备掉线 30 秒自动恢复"的三层排查法。</li>
+<li>[ ] 30. 我能讲一个真实的 STAR 法 bug 故事,有技术深度有业务理解。</li>
+</ul>
+<hr />
+<h2 id="sec-2-12">📚 参考来源</h2>
+<ul>
+<li><a href="https://learn.microsoft.com/dotnet/standard/parallel-programming/">.NET 官方文档 — async/await、Channel<T>、CancellationTokenSource</a></li>
+<li><a href="https://devblogs.microsoft.com/dotnet/async-faq-where-do-i-start/">Stephen Toub — Async/Await FAQ(Microsoft 开发博客)</a></li>
+<li><a href="https://docs.prismlibrary.com/">Prism Library 官方文档(v9)</a></li>
+<li><a href="https://github.com/S7NetPlus/s7netplus">S7.Net Plus GitHub 仓库(含示例)</a></li>
+<li><a href="https://github.com/NModbus/NModbus">NModbus GitHub 仓库</a></li>
+<li><a href="https://github.com/OPCFoundation/UA-.NETStandard-Samples">OPCFoundation .NET Standard 示例</a></li>
+<li><a href="https://github.com/dotnet/MQTTnet">MQTTnet 官方文档</a></li>
+<li><a href="https://serilog.net/">Serilog 官方文档</a></li>
+<li><a href="https://learn.microsoft.com/ef/core/">EF Core 官方文档 — 性能、IDbContextFactory、AsNoTracking</a></li>
+<li><a href="https://www.thepollyproject.org/">Polly 官方文档 — 重试 / 熔断 / 超时</a></li>
+<li><a href="https://benchmarkdotnet.org/">BenchmarkDotNet 官方文档</a></li>
+<li><a href="https://learn.microsoft.com/dotnet/core/diagnostics/">dotnet-dump / dotnet-trace 工具集</a></li>
+<li><a href="https://modbus.org/specs.php">Modbus Application Protocol Specification(v1.1b3)</a></li>
+<li><a href="https://archive.s7communication.de/">Siemens S7 Communication Protocol — The Setup</a></li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:30 题逐字稿背完,你不是"会背",是"会用"。面试官挖坑,你就用这套思路填成舞台。<strong>前端 5 年的工程素养 + 这 30 题的深度 = 14-15K 的底气</strong>。加油。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="resume.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">📄 简历模板 · 上位机 13-15K</div></a>
+  <a class="next" href="getting-started.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">实操入门 · 从零搭建企业级工程</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

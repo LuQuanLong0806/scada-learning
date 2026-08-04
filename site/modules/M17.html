@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M17 · 工业安全 + MES 对接 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M17">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 2 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — HttpClient 对接 MES REST API 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-6">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-7">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-8">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-9">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-10">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-11">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-12">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-13">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 工业网络安全：白名单 + 审计 + IT/OT 隔离 🔴</a><ul>
+<li class="l3"><a href="#sec-3-14">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-15">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-16">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-17">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-18">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-19">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-20">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-21">💡 工控导师说（真实战例）</a></li>
+<li class="l3"><a href="#sec-3-22">🎓 职业建议</a></li>
+<li class="l3"><a href="#sec-3-23">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-24">📚 延伸阅读</a></li>
+<li class="l3"><a href="#sec-3-25">🏗️ 项目任务</a></li>
+<li class="l3"><a href="#sec-3-26">✅ 打卡[ ]</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M17 — 工业安全与 MES/ERP 对接（HttpClient + REST）🔐</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🔴 必学（15K 加分项）· 工业网络安全 + MES/ERP WebApi 对接（JD 高频出现："熟悉与上位系统对接"、"了解工业网络安全规范"）
+<strong>技术来源</strong>：🟦 <code>HttpClient</code> + <code>Microsoft.Extensions.Http</code>（BCL，HttpClientFactory + DI）、🟦 <code>System.Text.Json</code>（含 SourceGeneration）、🟧 <code>Polly</code>（重试 + 熔断，业界事实标准）、🟦 <code>System.Net.Http.Json</code>（<code>PostAsJsonAsync</code> 扩展）。
+<strong>前端类比总纲</strong>：HttpClient 就是 <code>axios</code>/<code>fetch</code>，REST 还是 REST，JWT 还是 Bearer Token，Polly 就是 <code>axios-retry</code> + React Query 的 retry/circuit-breaker。前端会的网络层套路，到这里 80% 平移——剩下 20% 是<strong>工业现场</strong>加的硬约束:IT/OT 双网卡、白名单、审计、单向网闸。
+<strong>给简历加的能力</strong>：把上位机从"采集设备数据"升级成"<strong>接入企业 IT 基础设施</strong>"——向 MES 上报完工、从 ERP 拉工单、把报警推到 SCADA，并且<strong>符合工业网络安全规范</strong>（IEC 62443 思想）。这是 JD 里"对接上位系统 / 信息安全"那条的真实落地，13→15K 的硬通货。
+<strong>前置</strong>：M4（持久化，审计日志要落库）、M9（DI 容器 + 异步容错，HttpClient 必须 DI），M7（OPC UA / MQTT 走的是工业协议，这里走的是 IT 协议，互为补充）。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>让上位机：① 用 <code>HttpClient</code> 通过 HttpClientFactory + DI 对接 MES/ERP REST API（含 JSON 序列化、JWT、重试、熔断）；② 满足基本的<strong>工业网络安全</strong>要求（IT/OT 双网卡、白名单、审计日志、凭证管理）；③ 知道 IT/OT 边界在哪儿——为什么工厂要把生产网和办公网物理隔离，为什么不能直接 <code>http://</code> 走公网。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — HttpClient 对接 MES REST API 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>MES（Manufacturing Execution System，制造执行系统）= 工厂的"车间大脑"，管<strong>工单下发 / 工艺参数 / 质量追溯 / 设备状态</strong>；上位机要把它采到的数据（产量、温度、报警）按 REST 接口上报，比如 <code>POST http://mes.company.com/api/productions/{id}/complete</code>。HttpClient 就是干这事的 axios——但<strong>绝不能 <code>new HttpClient()</code></strong>，会 socket 耗尽。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机（C#）</th>
+<th>前端</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HttpClient</code></td>
+<td><code>axios</code> / <code>fetch</code></td>
+</tr>
+<tr>
+<td><code>HttpClientFactory</code> + DI</td>
+<td>axios 实例池 + React Provider 注入</td>
+</tr>
+<tr>
+<td>REST API（<code>GET/POST/PUT/DELETE</code>）</td>
+<td>RESTful 后端</td>
+</tr>
+<tr>
+<td>JWT Bearer Token</td>
+<td><code>Authorization: Bearer xxx</code></td>
+</tr>
+<tr>
+<td><code>Polly</code>（重试 + 熔断）</td>
+<td><code>axios-retry</code> + React Query 的 <code>retry</code> / circuit breaker</td>
+</tr>
+<tr>
+<td>工厂内网（<code>http://mes.company.com</code>）</td>
+<td>公司 VPN 内网 API</td>
+</tr>
+<tr>
+<td><code>System.Text.Json</code>（源生成）</td>
+<td><code>JSON.stringify</code> + zod schema</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① HttpClientFactory + DI（⭐ 第一条铁律）</strong>
+老写法 <code>new HttpClient()</code> 有两个坑：一是底层 socket 不会立即释放，高频调用会<strong>耗尽 TCP 端口</strong>（Time-Wait 堆积）；二是 DNS 变更不生效（实例长存活，DNS 缓存死）。正确做法是注册到 DI 容器，由 <code>HttpClientFactory</code> 统一管理连接池、定时回收、DNS 刷新。</p>
+<pre><code class="language-csharp">// Bootstrapper.cs（Program.cs 或 Startup.cs）
+services.AddHttpClient(&quot;mes&quot;, c =&gt;
+{
+    c.BaseAddress = new Uri(&quot;http://mes.company.com/api/&quot;);
+    c.Timeout = TimeSpan.FromSeconds(10);                 // 默认 100s 太长，必改
+    c.DefaultRequestHeaders.Add(&quot;X-Client&quot;, &quot;DaqMonitor&quot;);
+})
+.SetHandlerLifetime(TimeSpan.FromMinutes(2))              // 2 分钟换一次底层 Handler，触发 DNS 刷新
+.AddPolicyHandler(GetRetryPolicy())                       // 重试策略
+.AddPolicyHandler(GetCircuitBreakerPolicy());             // 熔断策略
+</code></pre>
+<blockquote>
+<p>命名客户端 <code>"mes"</code>——因为后面可能还有 <code>"erp"</code>、<code>"scada"</code>，各自 BaseAddress/Token 不同。</p>
+</blockquote>
+<p><strong>② Polly 重试 + 熔断（🟧 业界事实标准）</strong></p>
+<pre><code class="language-bash">dotnet add package Microsoft.Extensions.Http.Polly
+dotnet add package Polly.Extensions.Http
+</code></pre>
+<pre><code class="language-csharp">static IAsyncPolicy&lt;HttpResponseMessage&gt; GetRetryPolicy() =&gt;
+    HttpPolicyExtensions.HandleTransientHttpError()       // 5xx + 408
+        .WaitAndRetryAsync(3,
+            attempt =&gt; TimeSpan.FromSeconds(Math.Pow(2, attempt)),   // 2/4/8 秒指数退避
+            (outcome, delay, retry, ctx) =&gt;
+                Console.WriteLine($&quot;第 {retry} 次重试，等 {delay.TotalSeconds}s&quot;));
+
+static IAsyncPolicy&lt;HttpResponseMessage&gt; GetCircuitBreakerPolicy() =&gt;
+    HttpPolicyExtensions.HandleTransientHttpError()
+        .CircuitBreakerAsync(
+            exceptionsAllowedBeforeBreaking: 5,           // 连续 5 次失败就熔断
+            durationOfBreak: TimeSpan.FromSeconds(30));   // 熔断 30s 内直接 fail-fast，不打 MES
+</code></pre>
+<blockquote>
+<p>熔断意义：MES 挂了就别打死它了，30 秒后再探一下——比让 100 个工位同时疯狂重试把 MES 打瘫强百倍。</p>
+</blockquote>
+<p><strong>③ JSON 序列化（🟦 <code>System.Text.Json</code> + 源生成）</strong>
+默认大小写规则和前端不一样：C# 属性 <code>WorkOrderId</code> 默认序列化成 <code>"WorkOrderId"</code>，MES 一般要 <code>"workOrderId"</code>（camelCase）。配 <code>JsonSerializerOptions</code>：</p>
+<pre><code class="language-csharp">services.AddHttpClient(&quot;mes&quot;, c =&gt; { /* ... */ })
+    .AddHttpMessageHandler(() =&gt; new ForceCamelCaseHandler());  // 或者直接在 PostAsJsonAsync 传 options
+
+public static readonly JsonSerializerOptions Camcel = new()
+{
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+};
+</code></pre>
+<blockquote>
+<p>性能进阶：用 <code>System.Text.Json.SourceGeneration</code>（NuGet）在编译期生成序列化代码，比反射快 2-3 倍、内存省一半——大流量上报必上。</p>
+</blockquote>
+<p><strong>④ 认证（Bearer Token / API Key）</strong></p>
+<pre><code class="language-csharp">c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(&quot;Bearer&quot;, jwt);
+c.DefaultRequestHeaders.Add(&quot;X-API-Key&quot;, apiKey);   // 部分老 MES 用 API Key
+</code></pre>
+<blockquote>
+<p>JWT 过期要自动刷新——见挑战题。工厂多走 <strong>Service Account</strong>（服务账号，长期 token + IP 白名单），不走用户交互 OAuth2。</p>
+</blockquote>
+<p><strong>⑤ 错误处理：千万别 <code>EnsureSuccessStatusCode</code> 一刀切</strong>
+MES 返回 409（工单已完工）、401（token 过期）、400（参数错）业务语义各不同，全抛 <code>HttpRequestException</code> 等于丢掉信息。要按状态码分支转成<strong>业务异常</strong>：</p>
+<pre><code class="language-csharp">public async Task ReportCompletionAsync(string workOrderId, int qty, CancellationToken ct)
+{
+    var client = _factory.CreateClient(&quot;mes&quot;);
+    var resp = await client.PostAsJsonAsync(
+        $&quot;productions/{workOrderId}/complete&quot;,
+        new { quantity = qty, timestamp = DateTime.UtcNow },
+        cancellationToken: ct);
+
+    switch (resp.StatusCode)
+    {
+        case HttpStatusCode.Conflict:    // 409 工单已完工
+            throw new MesConflictException(&quot;工单已完工，不能重复上报&quot;);
+        case HttpStatusCode.Unauthorized:// 401 JWT 过期
+            throw new TokenExpiredException(&quot;JWT 过期，需重新登录或刷新&quot;);
+        case HttpStatusCode.BadRequest:  // 400 参数错，读 Body 里的错误信息
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            throw new MesValidationException($&quot;MES 拒绝: {body}&quot;);
+    }
+    resp.EnsureSuccessStatusCode();      // 其余 5xx 走 Polly 重试
+}
+</code></pre>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 绝不 <code>new HttpClient()</code></td>
+<td>socket 耗尽 + DNS 不刷新，老项目改造第一条；HttpClientFactory + 命名客户端是标准答案</td>
+</tr>
+<tr>
+<td>⭐ 必设 <code>Timeout</code></td>
+<td>默认 100s 太长，MES 卡住会让 UI 卡死；工厂内网一般 5-10s</td>
+</tr>
+<tr>
+<td>⭐ 用 <code>CancellationToken</code> 透传</td>
+<td>关窗/退出时 <code>ct</code> 取消，否则后台请求拖住进程退不掉</td>
+</tr>
+<tr>
+<td>🔥 JSON 大小写</td>
+<td>C# <code>WorkOrderId</code> 默认序列化 <code>WorkOrderId</code>，MES 多要 <code>workOrderId</code>，必配 <code>CamelCase</code></td>
+</tr>
+<tr>
+<td>🔥 HTTPS 证书</td>
+<td>内网自签证书会让请求报 <code>SSL 证书链错误</code>；测试环境可 <code>HttpClientHandler.ServerCertificateCustomValidationCallback</code>，<strong>生产绝不关验证</strong></td>
+</tr>
+<tr>
+<td>🔥 代理穿透</td>
+<td>工厂常走代理，<code>HttpClient.DefaultProxy</code> 或 <code>WebProxy</code> 要配；否则你以为"连不上 MES"其实卡在代理</td>
+</tr>
+<tr>
+<td>🔥 别 <code>.Result</code> / <code>.Wait()</code></td>
+<td>同步阻塞会死锁（SynchronizationContext），UI 线程死锁最痛</td>
+</tr>
+<tr>
+<td>⭐ 4xx 不重试</td>
+<td><code>HandleTransientHttpError</code> 只重试 5xx + 408，4xx 是业务错，重试等于打日志刷屏</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🟢 基础题</h3>
+<p>注册一个名为 <code>"erp"</code> 的 HttpClient，BaseAddress <code>http://erp.company.com/api/</code>，超时 8 秒。写一个 <code>ErpClient.GetWorkOrderAsync(string id)</code> 用 <code>GetFromJsonAsync&lt;WorkOrderDto&gt;</code> 反序列化。</p>
+<h3 id="sec-3-6">🟡 进阶题</h3>
+<p>给 <code>"mes"</code> 客户端加 Polly：3 次指数退避重试 + 连续 5 次失败熔断 30s。故意把 BaseAddress 改成错地址，观察日志里"第 N 次重试"和"熔断中"的输出。</p>
+<h3 id="sec-3-7">🔴 挑战题</h3>
+<p>实现 JWT 自动刷新：写一个 <code>DelegatingHandler</code>，拦截响应——如果 401，就用 refresh_token 调 <code>/auth/refresh</code> 拿新 token、替换 <code>HttpRequestMessage.Headers.Authorization</code>、重新发一次请求（只重试一次，防死循环）。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">// 注册
+services.AddHttpClient(&quot;erp&quot;, c =&gt;
+{
+    c.BaseAddress = new Uri(&quot;http://erp.company.com/api/&quot;);
+    c.Timeout = TimeSpan.FromSeconds(8);
+});
+
+// 使用
+public class ErpClient
+{
+    private readonly IHttpClientFactory _factory;
+    public ErpClient(IHttpClientFactory factory) =&gt; _factory = factory;
+
+    public async Task&lt;WorkOrderDto?&gt; GetWorkOrderAsync(string id, CancellationToken ct)
+    {
+        var client = _factory.CreateClient(&quot;erp&quot;);
+        return await client.GetFromJsonAsync&lt;WorkOrderDto&gt;($&quot;workorders/{id}&quot;, ct);
+    }
+}
+
+public class WorkOrderDto { public string Id { get; set; } = &quot;&quot;; public int Qty { get; set; } public string ProductCode { get; set; } = &quot;&quot;; }
+</code></pre>
+<h3 id="sec-3-8">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>我在某汽车零部件厂，上位机一上线就报"连不上 MES"。查了一下午，发现是<strong>老代码 <code>new HttpClient()</code></strong>——每秒上报一次，TCP 端口被 TIME-WAIT 占满。改成 <code>AddHttpClient("mes")</code> 之后，端口稳稳的在几百个，再没出过事。从那以后我看任何 HTTP 代码，第一眼就搜有没有 <code>new HttpClient(</code>——看到就 PR 改掉。
+第二条：MES 那边的同事最恨你<strong>不打日志就疯狂重试</strong>——他们服务器被打瘫过几次。Polly 的 retry 回调里<strong>一定要 <code>Log</code> 出来</strong>，最好把 MES 返回的状态码、Body 也带上，联调时双方有共同证据。</p>
+</blockquote>
+<h3 id="sec-3-9">🎓 职业建议</h3>
+<p>面试被问"你怎么对接 MES"——
+- <strong>15K 答</strong>："HttpClientFactory + 命名客户端，Polly 做重试熔断，System.Text.Json 源生成加速，按状态码分支抛业务异常。"
+- <strong>13K 答</strong>："<code>new HttpClient()</code> 调 <code>PostAsync</code>。" → 立刻被刷。</p>
+<p>这两段话的差距就是 2K 月薪。会 HttpClientFactory + Polly 是分水岭。</p>
+<h3 id="sec-3-10">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>new HttpClient()</code></td>
+<td>跑几小时后 socket 耗尽报 "Only one usage of each socket address"</td>
+<td>改 HttpClientFactory</td>
+</tr>
+<tr>
+<td>DNS 变更不生效</td>
+<td>MES 切换了 IP，上位机还连老的</td>
+<td><code>SetHandlerLifetime</code> ≤ 3 分钟</td>
+</tr>
+<tr>
+<td>同步阻塞</td>
+<td>UI 卡死 / 死锁</td>
+<td>全 <code>async/await</code>，禁 <code>.Result</code></td>
+</tr>
+<tr>
+<td>HTTPS 自签证书</td>
+<td><code>Could not establish trust relationship</code></td>
+<td>测试关验证 / 生产装根证书</td>
+</tr>
+<tr>
+<td>4xx 重试</td>
+<td>业务错被无限重试</td>
+<td>只重试 5xx，4xx 抛业务异常</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-11">📚 延伸阅读</h3>
+<ul>
+<li>Microsoft 官方 <code>IHttpClientFactory</code> 文档：https://learn.microsoft.com/dotnet/core/extensions/httpclient-factory</li>
+<li>Polly GitHub（含熔断 / 退避完整示例）：https://github.com/App-vNext/Polly</li>
+<li><code>System.Text.Json</code> 源生成：https://learn.microsoft.com/dotnet/standard/serialization/system-text-json-source-generation</li>
+</ul>
+<h3 id="sec-3-12">🏗️ 项目任务</h3>
+<p>给 DAQ Monitor 加 <code>MesClient</code>：每小时把当班产量上报 MES <code>POST /api/productions/{id}/complete</code>。要求：HttpClientFactory 注册、Polly 重试熔断、按状态码分支、写 Serilog 日志。</p>
+<h3 id="sec-3-13">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M17',1)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-3">Day 2 — 工业网络安全：白名单 + 审计 + IT/OT 隔离 🔴</h2>
+<h3 id="sec-3-14">一句话讲清楚</h3>
+<p>工厂网络分两层：<strong>IT 网</strong>（办公，能联外网，威胁多）和 <strong>OT 网</strong>（生产，设备 PLC/上位机，<strong>断网或单向隔离</strong>）。上位机常"跨两边"——左边读 PLC（OT），右边报 MES（IT）。所以要做三件事：① <strong>白名单</strong>（只允许连指定的 IP/域名）；② <strong>审计日志</strong>（谁在什么时候改了什么设定值，落库可追溯）；③ <strong>凭证管理</strong>（密码不能硬编码）。这套思想来自 <strong>IEC 62443</strong>（工业自动化信息安全国际标准），不是研发拍脑袋。</p>
+<h3 id="sec-3-15">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>工业安全</th>
+<th>前端 / Web</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IT/OT 双网卡隔离</td>
+<td>内网 / 外网双网卡服务器</td>
+</tr>
+<tr>
+<td>工业防火墙白名单</td>
+<td>nginx <code>allow/deny</code> + WAF</td>
+</tr>
+<tr>
+<td>单向网闸（数据只出不进）</td>
+<td>CDN 单向推送</td>
+</tr>
+<tr>
+<td>审计日志（设定值变更）</td>
+<td>Sentry / access log / 操作日志</td>
+</tr>
+<tr>
+<td>IEC 62443</td>
+<td>GDPR / SOC2 / 等保</td>
+</tr>
+<tr>
+<td>HSM / Windows Credential Manager</td>
+<td>HashiCorp Vault / AWS Secrets Manager</td>
+</tr>
+<tr>
+<td>离线更新 + 签名验证</td>
+<td>子资源完整性 SRI + 内网镜像</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-16">分点精讲</h3>
+<p><strong>① IT/OT 双网卡架构（⭐ 核心概念）</strong></p>
+<pre><code>   IT 网 (192.168.1.x)              OT 网 (192.168.10.x)
+   ┌──────────┐    ┌──────────┐    ┌──────────┐
+   │  MES/ERP │◄───│  上位机   │───►│  PLC/仪表 │
+   └──────────┘    │ 双网卡PC │    └──────────┘
+                   │ 网卡1:IT │
+                   │ 网卡2:OT │
+                   └──────────┘
+</code></pre>
+<p>上位机插两张网卡：网卡 1 连 IT（汇报 MES），网卡 2 连 OT（读 PLC）。<strong>路由表配死</strong>——OT 网段不走 IT 网卡，反之亦然。这样即使 IT 网中病毒，也难横向打穿到 PLC。这就是 IEC 62443 的"区域与通道"(Zone &amp; Conduit) 思想。</p>
+<p><strong>② 应用层白名单（防止被诱导连陌生地址）</strong>
+MES 地址应该来自配置文件，且运行时校验——避免配置被改成恶意地址（比如内鬼把 BaseAddress 改成自己的钓鱼服务器）。</p>
+<pre><code class="language-csharp">public class AllowedHostsValidator
+{
+    private readonly HashSet&lt;string&gt; _allowed;
+    public AllowedHostsValidator(IConfiguration cfg)
+        =&gt; _allowed = cfg.GetSection(&quot;AllowedHosts&quot;).Get&lt;string[]&gt;()?.ToHashSet() ?? new();
+
+    public bool IsValid(Uri uri) =&gt; _allowed.Contains(uri.Host);
+}
+
+// appsettings.json:
+// &quot;AllowedHosts&quot;: [ &quot;mes.company.com&quot;, &quot;erp.company.com&quot; ]
+
+// 使用：HttpClientFactory 包一层 DelegatingHandler 拦截
+public class WhitelistHandler : DelegatingHandler
+{
+    private readonly AllowedHostsValidator _v;
+    public WhitelistHandler(AllowedHostsValidator v) =&gt; _v = v;
+    protected override Task&lt;HttpResponseMessage&gt; SendAsync(HttpRequestMessage req, CancellationToken ct)
+    {
+        if (req.RequestUri is not null &amp;&amp; !_v.IsValid(req.RequestUri))
+            throw new SecurityException($&quot;禁止访问非白名单主机: {req.RequestUri.Host}&quot;);
+        return base.SendAsync(req, ct);
+    }
+}
+</code></pre>
+<p><strong>③ 审计日志（谁改了什么设定值）</strong>
+工厂里改 PLC 设定值（比如把温度上限从 80℃ 改成 90℃）是<strong>大事</strong>——出了质量事故要追责。每次写操作前后落一条 <code>AuditLog</code>，含：操作人、动作、目标点、旧值、新值、时间。M6 的 Serilog 是"运行日志"，这里是"<strong>业务审计</strong>"——分开放。</p>
+<pre><code class="language-csharp">public record AuditEntry(
+    string User, string Action, string Target,
+    double? OldValue, double? NewValue, DateTime Time);
+
+public class AuditLogger
+{
+    private readonly IDbContextFactory&lt;AppDb&gt; _factory;
+    public AuditLogger(IDbContextFactory&lt;AppDb&gt; factory) =&gt; _factory = factory;
+
+    public async Task LogAsync(AuditEntry entry, CancellationToken ct)
+    {
+        await using var db = _factory.CreateDbContext();
+        db.AuditLog.Add(entry);
+        await db.SaveChangesAsync(ct);
+    }
+}
+
+// PlcDevice.Write 前后包一层
+public async Task WriteSetpointAsync(int pointId, double newValue, string user, CancellationToken ct)
+{
+    double oldValue = await ReadAsync(pointId, ct);
+    await _plc.WriteAsync(pointId, newValue, ct);
+    await _audit.LogAsync(
+        new AuditEntry(user, &quot;WriteSetpoint&quot;, $&quot;point#{pointId}&quot;,
+                       oldValue, newValue, DateTime.UtcNow), ct);
+}
+</code></pre>
+<blockquote>
+<p>注意：审计日志的写库失败<strong>不能让业务回滚</strong>（不然改了设定值却因为日志写不进就回滚 PLC，更乱）——用 <code>try/catch</code> 包住，失败进 Serilog 告警即可。</p>
+</blockquote>
+<p><strong>④ 凭证管理：密码不硬编码</strong></p>
+<pre><code class="language-csharp">// ❌ 反面教材
+var token = &quot;eyJhbGciOi...&quot;;  // 提交到 git，第二天公司上头条
+
+// ✅ 正解：环境变量 / Windows Credential Manager / appsettings（不入库）
+var token = Environment.GetEnvironmentVariable(&quot;MES_JWT&quot;);
+// 或：DPAPI 加密存 appsettings.json，启动时解密
+</code></pre>
+<blockquote>
+<p>进阶：Windows Credential Manager（<code>CredentialManagement</code> NuGet）或公司统一 KDC / Vault——这一块由 IT 部门管，你只要做到"密码不出现在源码"就过 60 分及格线。</p>
+</blockquote>
+<p><strong>⑤ 更新安全：签名验证 + 离线更新</strong>
+工厂上位机<strong>绝不开 Windows 自动更新</strong>（更新可能导致蓝屏停线）。补丁走"<strong>测试环境验证 → 离线包签名 → 现场手动装</strong>"流程。你的应用更新同理——OTA 下载后<strong>先验签名</strong>（RSA / Ed25519）再解压执行，防止供应链投毒。</p>
+<h3 id="sec-3-17">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ IT/OT 路由配死</td>
+<td>双网卡不配路由表，Windows 默认会"跨网卡转发"，等于没隔离</td>
+</tr>
+<tr>
+<td>⭐ 白名单要包含 URI Host</td>
+<td>别只校验 BaseAddress，请求时改 Uri 也能绕过——校验每个出站请求</td>
+</tr>
+<tr>
+<td>⭐ 审计日志写失败要降级</td>
+<td>不能因为日志库挂了就让 PLC 写失败，业务优先</td>
+</tr>
+<tr>
+<td>🔥 凭证不入 git</td>
+<td>用 <code>dotnet user-secrets</code> 开发、环境变量部署、K8s Secret 上云</td>
+</tr>
+<tr>
+<td>🔥 HTTPS 内网也要</td>
+<td>"内网就安全"是错觉，内网横向攻击最常见；至少自签 CA 走 HTTPS</td>
+</tr>
+<tr>
+<td>🔥 日志脱敏</td>
+<td>Authorization、API Key 进日志前要打码，不然日志泄露=密码泄露</td>
+</tr>
+<tr>
+<td>🔥 时间用 UTC</td>
+<td>审计日志存 UTC + 时区元信息，跨厂区/跨国才不乱</td>
+</tr>
+<tr>
+<td>⭐ 别关 Windows Defender</td>
+<td>工控圈有"为了性能关杀软"的歪风，IEC 62443 直接判不合格</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-18">🟢 基础题</h3>
+<p>写一个 <code>AllowedHostsValidator</code>，从 <code>appsettings.json</code> 读 <code>AllowedHosts</code> 数组，给一个 URI 判断是否在白名单内。写两个测试用例：白名单内通过、白名单外抛 <code>SecurityException</code>。</p>
+<h3 id="sec-3-19">🟡 进阶题</h3>
+<p>把 <code>WhitelistHandler</code>（<code>DelegatingHandler</code>）挂到 <code>"mes"</code> 客户端上（<code>services.AddHttpClient("mes").AddHttpMessageHandler&lt;WhitelistHandler&gt;()</code>），故意把 BaseAddress 改成 <code>http://evil.com</code>，验证请求被拦截。</p>
+<h3 id="sec-3-20">🔴 挑战题</h3>
+<p>给 <code>PlcDevice.WriteAsync</code> 加审计：每次写都记一条 <code>AuditEntry</code>（旧值 → 新值）。再写一个测试：故意把审计库断开（用 <code>Microsoft.Data.Sqlite</code> In-Memory 故意 dispose），验证<strong>业务写入不回滚</strong>、Serilog 告警。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">public class AllowedHostsValidator
+{
+    private readonly HashSet&lt;string&gt; _allowed;
+    public AllowedHostsValidator(IConfiguration cfg)
+        =&gt; _allowed = cfg.GetSection(&quot;AllowedHosts&quot;).Get&lt;string[]&gt;()?.ToHashSet() ?? new();
+    public bool IsValid(Uri uri) =&gt; _allowed.Contains(uri.Host);
+}
+
+[Fact]
+public void IsValid_Whitelisted_ReturnsTrue()
+{
+    var cfg = new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary&lt;string, string?&gt;
+        {
+            [&quot;AllowedHosts:0&quot;] = &quot;mes.company.com&quot;
+        }).Build();
+    var v = new AllowedHostsValidator(cfg);
+    Assert.True(v.IsValid(new Uri(&quot;http://mes.company.com/api/x&quot;)));
+}
+
+[Fact]
+public void IsValid_NotWhitelisted_ThrowsInHandler()
+{
+    var v = new AllowedHostsValidator(new ConfigurationBuilder().Build());
+    Assert.False(v.IsValid(new Uri(&quot;http://evil.com/x&quot;)));
+}
+</code></pre>
+<h3 id="sec-3-21">💡 工控导师说（真实战例）</h3>
+<blockquote>
+<p>某化工厂出过事——操作工把反应釜温度上限从 120℃ 改到 145℃ 想多出产量，结果差点超压爆釜。事后查日志，<strong>上位机没记谁改的、什么时候改的</strong>，甩锅甩了三天。从此我所有项目<strong>设定值改动必落 AuditLog</strong>，且 Serilog 同步打 <code>[AUDIT]</code> 标签。这条规矩救过我两次。
+第二条：某客户被勒索病毒打穿，源头就是上位机的 IT 网卡中招，横向打到 PLC 工程师站。后来我们做了<strong>强制 IT/OT 双网卡 + Windows Defender 不关 + 白名单只放 MES 三件套</strong>，三年没再出过事。安全不是技术问题，是<strong>有没有人较真</strong>。</p>
+</blockquote>
+<h3 id="sec-3-22">🎓 职业建议</h3>
+<p>面试问"你了解工业网络安全吗"——
+- <strong>15K 答</strong>："了解 IEC 62443 的 Zone &amp; Conduit 思想，我们做 IT/OT 双网卡物理隔离，应用层加白名单 DelegatingHandler，设定值改动落 AuditLog 表，密码走环境变量不入 git。"
+- <strong>13K 答</strong>："内网嘛，应该挺安全的。" → 被刷。</p>
+<p>工厂面试官（尤其外企、汽车、半导体）非常吃这套——因为他们走过审计（TISAX / IEC 62443 认证），知道一条审计日志能省多少赔偿金。</p>
+<h3 id="sec-3-23">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IT/OT 路由没配死</td>
+<td>OT 网中病毒横向感染 PLC</td>
+<td>路由表 + 防火墙策略双保险</td>
+</tr>
+<tr>
+<td>白名单只校验 BaseAddress</td>
+<td>改 Uri 绕过</td>
+<td>拦截每个出站 <code>HttpRequestMessage</code></td>
+</tr>
+<tr>
+<td>审计库挂导致业务挂</td>
+<td>改设定值失败</td>
+<td>审计异步、降级，业务优先</td>
+</tr>
+<tr>
+<td>密码硬编码入 git</td>
+<td>提交即泄露</td>
+<td>user-secrets / 环境变量 / Vault</td>
+</tr>
+<tr>
+<td>日志打印完整 Token</td>
+<td>日志泄露=密码泄露</td>
+<td>打码 <code>eyJh***.xyz</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-24">📚 延伸阅读</h3>
+<ul>
+<li>IEC 62443 系列标准（工业自动化信息系统安全）：https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards</li>
+<li>OWASP 工控安全 Top 10：https://owasp.org/www-project-top-ten/</li>
+<li>Microsoft Vault / DPAPI 加密配置：https://learn.microsoft.com/dotnet/core/extensions/configuration-secrets</li>
+</ul>
+<h3 id="sec-3-25">🏗️ 项目任务</h3>
+<p>DAQ Monitor 加三件套：① <code>AllowedHostsValidator</code> + <code>WhitelistHandler</code> 挂到所有 HttpClient；② <code>AuditLogger</code> + <code>AuditEntry</code> 表（EF Core），所有 <code>PlcDevice.WriteAsync</code> 前后记一条；③ 把 MES JWT 移到环境变量 <code>MES_JWT</code>，启动时读不到就报错退出。</p>
+<h3 id="sec-3-26">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M17',2)"> 打卡</label></h3>
+<hr />
+<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<ul>
+<li><strong>M9 DI 容器 → 这里 HttpClientFactory</strong>：HttpClient 必须通过 <code>services.AddHttpClient</code> 注册，由 DI 容器管生命周期——和 M9 的服务注册一脉相承。</li>
+<li><strong>M4 EF Core → 这里 AuditLog</strong>：<code>IDbContextFactory</code> 复用 M4 的库，加一张 <code>AuditLog</code> 表；审计查询走 M4 的仓储模式。</li>
+<li><strong>M6 Serilog → 这里运行日志 + 审计分离</strong>：Serilog 打运行态（含 Polly 重试、HTTP 状态码），<code>AuditLog</code> 打业务态（设定值变更）。<strong>两套日志不要混</strong>——运行日志 7 天滚动，审计日志保留 3 年（合规要求）。</li>
+<li><strong>M7 OPC UA / MQTT → 这里 HttpClient</strong>：M7 走工业协议（OT 侧），M17 走 IT 协议（IT 侧）——上位机是两者之间的"翻译官"。</li>
+<li><strong>前瞻</strong>：这套白名单 + 审计 + DI 的架构，是后续接入 SCADA / IIoT 平台（如 Azure IoT、AWS IoT）的底座，复用度极高。</li>
+</ul>
+<h2 id="sec-2-5">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li><code>IHttpClientFactory</code> 官方最佳实践：https://learn.microsoft.com/dotnet/core/extensions/httpclient-factory</li>
+<li>Polly 完整示例（重试 / 熔断 / 超时 / 舱壁）：https://github.com/App-vNext/Polly#resilience-pipelines</li>
+<li>IEC 62443 入门（中文）：https://www.isa.org/standards-and-publications</li>
+<li>OWASP API Security Top 10：https://owasp.org/API-Security/</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M16.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M16 · 工业总线 CAN + USB-HID</div></a>
+  <a class="next" href="M18.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M18 · 配方管理</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

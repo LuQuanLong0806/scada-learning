@@ -33,17 +33,19 @@
 <li class="l3"><a href="#sec-3-3">分点精讲</a></li>
 <li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）</a></li>
 <li class="l3"><a href="#sec-3-5">⚠️ 重点 &amp; 易踩坑</a></li>
-<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-6">📋 S7.Net 错误码表（查码 + 处理策略）</a></li>
+<li class="l3"><a href="#sec-3-7">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-8">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-9">🔴 挑战题</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">Day 2 — 写 PLC + 结构体映射 + 多设备统一 🟡</a><ul>
-<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-10">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-11">⚠️ 重点 &amp; 易踩坑</a></li>
-<li class="l3"><a href="#sec-3-12">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-13">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-14">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-10">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-12">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-13">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-14">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-15">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-16">🧯 退订模式（不补就是内存泄漏）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
 </ul></li>
@@ -105,27 +107,33 @@
 </table>
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① 连接 + 读字节</strong>（🟧）</p>
+<blockquote>
+<p>💡 <strong>为什么用 Async</strong>：S7.Net 同步 API 会阻塞线程，真实项目里 1 个 PLC 连接可能挂多个读请求，异步才能并发。<strong>前端类比</strong>：像 <code>Promise.all</code> 比多个 <code>await</code> 快——并发请求才能压榨网络吞吐。</p>
+</blockquote>
 <pre><code class="language-csharp">using S7.Net;
 
 var plc = new Plc(CpuType.S71200, &quot;192.168.0.1&quot;, 0, 1); // Rack=0, Slot=1
-plc.Open();
+await plc.OpenAsync();
 if (plc.IsConnected)
 {
-    byte[] buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
-    float temp = S7.GetRealAt(buf, 0);                      // 一个 float
+    byte[] buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
+    float temp = S7.GetRealAt(buf, 0);                                  // 一个 float
     Console.WriteLine($&quot;温度={temp}&quot;);
 }
 </code></pre>
+<blockquote>
+<p>注：外层方法签名要改成 <code>async Task</code>，调用方 <code>await</code> 它；别用 <code>.Result</code> / <code>.Wait()</code>，会死锁（M0 Day7 讲过）。</p>
+</blockquote>
 <p><strong>② 直接读强类型变量</strong>（🟧）</p>
-<pre><code class="language-csharp">var temp = (float)plc.Read(DataType.DataBlock, 1, 0, VarType.Real, 1);
-var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
+<pre><code class="language-csharp">var temp = (float)(await plc.ReadAsync(DataType.DataBlock, 1, 0, VarType.Real, 1));
+var run  = (bool) (await plc.ReadAsync(DataType.DataBlock, 1, 4, VarType.Bit, 1));
 </code></pre>
 <h3 id="sec-3-4">🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）</h3>
 <p>和串口/Modbus 不同，<strong>S7.Net 很多失败「不抛异常」，而是返回错误状态</strong>——这是新手最容易栽的地方：
 - <strong><code>plc.IsConnected</code> 不可全信</strong>：<code>Open()</code> 成功只代表「握手成功」，线中途掉了 <code>IsConnected</code> 可能还是 <code>true</code>。正确做法：每次读后<strong>检查 <code>plc.LastErrorCode</code></strong>（0 = OK，非 0 = 出错），或读之前 <code>ReadStatus()</code> 探活。
 - <strong>读失败要判错误码再决定重试</strong>：
   <code>csharp
-  var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+  var buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4);
   if (plc.LastErrorCode != 0)            // 非 0 即出错
   {
       Log.Warning("读 DB1 失败 错误码{Code}", plc.LastErrorCode);
@@ -164,17 +172,64 @@ var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-6">🟢 基础题</h3>
+<h3 id="sec-3-6">📋 S7.Net 错误码表（查码 + 处理策略）</h3>
+<p>S7.Net 不抛异常而是塞 <code>LastErrorCode</code>，现场/面试常被追问"0x0005 是啥、怎么办"。对照表（呼应 M2 的 Modbus 异常码表风格）：</p>
+<table>
+<thead>
+<tr>
+<th>LastErrorCode</th>
+<th>含义</th>
+<th>典型原因</th>
+<th>处理策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x0000</code></td>
+<td>成功</td>
+<td>——</td>
+<td>正常处理数据</td>
+</tr>
+<tr>
+<td><code>0x0005</code></td>
+<td>地址 / 长度非法</td>
+<td>DB 号或偏移写错、越界、点位类型不匹配</td>
+<td>对 TIA Portal 的偏移表逐字节核对，别凭记忆</td>
+</tr>
+<tr>
+<td><code>0x000A</code></td>
+<td>对象不存在</td>
+<td>DB 块没下载 / 被删除 / 没勾"允许 PUT/GET"</td>
+<td>检查 PLC 侧 DB 是否在线、权限是否开</td>
+</tr>
+<tr>
+<td><code>0x7000+</code></td>
+<td>通信层错误</td>
+<td>TCP 断线 / PLC 停止 / 心跳超时</td>
+<td>触发 M9 <code>Retry</code> 退避重连，别裸 throw</td>
+</tr>
+<tr>
+<td><code>0xD005</code> / <code>0xD201</code></td>
+<td>套接字/连接错误</td>
+<td>握手失败、IP 不通</td>
+<td>排查链路（见下方导师说 6 步），重连</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>处理铁律：<strong>别用异常</strong>，按"判码 → 退避重试 → 仍失败则上报离线"的三段式。错误码会随 S7.Net 版本微调，遇到没见过的码去 <a href="https://github.com/killnine/s7netplus">S7.Net Plus 源码</a> 的 <code>ErrorCode.cs</code> 直接查表。</p>
+</blockquote>
+<h3 id="sec-3-7">🟢 基础题</h3>
 <p>连接模拟 PLC（PLCSIM + NetToPLCSim），读 DB1 偏移 0 的 Real 并打印。</p>
-<h3 id="sec-3-7">🟡 进阶题</h3>
+<h3 id="sec-3-8">🟡 进阶题</h3>
 <p>读 DB1 偏移 0 的 Real（温度）和偏移 4 的 Bit（运行信号），拼成一个 <code>Model</code> 对象打印。</p>
-<h3 id="sec-3-8">🔴 挑战题</h3>
+<h3 id="sec-3-9">🔴 挑战题</h3>
 <p>写一个 <code>ReadWithCheck(Plc plc)</code> 方法：读前 <code>ReadStatus()</code> 探活，读后判 <code>LastErrorCode</code>，非 0 时返回 <code>null</code> 并打日志（不抛异常），模拟"生产中读失败但系统不崩"。</p>
 <p><strong>✅ 答案（挑战题骨架）</strong></p>
-<pre><code class="language-csharp">float? ReadTempSafe(Plc plc)
+<pre><code class="language-csharp">async Task&lt;float?&gt; ReadTempSafeAsync(Plc plc)
 {
     if (plc.ReadStatus() != 0) { Log.Warn(&quot;PLC 离线&quot;); return null; }
-    var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+    var buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4);
     if (plc.LastErrorCode != 0) { Log.Warn(&quot;读失败 {Code}&quot;, plc.LastErrorCode); return null; }
     return S7.GetRealAt(buf, 0);
 }
@@ -185,9 +240,9 @@ var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M3',1)"> 打卡</label></strong></p>
 <hr />
 <h2 id="sec-2-3">Day 2 — 写 PLC + 结构体映射 + 多设备统一 🟡</h2>
-<h3 id="sec-3-9">一句话讲清楚</h3>
+<h3 id="sec-3-10">一句话讲清楚</h3>
 <p>上位机下发设定值到 PLC（写 DB），并用"结构体映射"把一批点位一次读出来，再用 M0 Day 5 的 <code>IDevice</code> 统一调度多设备——这是 DAQ Monitor "多设备接入"达标的临门一脚。</p>
-<h3 id="sec-3-10">分点精讲</h3>
+<h3 id="sec-3-11">分点精讲</h3>
 <p><strong>① 写 DB</strong>（🟧）</p>
 <pre><code class="language-csharp">plc.Write(DataType.DataBlock, 1, 4, 1.0f);   // 写 Real 设定值
 plc.Write(&quot;DB1.DBW2&quot;, 100);                  // 也可用符号 / 绝对地址
@@ -206,7 +261,7 @@ var model = new
 dev.DataReceived += (s, e) =&gt; Console.WriteLine($&quot;点{e.PointId}={e.Value}&quot;);
 dev.Connect();
 </code></pre>
-<h3 id="sec-3-11">⚠️ 重点 &amp; 易踩坑</h3>
+<h3 id="sec-3-12">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
 <thead>
 <tr>
@@ -227,19 +282,76 @@ dev.Connect();
 <td>🔥 读取频率</td>
 <td>PLC 扫描周期有限，轮询别太猛（&lt;50ms 易压力设备）</td>
 </tr>
+<tr>
+<td>🔥 event 退订</td>
+<td><code>event +=</code> 后必须 <code>-=</code>，否则订阅方生命周期结束也无法被 GC（详见上文「退订模式」）</td>
+</tr>
 </tbody>
 </table>
-<h3 id="sec-3-12">🟢 基础题</h3>
+<h3 id="sec-3-13">🟢 基础题</h3>
 <p>写 DB1 偏移 4 一个 Real 设定值 1.0。</p>
-<h3 id="sec-3-13">🟡 进阶题</h3>
+<h3 id="sec-3-14">🟡 进阶题</h3>
 <p>读 DB1 前 12 字节映射成 Temp/Press/Run 三个字段并打印。</p>
-<h3 id="sec-3-14">🔴 挑战题</h3>
+<h3 id="sec-3-15">🔴 挑战题</h3>
 <p>在 DAQ Monitor 里同时挂 <code>SerialDevice</code> + <code>PlcDevice</code>，用 <code>List&lt;IDevice&gt;</code> 统一轮询（参考 <code>AcquisitionPipeline</code>），验证"多设备接入"达标——写出轮询调度骨架。</p>
 <p><strong>✅ 答案（挑战题骨架）</strong></p>
 <pre><code class="language-csharp">var devices = new List&lt;IDevice&gt; { new SerialDevice(1, &quot;COM3&quot;, ...), new PlcDevice(&quot;192.168.0.1&quot;) };
 foreach (var d in devices) { d.Connect(); d.DataReceived += OnData; }
 // AcquisitionPipeline 按设备统一轮询，UI 零感知背后是串口还是 PLC
 </code></pre>
+<h3 id="sec-3-16">🧯 退订模式（不补就是内存泄漏）</h3>
+<blockquote>
+<p>💡 <strong>为什么必须退订</strong>：<code>event +=</code> 后若忘了 <code>-=</code>，订阅方（比如某个临时窗口 / ViewModel）即便被关闭，发布方（设备）仍持有一条指向它的委托引用 → <strong>GC 永远回收不掉</strong> → 越跑内存越大。<strong>前端类比</strong>：像 React 在 <code>useEffect</code> 里加了 <code>event listener</code> 但 <code>return</code> 里忘了 <code>removeEventListener</code> —— 组件卸了还在偷偷听、偷偷 setState，最后崩。</p>
+</blockquote>
+<p><strong>正确姿势：用 <code>IDisposable</code> 把"订阅 + 退订 + 释放"打包</strong></p>
+<pre><code class="language-csharp">public sealed class DeviceHost : IDisposable
+{
+    private readonly List&lt;IDevice&gt; _devices = new();
+    private bool _disposed;
+
+    public void Add(IDevice d)
+    {
+        _devices.Add(d);
+        d.DataReceived += OnData;        // 订阅
+    }
+
+    private void OnData(object? s, SensorPoint e) =&gt; /* 转发到 UI / 管道 */;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        foreach (var d in _devices) d.DataReceived -= OnData;          // 关键: 退订
+        foreach (var d in _devices.OfType&lt;IDisposable&gt;()) d.Dispose(); // 关设备
+        _devices.Clear();
+        _disposed = true;
+    }
+}
+</code></pre>
+<blockquote>
+<p>用法：<code>using var host = new DeviceHost(); host.Add(plcDev); host.Add(serialDev);</code> —— <code>host</code> 出作用域自动退订 + 关设备，绝无遗漏。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>⚠️ 坑点</th>
+<th>后果 / 处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔥 <code>event +=</code> 后必须 <code>-=</code></td>
+<td>否则订阅方生命周期结束也无法被 GC，内存泄漏</td>
+</tr>
+<tr>
+<td>🔥 忘记把 <code>_disposed = true</code></td>
+<td>重复 <code>Dispose</code> 会重复 <code>-=</code>（虽然不报错，但脏）</td>
+</tr>
+<tr>
+<td>🔥 退订顺序错误</td>
+<td>先关设备再退订，可能在多线程下错过最后一次事件 → 先 <code>-=</code>，再 <code>Dispose()</code></td>
+</tr>
+</tbody>
+</table>
 <p><strong>🏗️ 项目任务</strong>：<code>PlcDevice</code> 完成 <code>Write</code>；配合 <code>AcquisitionPipeline</code> 把 <code>PlcDevice</code> 和已有 <code>SerialDevice</code>/<code>ModbusDevice</code> 统一调度 —— 至此"多设备接入"达标（M0–M3 串联）。</p>
 <p><strong>🎓 工控导师说</strong>：现场最怕"实习生手一抖把设定值 1.0 写成 100.0 写进 PLC，产线直接超压"。<strong>写 PLC 前必须 double check 地址和量纲</strong>，最好加一层"写前确认 + 写后回读校验"。这是保命习惯。</p>
 <p><strong>💼 职业建议</strong>：能讲"多设备统一 IDevice 调度 + 写 PLC 的回读校验"的候选人，在工控岗极其稀缺——因为这需要既懂架构又懂现场风险。</p>
@@ -266,10 +378,10 @@ public class PlcDevice : DeviceBase
 
     public PlcDevice(int id, string name, string ip) : base(id, name) =&gt; _ip = ip;
 
-    public override void Connect()
+    public override async Task ConnectAsync()
     {
         _plc = new Plc(CpuType.S71200, _ip, 0, 1);
-        _plc.Open();
+        await _plc.OpenAsync();
         State = _plc.IsConnected ? DeviceState.Online : DeviceState.Offline;
     }
 
@@ -281,23 +393,24 @@ public class PlcDevice : DeviceBase
     }
 
     // 约定：addr = DB号*10000 + 偏移，例如 DB1.0 =&gt; 10000；DB1.4 =&gt; 10004
-    public override double Read(int addr)
+    public override async Task&lt;double&gt; ReadAsync(int addr)
     {
         if (_plc is null) return double.NaN;
         int db = addr / 10000;
         int off = addr % 10000;
-        var buf = _plc.ReadBytes(DataType.DataBlock, db, off, 4);
+        var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
         if (_plc.LastErrorCode != 0) return double.NaN;   // 不抛，交给心跳重连
-        RaiseData(addr, S7.GetRealAt(buf, 0));
-        return S7.GetRealAt(buf, 0);
+        float v = S7.GetRealAt(buf, 0);
+        RaiseData(addr, v);
+        return v;
     }
 
-    public override void Write(int addr, double v)
+    public override async Task WriteAsync(int addr, double v)
     {
         if (_plc is null) return;
         int db = addr / 10000;
         int off = addr % 10000;
-        _plc.Write(DataType.DataBlock, db, off, (float)v);
+        await _plc.WriteAsync(DataType.DataBlock, db, off, (float)v);
     }
 }
 </code></pre>

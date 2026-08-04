@@ -4,6 +4,7 @@
         xmlns:vm="clr-namespace:DaqMonitor.UI.ViewModels"
         xmlns:ctrl="clr-namespace:DaqMonitor.UI.Controls"
         xmlns:diag="clr-namespace:DaqMonitor.UI.Diagnostics"
+        xmlns:views="clr-namespace:DaqMonitor.UI.Views"
         Title="DAQ Monitor · 工业数据采集监控" Height="560" Width="880">
     <Grid Margin="12">
         <Grid.RowDefinitions>
@@ -61,6 +62,9 @@
         <TabControl Grid.Row="1" Margin="8,0,0,0" HorizontalAlignment="Stretch">
             <TabItem Header="报警日志">
                 <ListBox ItemsSource="{Binding AlarmLog}" FontSize="12" />
+            </TabItem>
+            <TabItem Header="实时曲线">
+                <views:ChartView x:Name="ChartTab" />
             </TabItem>
             <TabItem Header="诊断 / 调试">
                 <diag:DiagnosticsPanel />

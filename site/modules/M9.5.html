@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>M9.5 · 性能压测 + 长跑稳定性 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="M9.5">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 3 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">Day 1 — BenchmarkDotNet 量化性能 🟡</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-5">🧪 三档练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">Day 2 — 实时监控 + 内存泄漏排查 🔴</a><ul>
+<li class="l3"><a href="#sec-3-6">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-7">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-8">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-9">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-10">🧪 三档练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">Day 3 — 长跑稳定性策略（限流 / 降级 / 熔断 / 自愈）🔴</a><ul>
+<li class="l3"><a href="#sec-3-11">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-12">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-13">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-15">🧪 三档练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">模块交付清单（M9.5）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">📌 温故知新 / 跨模块联动</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🧩 完整代码组装（M9.5 落地的关键代码，可直接抄 / 添加到工程）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">🔗 下一步建议</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">M9.5 — 性能压测与长跑稳定性（BenchmarkDotNet / dotnet counters / dotMemory）⚡</h1>
+<blockquote>
+<p><strong>优先级定位</strong>：🟧 必学（冲 15K 加分项）· 性能压测 + 长跑稳定性（7×24 不崩）
+<strong>技术来源</strong>：🟧 <code>BenchmarkDotNet</code>（官方压测）、🟧 <code>dotnet counters</code> / <code>dotnet trace</code> / <code>dotnet dump</code>（CLI 监控三件套）、🟧 JetBrains <code>dotMemory</code>（内存快照，免费试用）/ 🟦 自定义 <code>EventCounter</code>（业务指标）、🟦 <code>System.Threading.Channels</code>（限流背压）。
+<strong>前端类比总纲</strong>：前端有 Jsben.ch / Vitest bench 比两段代码谁快、Chrome DevTools Memory 抓堆快照、Performance 看火焰图、Service Worker/PWA 做离线降级——本模块把这套"性能工程 + 长跑韧性"在 C# 上位机里完整复刻。<strong>电脑永远不眠、产线永远不停</strong>，你的程序也得稳得起。
+<strong>给简历加的能力</strong>：能在简历写"用 BenchmarkDotNet 验证 1000Hz 采集单帧 &lt; 1ms；用 <code>dotnet counters</code> 实时监控 GC/线程/业务 EventCounter；用 dotMemory 抓快照排查并修复事件订阅泄漏；长跑策略 Channel 限流 + 重试熔断 + 心跳自愈"——这四句一摆，15K 岗位稳过简历关。
+<strong>前置</strong>：M0（并发/分层）、M9（统一管道 + Retry + 心跳）。本模块是给前 14 个模块"做体检 + 上保险"。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>让上位机 <strong>7×24 稳跑</strong>：① 用 BenchmarkDotNet 量化关键路径性能（CRC / 解析 / Span vs byte[]）；② 用 <code>dotnet counters</code> 实时看 GC/堆/线程 + 自定义业务 EventCounter；③ 用 dotMemory 抓快照找"只增不减"的内存泄漏（4 种典型）；④ 长跑稳定性策略——限流 / 降级 / 熔断 / 心跳 / 自愈。<strong>做完这套，你的程序才算"工业级"</strong>。</p>
+<hr />
+<h2 id="sec-2-2">Day 1 — BenchmarkDotNet 量化性能 🟡</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p>BenchmarkDotNet 是 .NET 官方压测工具，告诉你"哪个写法快多少 μs、分配了多少字节"——<strong>前端类比：Jsben.ch / Vitest <code>bench</code> 但更专业</strong>：自动预热、跑多轮、统计 Mean/Median/StdDev、还能反汇编看 JIT 出的机器码。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>BenchmarkDotNet</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[Benchmark]</code> 方法</td>
+<td><code>benchmark.js</code> 的 <code>suite.add('name', fn)</code> / <code>vitest.bench</code></td>
+</tr>
+<tr>
+<td><code>[Params(8,64,256)]</code> 多档输入</td>
+<td>bench 不同 size 的输入数组</td>
+</tr>
+<tr>
+<td>Mean / Median / StdDev</td>
+<td>Chrome Performance 的多轮采样统计</td>
+</tr>
+<tr>
+<td><code>[MemoryDiagnoser]</code>（Allocated 列）</td>
+<td>Chrome DevTools Memory heap snapshot 对比</td>
+</tr>
+<tr>
+<td><code>[DisassemblerDiagnoser]</code></td>
+<td>看 JIT 编译出的汇编（更底层 than Source Map）</td>
+</tr>
+<tr>
+<td>Baseline 比例（<code>Ratio</code> 列）</td>
+<td>"比基线快 3 倍"的相对值</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">分点精讲</h3>
+<p><strong>① 装 BenchmarkDotNet + 第一个压测项目</strong>（🟧）
+新建一个独立的 Console 项目（<strong>别和主工程混在一起</strong>，压测项目 Release 跑、主工程 Debug 跑）：</p>
+<pre><code class="language-bash">dotnet new console -o src/DaqMonitor.Bench
+cd src/DaqMonitor.Bench
+dotnet add package BenchmarkDotNet
+dotnet add reference ../DaqMonitor.Core   # 引用被压测工程
+</code></pre>
+<p>入口三行（注意要 <code>BenchmarkRunner.Run</code>，不是直接调方法）：</p>
+<pre><code class="language-csharp">// Program.cs
+BenchmarkRunner.Run&lt;CrcBench&gt;();   // 跑完自动在 Results/ 生成 Markdown 报告
+</code></pre>
+<p><strong>② 真实场景：CRC16 两套实现 PK（按位 vs 查表）</strong>（🟧🟦）
+Modbus CRC16 有两种经典实现——按位（M2 写过）和查表法。哪个快？嘴说不算，bench 一下：</p>
+<pre><code class="language-csharp">using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
+
+[MemoryDiagnoser]                          // 显示 Allocated 字节/Op
+public class CrcBench
+{
+    private byte[] _data = null!;
+
+    [Params(8, 64, 256, 1024)]             // 多档输入：短帧/中帧/长帧
+    public int Size { get; set; }
+
+    [GlobalSetup]
+    public void Setup() =&gt; _data = new byte[Size];
+
+    [Benchmark(Baseline = true)]           // 基线：M2 的按位实现
+    public ushort ModbusCrc16_ByBit()
+    {
+        ushort crc = 0xFFFF;
+        foreach (var b in _data)
+        {
+            crc ^= b;
+            for (int i = 0; i &lt; 8; i++)
+                crc = (crc &amp; 1) != 0 ? (ushort)((crc &gt;&gt; 1) ^ 0xA001)
+                                     : (ushort)(crc &gt;&gt; 1);
+        }
+        return crc;
+    }
+
+    private static readonly ushort[] _crcTable = BuildTable();
+    [Benchmark]
+    public ushort ModbusCrc16_Table()      // 查表法：空间换时间
+    {
+        ushort crc = 0xFFFF;
+        foreach (var b in _data)
+            crc = (ushort)((crc &gt;&gt; 8) ^ _crcTable[(crc ^ b) &amp; 0xFF]);
+        return crc;
+    }
+
+    private static ushort[] BuildTable()
+    {
+        var t = new ushort[256];
+        for (int i = 0; i &lt; 256; i++)
+        {
+            ushort crc = (ushort)i;
+            for (int k = 0; k &lt; 8; k++)
+                crc = (crc &amp; 1) != 0 ? (ushort)((crc &gt;&gt; 1) ^ 0xA001)
+                                     : (ushort)(crc &gt;&gt; 1);
+            t[i] = crc;
+        }
+        return t;
+    }
+}
+</code></pre>
+<p><strong>逐行白话</strong>：
+- <code>[Params(8,64,256,1024)]</code>：跑 4 档——Modbus 一帧典型 8 字节、长一点 64、大块批量 256/1024。这样能看到"小包谁快、大包谁快"。
+- <code>[GlobalSetup]</code>：每档参数切之前跑一次，准备数据，<strong>不算进测量</strong>。
+- <code>[Benchmark(Baseline = true)]</code>：标基线，输出里 <code>Ratio</code> 列会显示别的实现相对它几倍。
+- <code>[MemoryDiagnoser]</code>：开内存诊断，输出多一列 <code>Allocated Bytes/Op</code>——按位法 0 字节（栈上算），查表法也是 0（表是 static 一次建好）。</p>
+<p><strong>跑一下</strong>（<strong>必须 Release</strong>，Debug 会乱算）：</p>
+<pre><code class="language-bash">cd src/DaqMonitor.Bench
+dotnet run -c Release
+</code></pre>
+<p>典型输出（节选）：</p>
+<pre><code>| Method               | Size | Mean      | Ratio | Allocated |
+|--------------------- |----- |----------:|------:|----------:|
+| ModbusCrc16_ByBit    | 8    |  45.6 ns  |  1.00 |         - |
+| ModbusCrc16_Table    | 8    |  18.2 ns  |  0.40 |         - |
+| ModbusCrc16_ByBit    | 1024 | 5,180 ns  |  1.00 |         - |
+| ModbusCrc16_Table    | 1024 | 2,050 ns  |  0.40 |         - |
+</code></pre>
+<p><strong>怎么读</strong>：查表法比按位快 2.5 倍（<code>Ratio 0.40</code>），而且<strong>大小包都稳</strong>——这就是 1000Hz 采集该选的实现。</p>
+<p><strong>③ MemoryDiagnoser 看分配：struct vs class、Span vs byte[]、Channel vs ConcurrentQueue</strong>（🟦）
+这三个对比是面试高频，bench 一次你终身记得：</p>
+<pre><code class="language-csharp">[MemoryDiagnoser]
+public class AllocBench
+{
+    [Benchmark(Baseline = true)]
+    public SensorPoint_Class ReturnClass() =&gt; new() { Id = 1, Value = 42.0 };
+
+    [Benchmark]
+    public SensorPoint_Struct ReturnStruct() =&gt; new() { Id = 1, Value = 42.0 };
+
+    // Span&lt;T&gt; 切片 vs byte[] + MemoryStream
+    [Benchmark]
+    public int SpanSlice()
+    {
+        var buf = new byte[1024];
+        var slice = buf.AsSpan(64, 128);    // 0 字节分配
+        return slice.Length;
+    }
+
+    [Benchmark]
+    public int MemoryStreamCopy()
+    {
+        var buf = new byte[1024];
+        using var ms = new MemoryStream(buf, 64, 128);   // 多一个对象
+        return (int)ms.Length;
+    }
+}
+</code></pre>
+<p><strong>输出会告诉你</strong>：struct 走栈、<code>Allocated = -</code>；class 上堆、<code>Allocated = 24 B</code>（每 Op 多 24 字节）。1000Hz 下你一秒就多 24KB 垃圾，GC 立刻被催。<strong>这就是为什么 M5/M9 推 <code>readonly struct SensorPoint</code></strong>。</p>
+<h3 id="sec-3-4">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ <strong>必须 Release 跑</strong></td>
+<td>Debug 编译没优化，结果差 10 倍都是常事；CI 里加 <code>-c Release</code></td>
+</tr>
+<tr>
+<td>⭐ 自动预热不要手动循环</td>
+<td>别自己写 <code>for i=0..1e6</code> 跑计时——JIT 第一遍冷、第二遍热，BND 自动预热</td>
+</tr>
+<tr>
+<td>🔥 <strong>Dead code elimination</strong></td>
+<td>单纯 <code>var x = Compute()</code> 不用 x，JIT 会把整段删掉→测出"0ns"，要用 <code>_ = Compute()</code> 或 <code>[Benchmark]</code> 返回值</td>
+</tr>
+<tr>
+<td>🔥 异常路径贵 100x</td>
+<td><code>try/catch</code> 包热路径、且不抛还好；一旦抛异常，单 Op 多 1μs 起</td>
+</tr>
+<tr>
+<td>🔥 GC 噪声会让 StdDev 飙</td>
+<td>单次跑波动大，看 <code>Median</code> 比 <code>Mean</code> 稳；StdDev 大于 Mean 的 10% 说明干扰大，关其他进程重跑</td>
+</tr>
+<tr>
+<td>🔥 JIT 分层编译</td>
+<td>加 <code>[MethodImpl(MethodImplOptions.NoOptimization)]</code> 会反优化；别在 bench 方法上加奇怪 Attribute</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：新建 <code>DaqMonitor.Bench</code> 项目，复制上面 CRC 的代码，<code>dotnet run -c Release</code> 跑出表格，把截图贴到笔记里。</p>
+<p><strong>🟡 进阶题</strong>：给 <code>FrameParser.Feed</code>（M2 粘包拆分）写一个 bench——<code>[Params(64, 256, 1024)]</code> 不同 buffer 大小，看哪种实现切包最快。要求加 <code>[MemoryDiagnoser]</code> 看 Allocated。</p>
+<p><strong>🔴 挑战题</strong>：对比 <code>Channel&lt;SensorPoint&gt;</code> vs <code>ConcurrentQueue&lt;SensorPoint&gt;</code> 在「单生产单消费、1000 点/秒」下的吞吐。提示：写一个 <code>[GlobalSetup]</code> 起两个 Task 一发一收，<code>[Benchmark]</code> 测"塞 1 万点全部消费完"的耗时。<strong>结论会让你记住：高并发下 Channel 完胜</strong>。</p>
+<p><strong>✅ 答案（基础题）</strong>
+跑出来的报告路径：<code>src/DaqMonitor.Bench/BenchmarkDotNet.Artifacts/results/CrcBench-report.md</code>。复制 Markdown 表到 README，面试讲"我 bench 过 CRC 两种实现，选查表法省 60% 时间"——立刻拉开档次。</p>
+<p><strong>💡 工控导师说</strong>：性能优化的第一条原则——<strong>别瞎猜，先 bench</strong>。我见过太多学员"我觉得 Span 快"然后改一通发现根本没瓶颈（瓶颈在串口 I/O）。<strong>bench 完知道热点在哪，再决定值不值得改</strong>。</p>
+<p><strong>🎓 职业建议</strong>：简历写"用 BenchmarkDotNet 量化采集路径性能，单帧 &lt; 1ms"远比"精通性能优化"有力。面试官问"你怎么知道是 1ms"，你掏出 bench 报告——这就叫<strong>数据驱动</strong>，15K 岗位爱这个。</p>
+<p><strong>📚 延伸阅读</strong>
+- BenchmarkDotNet 官方：https://benchmarkdotnet.org/
+- 选择正确的 diagnoser：https://benchmarkdotnet.org/articles/configs/diagnosers.html
+- 性能优化的 6 个 R：https://github.com/dotnet/coreclr/blob/master/Documentation/project-docs/performance-guidelines.md</p>
+<p><strong>🏗️ 项目任务</strong>：给 DAQ Monitor 加 <code>src/DaqMonitor.Bench</code> 项目，至少 bench 三件事——CRC 两种实现、struct vs class、FrameParser 不同 size。把报告 md 提交进仓库。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M9.5',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-3">Day 2 — 实时监控 + 内存泄漏排查 🔴</h2>
+<h3 id="sec-3-6">一句话讲清楚</h3>
+<p><code>dotnet counters</code> 是命令行实时仪表盘（GC/堆/线程/自定义业务指标），<code>dotnet trace</code> 抓火焰图，<code>dotMemory</code> 抓堆快照找"只增不减"的泄漏——<strong>前端类比：Chrome Task Manager + Performance 火焰图 + Memory Profiler，全套搬到 .NET</strong>。</p>
+<h3 id="sec-3-7">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>.NET 工具</th>
+<th>前端类比</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dotnet counters monitor</code></td>
+<td>Chrome Task Manager</td>
+<td>实时看 CPU/GC 堆/线程数</td>
+</tr>
+<tr>
+<td><code>dotnet trace</code></td>
+<td>Performance 火焰图</td>
+<td>CPU 采样找热点</td>
+</tr>
+<tr>
+<td><code>dotnet dump</code> + SOS</td>
+<td>Heap snapshot CLI</td>
+<td>抓堆、找对象引用链</td>
+</tr>
+<tr>
+<td>JetBrains dotMemory</td>
+<td>Memory Profiler（GUI）</td>
+<td>双快照对比找泄漏</td>
+</tr>
+<tr>
+<td>PerfView</td>
+<td>高级 Lighthouse</td>
+<td>免费但学习曲线陡</td>
+</tr>
+<tr>
+<td>自定义 <code>EventCounter</code></td>
+<td><code>performance.mark()</code> 上报业务指标</td>
+<td>上报队列长度、批次大小</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-8">分点精讲</h3>
+<p><strong>① <code>dotnet counters</code> 实时看 GC / 堆 / 线程</strong>（🟧 全平台命令行）
+先全局装一次：</p>
+<pre><code class="language-bash">dotnet tool install -g dotnet-counters
+dotnet tool install -g dotnet-trace       # 顺便装上
+dotnet tool install -g dotnet-dump        # 顺便装上
+</code></pre>
+<p>启动你的 DAQ Monitor，另开终端：</p>
+<pre><code class="language-bash"># 找到你的进程
+dotnet counters ps
+
+# 实时监控（-n 是进程名，--counters 指定要看的指标类别）
+dotnet counters monitor -n DaqMonitor.UI --counters System.Runtime
+</code></pre>
+<p><strong>屏幕会实时滚动</strong>（每秒刷新）：</p>
+<pre><code>System.Runtime
+    CPU Usage (%)                                 12
+    Working Set (MB)                             184
+    GC Heap Size (MB)                              42.3
+    Gen 0 GC / 1 sec                               3.2     ← 关注！每秒 3 次 Gen0
+    Gen 1 GC / 1 sec                               0.1
+    Gen 2 GC / 1 sec                               0       ← Gen2 必须接近 0
+    Time in GC (%)                                 4.8
+    ThreadPool Thread Count                       12
+    Monitor Lock Contention / sec                  2.1     ← 锁竞争高？警惕
+</code></pre>
+<p><strong>怎么看</strong>：
+- <code>GC Heap Size</code> 一直涨不回落 → <strong>内存泄漏</strong>（看 Day 2 后半段）。
+- <code>Gen 2 GC / 1 sec</code> &gt; 0 → 大对象频繁进老年代，<strong>最致命</strong>——多半是 <code>new byte[大]</code> 没复用。
+- <code>Monitor Lock Contention</code> 高 → 多线程在抢同一个 <code>lock</code>，M0 并发那块要回顾。
+- <code>Time in GC (%)</code> &gt; 10% → GC 占用过多 CPU，分配太频繁，回去加 <code>struct</code> / 池化。</p>
+<p><strong>② 自定义 EventCounter：上报业务指标（队列长度、批次大小）</strong>（🟦）
+系统指标不够用——你想知道"采集管道里堆了多少点""每批多大"。这就要 <code>EventCounter</code>：</p>
+<pre><code class="language-csharp">// src/DaqMonitor.Core/Metrics/PipelineMetrics.cs
+using System.Diagnostics.Tracing;
+
+[EventSource(Name = &quot;DaqMonitor-Pipeline&quot;)]
+public sealed class PipelineMetrics : EventSource
+{
+    private readonly EventCounter _queueLength;
+    private readonly PollingCounter? _batchSizeAvg;     // 平均批量
+
+    public static readonly PipelineMetrics Instance = new();
+
+    public PipelineMetrics()
+    {
+        _queueLength = new EventCounter(&quot;QueueLength&quot;, this)
+        {
+            DisplayName = &quot;管道队列长度&quot;,
+            DisplayUnits = &quot;个&quot;
+        };
+    }
+
+    [Event(1)]
+    public void RecordQueueLength(int len) =&gt; _queueLength.WriteMetric(len);
+
+    public void ReportBatch(int size)
+    {
+        _queueLength.WriteMetric(size);   // 每次 Flush 后报当前批量
+    }
+}
+</code></pre>
+<p><strong>管道里调用</strong>（呼应 M9 Day 3）：</p>
+<pre><code class="language-csharp">private void Flush()
+{
+    List&lt;SensorPoint&gt;? batch = null;
+    lock (_gate) { /* ... */ }
+    if (batch is not null)
+    {
+        PipelineMetrics.Instance.ReportBatch(batch.Count);   // 上报业务指标
+        BatchReady?.Invoke(this, batch);
+    }
+}
+</code></pre>
+<p>监控它：</p>
+<pre><code class="language-bash">dotnet counters monitor -n DaqMonitor.UI --counters DaqMonitor-Pipeline
+</code></pre>
+<p><strong>前端类比</strong>：这就是 <code>performance.mark('flush')</code> + <code>measure</code>，但能从命令行/容器里实时看，不依赖 UI。</p>
+<p><strong>③ dotMemory 抓双快照对比，找"只增不减"的对象</strong>（🟧 GUI）
+工业程序跑 7 天内存涨到 OOM，99% 是泄漏。排查流程：
+1. 启动程序，连上设备，<strong>等初始化结束</strong>（5 分钟，让"一次性分配"过去）。
+2. dotMemory Attach 到进程，<strong>抓快照 1</strong>（baseline）。
+3. 让程序跑它的典型工作负载 30 分钟（采集 + 报警 + 上云）。
+4. <strong>抓快照 2</strong>。
+5. 选 "Compare Snapshots" → 看 <strong>Surviving Objects</strong>（快照 2 比 1 多出来的）。</p>
+<p>典型报告会告诉你：
+- <code>EventHandler</code> 多了 5000 个 → <strong>事件忘退订</strong>（最常见）。
+- <code>List&lt;SensorPoint&gt;</code> 持续涨 → <strong>static 容器没清理</strong>。
+- <code>Timer</code> 多了 200 个 → <strong>每次重连 <code>new Timer</code> 没释放旧的</strong>。</p>
+<p><strong>④ 4 种典型内存泄漏（必背）</strong></p>
+<p><strong>泄漏 1：事件订阅忘退订</strong>（呼应 M3）</p>
+<pre><code class="language-csharp">// ❌ 错的：每次重连都 +=，旧 handler 持有旧 device 引用
+public void Reconnect()
+{
+    _device.DataReceived += OnData;     // 第 10 次重连 = 10 个 handler 持有 10 个旧 device
+}
+
+// ✅ 对的：先退订再订阅
+public void Reconnect()
+{
+    if (_device is not null) _device.DataReceived -= OnData;
+    _device = new ModbusDevice();
+    _device.DataReceived += OnData;
+}
+</code></pre>
+<p><strong>泄漏 2：static 字段持 List 无限增长</strong></p>
+<pre><code class="language-csharp">// ❌ 错的：永远只 Add，从不 Trim
+public static class GlobalBuffer
+{
+    public static List&lt;SensorPoint&gt; All = new();   // 跑 7 天涨到 GB 级
+}
+
+// ✅ 对的：限长 + 旧数据落盘后清掉
+public static class GlobalBuffer
+{
+    private static readonly LinkedList&lt;SensorPoint&gt; _buf = new();
+    public static void Add(SensorPoint p)
+    {
+        _buf.AddLast(p);
+        while (_buf.Count &gt; 10_000) _buf.RemoveFirst();   // 滑动窗口
+    }
+}
+</code></pre>
+<p><strong>泄漏 3：字典 key 元数据（Tuple / string）没释放</strong></p>
+<pre><code class="language-csharp">// ❌ 错的：key 用 $&quot;{deviceId}-{DateTime.Now.Ticks}&quot;，每次都不一样，字典只增不减
+_cache[$&quot;{id}-{DateTime.Now.Ticks}&quot;] = value;
+
+// ✅ 对的：用 MemoryCache 设过期，或自己定时清理
+_cache.Set(id, value, TimeSpan.FromMinutes(5));
+</code></pre>
+<p><strong>泄漏 4：Timer 回调闭包持有引用</strong></p>
+<pre><code class="language-csharp">// ❌ 错的：闭包持有 this，Timer 不停 → this 永不释放
+public class BadWorker
+{
+    public void Start()
+    {
+        var timer = new Timer(_ =&gt; DoWork(), null, 1000, 1000);
+        // 没 Dispose timer，它持有 this 引用
+    }
+}
+
+// ✅ 对的：实现 IDisposable，Dispose 时关 Timer
+public sealed class GoodWorker : IDisposable
+{
+    private readonly Timer _timer;
+    public GoodWorker() =&gt; _timer = new Timer(_ =&gt; DoWork(), null, 1000, 1000);
+    public void Dispose() =&gt; _timer.Dispose();
+}
+</code></pre>
+<h3 id="sec-3-9">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ Finalizer 隐藏引用</td>
+<td>C# 析构函数 <code>~Class()</code> 会让对象多活一代，频繁写 finalizer 会卡 GC 线程</td>
+</tr>
+<tr>
+<td>🔥 异步 lambda 捕获</td>
+<td><code>device.Connect += async () =&gt; await X()</code> 闭包持有引用，事件不退订永远活着</td>
+</tr>
+<tr>
+<td>🔥 <code>WeakReference</code> 不是免死金牌</td>
+<td>用错（如订阅 WeakEvent 系统却持有强引用）照样泄漏</td>
+</tr>
+<tr>
+<td>🔥 static 容器是泄漏大户</td>
+<td>任何 static <code>List/Dict</code> 都要限长或定期清，否则撑到 OOM</td>
+</tr>
+<tr>
+<td>🔥 <code>Timer</code> 不 Dispose</td>
+<td><code>new Timer(callback, ...)</code> 不 Dispose 就一直持引用；IDisposable 模式别省</td>
+</tr>
+<tr>
+<td>⭐ dotMemory 看 Retention Path</td>
+<td>不只看"对象多"，要看"谁持有它"——Retention Path 是定位泄漏的关键</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-10">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：启动 DAQ Monitor，<code>dotnet counters monitor</code> 观察 GC Heap Size 跑 5 分钟的曲线，截图。要求 Gen 2 GC 一直是 0。</p>
+<p><strong>🟡 进阶题</strong>：给 <code>AcquisitionPipeline</code> 加 <code>PipelineMetrics</code>（队列长度 EventCounter），从 <code>dotnet counters monitor</code> 实时看到队列长度变化。</p>
+<p><strong>🔴 挑战题</strong>：故意制造一个泄漏版本（在 <code>MainViewModel</code> 里订阅一个 <code>static event</code> 不退订），用 dotMemory 抓两个快照对比，定位到具体是哪个对象、哪条 Retention Path。然后改成正确写法，再抓一次快照验证泄漏消失。</p>
+<p><strong>✅ 答案（基础题）</strong>
+正常曲线：GC Heap Size 在某个范围波动（20-50MB），不单调上升。Gen 2 GC 始终 0。如果一直涨——<strong>就是泄漏，回 Day 2 ④ 四个模板对一遍</strong>。</p>
+<p><strong>💡 工控导师说</strong>：我审过一段代码——程序跑 3 天内存涨到 2GB，工厂被迫每周重启一次。后来用 dotMemory 抓两个快照一对比，是 <code>static event</code> 每次重连都订阅一次没退订。<strong>改一行 <code>-=</code> 修好，省下每次重启的 30 分钟停机</strong>。这就是性能工程的真金白银。</p>
+<p><strong>🎓 职业建议</strong>："你怎么排查内存泄漏？"是中高级岗面试必问。答"用 dotMemory 抓两个快照，看 Surviving Objects + Retention Path；常见 4 类：事件忘退订、static 容器、字典 key 没清、Timer 不 Dispose"——这一套术语一出口，面试官直接把你归到"真上过生产"的档。</p>
+<p><strong>📚 延伸阅读</strong>
+- <code>dotnet counters</code> 文档：https://learn.microsoft.com/dotnet/core/diagnostics/dotnet-counters
+- EventCounter 自定义：https://learn.microsoft.com/dotnet/core/diagnostics/event-counters
+- dotMemory 教程（JetBrains）：https://www.jetbrains.com/dotmemory/
+- 排查内存泄漏（官方）：https://learn.microsoft.com/dotnet/core/diagnostics/debug-memory-leak</p>
+<p><strong>🏗️ 项目任务</strong>：DAQ Monitor 加 <code>PipelineMetrics</code> EventCounter；启动后用 <code>dotnet counters monitor</code> 至少能看到 3 个业务指标（队列长度、批次大小、报警触发数）。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M9.5',2)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-4">Day 3 — 长跑稳定性策略（限流 / 降级 / 熔断 / 自愈）🔴</h2>
+<h3 id="sec-3-11">一句话讲清楚</h3>
+<p>工业系统跑 7×24 不崩 = <strong>限流（防压垮）+ 降级（备路兜底）+ 熔断（防雪崩）+ 心跳（主动探活）+ 自愈（自动重连）+ 监控（事后追溯）</strong>——<strong>前端类比：Service Worker 离线缓存 / PWA 降级页面 / 请求限流 / Sentry 上报</strong>。</p>
+<h3 id="sec-3-12">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>上位机长跑策略</th>
+<th>前端类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Channel 有界 + DropOldest</td>
+<td>axios 拦截器丢弃过期请求</td>
+</tr>
+<tr>
+<td>DB 挂 → 内存兜底</td>
+<td>Service Worker 缓存兜底</td>
+</tr>
+<tr>
+<td>连续失败 5 次 → 停 30s</td>
+<td>axios-retry + 熔断器（Polly 风格）</td>
+</tr>
+<tr>
+<td>每 5s 心跳探活</td>
+<td>WebSocket ping/pong</td>
+</tr>
+<tr>
+<td>设备掉线自动重连</td>
+<td>断网自动 reconnect</td>
+</tr>
+<tr>
+<td>Serilog 滚动日志</td>
+<td>Sentry / LogRocket</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-13">分点精讲</h3>
+<p><strong>① 限流：Channel 有界 + DropOldest（采集永远不停）</strong>（🟦，呼应 M0/M9）
+无界 Channel 是"只要生产够快，内存管够"——一旦消费端卡顿（DB 慢查询），内存爆。<strong>生产级必须有界</strong>：</p>
+<pre><code class="language-csharp">var channel = Channel.CreateBounded&lt;SensorPoint&gt;(new BoundedChannelOptions(1000)
+{
+    FullMode = BoundedChannelFullMode.DropOldest,   // 队列满丢最旧，采集不停
+    SingleReader = false,
+    SingleWriter = false
+});
+
+// 写入端（采集线程）
+public void OnDataReceived(SensorPoint p)
+{
+    // TryWrite 不阻塞：满就丢，采集线程绝不卡
+    if (!channel.Writer.TryWrite(p))
+        Interlocked.Increment(ref _droppedCount);   // 记丢了多少，监控用
+}
+</code></pre>
+<p><strong>为什么 DropOldest 不是 Wait</strong>：工业现场"实时值"最重要——宁可丢老的，也不能让采集线程被卡住漏掉新值。这和后端 Web 不同（后端是 Wait 排队），<strong>采集系统永远要先保新数据</strong>。</p>
+<p><strong>② 降级：DB 挂了走内存兜底，设备掉线用模拟值占位</strong>（🟦）</p>
+<pre><code class="language-csharp">// 持久化降级：DB 异常 → 内存队列暂存 + 后台重试
+public async Task SaveAsync(IEnumerable&lt;SensorPoint&gt; batch)
+{
+    try
+    {
+        await using var db = _dbFactory.CreateDbContext();
+        db.Points.AddRange(batch.Select(p =&gt; p.ToEntity()));
+        await db.SaveChangesAsync();
+    }
+    catch (Exception ex)        // DB 挂了
+    {
+        _log.Warning(ex, &quot;DB 不可用，转入内存兜底 {Count} 条&quot;, batch.Count());
+        _inMemoryFallback.AddRange(batch);    // 暂存
+        _dbAvailable = false;                  // 触发后台重试
+    }
+}
+
+// 后台任务：每 30s 试着重连 DB
+private async Task DbReconcileLoopAsync(CancellationToken ct)
+{
+    while (!ct.IsCancellationRequested)
+    {
+        await Task.Delay(30_000, ct);
+        if (!_dbAvailable &amp;&amp; _inMemoryFallback.Count &gt; 0)
+        {
+            try
+            {
+                await using var db = _dbFactory.CreateDbContext();
+                db.Points.AddRange(_inMemoryFallback.Select(p =&gt; p.ToEntity()));
+                await db.SaveChangesAsync();
+                _inMemoryFallback.Clear();
+                _dbAvailable = true;
+                _log.Information(&quot;DB 恢复，已重放 {Count} 条&quot;, _inMemoryFallback.Count);
+            }
+            catch { /* 还没好，下次再试 */ }
+        }
+    }
+}
+</code></pre>
+<p><strong>③ 熔断：连续失败 5 次 → 停 30s 重连（防雪崩）</strong>（🟦）
+为什么需要熔断：设备挂了你每秒重试 1000 次，把现场总线打死、把 CPU 跑满。<strong>熔断 = 失败到一定阈值就主动"歇一会"</strong>：</p>
+<pre><code class="language-csharp">public sealed class CircuitBreaker
+{
+    private int _failures;
+    private DateTime _openUntil = DateTime.MinValue;
+    private readonly int _threshold;          // 失败阈值
+    private readonly TimeSpan _openDuration;  // 熔断时长
+
+    public CircuitBreaker(int threshold = 5, TimeSpan? openDuration = null)
+    {
+        _threshold = threshold;
+        _openDuration = openDuration ?? TimeSpan.FromSeconds(30);
+    }
+
+    public bool IsClosed =&gt; DateTime.UtcNow &gt;= _openUntil;   // 闭=可调用
+
+    public void RecordSuccess()
+    {
+        Interlocked.Exchange(ref _failures, 0);
+        _openUntil = DateTime.MinValue;
+    }
+
+    public void RecordFailure()
+    {
+        if (Interlocked.Increment(ref _failures) &gt;= _threshold)
+        {
+            _openUntil = DateTime.UtcNow + _openDuration;
+            // 触发回调：广播设备离线、记日志
+        }
+    }
+}
+
+// 使用：在 Retry 外面再包一层熔断
+if (_breaker.IsClosed)
+{
+    try { await _device.ReadAsync(); _breaker.RecordSuccess(); }
+    catch { _breaker.RecordFailure(); /* 连续 5 次后停 30s */ }
+}
+else
+{
+    _log.Warning(&quot;熔断中，跳过读取，{Sec} 秒后重试&quot;,
+        (_openUntil - DateTime.UtcNow).TotalSeconds);
+}
+</code></pre>
+<p><strong>④ 心跳：每 5s 发 0x00，3 次无响应判离线</strong>（🟦，M9 Day 4⑤ 已落地）
+M9 的 <code>DeviceHealthMonitor</code> 已经完整实现——主动探活，<strong>别信 <code>IsConnected</code></strong>。这里复习关键参数：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>推荐值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>心跳间隔</td>
+<td>3~10s</td>
+<td>太短压设备，太长发现掉线慢</td>
+</tr>
+<tr>
+<td>判离线阈值</td>
+<td>连续 2~3 次</td>
+<td>防 1 次抖动误判</td>
+</tr>
+<tr>
+<td>重连退避</td>
+<td>1s→2s→4s...→封顶 30s</td>
+<td>指数退避别死循环</td>
+</tr>
+</tbody>
+</table>
+<p><strong>⑤ 自愈：设备掉线 → 自动重连，Redis 挂 → 走内存</strong>（🟦）
+自愈 = 系统检测到故障后<strong>自动恢复到可用状态</strong>，不需要人工重启。组合上面 ① ~ ④：</p>
+<pre><code>心跳探活 → 检测掉线 → 熔断打开（停 30s）→ 退避重连 → 成功后熔断关闭 → 恢复采集
+                          ↓（DB/Redis 挂）
+                     降级走内存/模拟值
+</code></pre>
+<p><strong>关键：故障期间 UI 仍然能显示"上次值 + 离线标记"</strong>，而不是白屏崩溃。这就是 7×24 的真正含义——<strong>永远不挂，最多降级</strong>。</p>
+<p><strong>⑥ 监控报警：Serilog 滚动日志 + 关键指标推送</strong>（🟧 呼应 M6）</p>
+<pre><code class="language-csharp">Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.File(&quot;logs/daq-{Date}.log&quot;,
+        rollingInterval: RollingInterval.Day,     // 每天一个文件
+        retainedFileCountLimit: 30,                // 只留 30 天
+        fileSizeLimitBytes: 100_000_000)           // 单文件 100MB 上限
+    .WriteTo.Console()
+    .CreateLogger();
+
+// 关键事件推送到监控系统（钉钉/企业微信/邮件）
+_alarm.AlarmTriggered += async (s, e) =&gt;
+{
+    Log.Warning(&quot;报警 点位{Id} 值{Value}&quot;, e.PointId, e.Value);
+    if (e.Level == AlarmLevel.Critical)
+        await _notifier.SendAsync($&quot;[严重] 设备 {e.PointId} 值 {e.Value}&quot;);
+};
+</code></pre>
+<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⭐ 限流先于优化</td>
+<td>别等性能不够才限流——先限流保命，再优化提性能</td>
+</tr>
+<tr>
+<td>⭐ 降级要可见</td>
+<td>UI 上明示"DB 异常 / 数据缓存中"，别让操作员以为系统正常</td>
+</tr>
+<tr>
+<td>🔥 熔断阈值要合理</td>
+<td>太敏感（失败 1 次就熔断）= 频繁中断；太迟钝 = 不熔断等于没装</td>
+</tr>
+<tr>
+<td>🔥 重连退避必须封顶</td>
+<td><code>Math.Min(delay, 30s)</code>——不然指数涨到几分钟，现场等不起</td>
+</tr>
+<tr>
+<td>🔥 日志文件别无限增长</td>
+<td><code>retainedFileCountLimit</code> + <code>fileSizeLimitBytes</code> 必须设，否则一周塞满磁盘</td>
+</tr>
+<tr>
+<td>⭐ 故障期间采集不停</td>
+<td>数据可以丢（DropOldest），但采集线程绝不能因为下游故障而停摆</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-15">🧪 三档练习</h3>
+<p><strong>🟢 基础题</strong>：把 M9 的 <code>AcquisitionPipeline</code> 从 <code>Channel.CreateUnbounded</code> 改成 <code>Channel.CreateBounded(1000, DropOldest)</code>，并加一个 <code>_droppedCount</code> 计数器，每次丢弃 +1。</p>
+<p><strong>🟡 进阶题</strong>：给 DAQ Monitor 的 DB 写入层加"降级走内存"——<code>SaveAsync</code> catch 异常后入 <code>_inMemoryFallback</code> 队列，后台 30s 重试。</p>
+<p><strong>🔴 挑战题</strong>：把 Day 3 ③ 的 <code>CircuitBreaker</code> 接进 M9 的 <code>DeviceHealthMonitor</code>——心跳连续失败 5 次后熔断 30s（期间不连不读），30s 后半开（试连一次），成功关闭熔断 / 失败再开 30s。这就是"<strong>熔断器三态（Closed / Open / HalfOpen）</strong>"，Polly 库的核心思想。</p>
+<p><strong>✅ 答案（基础题）</strong></p>
+<pre><code class="language-csharp">private readonly Channel&lt;SensorPoint&gt; _channel =
+    Channel.CreateBounded&lt;SensorPoint&gt;(new BoundedChannelOptions(1000)
+    {
+        FullMode = BoundedChannelFullMode.DropOldest
+    });
+private int _droppedCount;
+
+public void Enqueue(SensorPoint p)
+{
+    if (!_channel.Writer.TryWrite(p))
+        Interlocked.Increment(ref _droppedCount);
+}
+public int DroppedCount =&gt; _droppedCount;   // 通过 PipelineMetrics 上报
+</code></pre>
+<p><strong>💡 工控导师说</strong>：稳定性这事没捷径，就是把"<strong>限流 / 降级 / 熔断 / 心跳 / 自愈 / 监控</strong>"六件事都做到位。我带过最稳的一个 SCADA 系统，<strong>连续跑 2 年没重启过</strong>——靠的就是这套。不是炫技，是每个边界条件都想到、每个失败路径都有兜底。</p>
+<p><strong>🎓 职业建议</strong>：面试问"你的程序怎么保证 7×24 不崩"，把上面六件事讲一遍——<strong>限流（Channel 有界）、降级（DB 挂走内存）、熔断（连续失败停 30s）、心跳（5s 探活判离线）、自愈（指数退避重连）、监控（Serilog 滚动 + 关键指标推送）</strong>。这套术语一出口，面试官直接给"高级工程师"档，15K 稳。</p>
+<p><strong>📚 延伸阅读</strong>
+- <code>System.Threading.Channels</code> 限流：https://learn.microsoft.com/dotnet/api/system.threading.channels
+- Polly 熔断器（业界标杆）：https://github.com/App-vNext/Polly
+- Serilog 滚动日志：https://github.com/serilog/serilog-sinks-file
+- Microsoft 限流模式：https://learn.microsoft.com/azure/architecture/patterns/</p>
+<p><strong>🏗️ 项目任务</strong>：给 DAQ Monitor 上完整长跑铠甲——Channel 改有界 + DropOldest、DB 写入加降级、关键设备加 CircuitBreaker、日志配滚动 + 大小上限。跑 24 小时验证 GC Heap Size 不单调上涨。</p>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="3" onchange="toggleDay('M9.5',3)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-5">模块交付清单（M9.5）</h2>
+<ul>
+<li>[ ] <code>src/DaqMonitor.Bench</code> 项目跑通，至少 3 组压测（CRC / struct vs class / FrameParser）</li>
+<li>[ ] <code>dotnet counters monitor</code> 能看到 GC/线程 + 至少 1 个自定义业务 EventCounter</li>
+<li>[ ] dotMemory 双快照对比报告：无"只增不减"对象</li>
+<li>[ ] Channel 改有界（1000 + DropOldest），带丢弃计数</li>
+<li>[ ] DB 写入层降级走内存兜底</li>
+<li>[ ] 关键设备接 CircuitBreaker（Closed/Open/HalfOpen 三态）</li>
+<li>[ ] 日志滚动 + 大小上限（30 天 × 100MB）</li>
+<li>[ ] 24 小时长跑测试：GC Heap Size 稳定、Gen 2 GC = 0</li>
+</ul>
+<h2 id="sec-2-6">📌 温故知新 / 跨模块联动</h2>
+<ul>
+<li><strong>← M0（并发 + 分层）</strong>：本模块的"Channel 有界限流"正是 M0 Day7 的进阶版——无界是教学版，有界 + DropOldest 才是生产版。</li>
+<li><strong>← M2（CRC / FrameParser）</strong>：Day 1 的 bench 直接量化 M2 写过的两段代码，让你看到"按位 vs 查表"的真实差距。</li>
+<li><strong>← M3（PLC 容错）</strong>：M3 的 <code>IsConnected 不可信</code> → 本模块的心跳 + 熔断 + 自愈是完整解法。</li>
+<li><strong>← M4（持久化）</strong>：DB 写入的"降级走内存兜底"呼应 M4 的失败重放——DB 不是永远可用，兜底必须做。</li>
+<li><strong>← M5（实时可视化）</strong>：Day 1 的"struct vs class"bench 证明了 M5 用 <code>readonly struct SensorPoint</code> 的选择正确——每秒少 24KB 垃圾。</li>
+<li><strong>← M9（统一管道 + Retry + 心跳）</strong>：本模块是 M9 的"性能体检 + 长跑保险"——M9 解决"工程化结构"，本模块解决"性能数据 + 跑死怎么办"。</li>
+<li><strong>↔ M19（问题排查与调试）</strong>：M19 调试讲义的 4 种内存泄漏排查(<code>dotnet counters</code> / <code>dotnet gcdump</code> / <code>dotnet dump</code>)正是本模块 Day 2-3 的工具链。<strong>M9.5 偏"压测找瓶颈",M19 偏"调试找根因",两者工具栈重叠 70%,建议合并学习</strong>(参考 <a href="30天作战路线_转行冲刺版.md">30 天作战路线 Day 11 + Day 18</a> 把两块串起来)。</li>
+<li><strong>→ 简历一句话</strong>：「用 BenchmarkDotNet 量化采集路径性能 &lt; 1ms；用 dotnet counters 监控 GC + 自定义业务 EventCounter；用 dotMemory 排查并修复事件订阅泄漏；长跑策略 Channel 限流 + 熔断 + 心跳自愈」——四句对齐 15K 加分项。</li>
+</ul>
+<h2 id="sec-2-7">🧩 完整代码组装（M9.5 落地的关键代码，可直接抄 / 添加到工程）</h2>
+<pre><code class="language-csharp">// src/DaqMonitor.Bench/CrcBench.cs           —— Day 1 CRC 压测
+// src/DaqMonitor.Bench/AllocBench.cs         —— Day 1 struct vs class
+// src/DaqMonitor.Core/Metrics/PipelineMetrics.cs   —— Day 2 EventCounter
+// src/DaqMonitor.Core/Reliability/CircuitBreaker.cs —— Day 3 熔断器（三态）
+// src/DaqMonitor.Core/Reliability/FallbackQueue.cs  —— Day 3 DB 降级内存兜底
+
+// 限流：M9 的 AcquisitionPipeline 改成有界 + DropOldest
+var channel = Channel.CreateBounded&lt;SensorPoint&gt;(new BoundedChannelOptions(1000)
+{
+    FullMode = BoundedChannelFullMode.DropOldest
+});
+</code></pre>
+<blockquote>
+<p>做完这套，DAQ Monitor 就从"功能跑通"升级到"<strong>性能可量化、长跑可信任</strong>"——这才是 15K 工程师的产出标准。</p>
+</blockquote>
+<h2 id="sec-2-8">🔗 下一步建议</h2>
+<p>本模块结束后，整个上位机学习路径（M0–M16 + M9.5）已完整覆盖：通信 / 持久化 / 可视化 / 报警 / 上云 / 工程 / 性能 / 长跑。建议下一步进入<strong>真实项目实战</strong>——把 BenchmarkDotNet 报告 + dotMemory 截图 + 24h 长跑日志整理成作品集，简历与面试直接拉开档次。</p>
+<h2 id="sec-2-9">📚 延伸阅读（卡点时点开）</h2>
+<ul>
+<li>BenchmarkDotNet 官方：https://benchmarkdotnet.org/</li>
+<li><code>dotnet counters</code> / <code>dotnet trace</code> / <code>dotnet dump</code>：https://learn.microsoft.com/dotnet/core/diagnostics/</li>
+<li>JetBrains dotMemory：https://www.jetbrains.com/dotmemory/</li>
+<li>PerfView（免费高级分析）：https://github.com/microsoft/perfview</li>
+<li>Polly 弹性库：https://github.com/App-vNext/Polly</li>
+<li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
+</ul>
+<div class="pager">
+  <a class="prev" href="M8.5.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M8.5 · Prism 企业级 MVVM</div></a>
+  <a class="next" href="traps.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">⚠️ C# 陷阱 · 前端转上位机必看</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,39 +1,59 @@
-# DAQ Monitor · 学习总纲（M0–M14）
+# DAQ Monitor · 学习总纲（M0–M19 + 转行冲刺专项）
 
 > **北极星目标**：学完 = 上位机 **13~15K** 水平 + 简历上能放得出手的企业级项目「DAQ Monitor 工业数据采集监控系统」。
-> **路线**：项目驱动 —— 先有项目骨架，每个模块 = 给简历项目加一种企业级能力，学完即落地。
+> **路线**：项目驱动 + 代码肌肉训练融入日常 —— 先有项目骨架，每个模块 = 给简历项目加一种企业级能力，学完即落地。
+> **主轴**：[30 天作战路线 · 转行冲刺版](30天作战路线_转行冲刺版.md)（每天 = 看讲义 + 写项目代码 + 1h 白板刷题 + 打卡）
 
 ## 13~15K 简历项目「达标清单」
-1. **多设备接入**：串口 / Modbus / PLC 至少两种（M1–M3）
-2. **并发采集**：后台线程 + 队列缓冲 + UI 刷新，无卡顿、无内存泄漏（M0 Day7）
-3. **实时可视化**：动态曲线 / 仪表盘（M5）
-4. **数据持久化**：历史库 + 查询 / 导出（M4）
-5. **报警**：阈值规则 + 通知 + 日志（M6）
-6. **工程素养**：分层架构 / 面向接口 / MVVM / 配置化 / 异常处理 / 单测 / DI / 统一采集 / 生产容错 / 能打包演示（M0, M8, M9）
-7. **加分**：OPC UA / MQTT 上云（M7）
-8. **多协议接入**：TCP 私有协议 + 串口 + Modbus + 多品牌 PLC（M1/M2/M3/M11/M13）
-9. **工程量标定**：原始值 → 真实物理量（M12）
-10. **企业数据库**：SQL Server / MySQL 持久化（M12）
-11. **交付素养**：配置化 / 自动更新 / 文档能力（M8 / 文档能力附录）
+1. **多设备接入**：串口 / Modbus / PLC / TCP / CAN / USB-HID（M1/M2/M3/M11/M16）✅ 6 种已落地
+2. **并发采集**：后台线程 + Channel 缓冲 + UI 刷新，无卡顿、无内存泄漏（M0 Day7）✅
+3. **实时可视化**：动态曲线 / 仪表盘（M5）⚠️ 曲线 View 进行中
+4. **数据持久化**：EF Core + SQLite 双写（内存+异步落库）+ 历史查询（M4）✅
+5. **报警**：阈值规则 + 回滞 + 通知 + Serilog 日志（M6）✅
+6. **工程素养**：分层 / 接口 / MVVM / DI / 单测 28+ / 容错 / 打包（M0/M8/M9）✅
+7. **加分**：OPC UA + MQTT 双向上云（M7）⚠️ MQTT 落地中
+8. **多协议接入**：TCP 私有协议 + 多品牌 PLC（M11/M13）⚠️ TcpDevice 进行中
+9. **工程量标定**：raw → 物理量 + 多数据库（M12）⚠️ 落地中
+10. **企业级加分**：报表 Excel / 工业安全 MES 对接 / 配方管理 / 性能压测 / 调试（M10/M17/M18/M9.5/M19）✅ 讲义齐全
+11. **交付素养**：设计/协议/操作/测试文档（文档能力附录）⚠️ Week 4 产出
 
-## 模块路线图
+## 模块路线图(M0-M19 + M8.5/M9.5 = 22 模块齐全)
 | 模块 | 学什么 | 给项目加的能力 | 技术来源 |
 |---|---|---|---|
-| **M0** | C# 核心 + WPF + 并发 | 工程骨架 + 后台采集闭环 | 🟦🟩 |
+| **M0** | C# 核心 + WPF + 并发(Channel) | 工程骨架 + 后台采集闭环 | 🟦🟩 |
 | **M1** | 串口通信 | 真实/虚拟串口设备接入 | 🟩 System.IO.Ports |
 | **M2** | Modbus RTU/TCP | 工业标准协议读写寄存器 | 🟧 NModbus4 |
 | **M3** | PLC 通信(西门子 S7) | 直连 PLC（13K 硬通货） | 🟧 S7.Net |
-| **M4** | 数据持久化 | 历史库 + 查询/导出 | 🟧 EF Core + SQLite |
+| **M4** | 数据持久化 | 历史库 + 双写 + 查询/导出 | 🟧 EF Core + SQLite |
 | **M5** | 实时可视化 | 动态曲线/仪表盘 | 🟧 LiveCharts2 |
-| **M6** | 报警引擎 + 日志 | 阈值规则 + Serilog | 🟦 + 🟧 |
-| **M7** | OPC UA / MQTT | 上云/对接 SCADA（15K 加分） | 🟧 |
+| **M6** | 报警引擎 + 日志 | 阈值规则 + 回滞 + Serilog | 🟦 + 🟧 |
+| **M7** | OPC UA / MQTT 双向 | 上云/对接 SCADA（15K 加分） | 🟧 MQTTnet 4 |
 | **M8** | 工程化收尾 | MVVM + 安装包 + 简历 | 🟧 + 🟦 |
+| **M8.5** | **Prism 企业级 MVVM** | 模块化/Region/EventAggregator/DialogService | 🟧 Prism.DryIoc |
 | **M9** | 工程素养 | 单测 + DI + 统一采集 + 容错，13K→15K 分水岭 | 🟧 + 🟦 |
-| **M10** | 报表（聚合 + 可视化 + Excel/PDF 导出） | 把 M4+M5+M6 收口成企业交付物（缺口最大项） | 🟦 + 🟧 |
-| **M11** | TCP Socket 自定义协议 | 对接非 Modbus 的私有 TCP 设备（粘包/拆包/帧） | 🟩 System.Net.Sockets |
-| **M12** | 工程量转换 + 企业数据库 | 量程标定 + SQL Server/MySQL 持久化 | 🟦 + 🟧 EF/Dapper |
+| **M9.5** | **性能压测 + 长跑稳定性** | BenchmarkDotNet + dotMemory + 4 类内存泄漏 | 🟧 性能工具链 |
+| **M10** | 报表 | 聚合 + Excel/PDF 导出（ClosedXML） | 🟦 + 🟧 |
+| **M11** | TCP Socket 自定义协议 | 粘包/拆包 + 私有帧 | 🟩 System.Net.Sockets |
+| **M12** | 工程量转换 + 企业数据库 | 量程标定 + SQL Server/MySQL | 🟦 + 🟧 EF/Dapper |
 | **M13** | 多品牌 PLC + 国产库 | 三菱/欧姆龙 + HslCommunication 通吃 | 🟧 HslCommunication |
 | **M14** | WinForm + 自定义控件 | 老项目维护 + 自绘工业控件 | 🟩 WinForms · 🟦 自绘 |
+| **M15** | 工程协作与联调 | Git/敏捷/调试工具/联调定位（初级岗硬要求） | ⚫ 工程协作 |
+| **M16** | 工业总线 CAN + USB-HID | CAN 广播总线 + USB-HID 仪器通信 | 🟡 工业总线 |
+| **M17** | **工业安全 + MES 对接** | HttpClient + Polly + JWT + IT/OT 分层 + 审计 | 🟧 HttpClient/Polly |
+| **M18** | **配方管理** | 工艺参数版本化 + 审计 + 回滚（ISA-88） | 🟦 配方 |
+| **M19** | **问题排查与调试** | VS 调试器 + dotnet dump + Wireshark + Serilog TraceId（13→15K 硬要求） | 🟧 调试工具链 |
+
+## 转行冲刺专项(前端背景必看)
+
+| 专项 | 用途 | 何时用 |
+|---|---|---|
+| ⭐ [30 天作战路线 · 转行冲刺版](30天作战路线_转行冲刺版.md) | Day 1-30 每日学习+项目+代码肌肉打卡 | **主轴**,每天对照 |
+| 🔴 [C# 陷阱 · 前端转上位机必看](C#_陷阱_前端转上位机必看_深度版.md) | 8 大坑 + 前端类比 | Day 1 必读,Week 1 反复 |
+| 💪 [代码肌肉训练手册 · 30 天刷题版](代码肌肉训练手册_30天刷题版.md) | 20 翻译 + 30 手写 + 10 Debug 题库 | 每天 1h 白板刷题 |
+| 📊 [JD 调研 · 13-15K 岗位对照](JD调研_13-15K上位机岗位对照.md) | 必会/高频/加分 4 档 + 3 个典型 JD 样本 | 投简历前对照 |
+| 📄 [简历模板 · 上位机 13-15K](简历模板_上位机_13-15K.md) | 3 版本简历 + STAR + 投递策略 | Week 4 改简历 |
+| 🎤 [面试问答 · 逐字稿 30 题](面试问答_逐字稿_30题.md) | 10 大主题 × 3 题标准答 | Week 4 背诵 |
+| 🔍 [整体串联审计 v2](审计_整体串联复核_v2.md) | 阶段→模块→知识点审计 + Top 10 必修 | 学习中遇到疑问时回看 |
 
 ## 技术来源 3 色标注（全程）
 - 🟦 **C# 语法**：语言自带，装好 .NET 就有，**不装包**
@@ -86,16 +106,34 @@
 5. 每完成一个模块，把 DAQMonitor 对应代码提交 Git，作品集逐步成形。
 
 ## 工程（DAQMonitor）当前进度
-- [x] M0 脚手架 + 分层架构（Core/UI）+ IDevice 接口 + PointStore + 并发闭环
-- [x] M9 工程素养（测试 / DI / 统一采集 / 容错）—— **项目已可端到端运行**
-- [x] **端到端跑通**：`SimulatedDevice`（模拟设备）→ `AcquisitionPipeline`（Channel 缓冲 + 200ms 定时批量）→ `PointStore` + `AlarmEngine` → WPF `MainWindow` 实时点位表 + 报警日志。
-  - ✅ `dotnet build` 0 错误 0 警告；✅ `dotnet test` 28 个测试全绿（含无界面集成冒烟测试 + M10 报表聚合测试 + 串口通信层 6 测试：单帧/粘包/半包/坏CRC/管道集成/RawLog + CAN 设备 2 + USB-HID 设备 2 + 心跳健康监测 2）；✅ `dotnet run --project src/DaqMonitor.UI` 弹出窗口，点"启动采集"看到点位跳动 + 偶发报警。
-  - 架构已就位：M1–M7 只需把 `SimulatedDevice` 换成真实串口/Modbus/PLC 设备，`Bootstrapper` 里一行注册即可，UI 与采集层零改动。
-- [ ] M1 串口采集
-- [ ] M2 Modbus
-- [ ] M3 PLC
-- [ ] M4 历史库
-- [ ] M5 可视化
-- [ ] M6 报警+日志
-- [ ] M7 上云
-- [ ] M8 MVVM + 安装包
+- [x] M0 脚手架 + 分层架构(Core/UI) + IDevice 接口 + PointStore 双写 + 并发闭环(Channel 缓冲)
+- [x] M1 串口采集(ISerialChannel 抽象 + SerialDevice + LoopbackSerialChannel)
+- [x] M2 Modbus(ModbusDevice + ModbusFrameParser + 6 个测试全绿)
+- [x] M3 PLC(S7.Net 封装 PlcDevice + 退订模式)
+- [x] M4 持久化(EF Core + SQLite + IDbContextFactory + 3 个持久化测试)
+- [x] M6 报警(AlarmEngine + AlarmRule 回滞机制)
+- [x] M9 工程素养(DI + 28+ 测试 + Retry 指数退避 + 统一采集管道)
+- [x] M10 报表(ReportService + ReportExporter ClosedXML)
+- [x] M16 CAN + USB-HID(CanDevice + UsbHidDevice + 模拟通道 + 4 个测试)
+- [x] 健康监测(DeviceHealthMonitor 心跳)
+- [ ] M5 LiveCharts2 曲线 View(⚠️ 进行中)
+- [ ] M7 MQTT 双向 + OPC UA(⚠️ 进行中)
+- [ ] M8.5 Prism Bootstrapper 重构(待 W2 Day 12-14)
+- [ ] M11 TcpDevice(⚠️ 进行中)
+- [ ] M12 EngineeringConverter(⚠️ 进行中)
+- [ ] M17 MesApiClient(选做)
+- [ ] M18 RecipeManager(选做)
+- [ ] M8 安装包(待 W3 Day 19)
+
+**端到端跑通**:`SimulatedDevice` → `AcquisitionPipeline` (Channel 缓冲 + 200ms 定时批量) → `PointStore` 双写(内存+异步 SQLite) + `AlarmEngine` 回滞 → WPF `MainWindow` 实时点位表 + 报警日志。
+- ✅ `dotnet build` 0 错误 0 警告
+- ✅ `dotnet test` 28+ 测试全绿
+- ✅ `dotnet run --project src/DaqMonitor.UI` 弹窗,点"启动采集"看到点位跳动 + 偶发报警
+
+## 每天该做什么(主轴)
+1. 上午 1h:看讲义(理论,大脑最清醒)
+2. 下午 1.5h:写代码(项目实战)
+3. **傍晚 1h:代码肌肉(白板刷题,形成肌肉记忆)** ← 转 13-15K 核心
+4. 晚上 0.5h:打卡 + 复盘 + 第二天预览
+
+**详细 Day 1-30 每日任务**:[30 天作战路线 · 转行冲刺版](30天作战路线_转行冲刺版.md)

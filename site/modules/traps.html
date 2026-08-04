@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚠️ C# 陷阱 · 前端转上位机必看 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="traps">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">模块目标</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">🕳️ 陷阱 1:struct 值类型拷贝(JS 没有的最大坑)</a><ul>
+<li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-3">🔬 掰开揉碎:为什么 C# 要这么设计?</a></li>
+<li class="l3"><a href="#sec-3-4">致命场景(上位机 100% 会踩)</a></li>
+<li class="l3"><a href="#sec-3-5">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-6">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-7">💡 工控导师说(真实战例)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">🕳️ 陷阱 2:多线程并发 + lock(JS 单线程的人最痛)</a><ul>
+<li class="l3"><a href="#sec-3-8">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-9">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-10">🔬 掰开揉碎:为什么 i++ 会丢数?</a></li>
+<li class="l3"><a href="#sec-3-11">上位机致命场景</a></li>
+<li class="l3"><a href="#sec-3-12">正确写法(三档)</a></li>
+<li class="l3"><a href="#sec-3-13">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-14">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-15">💡 工控导师说</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🕳️ 陷阱 3:字节序 + 位运算 + CRC(协议层)</a><ul>
+<li class="l3"><a href="#sec-3-16">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-17">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-18">🔬 掰开揉碎:大端 vs 小端(0x12345678 怎么存?)</a></li>
+<li class="l3"><a href="#sec-3-19">必会位运算组合拳</a></li>
+<li class="l3"><a href="#sec-3-20">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-21">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-22">💡 工控导师说</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">🕳️ 陷阱 4:async void 吞异常(JS 没这个区分)</a><ul>
+<li class="l3"><a href="#sec-3-23">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-24">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-25">🔬 掰开揉碎:什么时候该用 async void?</a></li>
+<li class="l3"><a href="#sec-3-26">致命场景(前端必踩)</a></li>
+<li class="l3"><a href="#sec-3-27">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-28">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-29">💡 工控导师说</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">🕳️ 陷阱 5:强类型 + 可空引用类型(JS 动态类型)</a><ul>
+<li class="l3"><a href="#sec-3-30">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-31">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-32">🔬 掰开揉碎:? 和 ?? 和 ! 和 ?.</a></li>
+<li class="l3"><a href="#sec-3-33">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-34">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-35">💡 工控导师说</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🕳️ 陷阱 6:IDisposable + using(资源管理)</a><ul>
+<li class="l3"><a href="#sec-3-36">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-37">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-38">🔬 掰开揉碎:using 三种写法</a></li>
+<li class="l3"><a href="#sec-3-39">必 Dispose 的 BCL 类型(高频)</a></li>
+<li class="l3"><a href="#sec-3-40">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-41">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-42">💡 工控导师说</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">🕳️ 陷阱 7:delegate / event 不是 DOM 事件</a><ul>
+<li class="l3"><a href="#sec-3-43">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-44">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-45">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-46">🧪 三档练习</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">🕳️ 陷阱 8:P-Invoke / IntPtr(工业库是 C++)</a><ul>
+<li class="l3"><a href="#sec-3-47">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-48">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-49">最小示例</a></li>
+<li class="l3"><a href="#sec-3-50">核心概念</a></li>
+<li class="l3"><a href="#sec-3-51">⚠️ 常见坑点预警</a></li>
+<li class="l3"><a href="#sec-3-52">🧪 三档练习</a></li>
+<li class="l3"><a href="#sec-3-53">💡 工控导师说</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">📌 温故知新(跨模块联动)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-11">📚 延伸阅读</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-12">🏗️ 项目任务(落到 DAQMonitor)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-13">✅ 打卡[ ]</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">C# 陷阱 · 前端转上位机必看(深度版)</h1>
+<blockquote>
+<p><strong>优先级定位</strong>:🔴 <strong>必学先看</strong> · 学 M0 之前先读这一份(否则后续会被一堆"前端没的概念"卡到怀疑人生)
+<strong>技术来源</strong>:🟦 C# 语法 + 🟩 .NET BCL(不装包,装好 .NET 就有)
+<strong>给简历加的能力</strong>:让你写的 C# 代码<strong>不像前端写的</strong> —— 不踩 struct 拷贝、不踩 async void 吞异常、不踩多线程竞态,代码能上生产。
+<strong>前置</strong>:无(这是 M0 之前的"防坑训练营")
+<strong>谁该读</strong>:<strong>JS/TS 经验越足,这份越要看</strong> —— 你越熟前端,这些坑踩得越深。</p>
+</blockquote>
+<h2 id="sec-2-1">模块目标</h2>
+<p>你不是来学 C# 语法的(<code>var</code>/<code>if</code>/<code>for</code> 这些 1 小时看完 <a href="M0_每日讲义_深度版.md">M0</a> 就会)。这份讲义<strong>只讲 8 个前端工程师 100% 会踩的 C# 陷阱</strong>:</p>
+<ol>
+<li><strong>struct 值类型拷贝</strong> — JS 只有引用类型,C# 的 struct 改了副本原值不变,UI 半天不刷新</li>
+<li><strong>多线程并发 + lock</strong> — JS 单线程无竞态,C# 多线程 <code>i++</code> 都能丢数</li>
+<li><strong>字节序 + 位运算 + CRC</strong> — JS 只有 <code>|</code>/<code>&amp;</code>,工业协议全是 <code>^</code>/<code>&lt;&lt;</code>/<code>&gt;&gt;</code> 组合拳</li>
+<li><strong><code>async void</code> 吞异常</strong> — JS 没这个区分,写错了一次进程崩</li>
+<li><strong>强类型 + 可空引用类型</strong> — JS 动态类型,<code>var x = null</code> 在 C# 里反复编译报错</li>
+<li><strong><code>IDisposable</code> + <code>using</code></strong> — JS 靠 GC,C# 串口/数据库/文件必须手动释放</li>
+<li><strong><code>delegate</code>/<code>event</code> 不是 DOM 事件</strong> — 概念相似但坑点完全不同</li>
+<li><strong><code>P-Invoke</code> / <code>IntPtr</code></strong> — 工业相机/运动控制卡 SDK 全是 C++,前端完全没概念</li>
+</ol>
+<p><strong>学完判据</strong>:8 个陷阱每个都能 30 秒内说出"前端怎么写、C# 怎么写、为什么不同"。</p>
+<hr />
+<h2 id="sec-2-2">🕳️ 陷阱 1:struct 值类型拷贝(JS 没有的最大坑)</h2>
+<h3 id="sec-3-1">一句话讲清楚</h3>
+<p><strong>JS 的所有对象都是引用类型</strong>(改一个变量,另一个也变);<strong>C# 有值类型(struct),赋值 = 拷贝一份新副本</strong>(改副本,原值不变)。这是前端转 C# <strong>第一致命坑</strong>。</p>
+<h3 id="sec-3-2">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>JS</th>
+<th>C#</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>引用类型</td>
+<td><code>{}</code>、<code>[]</code>、<code>class</code> 实例</td>
+<td><code>class</code> 实例、<code>string</code>、<code>object</code>、<code>array</code></td>
+</tr>
+<tr>
+<td>值类型</td>
+<td><strong>不存在</strong>(JS 只有引用类型)</td>
+<td><strong><code>struct</code>、<code>int</code>、<code>double</code>、<code>bool</code>、<code>DateTime</code>、<code>enum</code></strong></td>
+</tr>
+<tr>
+<td>赋值 <code>b = a</code></td>
+<td>b 和 a 指向同一份(改 b,a 也变)</td>
+<td>class 同 JS;<strong>struct 是拷贝</strong>(改 b,a 不变)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-js">// JS: 对象赋值是引用
+const a = { x: 1 }; const b = a; b.x = 99; console.log(a.x); // 99(同一份)
+</code></pre>
+<pre><code class="language-csharp">// C#: struct 赋值是拷贝
+public struct Point { public int X; }
+var a = new Point { X = 1 };
+var b = a;            // ← struct 拷贝!b 是独立的一份
+b.X = 99;
+Console.WriteLine(a.X); // 1 ← a 没变!(和 JS 完全相反)
+</code></pre>
+<h3 id="sec-3-3">🔬 掰开揉碎:为什么 C# 要这么设计?</h3>
+<p><strong>性能</strong>。struct 是分配在<strong>栈</strong>上(不是堆),<code>b = a</code> 拷贝 16 字节,几乎零开销。class 是分配在<strong>堆</strong>上,<code>b = a</code> 只拷贝指针(8 字节),但 GC 压力大。C# 让你选:小且频繁的数据用 struct,大且共享的数据用 class。</p>
+<h3 id="sec-3-4">致命场景(上位机 100% 会踩)</h3>
+<p><strong>多线程里把 struct 传进方法修改,外层不变</strong> —— UI 半天不刷新,debug 一整天:</p>
+<pre><code class="language-csharp">// 假设 SensorPoint 是 struct(为了性能,工业点位常用 struct)
+public struct SensorPoint { public int Id; public double Value; }
+
+var p = new SensorPoint { Id = 1, Value = 50.0 };
+UpdateValue(p);   // 想把 Value 改成 60
+Console.WriteLine(p.Value); // 还是 50!← 传进去的是拷贝
+
+void UpdateValue(SensorPoint point) { point.Value = 60; } // 改的是副本
+</code></pre>
+<p><strong>正确写法</strong>(三选一):</p>
+<pre><code class="language-csharp">// 方案 1: 改成 class(最简单)
+public class SensorPoint { public int Id; public double Value; }
+
+// 方案 2: 用 ref 关键字(传引用)
+void UpdateValue(ref SensorPoint point) { point.Value = 60; }
+UpdateValue(ref p);   // 调用方也要加 ref
+
+// 方案 3: 返回新值(函数式风格,SensorPoint 不变)
+var updated = p with { Value = 60 };   // C# 10 record/struct with 表达式
+</code></pre>
+<h3 id="sec-3-5">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>struct 数组 vs class 数组</strong></td>
+<td><code>struct[]</code> 是值数组(每个元素独立),<code>class[]</code> 是引用数组(元素指向对象)</td>
+</tr>
+<tr>
+<td><strong>struct 在 <code>List&lt;T&gt;</code> 里</strong></td>
+<td><code>list[i].Value = 60</code> <strong>编译报错!</strong> 因为 <code>list[i]</code> 返回的是拷贝,要 <code>var p = list[i]; p.Value = 60; list[i] = p;</code></td>
+</tr>
+<tr>
+<td><strong>struct 多线程</strong></td>
+<td>struct 拷贝是原子的(读到一半值不会),但跨线程改仍要 <code>lock</code> 或 <code>Interlocked</code></td>
+</tr>
+<tr>
+<td><strong>struct 当字典 key</strong></td>
+<td>struct 可以,但要实现 <code>IEquatable&lt;T&gt;</code>(否则反射很慢)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:<code>DateTime</code> 是 struct 还是 class?<code>var d1 = DateTime.Now; var d2 = d1; d2 = d2.AddHours(1);</code> 后 <code>d1</code> 变了吗?
+  <strong>✅ 答案</strong>:struct,<code>d1</code> 不变(同上 struct 拷贝原理)。</li>
+<li>🟡 <strong>进阶</strong>:在 <code>List&lt;SensorPoint&gt;</code> 里(假设 SensorPoint 是 struct),为什么 <code>points[0].Value = 60</code> 编译报错?怎么改?
+  <strong>✅ 答案</strong>:<code>points[0]</code> 返回 struct 副本,修改副本无意义,编译器禁止。改成 <code>var p = points[0]; p.Value = 60; points[0] = p;</code> 或换 class。</li>
+<li>🔴 <strong>挑战</strong>:DAQMonitor 里 <code>SensorPoint</code> 该用 struct 还是 class?为什么?
+  <strong>✅ 答案</strong>:<strong>建议 class</strong>。理由:① 多线程里频繁修改 Value,struct 拷贝会让 UI 看到的永远是旧值;② List<SensorPoint> 改单个字段麻烦;③ EF Core 对 struct 支持差。struct 的性能优势在 100Hz 以下采集完全用不到。</li>
+</ul>
+<h3 id="sec-3-7">💡 工控导师说(真实战例)</h3>
+<blockquote>
+<p>我带过一个前端转 C# 的新人,他写的点位表 UI <strong>每秒只刷新 1 次但数值永远是 0</strong>。我看了 5 分钟代码:<code>SensorPoint</code> 是 struct,采集线程 <code>RaiseData(point)</code> 传进去的是拷贝,UI 订阅事件拿到的也是拷贝。改成 class 立刻好。
+<strong>结论</strong>:<strong>新人项目里默认全用 class</strong>,struct 留给"性能瓶颈优化阶段"再说。工业 99% 场景,class 性能足够。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">🕳️ 陷阱 2:多线程并发 + lock(JS 单线程的人最痛)</h2>
+<h3 id="sec-3-8">一句话讲清楚</h3>
+<p><strong>JS 是单线程 + 事件循环</strong>,你写 <code>i++</code> 永远不会丢数;<strong>C# 是真多线程</strong>,两个线程同时 <code>i++</code> <strong>会丢一次</strong>。前端转 C# 必须重新学"锁"。</p>
+<h3 id="sec-3-9">前端类比秒懂</h3>
+<pre><code class="language-js">// JS: 单线程,i++ 永远不会丢
+let i = 0;
+for (let n = 0; n &lt; 1000; n++) setTimeout(() =&gt; i++, 0);
+setTimeout(() =&gt; console.log(i), 1000); // 必然 1000
+</code></pre>
+<pre><code class="language-csharp">// C#: 多线程,i++ 会丢!
+int i = 0;
+Parallel.For(0, 1000, n =&gt; i++);
+Console.WriteLine(i); // 可能 997 / 998 / 999... ← 丢!
+</code></pre>
+<h3 id="sec-3-10">🔬 掰开揉碎:为什么 <code>i++</code> 会丢数?</h3>
+<p><code>i++</code> <strong>不是原子操作</strong>,它在 CPU 上是 3 步:</p>
+<pre><code>1. 读 i 到寄存器
+2. 寄存器 +1
+3. 写回 i
+</code></pre>
+<p>线程 A 读到 i=5,还没写回;线程 B 也读到 i=5;两人都写回 6 → 丢了一次。</p>
+<p><strong>前端没这个问题,因为 JS 单线程,事件循环一次只跑一个回调</strong>。</p>
+<h3 id="sec-3-11">上位机致命场景</h3>
+<p><strong>采集线程 + UI 线程同时改/读 List</strong> → 数据丢失或 <code>InvalidOperationException</code>:</p>
+<pre><code class="language-csharp">// 错误!采集线程 Add,UI 线程 foreach,会崩
+private List&lt;SensorPoint&gt; _points = new();
+// 采集线程: _points.Add(p);    // 写
+// UI 线程:   foreach (var p in _points) ...   // 读,可能崩
+</code></pre>
+<h3 id="sec-3-12">正确写法(三档)</h3>
+<pre><code class="language-csharp">// 1. lock(最简单,够用 95% 场景)
+private readonly object _gate = new();
+private readonly List&lt;SensorPoint&gt; _points = new();
+
+void Add(SensorPoint p) { lock (_gate) _points.Add(p); }
+List&lt;SensorPoint&gt; Snapshot() { lock (_gate) return _points.ToList(); } // 复制一份返回,UI 慢慢读
+
+// 2. ConcurrentQueue / ConcurrentDictionary(BCL 自带,无锁,性能高)
+private readonly ConcurrentQueue&lt;SensorPoint&gt; _q = new();
+void Add(SensorPoint p) =&gt; _q.Enqueue(p);
+
+// 3. System.Threading.Channels(最现代,生产者-消费者异步,DAQMonitor 就用这个)
+private readonly Channel&lt;SensorPoint&gt; _ch = Channel.CreateBounded&lt;SensorPoint&gt;(1000);
+async Task ProduceAsync(SensorPoint p) =&gt; await _ch.Writer.WriteAsync(p);
+async Task ConsumeAsync() { await foreach (var p in _ch.Reader.ReadAllAsync()) Process(p); }
+</code></pre>
+<h3 id="sec-3-13">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>锁 null / 锁 this</strong></td>
+<td>永远不要 <code>lock(null)</code> 或 <code>lock(this)</code>(可能被外部锁死),用 <code>private readonly object _gate = new();</code></td>
+</tr>
+<tr>
+<td><strong>lock 里 await</strong></td>
+<td><code>lock</code> 块里<strong>不能</strong> <code>await</code>(会死锁),用 <code>SemaphoreSlim</code> 替代</td>
+</tr>
+<tr>
+<td><strong>跨线程改 UI</strong></td>
+<td>WPF/WinForms UI 控件只能 UI 线程改,跨线程要 <code>Dispatcher.Invoke(() =&gt; ...)</code></td>
+</tr>
+<tr>
+<td><strong>锁的粒度太大</strong></td>
+<td><code>lock(_gate) { 长耗时数据库写 }</code> 会阻塞所有 Add,锁要小</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-14">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:写出 4 个并发安全的"计数器"+1 实现。
+  <strong>✅ 答案</strong>:<code>Interlocked.Increment(ref _count)</code>(最简单);<code>lock(_gate) _count++</code>;<code>ConcurrentQueue</code> + 计数;<code>Channel</code> + 计数。</li>
+<li>🟡 <strong>进阶</strong>:DAQMonitor 里 <code>AcquisitionPipeline</code> 用了哪种?为什么?
+  <strong>✅ 答案</strong>:<code>System.Threading.Channels</code>(无界)。理由:① 异步非阻塞,采集线程不卡;② 自然生产者-消费者模型;③ 比 ConcurrentQueue 更现代;④ 配合 <code>BatchReady</code> 事件批量消费。</li>
+<li>🔴 <strong>挑战</strong>:为什么不能用 <code>lock(_gate) { await SaveChangesAsync(); }</code>?
+  <strong>✅ 答案</strong>:<code>lock</code> 不允许 <code>await</code>(Monitor 不支持 async),编译报错。改用 <code>SemaphoreSlim(1,1)</code> + <code>await sem.WaitAsync()</code> + <code>try-finally sem.Release()</code>。</li>
+</ul>
+<h3 id="sec-3-15">💡 工控导师说</h3>
+<blockquote>
+<p>多线程是前端转上位机<strong>最长要补的能力</strong>(预计 1-2 周才有直觉)。<strong>别贪多</strong>:<code>lock</code> + <code>ConcurrentQueue</code> + <code>Channel</code> 三件套够你 13-15K 了。面试问"你怎么处理并发采集",你说"<code>AcquisitionPipeline</code> 用 <code>Channel&lt;T&gt;</code> + 200ms 批量消费,UI 线程零阻塞",面试官眼睛就亮了。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">🕳️ 陷阱 3:字节序 + 位运算 + CRC(协议层)</h2>
+<h3 id="sec-3-16">一句话讲清楚</h3>
+<p><strong>工业协议(Modbus/TCP/自定义帧)全是字节级 + 位运算</strong>,前端只有 <code>|</code>/<code>&amp;</code>/<code>^</code> 基础,<strong>CRC 手算/字节序/位域</strong>完全没概念。这是面试高频考点,必须肌肉记忆。</p>
+<h3 id="sec-3-17">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>前端有吗</th>
+<th>C# 怎么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>|</code> <code>&amp;</code> <code>^</code>(或/与/异或)</td>
+<td>✅ 有(位掩码)</td>
+<td>完全一样</td>
+</tr>
+<tr>
+<td><code>&lt;&lt;</code> <code>&gt;&gt;</code>(位移)</td>
+<td>⚠️ 有但极少用</td>
+<td>工业协议<strong>天天用</strong>,要熟</td>
+</tr>
+<tr>
+<td>大端 / 小端</td>
+<td>极少(网络字节序)</td>
+<td><strong>核心知识点</strong>,Modbus 用大端,Intel CPU 是小端</td>
+</tr>
+<tr>
+<td>CRC 校验</td>
+<td>没概念</td>
+<td><strong>必考</strong>!Modbus CRC16 必须背</td>
+</tr>
+<tr>
+<td>位域/位打包</td>
+<td>没概念</td>
+<td>线圈/标志位用 1 byte 存 8 个 bool</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-18">🔬 掰开揉碎:大端 vs 小端(0x12345678 怎么存?)</h3>
+<pre><code>地址:    0    1    2    3
+大端:   12   34   56   78   ← 高位在前(网络字节序、Modbus 数据域)
+小端:   78   56   34   12   ← 低位在前(Intel CPU、Modbus CRC)
+</code></pre>
+<p><strong>关键陷阱</strong>:Modbus 协议<strong>数据域用大端,CRC 用小端</strong>!这是现场翻车 No.1。详见 <a href="M2_Modbus_深度版.md">M2 Day 1-3</a>。</p>
+<h3 id="sec-3-19">必会位运算组合拳</h3>
+<pre><code class="language-csharp">// 1. 把 2 字节拼成 ushort(大端:高位在前)
+byte hi = 0x12, lo = 0x34;
+ushort value = (ushort)((hi &lt;&lt; 8) | lo);   // 0x1234 = 4660
+
+// 2. 把 ushort 拆成 2 字节(大端)
+ushort v = 0x1234;
+byte hi = (byte)(v &gt;&gt; 8);    // 0x12
+byte lo = (byte)(v &amp; 0xFF);  // 0x34
+
+// 3. 位掩码:从一个 byte 取第 n 位
+byte flags = 0b1010_1010;
+bool bit3 = (flags &amp; (1 &lt;&lt; 3)) != 0;   // 取第 3 位 → true
+
+// 4. 异或 ^ : CRC 算法的核心
+ushort crc = 0xFFFF;
+crc ^= 0x01;   // 把 0x01 异或进 crc 的低字节
+
+// 5. CRC16 右移异或(背!)
+ushort crc = 0xFFFF;
+foreach (byte b in data) {
+    crc ^= b;
+    for (int i = 0; i &lt; 8; i++) {
+        if ((crc &amp; 0x0001) != 0) { crc &gt;&gt;= 1; crc ^= 0xA001; }
+        else crc &gt;&gt;= 1;
+    }
+}
+// 详见 M2 Day 1
+</code></pre>
+<h3 id="sec-3-20">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BitConverter.IsLittleEndian</code></td>
+<td>CPU 默认小端,<strong>别假设</strong>跨平台一致,用 <code>BinaryPrimitives.ReadUInt16BigEndian()</code></td>
+</tr>
+<tr>
+<td><code>float</code> 跨 2 寄存器字交换</td>
+<td>详见 <a href="M2_Modbus_深度版.md">M2 Day 3 ABCD/CDAB</a></td>
+</tr>
+<tr>
+<td>位运算优先级</td>
+<td><code>&amp;</code> 优先级低于 <code>==</code>!<code>if (x &amp; 0x80 == 0x80)</code> <strong>错的</strong>,要 <code>if ((x &amp; 0x80) == 0x80)</code></td>
+</tr>
+<tr>
+<td><code>int</code> 溢出</td>
+<td>默认 checked 关闭,<code>int.MaxValue + 1 = int.MinValue</code>,涉及金额/计数要 <code>checked</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-21">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:<code>0x12 &lt;&lt; 4 | 0x3</code> 等于多少?
+  <strong>✅ 答案</strong>:<code>0x123</code>(<code>0x12 &lt;&lt; 4 = 0x120</code>,<code>| 0x3 = 0x123</code>)。</li>
+<li>🟡 <strong>进阶</strong>:写一个 <code>ushort ToUShortBigEndian(byte[] buf, int offset)</code> 函数。</li>
+<li>🔴 <strong>挑战</strong>:手算 <code>01 03 00 00 00 02</code> 的 Modbus CRC16(不查表)。
+  <strong>✅ 答案</strong>:<code>C4 0B</code>(详 <a href="M2_Modbus_深度版.md">M2 Day 1</a>)。</li>
+</ul>
+<h3 id="sec-3-22">💡 工控导师说</h3>
+<blockquote>
+<p>面试让你白板写 Modbus CRC16,前端背景的 100% 卡壳。<strong>别找理由</strong>,"我是搞软件的不管字节"在上位机岗是减分项。<strong>花 1 小时手算 20 遍</strong>,这辈子忘不掉。卡死的时候,打开 <a href="M2_Modbus_深度版.md">M2</a> 重看 Day 1。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">🕳️ 陷阱 4:<code>async void</code> 吞异常(JS 没这个区分)</h2>
+<h3 id="sec-3-23">一句话讲清楚</h3>
+<p><strong>JS 没有 <code>async void</code> 这个区分</strong>,所有 async 函数都返回 Promise;<strong>C# 有 <code>async Task</code> 和 <code>async void</code> 两种</strong>,后者<strong>吞异常</strong>(进程崩了你都不知道)。</p>
+<h3 id="sec-3-24">前端类比秒懂</h3>
+<pre><code class="language-js">// JS: async 函数返回 Promise,异常被 Promise.catch
+async function f() { throw new Error(&quot;boom&quot;); }
+f().catch(e =&gt; console.log(e));   // ✓ 能 catch
+f();                              // ✗ 异常变 UnhandledPromiseRejection,但进程不崩
+</code></pre>
+<pre><code class="language-csharp">// C# 三种 async,只有前两种正常
+async Task GoodAsync() { throw new Exception(&quot;boom&quot;); }
+await GoodAsync();               // ✓ 抛 await 处可 catch
+
+async Task BadAsync() { throw new Exception(&quot;boom&quot;); }
+BadAsync();                      // ⚠️ 没 await,异常在 GC 时才抛(UnobservedTaskException)
+
+async void WorseAsync() { throw new Exception(&quot;boom&quot;); }
+WorseAsync();                    // 💀 异常直接在 SynchronizationContext 抛,AppDomain.UnhandledException,进程崩
+</code></pre>
+<h3 id="sec-3-25">🔬 掰开揉碎:什么时候该用 <code>async void</code>?</h3>
+<p><strong>只有一个场景</strong>:<strong>UI 事件处理器</strong>(因为事件签名要求 void):</p>
+<pre><code class="language-csharp">private async void BtnStart_Click(object sender, RoutedEventArgs e)
+{
+    try   // 必须 try-catch!async void 抛异常会崩进程
+    {
+        await StartAcquisitionAsync();
+    }
+    catch (Exception ex)
+    {
+        _log.Error(ex, &quot;启动采集失败&quot;);
+        MessageBox.Show(ex.Message);
+    }
+}
+</code></pre>
+<p><strong>其他所有场景一律 <code>async Task</code></strong>(或 <code>async Task&lt;T&gt;</code>)。</p>
+<h3 id="sec-3-26">致命场景(前端必踩)</h3>
+<p><strong>事件订阅里 <code>async (s, e) =&gt; await xxx</code></strong> —— 这其实是 <code>async void</code>!</p>
+<pre><code class="language-csharp">// DAQMonitor M7 真实坑(已修正前):
+_pipeline.BatchReady += async (s, batch) =&gt;
+{
+    foreach (var p in batch)
+        await _client.PublishAsync(BuildMsg(p));   // ⚠️ async void!
+};
+</code></pre>
+<p><strong>问题</strong>:
+1. 异常被吞(PublishAsync 失败你看不到)
+2. 多次触发会并发重入(BatchReady 每秒触发,上一次还没完)
+3. 顺序乱(并发执行不保证顺序)</p>
+<p><strong>正确写法</strong>:</p>
+<pre><code class="language-csharp">// 方案 1: 用 Channel 做队列,后台 consumer 串行处理
+private readonly Channel&lt;List&lt;SensorPoint&gt;&gt; _queue = Channel.CreateBounded&lt;List&lt;SensorPoint&gt;&gt;(100);
+
+_pipeline.BatchReady += (s, batch) =&gt; _queue.Writer.TryWrite(batch);   // 同步入队
+
+// 启动时启动 consumer
+async Task ConsumeAsync(CancellationToken ct)
+{
+    await foreach (var batch in _queue.Reader.ReadAllAsync(ct))
+        foreach (var p in batch)
+            try { await _client.PublishAsync(BuildMsg(p)); }
+            catch (Exception ex) { _log.Error(ex, &quot;Publish 失败&quot;); }
+}
+</code></pre>
+<h3 id="sec-3-27">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>async void</code> 异常吞</td>
+<td>必须包 try-catch,或改 <code>async Task</code></td>
+</tr>
+<tr>
+<td><code>async void Lambda</code></td>
+<td><code>(s, e) =&gt; { await ... }</code> 在事件订阅时是 async void</td>
+</tr>
+<tr>
+<td><code>.Result</code> / <code>.Wait()</code></td>
+<td><strong>死锁</strong>(在 UI 线程调会卡死),必须 <code>await</code></td>
+</tr>
+<tr>
+<td><code>fire-and-forget Task</code></td>
+<td><code>_ = Task.Run(...)</code> 异常会 UnobservedTaskException,要 <code>.ContinueWith(Log)</code> 或 try</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-28">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:为什么 <code>async void</code> 不该用?
+  <strong>✅ 答案</strong>:异常在 SynchronizationContext 抛 = 进程崩;调用方无法 await;并发不可控。</li>
+<li>🟡 <strong>进阶</strong>:把 <code>BatchReady += async (s, e) =&gt; await ...</code> 改成不会吞异常的版本。</li>
+<li>🔴 <strong>挑战</strong>:为什么 <code>.Result</code> 在 UI 线程会死锁?
+  <strong>✅ 答案</strong>:<code>.Result</code> 阻塞 UI 线程;异步方法内部 <code>await</code> 要回到 UI 线程(SynchronizationContext);两边互等 = 死锁。改法:全异步 <code>await</code>,或 <code>Task.Run(() =&gt; ...).Result</code>(后台线程没 SynchronizationContext 不会死锁)。</li>
+</ul>
+<h3 id="sec-3-29">💡 工控导师说</h3>
+<blockquote>
+<p>我见过一个新人写的上位机,跑 2 小时崩一次找不到原因。看了半天代码:<code>DataReceived += async (s, e) =&gt; await SaveAsync(p)</code> —— async void + 偶发网络异常 = 进程崩。改成 <code>Task.Run + try-catch</code> 立刻稳。<strong>前端转上位机,把"所有 async 都是 Promise"的直觉清空,重新学 <code>Task</code>/<code>async void</code>/<code>SynchronizationContext</code></strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-6">🕳️ 陷阱 5:强类型 + 可空引用类型(JS 动态类型)</h2>
+<h3 id="sec-3-30">一句话讲清楚</h3>
+<p><strong>JS 是动态类型</strong>(<code>var x = 1; x = "hello"</code> 合法);<strong>C# 是强类型</strong>(<code>var</code> 是编译期推断锁死,<strong>类型不可变</strong>)。C# 8+ 默认开启 <code>&lt;Nullable&gt;enable</code>,<strong><code>null</code> 是另一类型</strong>,前端惯性会反复编译报错。</p>
+<h3 id="sec-3-31">前端类比秒懂</h3>
+<pre><code class="language-ts">// TypeScript 接近 C#: 类型推断 + 严格模式
+let x = 1;          // number
+x = &quot;hello&quot;;        // TS 报错!类型不可变
+
+let s: string | null = null;   // 可空类型
+s.toUpperCase();    // TS 报错!可能是 null
+</code></pre>
+<pre><code class="language-csharp">// C# 几乎和 TS 一样,但更严
+var x = 1;          // int
+x = &quot;hello&quot;;        // 编译报错!
+
+string? s = null;   // 注意 ? = 可空引用类型
+s.ToUpper();        // 编译警告!可能是 null
+
+string t = &quot;abc&quot;;   // 不可空
+t = null;           // 编译警告!
+</code></pre>
+<h3 id="sec-3-32">🔬 掰开揉碎:<code>?</code> 和 <code>??</code> 和 <code>!</code> 和 <code>?.</code></h3>
+<ul>
+<li><code>string?</code> — 可空类型(可能是 null)</li>
+<li><code>s?.ToUpper()</code> — null 条件运算(如果 s 是 null,返回 null 不抛)</li>
+<li><code>s ?? "default"</code> — null 合并(s 是 null 用右边)</li>
+<li><code>s!</code> — null 宽容运算(告诉编译器"我知道不是 null,别警告")— 慎用!</li>
+</ul>
+<pre><code class="language-csharp">string? name = GetName();     // 可能 null
+int len = name?.Length ?? 0;  // 安全:是 null 返 0
+string upper = name!.ToUpper(); // 强行:不是 null,我保证(但运行时可能 NullReferenceException)
+</code></pre>
+<h3 id="sec-3-33">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前端 <code>var x = null</code></td>
+<td>C# 编译报错(null 类型不可推断),要 <code>string? x = null;</code></td>
+</tr>
+<tr>
+<td><code>int</code> vs <code>int?</code></td>
+<td><code>int</code> 是值类型<strong>不可为 null</strong>,<code>int?</code> = <code>Nullable&lt;int&gt;</code> 包装</td>
+</tr>
+<tr>
+<td><code>List&lt;T&gt;?</code> vs <code>List&lt;T?&gt;</code></td>
+<td>前者是 list 可能为 null,后者是 list 里元素可能 null</td>
+</tr>
+<tr>
+<td>启动 <code>&lt;Nullable&gt;enable</code></td>
+<td>项目文件加,让编译器当教官,前端必学</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-34">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:写一个 <code>string? GetGreeting(string? name)</code> 返回 <code>"Hello, " + name</code>,如果 name 是 null 返回 <code>"Hello, friend"</code>。
+  <strong>✅ 答案</strong>:<code>return "Hello, " + (name ?? "friend");</code></li>
+<li>🟡 <strong>进阶</strong>:<code>int? x = null; int y = x ?? -1;</code> 后 y 等于多少?如果写 <code>int z = x;</code> 编译会怎样?</li>
+<li>🔴 <strong>挑战</strong>:把 DAQMonitor 一个文件改 <code>&lt;Nullable&gt;enable</code>,处理所有警告。</li>
+</ul>
+<h3 id="sec-3-35">💡 工控导师说</h3>
+<blockquote>
+<p>强类型是 C# 最大的礼物(前端 TS 写多了会爱不释手)。<strong>第一天就开 <code>&lt;Nullable&gt;enable</code></strong>,编译器会强制你处理 null。一开始 200 个警告,改一周后代码质量提升一个数量级。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-7">🕳️ 陷阱 6:<code>IDisposable</code> + <code>using</code>(资源管理)</h2>
+<h3 id="sec-3-36">一句话讲清楚</h3>
+<p><strong>JS 有 GC</strong>(对象不用了自动回收);<strong>C# 也有 GC 但托管资源之外的(串口、文件、数据库连接、Bitmap)必须手动 <code>Dispose</code></strong>,否则<strong>文件锁死/连接耗尽/内存泄漏</strong>。</p>
+<h3 id="sec-3-37">前端类比秒懂</h3>
+<pre><code class="language-js">// JS: 文件/连接/事件监听器 — 用完要 close,但忘了 GC 兜底(可能慢)
+const fs = require('fs');
+const fd = fs.openSync('a.txt', 'r');   // 忘 fs.closeSync(fd) → 句柄泄漏
+</code></pre>
+<pre><code class="language-csharp">// C#: 必须 Dispose(实现 IDisposable 的类型)
+var port = new SerialPort(&quot;COM3&quot;);   // 串口
+port.Open();
+// 忘 port.Dispose() → COM3 被占,下次 Open 抛 &quot;端口被占用&quot;
+</code></pre>
+<h3 id="sec-3-38">🔬 掰开揉碎:<code>using</code> 三种写法</h3>
+<pre><code class="language-csharp">// 1. using 语句(经典,作用域结束自动 Dispose)
+using (var port = new SerialPort(&quot;COM3&quot;))
+{
+    port.Open();
+    // ...
+}   // ← 自动 port.Dispose()
+
+// 2. using 声明(C# 8+,更简洁)
+using var port = new SerialPort(&quot;COM3&quot;);
+port.Open();
+// ... 作用域结束自动 Dispose
+
+// 3. await using(异步释放,如 DbContext)
+await using var db = new AppDb();
+await db.SaveChangesAsync();
+</code></pre>
+<h3 id="sec-3-39">必 Dispose 的 BCL 类型(高频)</h3>
+<ul>
+<li><strong><code>SerialPort</code></strong> / <code>TcpClient</code> / <code>NetworkStream</code> / <code>UdpClient</code> — 网络</li>
+<li><strong><code>FileStream</code></strong> / <code>StreamReader</code> / <code>StreamWriter</code> — 文件</li>
+<li><strong><code>SqlConnection</code></strong> / <code>DbContext</code> / <code>IDbTransaction</code> — 数据库</li>
+<li><strong><code>Bitmap</code></strong> / <code>Graphics</code> / <code>Pen</code> / <code>Brush</code> — GDI+(WPF/WinForms 自绘)</li>
+<li><strong><code>Timer</code></strong> / <code>CancellationTokenSource</code> — 计时/取消</li>
+<li><strong><code>Mutex</code></strong> / <code>Semaphore</code> / <code>SemaphoreSlim</code> — 同步原语</li>
+</ul>
+<h3 id="sec-3-40">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>忘 Dispose 串口</td>
+<td>COM3 被占,下次启动报错</td>
+</tr>
+<tr>
+<td>忘 Dispose DbContext</td>
+<td>连接池耗尽,生产 1 小时挂</td>
+</tr>
+<tr>
+<td>忘 Dispose Bitmap</td>
+<td>GDI 句柄泄漏,2 小时后绘图崩</td>
+</tr>
+<tr>
+<td><code>using</code> 嵌套</td>
+<td><code>using var a = ...; using var b = ...;</code> OK;但要按声明逆序 Dispose</td>
+</tr>
+<tr>
+<td>在 <code>using</code> 里 <code>return</code></td>
+<td><code>using</code> 仍会 Dispose(try-finally 保证)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-41">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:把 <code>var port = new SerialPort(...); port.Open();</code> 改成安全版本。</li>
+<li>🟡 <strong>进阶</strong>:DAQMonitor <code>AcquisitionPipeline</code> 里 <code>Channel&lt;T&gt;</code> 要 Dispose 吗?为什么?
+  <strong>✅ 答案</strong>:不用,<code>Channel&lt;T&gt;</code> 是托管对象;但 <code>ChannelReader</code>/<code>ChannelWriter</code> 用完调 <code>Complete()</code>(不是 Dispose)。</li>
+<li>🔴 <strong>挑战</strong>:写一个 <code>IDisposable</code> 的类,实现 Dispose 模式(含 finalizer、SuppressFinalize)。</li>
+</ul>
+<h3 id="sec-3-42">💡 工控导师说</h3>
+<blockquote>
+<p><strong>判断标准</strong>:看到 <code>new Xxx()</code>(Xxx 实现 IDisposable),立刻想"它在哪 Dispose"。前端转 C# 第一周强迫自己每个 new 都问这问题,1 周就有肌肉记忆。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-8">🕳️ 陷阱 7:<code>delegate</code> / <code>event</code> 不是 DOM 事件</h2>
+<h3 id="sec-3-43">一句话讲清楚</h3>
+<p><strong>概念相似</strong>(订阅/发布),<strong>用法和坑不同</strong>。前端 <code>addEventListener</code> 是字符串事件名;<strong>C# event 是类型安全的函数指针</strong>,你要 <code>+=</code> 订阅、<code>-=</code> 退订(不然内存泄漏,见 <a href="#-掰开揉碎为什么-c-要这么设计">陷阱 1 退订模式</a>)。</p>
+<h3 id="sec-3-44">前端类比秒懂</h3>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>前端 DOM</th>
+<th>C# event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>订阅</td>
+<td><code>btn.addEventListener('click', fn)</code></td>
+<td><code>btn.Click += fn;</code></td>
+</tr>
+<tr>
+<td>退订</td>
+<td><code>btn.removeEventListener('click', fn)</code></td>
+<td><code>btn.Click -= fn;</code></td>
+</tr>
+<tr>
+<td>触发</td>
+<td>DOM 自动</td>
+<td><strong>类内部 <code>Click?.Invoke(this, e)</code></strong>(外部不能触发)</td>
+</tr>
+<tr>
+<td>多订阅者</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>类型安全</td>
+<td>弱(字符串名 + any fn)</td>
+<td>强(签名必须匹配 <code>EventHandler&lt;T&gt;</code>)</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-csharp">// C# event 完整模式
+public class Device
+{
+    public event EventHandler&lt;DataEventArgs&gt;? DataReceived;   // 事件声明
+    protected void RaiseData(int id, double v) =&gt;
+        DataReceived?.Invoke(this, new DataEventArgs { PointId = id, Value = v });
+}
+
+// 订阅方
+device.DataReceived += OnData;   // 订阅
+device.DataReceived -= OnData;   // 必须退订(否则 device 持有 OnData 引用 = 内存泄漏)
+</code></pre>
+<h3 id="sec-3-45">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>忘 <code>-=</code> 退订</td>
+<td>内存泄漏(详见 M3 修正版)</td>
+</tr>
+<tr>
+<td>Lambda 订阅</td>
+<td><code>d.DataReceived += (s, e) =&gt; ...;</code> <strong>无法 <code>-=</code></strong>(匿名,没名字),改具名方法或存字段</td>
+</tr>
+<tr>
+<td>跨线程触发</td>
+<td>event 触发在调用线程,跨 UI 要 Dispatcher</td>
+</tr>
+<tr>
+<td>null 竞态</td>
+<td><code>DataReceived?.Invoke(...)</code> 安全(<code>?.</code>),旧代码 <code>if (DataReceived != null) DataReceived(...)</code> 中间可能 null</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-46">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:<code>event</code> 和普通 <code>Action&lt;T&gt;</code> 字段有什么区别?
+  <strong>✅ 答案</strong>:event 只能在声明类内部触发(封装),外部只能 +=/-=;Action 字段外部能直接调。</li>
+<li>🟡 <strong>进阶</strong>:为什么 <code>device.DataReceived += (s, e) =&gt; SaveAsync(e.Value)</code> 是潜在坑?
+  <strong>✅ 答案</strong>:① async void(见 <a href="#-陷阱-4async-void-吞异常js-没这个区分">陷阱 4</a>);② 无法 -=。</li>
+</ul>
+<hr />
+<h2 id="sec-2-9">🕳️ 陷阱 8:<code>P-Invoke</code> / <code>IntPtr</code>(工业库是 C++)</h2>
+<h3 id="sec-3-47">一句话讲清楚</h3>
+<p><strong>工业相机/运动控制卡/数据采集卡</strong>(海康/大恒/固高/雷赛)的 SDK <strong>全是 C++ 写的 dll</strong>,C# 要 <code>[DllImport]</code> 调,涉及<strong>指针(IntPtr)、ref/out、内存管理、回调函数</strong>。前端完全没概念,但是面试 13K+ 岗位可能问。</p>
+<h3 id="sec-3-48">前端类比秒懂</h3>
+<ul>
+<li>前端调 Node Native 模块(<code>.node</code> 文件,C++ 写的)— 概念相似</li>
+<li>但 C# 的 P-Invoke 比 Node N-API 更直接,接近"裸调"</li>
+</ul>
+<h3 id="sec-3-49">最小示例</h3>
+<pre><code class="language-csharp">using System.Runtime.InteropServices;
+
+public static class MotionCard
+{
+    // 调用 C++ dll 中的函数
+    [DllImport(&quot;gts.dll&quot;, CallingConvention = CallingConvention.StdCall)]
+    public static extern short GT_Open(short cardType, short cardNum, ref short handle);
+
+    [DllImport(&quot;gts.dll&quot;)]
+    public static extern short GT_Close(short handle);
+}
+
+// 调用
+short handle = 0;
+MotionCard.GT_Open(0, 1, ref handle);   // ref = 传引用(C++ 里是 short*)
+MotionCard.GT_Close(handle);
+</code></pre>
+<h3 id="sec-3-50">核心概念</h3>
+<ul>
+<li><strong><code>IntPtr</code></strong> — 平台相关指针(32 位 4 字节,64 位 8 字节),C++ 的 <code>void*</code></li>
+<li><strong><code>ref T</code></strong> — 传引用(C++ 的 <code>T&amp;</code>/<code>T*</code>)</li>
+<li><strong><code>out T</code></strong> — 输出参数(类似 <code>ref</code> 但调用方不用初始化)</li>
+<li><strong><code>[In]</code>/<code>[Out]</code></strong> —marshaller 提示</li>
+<li><strong><code>StructLayout</code></strong> — 控制 struct 内存布局(对齐 C++ 结构体)</li>
+<li><strong><code>Marshal.AllocHGlobal</code> / <code>FreeHGlobal</code></strong> — 手动分配/释放非托管内存</li>
+</ul>
+<h3 id="sec-3-51">⚠️ 常见坑点预警</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>字符串编码</td>
+<td>C++ <code>char*</code> 是 ANSI,C# 默认 Unicode,要 <code>[MarshalAs(UnmanagedType.LPStr)]</code></td>
+</tr>
+<tr>
+<td>struct 对齐</td>
+<td>C++ struct 默认对齐可能 1/4/8,要 <code>[StructLayout(LayoutKind.Sequential, Pack=1)]</code></td>
+</tr>
+<tr>
+<td>内存泄漏</td>
+<td><code>Marshal.AllocHGlobal</code> 必须配对 <code>FreeHGlobal</code>,否则非托管泄漏(GC 兜不住)</td>
+</tr>
+<tr>
+<td>回调</td>
+<td>C++ 函数指针要 <code>[UnmanagedFunctionPointer]</code> 声明 delegate,防止 GC 回收</td>
+</tr>
+<tr>
+<td>x86 vs x64</td>
+<td>dll 位数要和程序匹配,VS 默认 AnyCPU 可能出问题</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-52">🧪 三档练习</h3>
+<ul>
+<li>🟢 <strong>基础</strong>:<code>IntPtr</code> 是什么?为什么不用 <code>int</code>?
+  <strong>✅ 答案</strong>:平台相关指针,32 位是 4 字节,64 位是 8 字节;<code>int</code> 永远 4 字节,64 位下指针截断。</li>
+<li>🟡 <strong>进阶</strong>:<code>ref</code> 和 <code>out</code> 区别?
+  <strong>✅ 答案</strong>:<code>ref</code> 调用方必须先初始化,<code>out</code> 不用(被调方必须赋值)。</li>
+</ul>
+<h3 id="sec-3-53">💡 工控导师说</h3>
+<blockquote>
+<p>13K 岗位可能不深挖 P-Invoke,但 15K 岗位面试官问"用过相机 SDK 吗",你能讲清 IntPtr/ref/StructLayout 就稳。<strong>没真做过项目不要紧</strong>,把这份讲义看懂,面试时说"我了解原理,但实际项目里我用的库都封装好了 P-Invoke 层"。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-10">📌 温故知新(跨模块联动)</h2>
+<ul>
+<li>陷阱 1 struct → M0 Day 2、M4 PointStore 模型设计、M9 性能优化</li>
+<li>陷阱 2 多线程 → <strong>M0 Day 7</strong>、M9 AcquisitionPipeline、M7 异步、M11 TCP</li>
+<li>陷阱 3 字节序 → M1 串口、M2 Modbus CRC、M11 TCP 帧解析、M12 工程量</li>
+<li>陷阱 4 async void → M7 OPC UA、M9 异步测试、所有 UI 事件处理器</li>
+<li>陷阱 5 强类型 → 全程(<code>&lt;Nullable&gt;enable</code> 推荐开启)</li>
+<li>陷阱 6 IDisposable → M1 串口、M4 DbContext、M11 TcpClient</li>
+<li>陷阱 7 event → M0 Day 6、M3 PLC 订阅、M9 BatchReady</li>
+<li>陷阱 8 P-Invoke → M3 PLC(底层)、M14 自定义控件(GDI)、M16 工业总线</li>
+</ul>
+<h2 id="sec-2-11">📚 延伸阅读</h2>
+<ul>
+<li>C# 值类型 vs 引用类型:https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/value-types</li>
+<li>async/await 淙深度:Stephen Toub《Async/Await FAQ》https://devblogs.microsoft.com/dotnet/async-faq-where-do-i-start/</li>
+<li>多线程并发模型:《Concurrency in C# Cookbook》</li>
+<li>P-Invoke 速查:https://www.pinvoke.net/</li>
+<li>全部外链见 <a href="外部链接索引.md">外部链接索引.md</a></li>
+</ul>
+<h2 id="sec-2-12">🏗️ 项目任务(落到 DAQMonitor)</h2>
+<ol>
+<li>在 <code>DaqMonitor.Core.csproj</code> 加 <code>&lt;Nullable&gt;enable&lt;/Nullable&gt;</code>(项目根的 <code>&lt;PropertyGroup&gt;</code>)</li>
+<li>修复所有警告(预计 50-200 个,逐个处理,主要在 Models 和 Devices)</li>
+<li>检查所有 <code>new SerialPort</code> / <code>new TcpClient</code> / <code>new AppDb()</code> 都有 <code>using</code> 或显式 Dispose</li>
+<li>检查所有 <code>event +=</code> 都有对应 <code>-=</code>(尤其在 <code>Bootstrapper</code> 启停流程)</li>
+<li>把所有 <code>BatchReady += async (...)</code> 改成 Channel 模式(陷阱 4 的修正)</li>
+<li>提交 Git,commit message:"refactor: 修正前端背景必踩的 8 个 C# 陷阱"</li>
+</ol>
+<h2 id="sec-2-13">✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('traps',1)"> 打卡</label></h2>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:这 8 个陷阱,前端背景的你<strong>至少踩 5 个才会真懂</strong>。别怕踩,<strong>踩了就提交一次 bug fix 到 Git</strong>,面试时讲"我踩过这些坑,这样修",面试官立刻信你不是纸上谈兵。学完这份讲义再进 M0,你会发现 M0 Day 1-7 顺畅得多。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="M9.5.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M9.5 · 性能压测 + 长跑稳定性</div></a>
+  <a class="next" href="roadmap30.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📅 30 天作战路线 · 转行冲刺版</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

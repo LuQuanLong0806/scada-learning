@@ -91,14 +91,15 @@
 <li class="l3"><a href="#sec-3-47">🟢 基础题</a></li>
 <li class="l3"><a href="#sec-3-48">🟡 进阶题</a></li>
 <li class="l3"><a href="#sec-3-49">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-50">🟢 知识点 N：System.Threading.Channels（现代化生产者-消费者，DAQMonitor 就用它）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-10">Day 8 — 周复习 + 立起 WPF 工程 🟡</a><ul>
-<li class="l3"><a href="#sec-3-50">复习地图（一条主线串起来）</a></li>
-<li class="l3"><a href="#sec-3-51">⭐ 自测小测（答案见各 Day）</a></li>
-<li class="l3"><a href="#sec-3-52">立起真实工程</a></li>
-<li class="l3"><a href="#sec-3-53">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-54">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-55">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-51">复习地图（一条主线串起来）</a></li>
+<li class="l3"><a href="#sec-3-52">⭐ 自测小测（答案见各 Day）</a></li>
+<li class="l3"><a href="#sec-3-53">立起真实工程</a></li>
+<li class="l3"><a href="#sec-3-54">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-55">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-56">🔴 挑战题</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-11">附录：M0 交付物 &amp; 埋下的 5 个企业级地基</a><ul>
 </ul></li>
@@ -1219,6 +1220,116 @@ private void UiTimer_Tick(object? s, EventArgs e)
     private void BtnStop_Click(object sender, RoutedEventArgs e) { _cts?.Cancel(); _uiTimer.Stop(); }
 }
 </code></pre>
+<h3 id="sec-3-50">🟢 知识点 N：System.Threading.Channels（现代化生产者-消费者，DAQMonitor 就用它）</h3>
+<p><strong>1. 一句话讲清楚</strong></p>
+<blockquote>
+<p><code>Channel&lt;T&gt;</code> 是 .NET Core 2.1+ 的"高性能异步队列"，<strong>前端类比：像 RxJS Subject，但更轻量；或像 Node.js Stream</strong>。生产者 <code>Write</code>、消费者 <code>ReadAllAsync</code>，自动异步、自动背压、无锁。</p>
+</blockquote>
+<p><strong>2. 前端类比秒懂表</strong></p>
+<table>
+<thead>
+<tr>
+<th><code>Channel&lt;T&gt;</code></th>
+<th>前端类比</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Channel.Writer.WriteAsync(x)</code></td>
+<td><code>subject.next(x)</code> / <code>writable.write(x)</code></td>
+<td>生产</td>
+</tr>
+<tr>
+<td><code>Channel.Reader.ReadAllAsync()</code></td>
+<td><code>for await (const x of stream)</code></td>
+<td>消费（异步流）</td>
+</tr>
+<tr>
+<td><code>Channel.CreateBounded(1000)</code></td>
+<td>背压 / 高水位</td>
+<td>容量上限，满了 <code>WriteAsync</code> 阻塞</td>
+</tr>
+<tr>
+<td><code>Channel.CreateUnbounded()</code></td>
+<td>无界队列</td>
+<td>永不阻塞，但 OOM 风险</td>
+</tr>
+<tr>
+<td><code>Writer.Complete()</code></td>
+<td><code>writable.end()</code></td>
+<td>标记生产结束</td>
+</tr>
+</tbody>
+</table>
+<p><strong>3. 为什么要用 Channel 而不是 ConcurrentQueue</strong>
+- <code>ConcurrentQueue</code>：<code>TryDequeue</code> 是<strong>同步</strong>的，消费者要轮询 <code>while (true)</code> + <code>Thread.Sleep</code> —— 浪费 CPU
+- <code>Channel</code>：<code>ReadAllAsync</code> 是异步的，没数据时<strong>自动挂起</strong>（不耗 CPU），数据来了立刻唤醒
+- 性能：Channel 内部用 <code>ValueTask</code>、无锁 SPSC 队列，比 <code>ConcurrentQueue</code> 快 3-5 倍</p>
+<p><strong>4. 最小可用代码（可读可跑）</strong></p>
+<pre><code class="language-csharp">using System.Threading.Channels;
+
+var channel = Channel.CreateBounded&lt;SensorPoint&gt;(1000);
+
+// 生产者（采集线程）
+async Task ProduceAsync(CancellationToken ct)
+{
+    while (!ct.IsCancellationRequested)
+    {
+        var p = ReadFromDevice();
+        await channel.Writer.WriteAsync(p, ct);   // 队列满时自动等待（背压）
+    }
+}
+
+// 消费者（处理/落库线程）
+async Task ConsumeAsync(CancellationToken ct)
+{
+    await foreach (var p in channel.Reader.ReadAllAsync(ct))
+    {
+        SaveToDatabase(p);
+    }
+}
+
+// 启动
+var cts = new CancellationTokenSource();
+var producer = Task.Run(() =&gt; ProduceAsync(cts.Token));
+var consumer = Task.Run(() =&gt; ConsumeAsync(cts.Token));
+
+// 关闭时
+// cts.Cancel();
+// channel.Writer.Complete();   // 告诉消费者没数据了
+</code></pre>
+<p><strong>5. 🧪 运行结果 / 实际怎么用</strong>
+说明在 DAQMonitor 项目 <code>AcquisitionPipeline.cs</code> 里：
+- 用了 <code>Channel.CreateUnbounded&lt;SensorPoint&gt;()</code>（无界，因为采集速率可控）
+- 生产者：每个设备的 <code>DataReceived</code> 事件 → <code>_channel.Writer.TryWrite(p)</code>
+- 消费者：后台任务 <code>_consumer = Task.Run(async () =&gt; await foreach (var p in _channel.Reader.ReadAllAsync()) ...</code>
+- 200ms 定时器触发 <code>BatchReady</code> 事件，批量消费（比逐条省 IO）
+- 详见 <a href="M9_工程素养_测试DI容错_深度版.md">M9 工程素养</a> 和 <code>DAQMonitor/src/DaqMonitor.Core/AcquisitionPipeline.cs</code></p>
+<p><strong>6. ⚠️ 常见坑点预警表</strong>
+| 坑 | 说明 |
+|---|---|
+| 无界 Channel 内存炸 | 生产远快于消费时，<code>_channel</code> 内部 List 无限增长 → OOM。<strong>生产环境推荐有界</strong> + <code>BoundedChannelFullMode.DropOldest</code> 或 <code>Wait</code> |
+| 忘 <code>Writer.Complete()</code> | 消费者 <code>ReadAllAsync</code> 永远不结束，程序关不掉 |
+| 忘 <code>CancellationToken</code> | 关闭时 <code>WriteAsync</code> 卡住，程序挂 |
+| <code>async void</code> 事件订阅 | 不能在 event handler 里直接 <code>await channel.Writer.WriteAsync()</code>，见 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a> |
+| 单读单写最快 | Channel 单生产者单消费者（SPSC）性能最高，多生产者多消费者（MPMC）也能用但稍慢 |</p>
+<p><strong>7. 🧪 三档练习</strong>
+- 🟢 <strong>基础</strong>：用 Channel 写一个 "1 生产者 1 消费者"，生产 0-9 数字，消费打印平方。
+  <strong>✅ 答案</strong>：见上方代码，生产 <code>Enumerable.Range(0,10)</code>，消费 <code>Console.WriteLine(p*p)</code>。
+- 🟡 <strong>进阶</strong>：改成有界（容量 3），观察生产者会等待（背压）。
+- 🔴 <strong>挑战</strong>：DAQMonitor <code>AcquisitionPipeline</code> 的 <code>BatchReady</code> 机制是怎么用 Channel 实现的？为什么不用 ConcurrentQueue？
+  <strong>✅ 答案</strong>：Channel 消费者 <code>await foreach</code> 没数据时挂起不耗 CPU；200ms 定时器触达时把攒的批量打包触发 <code>BatchReady</code> 事件；用 <code>ConcurrentQueue</code> 的话消费者要 <code>while(true){ if(q.TryDequeue(out var p)) {...} else Thread.Sleep(10); }</code> 浪费 CPU 且延迟高。</p>
+<p><strong>8. 💡 工控导师说（真实战例）</strong></p>
+<blockquote>
+<p>我重构过一个用 <code>ConcurrentQueue</code> + <code>Thread.Sleep</code> 轮询的采集系统，改 <code>Channel&lt;T&gt;</code> 后 <strong>CPU 从 30% 降到 2%</strong>（消费者不再空转），延迟从 50ms 降到 5ms（数据来立刻唤醒）。前端转上位机，<strong>Channel 是必学</strong>，DAQMonitor 项目就是真用了，面试时讲"我用 <code>System.Threading.Channels</code> 做采集到落库的异步管线，无锁、自动背压、CPU 0 浪费"，面试官秒信你不是写玩具的。</p>
+</blockquote>
+<p><strong>9. 📚 延伸阅读</strong>
+- Microsoft 官方 Channel 文档：https://learn.microsoft.com/dotnet/api/system.threading.channels
+- Stephen Toub《An Introduction to System.Threading.Channels》：https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/</p>
+<hr />
+<p>📌 <strong>跨模块联动</strong>：本节 <code>Channel&lt;T&gt;</code> 是 <a href="M9_工程素养_测试DI容错_深度版.md">M9 工程素养 AcquisitionPipeline</a> 的核心，DAQMonitor 项目实际用的就是它；<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 2 多线程</a> 把 Channel vs lock vs ConcurrentQueue 三件套做了对比。</p>
+<hr />
 <p><strong>🏗️ 项目任务</strong>：给 DAQ Monitor 加"模拟采集"后台线程 + <code>ConcurrentQueue</code> 缓冲 + <code>DispatcherTimer</code> 刷新（工程里 <code>AcquisitionPipeline</code> 已是这套架构的生产版）。把上面骨架接到项目里，形成真实的"后台采集→前台展示"并发闭环——这是 M6 实时监控的核心地基。</p>
 <p><strong>🎓 工控导师说</strong>：我见过最惨的多线程 bug——界面数字偶尔跳回旧值。查了三天发现：两个线程一个在 <code>Task.Run</code> 里直接改 UI 的 <code>TextBlock</code>，另一个在 UI 线程也改，两边打架。铁律：<strong>后台线程改 UI 一律 <code>Dispatcher.Invoke</code></strong>。</p>
 <p><strong>💼 职业建议</strong>：多线程是 13K+ 必考，且是前端转岗最大鸿沟。面试准备三句话：①"C# 真并行，前端单线程"；②"共享状态用 lock 或 ConcurrentQueue"；③"UI 线程改界面用 Dispatcher"。这三点讲清，面试官就信你真写过并发程序。</p>
@@ -1226,9 +1337,9 @@ private void UiTimer_Tick(object? s, EventArgs e)
 <hr />
 <h2 id="sec-2-10">Day 8 — 周复习 + 立起 WPF 工程 🟡</h2>
 <p><strong>📌 技术来源</strong>：🟦 前 7 天综合 + 🟩 <strong>WPF</strong>（<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，随 .NET，非 NuGet）</p>
-<h3 id="sec-3-50">复习地图（一条主线串起来）</h3>
+<h3 id="sec-3-51">复习地图（一条主线串起来）</h3>
 <p>变量/类型(Day1-2) → 集合/LINQ 处理数据(Day3) → 类/属性封装设备(Day4) → 接口/泛型架构(Day5) → 事件解耦通知(Day6) → 多线程/异步/锁并发(Day7)。这条线后面贯穿 M1~M16。</p>
-<h3 id="sec-3-51">⭐ 自测小测（答案见各 Day）</h3>
+<h3 id="sec-3-52">⭐ 自测小测（答案见各 Day）</h3>
 <ol>
 <li><code>int?</code> 和 <code>int</code> 区别？</li>
 <li>LINQ 延迟执行是什么意思？为什么有时要 <code>.ToList()</code>？</li>
@@ -1238,7 +1349,7 @@ private void UiTimer_Tick(object? s, EventArgs e)
 <li>后台线程能直接改 WPF 界面吗？不能的话怎么办？</li>
 <li>WPF 用 NuGet 装吗？（答：不，<code>&lt;UseWPF&gt;true&lt;/UseWPF&gt;</code>，属 🟩 生态）</li>
 </ol>
-<h3 id="sec-3-52">立起真实工程</h3>
+<h3 id="sec-3-53">立起真实工程</h3>
 <pre><code class="language-bash">dotnet new sln -n DaqMonitor
 dotnet new classlib -n DaqMonitor.Core
 dotnet new wpf -n DaqMonitor.UI
@@ -1251,11 +1362,11 @@ dotnet add src/DaqMonitor.UI reference src/DaqMonitor.Core
 <li>接入 Day 7 的"模拟采集+队列+定时刷新"，点按钮就能看到数据实时滚动。</li>
 <li>工程骨架即成型，<code>git commit</code> 一次，作品集第一版诞生。</li>
 </ul>
-<h3 id="sec-3-53">🟢 基础题</h3>
+<h3 id="sec-3-54">🟢 基础题</h3>
 <p>按上面命令建好工程，跑 <code>dotnet build</code> 确认 0 错误。</p>
-<h3 id="sec-3-54">🟡 进阶题</h3>
+<h3 id="sec-3-55">🟡 进阶题</h3>
 <p>把 Day 3 的 <code>PointStore</code> 接到工程，让模拟采集每产生一个点就 <code>AddOrUpdate</code>，<code>DataGrid</code> 显示最新 200 条。</p>
-<h3 id="sec-3-55">🔴 挑战题</h3>
+<h3 id="sec-3-56">🔴 挑战题</h3>
 <p>用 Day 5 的 <code>IDevice</code> 写一个 <code>SimulatedDevice : DeviceBase</code>（工程里 <code>DaqMonitor.Core/Devices/SimulatedDevice.cs</code> 已是真实实现），在 <code>Connect()</code> 后启动后台线程每 100ms <code>RaiseData</code>，验证"接口多态 + 事件通知 + 并发"三件事在真实项目里跑通。</p>
 <p><strong>🏗️ 项目任务</strong>：完成上面三步，<code>DaqMonitor</code> 工程骨架即成型。后续 M1~M16 往里加"串口/Modbus/PLC/存储/图表/报警/上云"，最终 = 能拿去面试的工业数据采集监控系统。</p>
 <p><strong>🎓 工控导师说</strong>：很多学员 Day 8 想一步到位把整个系统写完，结果卡在 WPF 绑定上三天没动。记住：<strong>先把"按钮+DataGrid+模拟数据滚动"这个最小闭环跑起来</strong>，后面每加一层都能立刻看到效果——这是项目驱动学习的节奏感。</p>

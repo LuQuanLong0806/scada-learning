@@ -29,23 +29,26 @@ PLC 把工艺数据存在"DB 数据块"里，上位机用 S7 协议直接读 / �
 
 ### 分点精讲
 **① 连接 + 读字节**（🟧）
+> 💡 **为什么用 Async**：S7.Net 同步 API 会阻塞线程，真实项目里 1 个 PLC 连接可能挂多个读请求，异步才能并发。**前端类比**：像 `Promise.all` 比多个 `await` 快——并发请求才能压榨网络吞吐。
+
 ```csharp
 using S7.Net;
 
 var plc = new Plc(CpuType.S71200, "192.168.0.1", 0, 1); // Rack=0, Slot=1
-plc.Open();
+await plc.OpenAsync();
 if (plc.IsConnected)
 {
-    byte[] buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
-    float temp = S7.GetRealAt(buf, 0);                      // 一个 float
+    byte[] buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
+    float temp = S7.GetRealAt(buf, 0);                                  // 一个 float
     Console.WriteLine($"温度={temp}");
 }
 ```
+> 注：外层方法签名要改成 `async Task`，调用方 `await` 它；别用 `.Result` / `.Wait()`，会死锁（M0 Day7 讲过）。
 
 **② 直接读强类型变量**（🟧）
 ```csharp
-var temp = (float)plc.Read(DataType.DataBlock, 1, 0, VarType.Real, 1);
-var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
+var temp = (float)(await plc.ReadAsync(DataType.DataBlock, 1, 0, VarType.Real, 1));
+var run  = (bool) (await plc.ReadAsync(DataType.DataBlock, 1, 4, VarType.Bit, 1));
 ```
 
 ### 🔬 掰开揉碎：S7 错误模型（现场高频坑 + 面试高频）
@@ -53,7 +56,7 @@ var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
 - **`plc.IsConnected` 不可全信**：`Open()` 成功只代表「握手成功」，线中途掉了 `IsConnected` 可能还是 `true`。正确做法：每次读后**检查 `plc.LastErrorCode`**（0 = OK，非 0 = 出错），或读之前 `ReadStatus()` 探活。
 - **读失败要判错误码再决定重试**：
   ```csharp
-  var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+  var buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4);
   if (plc.LastErrorCode != 0)            // 非 0 即出错
   {
       Log.Warning("读 DB1 失败 错误码{Code}", plc.LastErrorCode);
@@ -72,6 +75,19 @@ var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
 | 🔥 读错类型 | Real 读成 Int = 全错值；用 `S7.GetRealAt` 等辅助方法 |
 | 🔥 频繁 Open | 保持长连接，断线再重连，别每次读都 Open |
 
+### 📋 S7.Net 错误码表（查码 + 处理策略）
+S7.Net 不抛异常而是塞 `LastErrorCode`，现场/面试常被追问"0x0005 是啥、怎么办"。对照表（呼应 M2 的 Modbus 异常码表风格）：
+
+| LastErrorCode | 含义 | 典型原因 | 处理策略 |
+|---|---|---|---|
+| `0x0000` | 成功 | —— | 正常处理数据 |
+| `0x0005` | 地址 / 长度非法 | DB 号或偏移写错、越界、点位类型不匹配 | 对 TIA Portal 的偏移表逐字节核对，别凭记忆 |
+| `0x000A` | 对象不存在 | DB 块没下载 / 被删除 / 没勾"允许 PUT/GET" | 检查 PLC 侧 DB 是否在线、权限是否开 |
+| `0x7000+` | 通信层错误 | TCP 断线 / PLC 停止 / 心跳超时 | 触发 M9 `Retry` 退避重连，别裸 throw |
+| `0xD005` / `0xD201` | 套接字/连接错误 | 握手失败、IP 不通 | 排查链路（见下方导师说 6 步），重连 |
+
+> 处理铁律：**别用异常**，按"判码 → 退避重试 → 仍失败则上报离线"的三段式。错误码会随 S7.Net 版本微调，遇到没见过的码去 [S7.Net Plus 源码](https://github.com/killnine/s7netplus) 的 `ErrorCode.cs` 直接查表。
+
 ### 🟢 基础题
 连接模拟 PLC（PLCSIM + NetToPLCSim），读 DB1 偏移 0 的 Real 并打印。
 
@@ -83,10 +99,10 @@ var run  = (bool) plc.Read(DataType.DataBlock, 1, 4, VarType.Bit, 1);
 
 **✅ 答案（挑战题骨架）**
 ```csharp
-float? ReadTempSafe(Plc plc)
+async Task<float?> ReadTempSafeAsync(Plc plc)
 {
     if (plc.ReadStatus() != 0) { Log.Warn("PLC 离线"); return null; }
-    var buf = plc.ReadBytes(DataType.DataBlock, 1, 0, 4);
+    var buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4);
     if (plc.LastErrorCode != 0) { Log.Warn("读失败 {Code}", plc.LastErrorCode); return null; }
     return S7.GetRealAt(buf, 0);
 }
@@ -138,6 +154,7 @@ dev.Connect();
 | ⭐ 写生产 PLC 要授权 | 现场写 PLC 可能直接动设备，必须走审批 / 测试环境 |
 | ⭐ 统一接口价值 | UI 不关心串口 / Modbus / PLC，全用 `IDevice` —— 简历亮点 |
 | 🔥 读取频率 | PLC 扫描周期有限，轮询别太猛（<50ms 易压力设备） |
+| 🔥 event 退订 | `event +=` 后必须 `-=`，否则订阅方生命周期结束也无法被 GC（详见上文「退订模式」） |
 
 ### 🟢 基础题
 写 DB1 偏移 4 一个 Real 设定值 1.0。
@@ -154,6 +171,42 @@ var devices = new List<IDevice> { new SerialDevice(1, "COM3", ...), new PlcDevic
 foreach (var d in devices) { d.Connect(); d.DataReceived += OnData; }
 // AcquisitionPipeline 按设备统一轮询，UI 零感知背后是串口还是 PLC
 ```
+
+### 🧯 退订模式（不补就是内存泄漏）
+> 💡 **为什么必须退订**：`event +=` 后若忘了 `-=`，订阅方（比如某个临时窗口 / ViewModel）即便被关闭，发布方（设备）仍持有一条指向它的委托引用 → **GC 永远回收不掉** → 越跑内存越大。**前端类比**：像 React 在 `useEffect` 里加了 `event listener` 但 `return` 里忘了 `removeEventListener` —— 组件卸了还在偷偷听、偷偷 setState，最后崩。
+
+**正确姿势：用 `IDisposable` 把"订阅 + 退订 + 释放"打包**
+```csharp
+public sealed class DeviceHost : IDisposable
+{
+    private readonly List<IDevice> _devices = new();
+    private bool _disposed;
+
+    public void Add(IDevice d)
+    {
+        _devices.Add(d);
+        d.DataReceived += OnData;        // 订阅
+    }
+
+    private void OnData(object? s, SensorPoint e) => /* 转发到 UI / 管道 */;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        foreach (var d in _devices) d.DataReceived -= OnData;          // 关键: 退订
+        foreach (var d in _devices.OfType<IDisposable>()) d.Dispose(); // 关设备
+        _devices.Clear();
+        _disposed = true;
+    }
+}
+```
+> 用法：`using var host = new DeviceHost(); host.Add(plcDev); host.Add(serialDev);` —— `host` 出作用域自动退订 + 关设备，绝无遗漏。
+
+| ⚠️ 坑点 | 后果 / 处理 |
+|---|---|
+| 🔥 `event +=` 后必须 `-=` | 否则订阅方生命周期结束也无法被 GC，内存泄漏 |
+| 🔥 忘记把 `_disposed = true` | 重复 `Dispose` 会重复 `-=`（虽然不报错，但脏） |
+| 🔥 退订顺序错误 | 先关设备再退订，可能在多线程下错过最后一次事件 → 先 `-=`，再 `Dispose()` |
 
 **🏗️ 项目任务**：`PlcDevice` 完成 `Write`；配合 `AcquisitionPipeline` 把 `PlcDevice` 和已有 `SerialDevice`/`ModbusDevice` 统一调度 —— 至此"多设备接入"达标（M0–M3 串联）。
 
@@ -186,10 +239,10 @@ public class PlcDevice : DeviceBase
 
     public PlcDevice(int id, string name, string ip) : base(id, name) => _ip = ip;
 
-    public override void Connect()
+    public override async Task ConnectAsync()
     {
         _plc = new Plc(CpuType.S71200, _ip, 0, 1);
-        _plc.Open();
+        await _plc.OpenAsync();
         State = _plc.IsConnected ? DeviceState.Online : DeviceState.Offline;
     }
 
@@ -201,23 +254,24 @@ public class PlcDevice : DeviceBase
     }
 
     // 约定：addr = DB号*10000 + 偏移，例如 DB1.0 => 10000；DB1.4 => 10004
-    public override double Read(int addr)
+    public override async Task<double> ReadAsync(int addr)
     {
         if (_plc is null) return double.NaN;
         int db = addr / 10000;
         int off = addr % 10000;
-        var buf = _plc.ReadBytes(DataType.DataBlock, db, off, 4);
+        var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
         if (_plc.LastErrorCode != 0) return double.NaN;   // 不抛，交给心跳重连
-        RaiseData(addr, S7.GetRealAt(buf, 0));
-        return S7.GetRealAt(buf, 0);
+        float v = S7.GetRealAt(buf, 0);
+        RaiseData(addr, v);
+        return v;
     }
 
-    public override void Write(int addr, double v)
+    public override async Task WriteAsync(int addr, double v)
     {
         if (_plc is null) return;
         int db = addr / 10000;
         int off = addr % 10000;
-        _plc.Write(DataType.DataBlock, db, off, (float)v);
+        await _plc.WriteAsync(DataType.DataBlock, db, off, (float)v);
     }
 }
 ```

@@ -41,25 +41,65 @@ var msg = new MqttApplicationMessageBuilder()
 await client.PublishAsync(msg);
 ```
 
-**② 批量发布（事件→入队→定时批量，呼应 M9）**（🟧）
-> 🔥 **修正说明**：早期版本在 `DataReceived` 里 `await client.PublishAsync(...)` 逐点发布 —— 高频下会阻塞采集线程、MQTT 抖动。正确做法：从 **M9 的统一采集管道 `BatchReady`** 批量发布。
+**② 批量发布（事件→入队→后台 consumer 串行消费，呼应 M9）**（🟧）
+> 🔥 **修正说明**：早期版本在 `DataReceived` 里 `await client.PublishAsync(...)` 逐点发布 —— 高频下会阻塞采集线程、MQTT 抖动。正确做法：从 **M9 的统一采集管道 `BatchReady`** 批量发布；且**事件处理器仅入队(同步)**，后台 consumer 异步消费(解决 `async void` 反模式)。
 
 ```csharp
-// 订阅统一管道的“批量就绪”事件（M9 的 AcquisitionPipeline 已把多设备数据聚合成批）
-_pipeline.BatchReady += async (s, batch) =>
+// 正确版:BatchReady 仅入队(同步,绝不 async void),后台 consumer 异步消费
+private readonly Channel<List<SensorPoint>> _publishQ =
+    Channel.CreateBounded<List<SensorPoint>>(100);   // 有界,防 OOM
+
+public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
 {
-    foreach (var p in batch)
+    _client = client;
+    _pipeline = pipeline;
+    _pipeline.BatchReady += OnBatchReady;   // 同步方法
+}
+
+private void OnBatchReady(object? sender, List<SensorPoint> batch)
+{
+    // 仅入队,不 await。满了就丢弃本批(报警但不停采集)
+    if (!_publishQ.Writer.TryWrite(batch))
+        _log?.LogWarning("MQTT 发布队列满,丢弃一批 {Count} 条", batch.Count);
+}
+
+public async Task StartAsync(CancellationToken ct)
+{
+    await ConnectWithRetryAsync(ct);   // 用 M9 的 Retry 重连
+    _ = Task.Run(() => ConsumeLoopAsync(ct), ct);
+}
+
+private async Task ConsumeLoopAsync(CancellationToken ct)
+{
+    await foreach (var batch in _publishQ.Reader.ReadAllAsync(ct))
     {
-        var m = new MqttApplicationMessageBuilder()
-            .WithTopic($"factory/line1/point{p.Id}")
-            .WithPayload($"{{\"v\":{p.Value},\"t\":\"{p.Timestamp:o}\"}}")   // JSON 载荷，云端好解析
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
-            .Build();
-        await client.PublishAsync(m);   // 后台线程 await，不卡 UI
+        foreach (var p in batch)
+        {
+            try
+            {
+                await _client.PublishAsync(new MqttApplicationMessageBuilder()
+                    .WithTopic($"factory/line1/point{p.Id}")
+                    .WithPayload($"{{\"v\":{p.Value},\"t\":\"{p.Timestamp:o}\"}}")   // JSON 载荷,云端好解析
+                    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                    .Build());
+            }
+            catch (Exception ex)
+            {
+                _log?.LogError(ex, "MQTT 发布失败 PointId={Id}", p.Id);
+                // 不抛,继续下一条
+            }
+        }
     }
-};
+}
 ```
 > 📌 断线重连用 **M9 的 `Retry`**（指数退避 + 抖动）：连接失败自动重试，而不是裸 `try/catch` 抛给用户。
+
+### 🔬 掰开揉碎：为什么不能 `BatchReady += async (s, batch) => await ...`
+早期讲义的写法 `_pipeline.BatchReady += async (s, batch) => { await ... }` 看似简洁，**其实是 `async void`**——因为 `BatchReady` 是 `EventHandler` 签名（返回 `void`）。后果：
+- **① 异常被吞 + 进程崩**：`async void` 内部抛异常没有 `Task` 能 `await`/`catch`，会直接走 `AppDomain.UnhandledException` 把整个上位机进程拖崩，连采集都停了。
+- **② 并发乱序**：`BatchReady` 每秒触发多次，上一次 `await PublishAsync` 还没完，下一次又进来，多条批同时跑 → topic 时序错乱、Broker 端看到的消息顺序不可预测。
+
+**正确做法**：事件处理器**仅入队（同步 `TryWrite`，瞬时返回）**，由**后台 consumer 串行 `await`**消费——既不阻塞采集线程，又保证顺序。这是 .NET 高频场景的标准"生产者-消费者"模式。详 [C# 陷阱讲义 陷阱 4](C#_陷阱_前端转上位机必看_深度版.md)。
 
 ### ⚠️ 重点 & 易踩坑
 | 项 | 说明 |
@@ -67,7 +107,68 @@ _pipeline.BatchReady += async (s, batch) =>
 | ⭐ 用 JSON 载荷 | 云端好解析，字段对齐你的 `SensorPoint`（含 `Timestamp`） |
 | ⭐ QoS | AtLeastOnce 至少一次，关键数据别用 AtMostOnce |
 | 🔥 别逐点发布 | 必须从 `BatchReady` 批量发布（见上），别在 `DataReceived` 里逐点 `PublishAsync` |
+| 🔥 别 `async void` 事件处理器 | `BatchReady += async (s,b)=>await...` 是 `async void`，异常崩进程 + 并发乱序。改用 `Channel<T>` 入队 + 后台 consumer（见上） |
 | 🔥 断线重连 | Broker 会掉，用 M9 的 `Retry` 自动重连，别裸 `try/catch` |
+
+### 🔴 知识点：MQTT 双向订阅（接收云端下发命令）
+
+**1. 一句话讲清楚**
+上位机不只是"上报数据"（`Publish`），还要"接收指令"（`Subscribe`）—— 云端/大屏下发"启停""改设定值"，上位机收到后调 PLC 的 `Write`。真实上云双向是标配，**光会 Publish 接不了活**。
+
+**2. 真实代码**
+```csharp
+public async Task SubscribeCommandsAsync(CancellationToken ct)
+{
+    await _client.SubscribeAsync(new MqttTopicFilterBuilder()
+        .WithTopic("factory/line1/cmd")
+        .WithAtLeastOnceQoS()
+        .Build());
+
+    _client.ApplicationMessageReceivedAsync += async e =>
+    {
+        try
+        {
+            var json = e.ApplicationMessage.ConvertPayloadToString();
+            var cmd = JsonSerializer.Deserialize<CloudCommand>(json);
+
+            // 路由不同命令
+            switch (cmd?.Action)
+            {
+                case "setpoint":
+                    _plcDevice.Write(cmd.PointId, cmd.Value);   // 下发到 PLC
+                    _log?.LogInformation("云端下发设定值: PointId={Id} Value={V}", cmd.PointId, cmd.Value);
+                    break;
+                case "start":
+                    _pipeline.Start();
+                    break;
+                case "stop":
+                    await _pipeline.StopAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log?.LogError(ex, "处理云端命令失败");
+        }
+    };
+}
+
+public record CloudCommand(string Action, int PointId, double Value);
+```
+
+**3. ⚠️ 坑点表**
+| 坑 | 说明 |
+|---|---|
+| 异常吞 | `ApplicationMessageReceivedAsync` 是 `async void` 类事件处理器，**必须 try-catch**，否则异常崩进程 |
+| QoS 选择 | 命令类用 AtLeastOnce（至少一次，可能重复，要幂等）；数据上报也用 AtLeastOnce |
+| 命令幂等 | 收到同一命令多次应等价（前端类比：像 Redux 必须是 pure reducer） |
+| 跨线程改 PLC | `_plcDevice.Write` 内部要加 `lock` 或 `ConcurrentQueue` 串行化，避免和采集线程抢设备 |
+
+**4. 测试方法**
+- 装 MQTTX 桌面版，连 `broker.emqx.io:1883`
+- 订阅 `factory/line1/point1`（看上位机上报）
+- 向 `factory/line1/cmd` 发 `{"action":"setpoint","pointId":1,"value":50}` 命令
+- 看 PLC 设备的真值是否变 50
 
 ### 🟢 基础题
 连公共 MQTT Broker（`broker.emqx.io:1883`），向 `test/daq` 主题发布一条 JSON 消息。
@@ -85,7 +186,7 @@ await client.PublishAsync(new MqttApplicationMessageBuilder()
     .WithPayload($"{{\"point\":1,\"value\":{value}}}").Build());
 ```
 
-**🏗️ 项目任务**：DAQ Monitor 加 `Cloud/MqttPublisher.cs`，订阅 `AcquisitionPipeline.BatchReady` 批量发布到配置的主题；用 M9 的 `Retry` 做断线重连。上云能力达标（15K 亮点）。
+**🏗️ 项目任务**：DAQ Monitor 加 `Cloud/MqttPublisher.cs`（已修正版，`async void` 已用 `Channel<T>` 解决 + 双向订阅云端下发命令），订阅 `AcquisitionPipeline.BatchReady` 批量发布到配置的主题；订阅 `factory/line1/cmd` 接收云端命令并下发 PLC；用 M9 的 `Retry` 做断线重连。上云能力达标（15K 亮点）。
 
 **🎓 工控导师说**：上云第一个踩的坑是"逐点 Publish 把 Broker 打挂"。工厂 100Hz × 50 设备 = 每秒 5000 条，MQTT Broker 不是为这个设计的。正确：**攒批 + 合理 QoS + 断线退避重连**。还有，上云前务必确认网络隔离——生产网和办公网通常不通，别在客户现场才发现连不上外网。
 
@@ -104,35 +205,58 @@ OPC UA 是工业互联的"世界语"：上位机作为客户端连 OPC UA 服务
 using Opc.Ua;
 using Opc.Ua.Client;
 
-var cfg = new ApplicationConfiguration { ApplicationName = "DAQMonitor", ... };
-var ep = new ConfiguredEndpoint(null, new EndpointDescription("opc.tcp://localhost:4840"));
-using var session = Session.Create(cfg, ep, false, "DAQMonitor", 60000, null, null).Result;
-var node = session.ReadNode("ns=2;s=Line1.Temp");   // 按节点名读
-var val = session.ReadValue("ns=2;s=Line1.Temp").Value;
+// 创建配置(证书、安全策略)
+var cfg = await new ApplicationConfigurationBuilder
+{
+    ApplicationName = "DAQMonitor",
+    ApplicationType = ApplicationType.Client,
+    SecurityConfiguration = new SecurityConfiguration
+    {
+        AutoAcceptUntrustedCertificates = true   // 测试用,生产要正经证书
+    }
+}.BuildAsync();
+
+// 异步连接(全程 await,绝不用 .Result)
+var endpoint = new ConfiguredEndpoint(null,
+    new EndpointDescription("opc.tcp://localhost:4840"),
+    EndpointSelectionOptions.None);
+
+using var session = await Session.Create(
+    cfg, endpoint, false, "DAQMonitor", 60000, null, null);
+
+// 异步读节点
+var value = await session.ReadValueAsync("ns=2;s=Line1.Temp");
+Console.WriteLine($"温度 = {value.Value}");
 ```
 
-### 🔬 掰开揉碎：OPC UA 别用 `.Result` 同步阻塞（本项目已改为异步）
-上面 ① 的 `Session.Create(...).Result` 是**反模式**，真项目要改：
-- **为什么危险**：`.Result` 会「阻塞当前线程等结果」。如果在 UI 线程调，UI 卡死；更隐蔽的是**死锁**——当异步方法内部要 `await` 回 UI 线程（WPF 的 `SynchronizationContext`），而 UI 线程正被 `.Result` 卡着等它，两边互等 = 永久死锁。
-- **正确写法（异步）**：
-  ```csharp
-  var session = await Session.Create(cfg, ep, false, "DAQMonitor", 60000, null, null);
-  var val = await session.ReadValueAsync("ns=2;s=Line1.Temp");
-  ```
-  全程 `async/await`，不阻塞任何线程。M9 讲过 `async Task` 测试，这里同理。
+### 🔬 掰开揉碎：为什么绝不能用 `.Result` / `.Wait()`
+**为什么危险**：`.Result` 会「阻塞当前线程等结果」。如果在 UI 线程调，UI 卡死；更隐蔽的是**死锁**——当异步方法内部要 `await` 回 UI 线程（WPF 的 `SynchronizationContext`），而 UI 线程正被 `.Result` 卡着等它，**两边互等 = 永久死锁**。**正确做法：全程 `async/await`**，不阻塞任何线程。M9 讲过 `async Task` 测试，这里同理。详 [C# 陷阱讲义 陷阱 4](C#_陷阱_前端转上位机必看_深度版.md)。
+
+**反面教材（绝不这么写）**：
+```csharp
+// ❌ 死锁风险
+using var session = Session.Create(cfg, ep, false, "DAQMonitor", 60000, null, null).Result;
+var value = session.ReadValue("ns=2;s=Line1.Temp").Value;
+```
 
 ### 🔬 掰开揉碎：MQTT 是「双向」的（上位机常要接收云端下发）
+> 📌 **完整版已升级到 Day 1 主代码（"MQTT 双向订阅"知识点）**，含完整 try-catch + 命令路由 + 幂等坑点。这里仅保留简要提示。
+
 讲义只发了（Publish），真实上云是**双向**——云端/大屏给上位机下发「设定值」「启停指令」：
 ```csharp
 // 订阅「云端下发」主题，接收控制命令（呼应 M3 给 PLC 写设定值）
 await client.SubscribeAsync("factory/line1/cmd");
-client.ApplicationMessageReceivedAsync += (s, e) =>
+client.ApplicationMessageReceivedAsync += async (s, e) =>   // async void 类,必须 try-catch
 {
-    var cmd = JsonSerializer.Deserialize<Command>(e.ApplicationMessage.ConvertPayloadToString());
-    // 把命令转成给 PLC/设备的写操作（接 M3 的 Write）
+    try
+    {
+        var cmd = JsonSerializer.Deserialize<Command>(e.ApplicationMessage.ConvertPayloadToString());
+        // 把命令转成给 PLC/设备的写操作（接 M3 的 Write）
+    }
+    catch (Exception ex) { /* 必须吞,否则崩进程 */ }
 };
 ```
-> 记住：**Publish = 上报数据，Subscribe = 接收指令**，上位机通常两者都要。
+> 记住：**Publish = 上报数据，Subscribe = 接收指令**，上位机通常两者都要。完整代码见 Day 1 的"🔴 知识点：MQTT 双向订阅"。
 
 **② 订阅（主动推送）**（🟧）
 ```csharp
@@ -180,29 +304,124 @@ var val = await session.ReadValueAsync("ns=2;s=Line1.Temp");
 - 全部模块外链汇总见 `外部链接索引.md`
 - 📎 **没有硬件？看 `硬件替代方案与讲解_深度版.md`**：本地 OPC UA 模拟服务器(Prosys) / MQTT Broker(Mosquitto) 零成本练手
 
-## 🧩 完整代码组装（MqttPublisher 批量发布，对齐工程）
+## 🧩 完整代码组装（MqttPublisher 批量发布 + 双向订阅，对齐工程）
 ```csharp
 // DaqMonitor.Core/Cloud/MqttPublisher.cs
+using System.Threading.Channels;
+using System.Text.Json;
+using MQTTnet;
+using MQTTnet.Client;
+using Microsoft.Extensions.Logging;
+
 public class MqttPublisher
 {
     private readonly IMqttClient _client;
     private readonly AcquisitionPipeline _pipeline;
-    public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
-    { _client = client; _pipeline = pipeline; }
+    private readonly IPlcDevice _plcDevice;
+    private readonly ILogger<MqttPublisher>? _log;
 
-    public void Start()
+    // 有界 Channel:防 OOM + 串行消费(解决 async void 反模式)
+    private readonly Channel<List<SensorPoint>> _publishQ =
+        Channel.CreateBounded<List<SensorPoint>>(100);
+
+    public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline,
+        IPlcDevice plcDevice, ILogger<MqttPublisher>? log = null)
     {
-        _pipeline.BatchReady += async (s, batch) =>   // 从 M9 统一管道批量取
+        _client = client;
+        _pipeline = pipeline;
+        _plcDevice = plcDevice;
+        _log = log;
+        _pipeline.BatchReady += OnBatchReady;   // 同步方法,绝不 async void
+    }
+
+    private void OnBatchReady(object? sender, List<SensorPoint> batch)
+    {
+        // 仅入队,瞬时返回。满了就丢弃本批(报警但不停采集)
+        if (!_publishQ.Writer.TryWrite(batch))
+            _log?.LogWarning("MQTT 发布队列满,丢弃一批 {Count} 条", batch.Count);
+    }
+
+    public async Task StartAsync(CancellationToken ct)
+    {
+        // 用 M9 的 Retry 做断线重连(指数退避 + 抖动)
+        await ConnectWithRetryAsync(ct);
+
+        // 启动后台 consumer:串行消费,保证顺序 + 异常不崩
+        _ = Task.Run(() => ConsumeLoopAsync(ct), ct);
+
+        // 订阅云端下发命令(双向)
+        await SubscribeCommandsAsync(ct);
+    }
+
+    private async Task ConnectWithRetryAsync(CancellationToken ct)
+    {
+        // M9 的 Retry.ExecuteAsync(...) 包装,失败自动重试
+        await Retry.ExecuteAsync(() => _client.ConnectAsync(new MqttClientOptionsBuilder()
+            .WithTcpServer("broker.emqx.io", 1883).Build(), ct), maxRetries: 5);
+    }
+
+    private async Task ConsumeLoopAsync(CancellationToken ct)
+    {
+        await foreach (var batch in _publishQ.Reader.ReadAllAsync(ct))
         {
             foreach (var p in batch)
-                await _client.PublishAsync(new MqttApplicationMessageBuilder()
-                    .WithTopic($"factory/line1/point{p.Id}")
-                    .WithPayload($"{{\"v\":{p.Value},\"t\":\"{p.Timestamp:o}\"}}")
-                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce).Build());
+            {
+                try
+                {
+                    await _client.PublishAsync(new MqttApplicationMessageBuilder()
+                        .WithTopic($"factory/line1/point{p.Id}")
+                        .WithPayload($"{{\"v\":{p.Value},\"t\":\"{p.Timestamp:o}\"}}")
+                        .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                        .Build());
+                }
+                catch (Exception ex)
+                {
+                    _log?.LogError(ex, "MQTT 发布失败 PointId={Id}", p.Id);
+                    // 不抛,继续下一条
+                }
+            }
+        }
+    }
+
+    public async Task SubscribeCommandsAsync(CancellationToken ct)
+    {
+        await _client.SubscribeAsync(new MqttTopicFilterBuilder()
+            .WithTopic("factory/line1/cmd")
+            .WithAtLeastOnceQoS()
+            .Build());
+
+        // ApplicationMessageReceivedAsync 是 async void 类,必须 try-catch
+        _client.ApplicationMessageReceivedAsync += async e =>
+        {
+            try
+            {
+                var json = e.ApplicationMessage.ConvertPayloadToString();
+                var cmd = JsonSerializer.Deserialize<CloudCommand>(json);
+
+                switch (cmd?.Action)
+                {
+                    case "setpoint":
+                        _plcDevice.Write(cmd.PointId, cmd.Value);   // 下发 PLC
+                        _log?.LogInformation("云端下发设定值: PointId={Id} Value={V}",
+                            cmd.PointId, cmd.Value);
+                        break;
+                    case "start":
+                        _pipeline.Start();
+                        break;
+                    case "stop":
+                        await _pipeline.StopAsync();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log?.LogError(ex, "处理云端命令失败");
+            }
         };
     }
+
+    public record CloudCommand(string Action, int PointId, double Value);
 }
-// 断线重连用 M9 的 Retry.ExecuteAsync(() => client.ConnectAsync(...), maxRetries: 5)
 ```
 
 ## 🔗 明日预告

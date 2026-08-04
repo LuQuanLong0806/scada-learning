@@ -36,16 +36,17 @@
 <li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
 <li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
 <li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-9">🔬 掰开揉碎：传感器非线性标定（线性公式的边界）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">Day 2 — 企业数据库 SQL Server / MySQL（换库零改业务）🟡</a><ul>
-<li class="l3"><a href="#sec-3-9">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-10">前端类比秒懂</a></li>
-<li class="l3"><a href="#sec-3-11">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：为什么 SQL Server 是上位机标配</a></li>
-<li class="l3"><a href="#sec-3-13">⭐ 重点 / 🔥 坑</a></li>
-<li class="l3"><a href="#sec-3-14">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-15">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-16">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-10">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-11">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-12">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-13">🔬 掰开揉碎：为什么 SQL Server 是上位机标配</a></li>
+<li class="l3"><a href="#sec-3-14">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-15">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-16">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-17">🔴 挑战题</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">📌 温故知新 / 跨模块联动</a><ul>
 </ul></li>
@@ -120,7 +121,7 @@ double EngValue(double raw) =&gt; a * raw + b;
 <ul>
 <li>传感器有<strong>零点误差</strong>和<strong>增益误差</strong>，单点校准只能消一个。两点（下限 + 上限）同时消掉偏移(b)和斜率(a)，最稳。</li>
 <li>量程反向（如液位越低值越大）只是 a 为负，公式通用。</li>
-<li><strong>除零防护</strong>：<code>rawHi == rawLo</code> 时公式会崩，真实代码要 <code>if (rawHi == rawLo) throw</code> 或给默认系数。</li>
+<li><strong>除零防护</strong>：<code>rawHi == rawLo</code> 时公式会崩,真实代码<strong>不要在构造函数 <code>throw</code></strong>(产线停机代价太大),给<strong>安全默认 1:1 直通 + 日志 WARN</strong>,人能继续查 —— 见文末完整代码组装。</li>
 </ul>
 <h3 id="sec-3-5">⭐ 重点 / 🔥 坑</h3>
 <table>
@@ -137,7 +138,7 @@ double EngValue(double raw) =&gt; a * raw + b;
 </tr>
 <tr>
 <td>🔥 坑</td>
-<td>除零（rawHi==rawLo）、Int16 溢出、单位写错（℃ vs ℉）</td>
+<td>除零(rawHi==rawLo)别 throw,给安全默认 1:1 直通 + WARN;另:Int16 溢出、单位写错(℃ vs ℉)</td>
 </tr>
 <tr>
 <td>🔥 坑</td>
@@ -160,12 +161,61 @@ a = 10/4095，b = 0，<code>EngValue(2048) = 10×2048/4095 ≈ 5.003</code>。</
 <p><strong>🏗️ 项目任务</strong>：在 <code>SensorPoint</code> 加 <code>EngValue/Unit</code>，<code>TcpDevice</code>/<code>SimulatedDevice</code> 采集时填充。DAQ Monitor 点表里同时显示"原始值 / 工程量"。</p>
 <p><strong>🎓 工控导师说</strong>：标定系数千万别写死在代码里！我见过一台设备换传感器后，工程师忘了改 a、b 常量，显示温度整体偏了 8℃，产线工艺全错。系数必须来自<strong>配置 / 数据库 / 设备描述文件</strong>，换硬件只改配置不动代码。</p>
 <p><strong>💼 职业建议</strong>：工程量转换是"工程师基本功"。面试官看你代码里 <code>value * 0.1</code> 直接当温度，就知道你没理解标定；写成 <code>EngineeringConverter</code> 可配置，才是企业写法。</p>
+<h3 id="sec-3-9">🔬 掰开揉碎：传感器非线性标定（线性公式的边界）</h3>
+<p>上面讲的 <code>y = k*x + b</code> 线性公式覆盖 <strong>80% 场景</strong>(ADC、4-20mA、压力变送器),但下面这两类传感器<strong>本身是非线性的</strong>,用线性公式会出错:</p>
+<ul>
+<li><strong>热电偶(TC)</strong>:热电势 ↔ 温度是非线性曲线,K 型在 0℃ 时 ~39 μV/℃,1000℃ 时 ~41 μV/℃,直接当线性算偏差能到几度。</li>
+<li><strong>热电阻(RTD,PT100/PT1000)</strong>:电阻 ↔ 温度也是非线性,100℃ 时约 138.5Ω,200℃ 时约 175.8Ω,<strong>不是</strong>等距。</li>
+</ul>
+<p><strong>前端类比</strong>:线性公式像 CSS <code>linear-gradient</code>,只能描述直线;非线性传感器像贝塞尔曲线,需要更复杂的映射函数。处理方案有两种:</p>
+<p><strong>① 查表法(Lookup Table)—— 厂家给的标准表 + 二分查找 + 线性插值</strong>(最常用,够精度)</p>
+<pre><code class="language-csharp">public static class RtdLookup
+{
+    // PT100 标准表(节选,真实项目用整张 IEC 60751 表)
+    private static readonly (double R, double T)[] Table =
+    {
+        (100.0, 0), (103.9, 10), (107.8, 20), (111.7, 30),
+        (115.5, 40), (119.4, 50), (123.2, 60), (127.1, 70),
+        (130.9, 80), (134.7, 90), (138.5, 100)
+    };
+
+    public static double OhmToCelsius(double r)
+    {
+        // 1. 边界短路
+        if (r &lt;= Table[0].R) return Table[0].T;
+        if (r &gt;= Table[^1].R) return Table[^1].T;
+
+        // 2. 二分查找找到 r 落在哪两个点之间
+        int lo = 0, hi = Table.Length - 1;
+        while (hi - lo &gt; 1)
+        {
+            int mid = (lo + hi) &gt;&gt; 1;
+            if (Table[mid].R &lt;= r) lo = mid; else hi = mid;
+        }
+
+        // 3. 线性插值(两点之间近似为直线 —— 表越密越准)
+        var (r0, t0) = Table[lo];
+        var (r1, t1) = Table[hi];
+        return t0 + (r - r0) * (t1 - t0) / (r1 - r0);
+    }
+}
+// 用法:double temp = RtdLookup.OhmToCelsius(119.4);  // → 50.0℃
+</code></pre>
+<p><strong>优点</strong>:精度可控(表越密越准)、可校准单点偏移、对 CPU 友好(只有比较和一次除法)。<strong>坑</strong>:表必须<strong>按 R 升序排好</strong>,二分才能用。</p>
+<p><strong>② 多项式拟合(Callendar-Van Dusen 公式)—— RTD 国际标准</strong></p>
+<pre><code>R(t) = R0 * (1 + A*t + B*t²)           // t ≥ 0℃ 的简化形式
+// R0=100(PT100), A=3.9083e-3, B=-5.775e-7 (IEC 60751 标准常数)
+</code></pre>
+<p>直接用公式反解 t(求二次方程),精度比查表更高但代码复杂。<strong>建议</strong>:除非客户明确要求高精度,否则用查表法 —— 维护方便、足够工业级。</p>
+<blockquote>
+<p><strong>何时需要非线性标定</strong>:面试时被问"PT100 怎么换算温度",答"查表 + 线性插值"或"Callendar-Van Dusen 多项式"就是工程师水平的体现;只会线性公式 = 没踩过传感器的坑。</p>
+</blockquote>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M12',1)"> 打卡</label></strong></p>
 <hr />
 <h2 id="sec-2-3">Day 2 — 企业数据库 SQL Server / MySQL（换库零改业务）🟡</h2>
-<h3 id="sec-3-9">一句话讲清楚</h3>
+<h3 id="sec-3-10">一句话讲清楚</h3>
 <p>M4 用 SQLite 是"轻量入门"。真实工厂 90% 用 <strong>SQL Server</strong>（微软系上位机标配）或 <strong>MySQL</strong>。好消息：EF Core 是<strong>面向提供程序</strong>的，换库 = 换连接串 + 加一个 NuGet 包，业务代码一行不动。</p>
-<h3 id="sec-3-10">前端类比秒懂</h3>
+<h3 id="sec-3-11">前端类比秒懂</h3>
 <table>
 <thead>
 <tr>
@@ -184,7 +234,7 @@ a = 10/4095，b = 0，<code>EngValue(2048) = 10×2048/4095 ≈ 5.003</code>。</
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-11">分点精讲</h3>
+<h3 id="sec-3-12">分点精讲</h3>
 <p><strong>① EF Core 换提供程序</strong>（🟧）</p>
 <pre><code class="language-xml">&lt;!-- 把 M4 的 Sqlite 包换成 --&gt;
 &lt;PackageReference Include=&quot;Microsoft.EntityFrameworkCore.SqlServer&quot; /&gt;
@@ -201,13 +251,31 @@ await conn.ExecuteAsync(
   points);   // points 是 IEnumerable&lt;SensorPoint&gt;
 </code></pre>
 <p><strong>③ 三选一</strong>：EF Core（ORM 方便）→ Dapper（高频写快、SQL 可控）→ ADO.NET <code>SqlBulkCopy</code>（海量批量最快）。</p>
-<h3 id="sec-3-12">🔬 掰开揉碎：为什么 SQL Server 是上位机标配</h3>
+<p><strong>④ 连接串安全管理 —— 生产环境绝不硬编码</strong>（🟦，面试加分项）
+上面演示里的 <code>"Server=.;Database=DAQ;..."</code> 只是教学用,<strong>真实生产代码严禁把密码硬编码进 <code>.cs</code></strong>(进 Git = 进全公司眼睛 + 历史泄露)。三层做法按环境选:
+- <strong>开发</strong>:<code>appsettings.json</code> + <strong>User Secrets</strong>(<code>dotnet user-secrets set "ConnectionStrings:DAQ" "Server=.;Database=DAQ;User=sa;Password=xxx"</code>)—— 密码存本机用户目录,不进 Git。
+- <strong>测试/生产(自托管)</strong>:<strong>环境变量</strong> <code>ConnectionStrings__DAQ</code>(双下划线 = 配置路径分隔),Docker/K8s 直接注入。
+- <strong>云端</strong>:<strong>Azure Key Vault / AWS Secrets Manager</strong>,程序启动时拉密钥。</p>
+<pre><code class="language-json">// appsettings.json(只放非敏感的 host/db 名,密码走 User Secrets/环境变量/Key Vault)
+{
+  &quot;ConnectionStrings&quot;: {
+    &quot;DAQ&quot;: &quot;Server=prod-sql;Database=DAQ;User=sa;Password=${DB_PWD};&quot;
+  }
+}
+</code></pre>
+<pre><code class="language-csharp">// Program.cs / Bootstrapper —— 通过 IConfiguration 读连接串(配合 M9 DI)
+var cs = builder.Configuration.GetConnectionString(&quot;DAQ&quot;)
+    ?? throw new InvalidOperationException(&quot;缺少 DAQ 连接串配置&quot;);
+services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlServer(cs));
+</code></pre>
+<p><strong>前端类比</strong>:像前端绝不会把 API token 写进 <code>config.js</code> 提交到 Git,要走 <code>.env</code> + <code>process.env.REACT_APP_TOKEN</code>;C# 这边对应的 <code>IConfiguration</code> + 环境变量,思路完全一致。</p>
+<h3 id="sec-3-13">🔬 掰开揉碎：为什么 SQL Server 是上位机标配</h3>
 <ul>
 <li>工厂 IT 基础设施清一色 Windows + SQL Server，运维、备份、权限都现成。</li>
 <li>和 C#/.NET 同属微软生态，部署、驱动、文档一条龙，坑最少。</li>
 <li>MySQL 在跨平台/成本敏感场景常见；<strong>会换提供程序 = 不挑客户环境</strong>。</li>
 </ul>
-<h3 id="sec-3-13">⭐ 重点 / 🔥 坑</h3>
+<h3 id="sec-3-14">⭐ 重点 / 🔥 坑</h3>
 <table>
 <thead>
 <tr>
@@ -226,7 +294,7 @@ await conn.ExecuteAsync(
 </tr>
 <tr>
 <td>🔥 坑</td>
-<td>连接串里密码别硬编码，走配置 / 环境变量</td>
+<td>连接串里密码别硬编码,走 <code>appsettings.json</code> + User Secrets(开发)/ 环境变量(生产)/ Key Vault(云端)</td>
 </tr>
 <tr>
 <td>🔥 坑</td>
@@ -234,11 +302,11 @@ await conn.ExecuteAsync(
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-14">🟢 基础题</h3>
+<h3 id="sec-3-15">🟢 基础题</h3>
 <p>把 M4 的 <code>AppDb</code> 从 <code>UseSqlite</code> 改成 <code>UseSqlServer</code>（仅改一行），并在本机 SQL Server LocalDB 建库跑通一条插入。</p>
-<h3 id="sec-3-15">🟡 进阶题</h3>
+<h3 id="sec-3-16">🟡 进阶题</h3>
 <p>用 Dapper 把"最近 1 秒采集的 100 个点"一次 <code>ExecuteAsync</code> 批量插入，对比 M4 的逐条 <code>SaveChanges</code> 体会速度差。</p>
-<h3 id="sec-3-16">🔴 挑战题</h3>
+<h3 id="sec-3-17">🔴 挑战题</h3>
 <p>写一段<strong>数据库无关</strong>代码：依赖 <code>IHistoryRepository</code> 接口，运行时按配置决定用 SQLite / SQL Server / MySQL 实现（M9 的 DI 注册切换）——验证"业务代码零改"。</p>
 <p><strong>✅ 答案（基础题）</strong></p>
 <pre><code class="language-csharp">protected override void OnConfiguring(DbContextOptionsBuilder b)
@@ -259,21 +327,35 @@ await conn.ExecuteAsync(
 <pre><code class="language-csharp">// DaqMonitor.Core/Models/EngineeringConverter.cs
 public class EngineeringConverter
 {
-    private readonly double _a, _b;
+    public double RawLo { get; }
+    public double RawHi { get; }
+    public double EngLo { get; }
+    public double EngHi { get; }
+    private readonly double _scale;   // 缓存标定斜率,避免每次 ToEng 都除一次
+    private readonly double _offset;  // 缓存标定截距
+
     public EngineeringConverter(double rawLo, double rawHi, double engLo, double engHi)
     {
-        if (rawHi == rawLo) throw new ArgumentException(&quot;量程不能为 0&quot;);
-        _a = (engHi - engLo) / (rawHi - rawLo);
-        _b = engLo - _a * rawLo;
+        if (Math.Abs(rawHi - rawLo) &lt; 1e-9)
+        {
+            // 量程为 0,给安全默认(1:1 直通),不抛异常 —— 现场调试时不该让程序崩
+            // 真实做法:这里 + 日志 WARN,让人能继续查问题(见 Day1 末尾&quot;工程导师说&quot;)
+            RawLo = 0; RawHi = 1; EngLo = 0; EngHi = 1; _scale = 1; _offset = 0;
+            return;
+        }
+        RawLo = rawLo; RawHi = rawHi; EngLo = engLo; EngHi = engHi;
+        _scale  = (engHi - engLo) / (rawHi - rawLo);   // 预计算,避免每次都除
+        _offset = engLo - _scale * rawLo;
     }
-    public double ToEng(double raw) =&gt; _a * raw + _b;
-    public double ToRaw(double eng) =&gt; (eng - _b) / _a;   // 反向：下发设定值
+    public double ToEng(double raw) =&gt; _scale * raw + _offset;
+    public double ToRaw(double eng) =&gt; (eng - _offset) / _scale;   // 反向:下发设定值
 }
 // 用法：var c = new EngineeringConverter(6400, 32000, 0, 100); // 4-20mA → 0~100℃
 //       double temp = c.ToEng(rawFromDevice);
 </code></pre>
 <blockquote>
-<p>M4 的 <code>HistoryRepository</code> 仅把 <code>UseSqlite</code> 换成 <code>UseSqlServer</code>/<code>UseMySql</code> 即可接企业库（见 Day2 ①）。</p>
+<p><strong>为什么不在构造函数 <code>throw</code></strong>:工控现场调试时如果工程师量程填错(<code>rawHi == rawLo</code>),程序直接崩 = 整条产线停。给安全默认 <strong>1:1 直通</strong>,在日志里 <code>WARN</code> 一下,人能继续查问题、设备照常跑(只是显示的工程量不对)。<strong>前端类比</strong>:像表单校验失败时不该白屏,要给 fallback UI + 红字提示,而不是把整个页面 crash 掉。
+M4 的 <code>HistoryRepository</code> 仅把 <code>UseSqlite</code> 换成 <code>UseSqlServer</code>/<code>UseMySql</code> 即可接企业库（见 Day2 ①）。</p>
 </blockquote>
 <h2 id="sec-2-6">🔗 明日预告</h2>
 <p><strong>M13 多品牌 PLC 与国产库（HslCommunication）</strong>：今天存的是"通用点"，但真工厂设备五花八门——西门子/三菱/欧姆龙。M13 用一套国产 Hsl 库通吃它们，让你不再局限于西门子。</p>

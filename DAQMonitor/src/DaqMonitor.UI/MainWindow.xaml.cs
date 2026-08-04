@@ -29,5 +29,15 @@ public partial class MainWindow : Window
         Resources.Add("InverseBool", new InverseBoolConverter());
         Resources.Add("RunningText", new RunningTextConverter());
         InitializeComponent();
+        // 订阅 DataContext 变化:当 VM 注入后,把曲线页接到 VM
+        DataContextChanged += MainWindow_DataContextChanged;
+    }
+
+    private void MainWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && ChartTab is not null)
+        {
+            vm.AttachChart(ChartTab);
+        }
     }
 }

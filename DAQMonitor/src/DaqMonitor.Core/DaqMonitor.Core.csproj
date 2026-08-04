@@ -13,6 +13,13 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <!-- 串口通信（🟩 .NET 官方串口类，免费开源；M1 SerialDevice 真实硬件用） -->
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <!-- 持久化：EF Core + SQLite（M4 存储 → 历史库落地，UI/采集层无感知） -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <!-- MQTT 上云（M7 修正版双向）：MQTTnet 4.x，必须用 v4 管线 API（MqttFactory().CreateMqttClient） -->
+    <PackageReference Include="MQTTnet" Version="4.3.7.1207" />
   </ItemGroup>
 
   <ItemGroup>

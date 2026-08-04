@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📄 简历模板 · 上位机 13-15K · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="resume">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、个人评价 / 求职意向</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、技术栈</a><ul>
+<li class="l3"><a href="#sec-3-1">1. 语言与框架</a></li>
+<li class="l3"><a href="#sec-3-2">2. 工业协议(核心战场)</a></li>
+<li class="l3"><a href="#sec-3-3">3. 数据与持久化</a></li>
+<li class="l3"><a href="#sec-3-4">4. 工程化与质量</a></li>
+<li class="l3"><a href="#sec-3-5">5. 转行加分(5 年前端折算)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、项目经验(STAR 法)</a><ul>
+<li class="l3"><a href="#sec-3-6">项目一(主项目):DAQMonitor — 工业数据采集监控系统 ★★★★★</a></li>
+<li class="l3"><a href="#sec-3-7">项目二(辅助):PLC_Simulation_Tool — 西门子 S7 协议模拟器 ★★★★</a></li>
+<li class="l3"><a href="#sec-3-8">项目三(辅助):MES_Bridge — 工业网关 MQTT 桥接服务 ★★★★</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、工作经验(前端 → 上位机折算说明)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、教育背景</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、附加:面试官最爱问的 3 个项目细节</a><ul>
+<li class="l3"><a href="#sec-3-9">钩子 1:你前端 5 年,为什么转上位机?</a></li>
+<li class="l3"><a href="#sec-3-10">钩子 2:你的设备抽象接口是怎么设计的?(项目最核心)</a></li>
+<li class="l3"><a href="#sec-3-11">钩子 3:7×24 跑 3 天,你怎么测的?怎么证明没漏?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、3 个薪资版本(同份简历,微调即可投递)</a><ul>
+<li class="l3"><a href="#sec-3-12">13K 版(保守,稳进面)</a></li>
+<li class="l3"><a href="#sec-3-13">14-15K 版(主力,目标 80% 岗位)</a></li>
+<li class="l3"><a href="#sec-3-14">15K+ 版(冲上限,要求面试表现 S 级)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">八、按行业调整项目排序(JD 镜像法)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">九、投递策略 5 条</a><ul>
+<li class="l3"><a href="#sec-3-15">策略 1:关键词镜像法</a></li>
+<li class="l3"><a href="#sec-3-16">策略 2:按 JD 调项目排序</a></li>
+<li class="l3"><a href="#sec-3-17">策略 3:预期薪资报法</a></li>
+<li class="l3"><a href="#sec-3-18">策略 4:反问 3 问(面试结尾必问)</a></li>
+<li class="l3"><a href="#sec-3-19">策略 5:面试后跟进</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">十、面试 7 大高频问题(简历自查)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-11">📚 参考来源</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">简历模板｜上位机开发工程师(C#/.NET/WPF)｜目标薪资 13-15K</h1>
+<blockquote>
+<p>投递岗位关键词:C# 上位机 / .NET 开发工程师 / WPF 工业软件 / SCADA 开发 / 设备控制软件 / 工业互联网开发
+使用说明:本简历已按"中高级前端 → 上位机"转行画像设计,3 个薪资版本在文末。个人信息处占位符替换即可投递。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、个人评价 / 求职意向</h2>
+<blockquote>
+<p>5 年中高级前端工程师(React/Vue/TS/Node),独立完成 <strong>C#/.NET 8 / WPF / Prism / EF Core</strong> 工业数据采集监控系统 DAQMonitor,<strong>全栈工业协议实战</strong>(Modbus RTU/TCP、S7.Net、OPC UA、MQTT 双向、TCP Socket、CAN、USB-HID)。</p>
+<p>求职意向:<strong>C# 上位机 / WPF 工业软件</strong>(目标城市:北京 / 上海 / 深圳 / 苏州 / 杭州),<strong>期望薪资 14K</strong>(可面议),1 个月内到岗。</p>
+<p>💡 <strong>转行优势显性化</strong>:把"前端 5 年"翻译成"工业上位机的稀缺加分项":
+- <strong>TypeScript 强类型 → C# 强类型</strong>(类型系统、泛型、协变逆变无障碍)
+- <strong>React Hooks async/await → C# async/await 状态机</strong>(直接迁移,只换语法)
+- <strong>ECharts/CSS 性能优化 → 长跑稳定性 &amp; 火焰图分析</strong>(性能调优方法论通用)
+- <strong>Vue/Redux 状态管理 → Prism EventAggregator / CommunityToolkit.Mvvm</strong>(数据流思路一致)
+- <strong>前端组件化 → WPF UserControl + DataTemplate 模板化</strong>(模板复用思维直接迁移)
+- <strong>ECharts 大数据曲线 → LiveChartsCore/LiveCharts2 高性能曲线</strong>(数据可视化经验直接复用)</p>
+<p>⚠️ <strong>HR 看到会问什么</strong>:
+- "你前端 5 年,为什么转上位机?"(答案见 §六、附加追问 Q1)
+- "前端经验能折算成上位机薪资吗?"(答案是:能,通过"工程素养 + 调优能力 + 协议经验"折算)</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">二、技术栈</h2>
+<h3 id="sec-3-1">1. 语言与框架</h3>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>熟练度</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C# 12 / .NET 8</td>
+<td>熟练(核心)</td>
+<td>async/await 状态机、Span<T>、record、pattern matching</td>
+</tr>
+<tr>
+<td>WPF + XAML</td>
+<td>熟练(核心)</td>
+<td>MVVM、DataTemplate、Style、ControlTemplate、行为</td>
+</tr>
+<tr>
+<td>Prism 9(含模块化)</td>
+<td>熟练</td>
+<td>RegionManager / EventAggregator / DialogService / Modularity</td>
+</tr>
+<tr>
+<td>CommunityToolkit.Mvvm</td>
+<td>熟练</td>
+<td>ObservableObject / RelayCommand / [ObservableProperty]</td>
+</tr>
+<tr>
+<td>LINQ / IQueryable</td>
+<td>熟练</td>
+<td>链式查询、表达式树、惰性求值</td>
+</tr>
+<tr>
+<td>ASP.NET Core 8 + SignalR</td>
+<td>了解</td>
+<td>设备数据 Web 推送、跨端 Web 监控面板</td>
+</tr>
+<tr>
+<td>Fody / PropertyChanged</td>
+<td>熟练</td>
+<td>IL 织入,简化 INotifyPropertyChanged 模板代码</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">2. 工业协议(核心战场)</h3>
+<table>
+<thead>
+<tr>
+<th>协议</th>
+<th>熟练度</th>
+<th>实战细节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modbus RTU</td>
+<td>熟练</td>
+<td>CRC16 手算、串口半包处理、异常码 01-06 全覆盖</td>
+</tr>
+<tr>
+<td>Modbus TCP</td>
+<td>熟练</td>
+<td>MBAP Header、多设备并行、长连接保活</td>
+</tr>
+<tr>
+<td>S7.Net(西门子)</td>
+<td>熟练</td>
+<td>DB1.DBX0.0 / DB1.DBD4 / DB1.DBW2 寻址</td>
+</tr>
+<tr>
+<td>OPC UA(GBK / OPCFoundation)</td>
+<td>熟练</td>
+<td>Subscription / MonitoredItem、证书 + 用户名密码认证</td>
+</tr>
+<tr>
+<td>MQTT(双向,生产消费)</td>
+<td>熟练</td>
+<td>MQTTnet v4、QoS 1/2、遗嘱消息、断线重连</td>
+</tr>
+<tr>
+<td>TCP Socket(自定义协议)</td>
+<td>熟练</td>
+<td>长度前缀 + CRC 校验、粘包处理、Polly 熔断重连</td>
+</tr>
+<tr>
+<td>CAN(PCAN / SocketCAN)</td>
+<td>了解</td>
+<td>CAN Open 基础、帧 ID、报文解析</td>
+</tr>
+<tr>
+<td>USB-HID(HidLibrary)</td>
+<td>了解</td>
+<td>设备枚举、Feature Report、控制传输</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">3. 数据与持久化</h3>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>熟练度</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EF Core 8 + SQLite</td>
+<td>熟练</td>
+<td>Code First 迁移、IDbContextFactory、AsNoTracking、批量插入</td>
+</tr>
+<tr>
+<td>SQL Server / MySQL</td>
+<td>了解</td>
+<td>连接池、事务、索引优化</td>
+</tr>
+<tr>
+<td>Serilog + Seq</td>
+<td>熟练</td>
+<td>结构化日志、Enricher、多 Sink(文件 + 控制台 + Seq)</td>
+</tr>
+<tr>
+<td>ClosedXML(Excel 报表)</td>
+<td>熟练</td>
+<td>模板填充、合并单元格、流式导出</td>
+</tr>
+<tr>
+<td>LiveCharts2 / LiveChartsCore</td>
+<td>熟练</td>
+<td>高性能曲线(10w 点)、Geared 优化、轴缩放</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-4">4. 工程化与质量</h3>
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>熟练度</th>
+<th>应用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>依赖注入(DI / IoC)</td>
+<td>熟练</td>
+<td>生命周期(Singleton / Scoped / Transient)、构造注入</td>
+</tr>
+<tr>
+<td>xUnit + Moq</td>
+<td>熟练</td>
+<td>单元测试 20+ 用例全绿、Mock 串口 / TCP、TTDD</td>
+</tr>
+<tr>
+<td>Channel<T></td>
+<td>熟练</td>
+<td>生产者-消费者、背压、读写分离</td>
+</tr>
+<tr>
+<td>Polly</td>
+<td>熟练</td>
+<td>重试 / 熔断 / 超时 / 隔舱,设备掉线自动重连</td>
+</tr>
+<tr>
+<td>BenchmarkDotNet</td>
+<td>了解</td>
+<td>协议解析性能对比、内存诊断</td>
+</tr>
+<tr>
+<td>dotnet counters / gcdump</td>
+<td>熟练</td>
+<td>长跑内存排查、GC 压力分析</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-5">5. 转行加分(5 年前端折算)</h3>
+<table>
+<thead>
+<tr>
+<th>前端经验</th>
+<th>上位机加分映射</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5 年 React / Vue / TS</td>
+<td>强类型 + 状态管理 + 工程化能力</td>
+</tr>
+<tr>
+<td>ECharts 性能优化(虚拟滚动、Web Worker)</td>
+<td>LiveCharts 大数据曲线优化思路</td>
+</tr>
+<tr>
+<td>Node.js + Express / Koa</td>
+<td>HTTP / TCP 协议栈理解、中间件思想</td>
+</tr>
+<tr>
+<td>Webpack / Vite 构建优化</td>
+<td>.csproj 优化、IL trimming、AOT</td>
+</tr>
+<tr>
+<td>CSS Grid / Flex 布局</td>
+<td>WPF Grid / StackPanel / DockPanel 布局</td>
+</tr>
+<tr>
+<td>Cypress / Jest 单元测试</td>
+<td>xUnit 单元测试方法论直接复用</td>
+</tr>
+<tr>
+<td>PWA / IndexedDB</td>
+<td>离线缓存 → SQLite 本地存储</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">三、项目经验(STAR 法)</h2>
+<h3 id="sec-3-6">项目一(主项目):DAQMonitor — 工业数据采集监控系统 ★★★★★</h3>
+<blockquote>
+<p><strong>S(背景)</strong>:某 3C 行业产线设备(PLC + 温控仪表 + 能耗表 + IO 模块)需统一接入 MES,要求 7×24 稳定运行、毫秒级采集、报警实时推送、报表自动导出、双向远程控制。</p>
+<p><strong>T(任务)</strong>:作为<strong>唯一开发者</strong>,从协议层 → 数据层 → UI 层 → 部署文档<strong>独立完成全套系统</strong>。技术栈:C#/.NET 8 / WPF / Prism / EF Core 8 + SQLite / Serilog / LiveCharts2。</p>
+<p><strong>A(行动)</strong>:</p>
+<ul>
+<li><strong>协议层抽象</strong>:基于"设备抽象 + 协议插件"模式,<strong>封装 5 种设备驱动</strong>(Modbus RTU 仪表 / Modbus TCP IO / S7-1200 PLC / OPC UA / MQTT 网关),通过 <code>IDevice&lt;TConfig&gt;</code> 接口统一读写,<strong>新增设备只需实现接口 + 配 JSON</strong>;</li>
+<li><strong>采集引擎</strong>:基于 <code>Channel&lt;T&gt;</code> 实现生产者-消费者,<strong>采集线程 → Channel → 解析线程 → 入库 + UI 推送</strong>,主线程零阻塞;<strong>背压</strong>用 <code>BoundedChannel(10000)</code> 控制,满载丢弃旧数据并记 Serilog 告警;</li>
+<li><strong>报警引擎</strong>:基于<strong>回滞算法</strong>(Hysteresis)避免阈值抖动误报,<strong>每条报警绑定 Ack 确认 + 复位 + 推送规则</strong>(声光 / 邮件 / MQTT 上报);</li>
+<li><strong>协议细节</strong>:Modbus RTU <strong>手算 CRC16 + 异常码 01-06 全覆盖</strong>;S7.Net 用 <code>Plc.Read("DB1.DBD4")</code> 读浮点,<strong>字节序 ABCD/CDAB 自动识别</strong>;OPC UA 用 Subscription 模式订阅;</li>
+<li><strong>稳定性</strong>:基于 <strong>Polly 实现"重试 + 熔断 + 超时"三件套</strong>,设备掉线自动重连(指数退避,1s → 2s → 4s → ... → 30s 封顶);<strong>事件订阅全部退订</strong>(DeviceHost 模式统一释放),<strong>7×24 跑 3 天内存稳定在 280 MB</strong>,无泄漏;</li>
+<li><strong>数据可视化</strong>:LiveCharts2 <strong>10 万点曲线秒级渲染</strong>(基于降采样 + Geared 优化),轴缩放 / 区间选择 / 多 Y 轴;</li>
+<li><strong>报表系统</strong>:ClosedXML 流式导出 Excel,<strong>模板 + 数据绑定</strong>模式,产线日报 5 分钟自动生成;</li>
+<li><strong>MES 对接</strong>:MQTT 双向通信(订阅命令 / 发布状态),Payload 用 JSON + Protobuf 兼容,<strong>QoS=1</strong> 保证命令必达;</li>
+<li><strong>测试与文档</strong>:<strong>xUnit 单元测试 20+ 用例全绿</strong>(覆盖 CRC / 字节序 / 报警回滞 / 协议解析),配套《部署手册》《协议规范》《排障 Runbook》3 份文档。</li>
+</ul>
+<p><strong>R(结果)</strong>:</p>
+<ul>
+<li><strong>20+ 单元测试全绿</strong>,核心协议层覆盖率 85%+;</li>
+<li><strong>7×24 持续运行 3 天</strong>,内存稳定 280 MB,GC 次数 &lt; 5/小时;</li>
+<li><strong>5 种设备统一抽象</strong>,新增设备类型平均 2 小时接入;</li>
+<li><strong>报警从触发到 UI 推送 &lt; 200 ms</strong>;</li>
+<li><strong>Excel 报表生成 &lt; 3 秒</strong>(1 万行 / 10 列)。</li>
+</ul>
+<p>💡 <strong>面试官最爱挖的坑</strong>(简历末尾"附加追问"会展开):
+1. "你的设备抽象接口是怎么设计的?"(答案见 §六、Q2)
+2. "为什么用 Channel<T> 不用 ConcurrentQueue?"(答案见 §六、Q3)
+3. "7×24 跑 3 天你怎么测的?"(答案见 §六、Q4)</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-7">项目二(辅助):PLC_Simulation_Tool — 西门子 S7 协议模拟器 ★★★★</h3>
+<blockquote>
+<p><strong>S</strong>:开发期间缺真实 PLC,需要离线模拟 S7-1200 / S7-1500 进行协议联调。</p>
+<p><strong>T</strong>:<strong>独立开发</strong>一个 S7 协议模拟器,模拟 DB 块读写、位 / 字 / 双字寻址、变量变化触发事件。</p>
+<p><strong>A</strong>:基于 <strong>S7.Net + 自实现 S7 服务端</strong>,支持配置化的 DB 块定义;<strong>变量变化用 Reactive Extensions(Rx) 节流</strong>,避免高频抖动;UI 用 WPF + PropertyGrid 实时编辑变量值。</p>
+<p><strong>R</strong>:<strong>协议覆盖率 90%+</strong>,节省 60% 真实设备联调时间;开源到 GitHub,获得 50+ star。</p>
+</blockquote>
+<hr />
+<h3 id="sec-3-8">项目三(辅助):MES_Bridge — 工业网关 MQTT 桥接服务 ★★★★</h3>
+<blockquote>
+<p><strong>S</strong>:旧设备只支持 Modbus / 串口,需要桥接到现代 MES 的 MQTT 总线。</p>
+<p><strong>T</strong>:开发一个<strong>后台 Windows 服务</strong>,定时轮询 Modbus 设备 → 转 JSON → 发 MQTT。</p>
+<p><strong>A</strong>:基于 <strong>Worker Service + MQTTnet + NModbus</strong>,使用 <strong>HostedService</strong> 模式;<strong>Polly 实现断网重连 + 命令缓存</strong>(断网时本地存 SQLite,恢复后补发);<strong>Serilog 结构化日志 + 滚动日志文件</strong>。</p>
+<p><strong>R</strong>:在 3 台旧设备上稳定运行 6 个月,<strong>0 丢包</strong>(QoS=1 + 本地缓存)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">四、工作经验(前端 → 上位机折算说明)</h2>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>公司 / 角色</th>
+<th>主要技术</th>
+<th>折算说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2021.06 - 至今</td>
+<td>某 3C 行业科技公司 / 中级前端工程师(转岗中)</td>
+<td>React 18 / Vue 3 / TypeScript / ECharts / Node.js</td>
+<td>5 年工程化、性能优化、状态管理经验,<strong>直接迁移到上位机</strong></td>
+</tr>
+<tr>
+<td>2019.06 - 2021.05</td>
+<td>某互联网公司 / 高级前端工程师(已离职)</td>
+<td>React / TypeScript / Node.js / Webpack</td>
+<td>大型 SPA 架构、CI/CD、单元测试经验</td>
+</tr>
+<tr>
+<td>2018.06 - 2019.05</td>
+<td>某外包公司 / 前端工程师</td>
+<td>Vue 2 / jQuery / CSS</td>
+<td>基础前端工程能力</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>HR 看到会问什么</strong>:5 年前端,你能直接胜任上位机吗?</p>
+<p><strong>答</strong>:"前端的工程化、强类型(TypeScript)、性能优化、单元测试方法论,我全部带过来了。最近 30 天我<strong>独立完成了 DAQMonitor 全套系统</strong>,5 种工业协议实战、20+ 单元测试全绿、7×24 稳定运行。<strong>前端的 5 年让我提前具备了上位机中高级所需的工程素养,而不是从零起步</strong>。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-5">五、教育背景</h2>
+<table>
+<thead>
+<tr>
+<th>时间</th>
+<th>学校</th>
+<th>学历</th>
+<th>专业</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2014.09 - 2018.06</td>
+<td>[占位符:某本科院校]</td>
+<td>本科</td>
+<td>[占位符:计算机 / 软件工程 / 自动化相关]</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 HR 看到会问:教育背景<strong>不要造假</strong>,但可以<strong>前置相关课程</strong>(C/C++、数据结构、操作系统、计算机网络);如果学校一般,<strong>把"持续学习"放亮点</strong>(GitHub 仓库 + 博客 + DAQMonitor 项目)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-6">六、附加:面试官最爱问的 3 个项目细节</h2>
+<blockquote>
+<p>把这 3 段写在简历最后,作为"钩子"引诱面试官追问。<strong>每个钩子答案已背熟,主动引到强项</strong>。</p>
+</blockquote>
+<h3 id="sec-3-9">钩子 1:你前端 5 年,为什么转上位机?</h3>
+<blockquote>
+<p>"前端做了 5 年,我在架构、性能、工程化上都到了瓶颈。而上位机领域<strong>强类型 + 工程化 + 性能调优</strong>是稀缺能力——绝大多数上位机工程师偏协议和业务,工程素养弱。我做了 30 天调研,发现工业互联网、新能源、3C 装备、半导体这些行业的上位机岗位缺口巨大,而且<strong>前端做上位机有天然优势</strong>:ECharts 经验直接复用到 LiveCharts,TypeScript 强类型无缝迁移到 C#,async/await 状态机思路一致。<strong>所以我决定把前端的工程能力带到工业领域,做有技术深度的产品,而不是再做 100 个表单页面</strong>。"</p>
+</blockquote>
+<h3 id="sec-3-10">钩子 2:你的设备抽象接口是怎么设计的?(项目最核心)</h3>
+<blockquote>
+<p>"我用 <strong><code>interface IDevice&lt;TConfig&gt;</code></strong> 统一抽象,5 种设备(Modbus RTU/TCP、S7、OPC UA、MQTT)各自实现。核心方法 <code>Task&lt;ReadResult&gt; ReadAsync(ReadRequest)</code>,<code>ReadRequest</code> 包含地址、长度、数据类型。每个设备实现内部各自处理 CRC、字节序、协议头。<strong>新增设备只需 2 步:实现接口 + 加一个 JSON 配置文件</strong>。这样上层采集引擎、报警引擎、UI 全部不感知具体协议——本质上是<strong>前端的 Adapter 适配器模式</strong>,我前端 5 年用过无数次,迁移到 C# 一模一样。"</p>
+</blockquote>
+<h3 id="sec-3-11">钩子 3:7×24 跑 3 天,你怎么测的?怎么证明没漏?</h3>
+<blockquote>
+<p>"三层验证:<strong>第一层,日志层</strong>——Serilog 每分钟写一条心跳日志,3 天共 4320 条,我从 Seq 里查都没断;<strong>第二层,业务层</strong>——每条采集数据都有自增 ID + 时间戳,我从 SQLite 里 <code>SELECT MIN(id), MAX(id), COUNT(*)</code> 验证总数和 ID 连续性,确实 0 缺失;<strong>第三层,内存层</strong>——<code>dotnet counters monitor --process-id &lt;pid&gt;</code> 持续监控 GC / 堆大小,3 天从 180 MB 涨到 280 MB,<strong>第一次大涨我就抓 gcdump</strong>,定位到是一个 OPC UA 订阅没退订,修复后稳定。<strong>这套路就是前端排查内存泄漏的方法,我从 Cypress 调 ECharts 时积累的经验,直接套到 C# 上</strong>。"</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-7">七、3 个薪资版本(同份简历,微调即可投递)</h2>
+<h3 id="sec-3-12">13K 版(保守,稳进面)</h3>
+<ul>
+<li>删掉 "经验 5 年" / 改 "近 5 年前端 + 30 天集中转行上位机";</li>
+<li>项目经验中"独立完成"改"独立设计与开发";</li>
+<li>期望薪资栏写"<strong>13-14K</strong>";</li>
+<li>删掉 Channel<T> / Polly / BenchmarkDotNet 等高阶关键词(降低面试深度);</li>
+<li>投递目标:外包上位机岗位、3C 中小厂、传统制造 MES 厂。</li>
+</ul>
+<h3 id="sec-3-13">14-15K 版(主力,目标 80% 岗位)</h3>
+<ul>
+<li>维持当前简历;</li>
+<li>期望薪资栏写"<strong>14-15K</strong>";</li>
+<li>投递目标:新能源(宁德时代系 / 比亚迪系)、3C(立讯 / 富士康 / 歌尔)、汽车(Tier1)、半导体设备(北方华创 / 中微)。</li>
+</ul>
+<h3 id="sec-3-14">15K+ 版(冲上限,要求面试表现 S 级)</h3>
+<ul>
+<li>在"项目经验"上<strong>再加 1 个亮点</strong>:把 DAQMonitor 的"OPC UA 订阅 + 100 ms 内告警推送"独立成子项目;</li>
+<li><strong>加 1 行开源贡献</strong>(如 S7.Net / MQTTnet / NModbus 提过 PR,<strong>没有就别编</strong>);</li>
+<li>期望薪资栏写"<strong>15-18K,可面议</strong>";</li>
+<li>投递目标:头部工业互联网(树根 / 卡奥斯 / 美的美擎)、外企设备厂(西门子 / 施耐德 / 罗克韦尔)、自动化集成商龙头。</li>
+</ul>
+<hr />
+<h2 id="sec-2-8">八、按行业调整项目排序(JD 镜像法)</h2>
+<table>
+<thead>
+<tr>
+<th>目标行业</th>
+<th>项目排序建议</th>
+<th>关键词强化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>新能源(锂电 / 光伏 / 储能)</strong></td>
+<td>DAQMonitor → MES_Bridge → PLC_Sim</td>
+<td>Modbus RTU / S7.Net / BMS 协议 / MES 对接</td>
+</tr>
+<tr>
+<td><strong>3C(消费电子装配 / 测试)</strong></td>
+<td>DAQMonitor → PLC_Sim → MES_Bridge</td>
+<td>S7.Net / OPC UA / 测试数据上云 / MES 报工</td>
+</tr>
+<tr>
+<td><strong>汽车(整车 / 零部件 / 三电)</strong></td>
+<td>DAQMonitor → MES_Bridge → PLC_Sim</td>
+<td>CAN / S7 / 过程数据 ODBC</td>
+</tr>
+<tr>
+<td><strong>半导体(晶圆 / 封测 / 设备)</strong></td>
+<td>PLC_Sim → DAQMonitor → MES_Bridge</td>
+<td>Secs/Gem(简历可写"了解") / OPC UA / 真空 / 温控</td>
+</tr>
+<tr>
+<td><strong>传统制造(机加工 / 食品 / 化工)</strong></td>
+<td>MES_Bridge → DAQMonitor → PLC_Sim</td>
+<td>Modbus / 仪表 / 报表 / OPC</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ <strong>不要一份简历投所有行业</strong>——HR 5 秒决定是否看完,<strong>第一屏关键词必须匹配 JD</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-9">九、投递策略 5 条</h2>
+<h3 id="sec-3-15">策略 1:关键词镜像法</h3>
+<blockquote>
+<p>把 JD 原文复制到简历左上角(自己看,不投出去),<strong>JD 写啥你写啥</strong>。</p>
+<p>例如:JD 写"Prism 框架" → 简历<strong>绝对不要写"MVVM 框架"</strong>,改写"Prism 9(RegionManager / EventAggregator / 模块化)";
+JD 写"西门子 S7 通信" → 简历<strong>绝对不要写"PLC 通信"</strong>,改写"西门子 S7.Net(S7-1200 / S7-1500)";
+JD 写"EF Core" → 简历<strong>不要写"Entity Framework"</strong>,改写"EF Core 8 + SQLite(Code First 迁移 + IDbContextFactory)"。</p>
+<p><strong>原因</strong>:HR 第一遍是 ATS 系统过简历(自动关键词匹配),第二遍才是人看。<strong>关键词不匹配,你连人眼都过不了</strong>。</p>
+</blockquote>
+<h3 id="sec-3-16">策略 2:按 JD 调项目排序</h3>
+<blockquote>
+<p>JD 重点写什么,你的项目一就摆什么。</p>
+<p>例如:JD 强调"上位机 + PLC" → 项目一摆 DAQMonitor,把"S7.Net / Modbus"提到第一行;
+JD 强调"上位机 + MES 对接" → 项目一摆 MES_Bridge,把"MQTT / MES"提到第一行;
+JD 强调"测试 / 半导体" → 项目一摆 PLC_Sim,把"S7 协议模拟器"提到第一行。</p>
+</blockquote>
+<h3 id="sec-3-17">策略 3:预期薪资报法</h3>
+<blockquote>
+<p><strong>面 HR 报薪资时,永远报区间,不报死数字</strong>:</p>
+<ul>
+<li>HR 问:"你的期望薪资?" → 你:"我目前面了几家,基本都给到 <strong>14-15K</strong>,我这边期望 <strong>15K 左右</strong>,具体看岗位匹配度和加班强度。"</li>
+<li><strong>绝对不要说"13K 也行"</strong>——这是底线泄露,HR 立刻砍价;</li>
+<li><strong>绝对不要说"18K 起"</strong>——超出岗位预算直接 pass;</li>
+<li>HR 压价到 13K 时,你:"13K 我可以接受,但需要试用期不打折 / 13 薪 / 期权 / 弹性工作制(选 1 个)。"</li>
+</ul>
+</blockquote>
+<h3 id="sec-3-18">策略 4:反问 3 问(面试结尾必问)</h3>
+<blockquote>
+<p>面试官问"你还有什么问题吗"——<strong>绝对不要说"没有了"</strong>,这是大忌。必问 3 问:</p>
+<ol>
+<li>"这个岗位主要负责哪个产品线 / 哪条产线?设备类型主要是西门子 / 三菱 / 欧姆龙?"(展示技术深度)</li>
+<li>"团队现在几个人?上位机和 PLC 工程师怎么分工?"(展示团队协作意识)</li>
+<li>"如果我能入职,前 3 个月主要做什么项目?有没有具体 KPI?"(展示目标感 + 主动)</li>
+</ol>
+<p>⚠️ <strong>绝对不要问</strong>:加班、薪资、五险一金(这些留到 HR 谈薪环节问)。</p>
+</blockquote>
+<h3 id="sec-3-19">策略 5:面试后跟进</h3>
+<blockquote>
+<p><strong>面试完当天晚上</strong>,LinkedIn / 邮件给面试官发一封简短感谢信:</p>
+<blockquote>
+<p>"X 老师,今天感谢您的时间。聊到 S7 字节序的问题让我很有收获,回来我又查了下 —— 实际项目中我用 <code>BinaryPrimitives.ReverseEndianness</code> 处理 ABCD/CDAB 字节序,确实更优雅。期待您的好消息,如果对岗位还有任何问题欢迎随时沟通。"</p>
+</blockquote>
+<p>这一步<strong>90% 求职者不做</strong>,你做了就是稀缺。<strong>别问"出结果了吗"</strong>,要展示"聊完我还在思考"。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-10">十、面试 7 大高频问题(简历自查)</h2>
+<blockquote>
+<p>简历上<strong>每个关键词都可能被问到</strong>,提前自查:</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>关键词</th>
+<th>高频问题</th>
+<th>自查答案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>async/await</td>
+<td>状态机本质?ConfigureAwait(false) 干嘛?</td>
+<td>见逐字稿 Q2</td>
+</tr>
+<tr>
+<td>Channel<T></td>
+<td>和 ConcurrentQueue 区别?</td>
+<td>见逐字稿 Q5</td>
+</tr>
+<tr>
+<td>EF Core</td>
+<td>DbContext 为什么不能 Singleton?</td>
+<td>见逐字稿 Q13</td>
+</tr>
+<tr>
+<td>Prism EventAggregator</td>
+<td>内存泄漏怎么避免?</td>
+<td>见逐字稿 Q17</td>
+</tr>
+<tr>
+<td>Modbus RTU</td>
+<td>CRC16 怎么算?</td>
+<td>见逐字稿 Q8</td>
+</tr>
+<tr>
+<td>S7.Net</td>
+<td>DB1.DBX0.0 怎么读?</td>
+<td>见逐字稿 Q10</td>
+</tr>
+<tr>
+<td>OPC UA</td>
+<td>Subscription 和 Read 区别?</td>
+<td>见逐字稿 Q14(扩展)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-11">📚 参考来源</h2>
+<ul>
+<li><a href="https://learn.microsoft.com/dotnet/">Microsoft Learn — .NET / WPF / EF Core 官方文档</a></li>
+<li><a href="https://docs.prismlibrary.com/">Prism Library 官方文档(v9)</a></li>
+<li><a href="https://github.com/S7NetPlus/s7netplus">S7.Net Plus GitHub 仓库</a></li>
+<li><a href="https://github.com/AlphaNig/NModbus4">NModbus4 GitHub 仓库</a></li>
+<li><a href="https://github.com/OPCFoundation/UA-.NETStandard">OPCFoundation .NET Standard 仓库</a></li>
+<li><a href="https://github.com/dotnet/MQTTnet">MQTTnet 官方文档</a></li>
+<li><a href="https://serilog.net/">Serilog 官方文档</a></li>
+<li><a href="https://github.com/beto-rodriguez/LiveCharts2">LiveCharts2 GitHub 仓库</a></li>
+<li><a href="https://closedxml.github.io/">ClosedXML 官方文档</a></li>
+<li><a href="https://www.thepollyproject.org/">Polly 官方文档</a></li>
+</ul>
+<hr />
+<blockquote>
+<p><strong>最后一句</strong>:这份简历不是"模板",是<strong>你 30 天集中转行的总结</strong>。投出去前再读一遍——<strong>每一行你都要能解释清楚</strong>。面试官挖坑,你就把坑填成舞台。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="jd-research.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">📊 JD 调研 · 13-15K 上位机岗位对照</div></a>
+  <a class="next" href="interview30.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">🎤 面试问答 · 逐字稿 30 题</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>
