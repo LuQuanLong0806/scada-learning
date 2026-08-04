@@ -80,10 +80,13 @@
             </DataGrid>
         </GroupBox>
 
-        <!-- 右：Tab 页（报警日志 + 诊断/调试面板） -->
+        <!-- 右：Tab 页（报警日志 + 配方管理 + 诊断/调试面板） -->
         <TabControl Grid.Row="1" Margin="8,0,0,0" HorizontalAlignment="Stretch">
             <TabItem Header="报警日志">
                 <ListBox ItemsSource="{Binding AlarmLog}" FontSize="12" />
+            </TabItem>
+            <TabItem Header="📋 配方管理">
+                <TabItem x:Name="RecipeTab" />
             </TabItem>
             <TabItem Header="实时曲线">
                 <views:ChartView x:Name="ChartTab" />

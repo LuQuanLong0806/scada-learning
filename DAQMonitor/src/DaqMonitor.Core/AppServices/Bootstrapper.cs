@@ -5,6 +5,7 @@ using DaqMonitor.Core.Cloud;
 using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Diagnostics;
 using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Recipes;
 using DaqMonitor.Core.Store;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,9 @@ public static class Bootstrapper
         services.AddSingleton<ICurrentUserService, CurrentUserService>();
         services.AddSingleton<AuditService>();
         services.AddSingleton<AuthService>();
+
+        // —— M18 配方管理:工艺参数包 + 历史快照 + 导入导出 ——
+        services.AddSingleton<RecipeService>();
 
         // 管道：定时 200ms 批量出队（见 AcquisitionPipeline，统一采集架构）
         services.AddSingleton<AcquisitionPipeline>(_ => new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
@@ -122,6 +126,7 @@ public static class Bootstrapper
             using var db = factory.CreateDbContext();
             db.Database.EnsureCreated();
             SeedDefaultUsers(db);
+            SeedDefaultRecipes(db);
         }
 
         // 预置两条报警规则：点位 1 超 100 判 Critical、点位 2 超 100 判 Warning（带回滞 2，防抖动）
@@ -170,6 +175,55 @@ public static class Bootstrapper
                 Role = UserRole.Operator,
                 DisplayName = "操作工",
                 IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+        db.SaveChanges();
+    }
+
+    /// <summary>
+    /// 种子 2 个示例配方,让 UI 一打开就有数据看(不用先创建才能演示)。
+    /// 工艺参数是模拟的(温度/压力/速度),真实场景里这些值由工艺工程师调机后录入。
+    /// </summary>
+    private static void SeedDefaultRecipes(AppDb db)
+    {
+        if (db.Recipes.Any()) return;  // 已有配方,不重复种子
+
+        var productA = System.Text.Json.JsonSerializer.Serialize(new[]
+        {
+            new RecipeParameter { Key = "温度", Value = "180", Unit = "℃", Type = "float", Min = "150", Max = "220" },
+            new RecipeParameter { Key = "压力", Value = "5.5", Unit = "MPa", Type = "float", Min = "3", Max = "8" },
+            new RecipeParameter { Key = "速度", Value = "120", Unit = "mm/s", Type = "float", Min = "50", Max = "200" },
+            new RecipeParameter { Key = "保压时间", Value = "3", Unit = "s", Type = "int", Min = "1", Max = "10" },
+        });
+
+        var productB = System.Text.Json.JsonSerializer.Serialize(new[]
+        {
+            new RecipeParameter { Key = "温度", Value = "200", Unit = "℃", Type = "float", Min = "150", Max = "220" },
+            new RecipeParameter { Key = "压力", Value = "7.0", Unit = "MPa", Type = "float", Min = "3", Max = "8" },
+            new RecipeParameter { Key = "速度", Value = "90", Unit = "mm/s", Type = "float", Min = "50", Max = "200" },
+            new RecipeParameter { Key = "保压时间", Value = "5", Unit = "s", Type = "int", Min = "1", Max = "10" },
+        });
+
+        db.Recipes.AddRange(
+            new Recipe
+            {
+                Name = "产品A-标准配方",
+                Description = "示例:常规生产参数",
+                Version = 1,
+                IsActive = true,  // 默认激活 A
+                ParametersJson = productA,
+                CreatedByUsername = "system",
+                CreatedAt = DateTime.UtcNow,
+                ActivatedAt = DateTime.UtcNow
+            },
+            new Recipe
+            {
+                Name = "产品B-高速配方",
+                Description = "示例:需要高温高压的高速生产",
+                Version = 1,
+                IsActive = false,
+                ParametersJson = productB,
+                CreatedByUsername = "system",
                 CreatedAt = DateTime.UtcNow
             });
         db.SaveChanges();

@@ -1,5 +1,6 @@
 using DaqMonitor.Core.Auth;
 using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Recipes;
 using Microsoft.EntityFrameworkCore;
 
 namespace DaqMonitor.Core.Store;
@@ -29,6 +30,12 @@ public class AppDb : DbContext
 
     /// <summary>审计日志表(只追加,法律合规要求)。</summary>
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    /// <summary>配方表(M18 工艺参数包)。</summary>
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+
+    /// <summary>配方历史快照(改前自动存档,支持 rollback)。</summary>
+    public DbSet<RecipeSnapshot> RecipeSnapshots => Set<RecipeSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -82,5 +89,40 @@ public class AppDb : DbContext
         a.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_audit_created");
         a.HasIndex(x => x.UserId).HasDatabaseName("ix_audit_user");
         a.HasIndex(x => x.Action).HasDatabaseName("ix_audit_action");
+
+        // ===== Recipe 表(M18 配方管理) =====
+        var r = mb.Entity<Recipe>();
+        r.ToTable("recipes");
+        r.HasKey(x => x.Id);
+        r.Property(x => x.Id).ValueGeneratedOnAdd();
+        r.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(64);
+        r.Property(x => x.Description).HasColumnName("description").HasMaxLength(256);
+        r.Property(x => x.Version).HasColumnName("version").IsRequired();
+        r.Property(x => x.IsActive).HasColumnName("is_active").IsRequired();
+        r.Property(x => x.IsDeleted).HasColumnName("is_deleted").IsRequired();
+        // 参数 JSON 列:SQLite 没有原生 JSON 类型,用 TEXT 存;EF Core 8 仍能查询 JSON path
+        r.Property(x => x.ParametersJson).HasColumnName("parameters_json").IsRequired();
+        r.Property(x => x.CreatedByUserId).HasColumnName("created_by_user_id");
+        r.Property(x => x.CreatedByUsername).HasColumnName("created_by_username").HasMaxLength(64);
+        r.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+        r.Property(x => x.ActivatedAt).HasColumnName("activated_at");
+        // 配方名 + 软删 标识唯一(允许软删后重用同名)
+        r.HasIndex(x => new { x.Name, x.IsDeleted }).HasDatabaseName("ix_recipes_name");
+        r.HasIndex(x => x.IsActive).HasDatabaseName("ix_recipes_active");
+
+        // ===== RecipeSnapshot 表 =====
+        var rs = mb.Entity<RecipeSnapshot>();
+        rs.ToTable("recipe_snapshots");
+        rs.HasKey(x => x.Id);
+        rs.Property(x => x.Id).ValueGeneratedOnAdd();
+        rs.Property(x => x.RecipeId).HasColumnName("recipe_id").IsRequired();
+        rs.Property(x => x.Version).HasColumnName("version").IsRequired();
+        rs.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(64);
+        rs.Property(x => x.ParametersJson).HasColumnName("parameters_json").IsRequired();
+        rs.Property(x => x.SnapshotByUsername).HasColumnName("snapshot_by_username").HasMaxLength(64);
+        rs.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+        rs.Property(x => x.Reason).HasColumnName("reason").HasMaxLength(32);
+        rs.HasIndex(x => x.RecipeId).HasDatabaseName("ix_snapshots_recipe");
+        rs.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_snapshots_created");
     }
 }

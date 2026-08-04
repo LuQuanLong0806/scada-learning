@@ -12,6 +12,7 @@ using DaqMonitor.Core.Auth;
 using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Diagnostics;
 using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Recipes;
 using DaqMonitor.Core.Reporting;
 using DaqMonitor.Core.Store;
 using DaqMonitor.UI.Reporting;
@@ -117,6 +118,9 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>导出报表按钮 IsEnabled:Engineer 及以上(含敏感生产数据)。</summary>
     public bool CanExportReport => _current.HasPermission(Permissions.ReportExport);
 
+    /// <summary>M18 配方管理 VM(MainWindow 用它创建 RecipeManagementView)。</summary>
+    public RecipeManagementViewModel? Recipes { get; private set; }
+
     private static SolidColorBrush RoleBrush(UserRole? role) => role switch
     {
         UserRole.Admin => Freeze(new SolidColorBrush(Color.FromRgb(0xE7, 0x4C, 0x3C))),    // 红
@@ -142,11 +146,16 @@ public class MainViewModel : INotifyPropertyChanged
         ExportReportCommand = new RelayCommand(_ => ExportReport(), _ => CanExportReport);
         LogoutCommand = new RelayCommand(_ => Logout());
 
+        // M18 配方管理 VM:由 MainViewModel 持有,MainWindow 构造 RecipeManagementView 时传入
+        Recipes = new RecipeManagementViewModel(
+            services.GetRequiredService<RecipeService>(),
+            _current);
+
         _pipeline.BatchReady += OnBatchReady;
         _alarms.AlarmTriggered += OnAlarmTriggered;
         _alarms.AlarmCleared += OnAlarmCleared;
 
-        _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断/认证）。");
+        _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断/认证/配方）。");
     }
 
     /// <summary>由 MainWindow 注入：把实时曲线页接到 BatchReady。</summary>
