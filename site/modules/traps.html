@@ -115,7 +115,7 @@
 <strong>谁该读</strong>:<strong>JS/TS 经验越足,这份越要看</strong> —— 你越熟前端,这些坑踩得越深。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
-<p>你不是来学 C# 语法的(<code>var</code>/<code>if</code>/<code>for</code> 这些 1 小时看完 <a href="M0_每日讲义_深度版.md">M0</a> 就会)。这份讲义<strong>只讲 8 个前端工程师 100% 会踩的 C# 陷阱</strong>:</p>
+<p>你不是来学 C# 语法的(<code>var</code>/<code>if</code>/<code>for</code> 这些 1 小时看完 <a href="M0_每日讲义_深度版.html">M0</a> 就会)。这份讲义<strong>只讲 8 个前端工程师 100% 会踩的 C# 陷阱</strong>:</p>
 <ol>
 <li><strong>struct 值类型拷贝</strong> — JS 只有引用类型,C# 的 struct 改了副本原值不变,UI 半天不刷新</li>
 <li><strong>多线程并发 + lock</strong> — JS 单线程无竞态,C# 多线程 <code>i++</code> 都能丢数</li>
@@ -366,7 +366,7 @@ async Task ConsumeAsync() { await foreach (var p in _ch.Reader.ReadAllAsync()) P
 大端:   12   34   56   78   ← 高位在前(网络字节序、Modbus 数据域)
 小端:   78   56   34   12   ← 低位在前(Intel CPU、Modbus CRC)
 </code></pre>
-<p><strong>关键陷阱</strong>:Modbus 协议<strong>数据域用大端,CRC 用小端</strong>!这是现场翻车 No.1。详见 <a href="M2_Modbus_深度版.md">M2 Day 1-3</a>。</p>
+<p><strong>关键陷阱</strong>:Modbus 协议<strong>数据域用大端,CRC 用小端</strong>!这是现场翻车 No.1。详见 <a href="M2_Modbus_深度版.html">M2 Day 1-3</a>。</p>
 <h3 id="sec-3-19">必会位运算组合拳</h3>
 <pre><code class="language-csharp">// 1. 把 2 字节拼成 ushort(大端:高位在前)
 byte hi = 0x12, lo = 0x34;
@@ -411,7 +411,7 @@ foreach (byte b in data) {
 </tr>
 <tr>
 <td><code>float</code> 跨 2 寄存器字交换</td>
-<td>详见 <a href="M2_Modbus_深度版.md">M2 Day 3 ABCD/CDAB</a></td>
+<td>详见 <a href="M2_Modbus_深度版.html">M2 Day 3 ABCD/CDAB</a></td>
 </tr>
 <tr>
 <td>位运算优先级</td>
@@ -429,11 +429,11 @@ foreach (byte b in data) {
   <strong>✅ 答案</strong>:<code>0x123</code>(<code>0x12 &lt;&lt; 4 = 0x120</code>,<code>| 0x3 = 0x123</code>)。</li>
 <li>🟡 <strong>进阶</strong>:写一个 <code>ushort ToUShortBigEndian(byte[] buf, int offset)</code> 函数。</li>
 <li>🔴 <strong>挑战</strong>:手算 <code>01 03 00 00 00 02</code> 的 Modbus CRC16(不查表)。
-  <strong>✅ 答案</strong>:<code>C4 0B</code>(详 <a href="M2_Modbus_深度版.md">M2 Day 1</a>)。</li>
+  <strong>✅ 答案</strong>:<code>C4 0B</code>(详 <a href="M2_Modbus_深度版.html">M2 Day 1</a>)。</li>
 </ul>
 <h3 id="sec-3-22">💡 工控导师说</h3>
 <blockquote>
-<p>面试让你白板写 Modbus CRC16,前端背景的 100% 卡壳。<strong>别找理由</strong>,"我是搞软件的不管字节"在上位机岗是减分项。<strong>花 1 小时手算 20 遍</strong>,这辈子忘不掉。卡死的时候,打开 <a href="M2_Modbus_深度版.md">M2</a> 重看 Day 1。</p>
+<p>面试让你白板写 Modbus CRC16,前端背景的 100% 卡壳。<strong>别找理由</strong>,"我是搞软件的不管字节"在上位机岗是减分项。<strong>花 1 小时手算 20 遍</strong>,这辈子忘不掉。卡死的时候,打开 <a href="M2_Modbus_深度版.html">M2</a> 重看 Day 1。</p>
 </blockquote>
 <hr />
 <h2 id="sec-2-5">🕳️ 陷阱 4:<code>async void</code> 吞异常(JS 没这个区分)</h2>
@@ -874,7 +874,7 @@ MotionCard.GT_Close(handle);
 <li>async/await 淙深度:Stephen Toub《Async/Await FAQ》https://devblogs.microsoft.com/dotnet/async-faq-where-do-i-start/</li>
 <li>多线程并发模型:《Concurrency in C# Cookbook》</li>
 <li>P-Invoke 速查:https://www.pinvoke.net/</li>
-<li>全部外链见 <a href="外部链接索引.md">外部链接索引.md</a></li>
+<li>全部外链见 <a href="外部链接索引.html">外部链接索引.md</a></li>
 </ul>
 <h2 id="sec-2-12">🏗️ 项目任务(落到 DAQMonitor)</h2>
 <ol>

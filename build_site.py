@@ -383,6 +383,12 @@ def convert(md_text, slug):
     # 规范首行 h1（若以 # 开头）为该页标题保持原样即可
     html = md_engine.convert(md_text)
 
+    # 链接重写:站点内的 [X](Y.md) → 生成 HTML 后应指向同目录 Y.html
+    # 不重写跨网络/外链(http://, https://, #anchor, mailto:, 等)
+    html = re.sub(r'href="(?!https?://|mailto:|#|/)([^"#]+)\.md(?:#([^"]*))?"',
+                  lambda m: 'href="%s.html%s"' % (m.group(1), '#' + m.group(2) if m.group(2) else ''),
+                  html)
+
     nav = []
     ctr = {"1": 0, "2": 0, "3": 0}
     def repl_h(m):

@@ -125,8 +125,8 @@
 - <strong>30 分钟</strong>:精读 Day 1-3(C# 类型 / LINQ / 类)— 4-5 年前端能快速迁移
 - <strong>3 小时</strong>:全文精读 + <strong>Day 7 多线程/async/锁(重头戏⭐⭐⭐)</strong> + Day 8 立起 WPF 工程
 - 🎯 <strong>面试高频</strong>:<strong>struct vs class(值类型拷贝陷阱)</strong> / <strong>async void 吞异常 + .Result 死锁</strong> / <strong>Channel<T> 生产消费</strong> / 委托/事件
-- 🔁 <strong>配套复习</strong>:<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱深度版</a> · <a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B2 Channel 10min / B9 RelayCommand 5min / B26 IDisposable</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C1 async void / C2 .Result 死锁 / C6 struct 拷贝</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M0 自身是 C# 语法源头,但若你完全没接触过 C#,<strong>强烈建议先扫一遍</strong> <a href="CSharp语法速查_前端视角.md">C# 语法速查 — 前端视角</a> 的 §1 类型推断 / §2 集合 / §4 属性,有了视觉记忆再读 M0,效率会高很多)
+- 🔁 <strong>配套复习</strong>:<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱深度版</a> · <a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B2 Channel 10min / B9 RelayCommand 5min / B26 IDisposable</a> · <a href="代码肌肉训练手册_30天刷题版.html">Debug C1 async void / C2 .Result 死锁 / C6 struct 拷贝</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M0 自身是 C# 语法源头,但若你完全没接触过 C#,<strong>强烈建议先扫一遍</strong> <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a> 的 §1 类型推断 / §2 集合 / §4 属性,有了视觉记忆再读 M0,效率会高很多)
 - <code>var</code> / <code>new()</code> — 类型推断,速查 §1
 - <code>List&lt;T&gt;</code> / <code>Dictionary&lt;K,V&gt;</code> — 集合,速查 §2
 - <code>{ get; set; }</code> — 属性,速查 §4
@@ -1320,7 +1320,7 @@ var consumer = Task.Run(() =&gt; ConsumeAsync(cts.Token));
 - 生产者：每个设备的 <code>DataReceived</code> 事件 → <code>_channel.Writer.TryWrite(p)</code>
 - 消费者：后台任务 <code>_consumer = Task.Run(async () =&gt; await foreach (var p in _channel.Reader.ReadAllAsync()) ...</code>
 - 200ms 定时器触发 <code>BatchReady</code> 事件，批量消费（比逐条省 IO）
-- 详见 <a href="M9_工程素养_测试DI容错_深度版.md">M9 工程素养</a> 和 <code>DAQMonitor/src/DaqMonitor.Core/AcquisitionPipeline.cs</code></p>
+- 详见 <a href="M9_工程素养_测试DI容错_深度版.html">M9 工程素养</a> 和 <code>DAQMonitor/src/DaqMonitor.Core/AcquisitionPipeline.cs</code></p>
 <p><strong>6. ⚠️ 常见坑点预警表</strong>
 | 坑 | 说明 |
 |---|---|
@@ -1343,7 +1343,7 @@ var consumer = Task.Run(() =&gt; ConsumeAsync(cts.Token));
 - Microsoft 官方 Channel 文档：https://learn.microsoft.com/dotnet/api/system.threading.channels
 - Stephen Toub《An Introduction to System.Threading.Channels》：https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/</p>
 <hr />
-<p>📌 <strong>跨模块联动</strong>：本节 <code>Channel&lt;T&gt;</code> 是 <a href="M9_工程素养_测试DI容错_深度版.md">M9 工程素养 AcquisitionPipeline</a> 的核心，DAQMonitor 项目实际用的就是它；<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 2 多线程</a> 把 Channel vs lock vs ConcurrentQueue 三件套做了对比。</p>
+<p>📌 <strong>跨模块联动</strong>：本节 <code>Channel&lt;T&gt;</code> 是 <a href="M9_工程素养_测试DI容错_深度版.html">M9 工程素养 AcquisitionPipeline</a> 的核心，DAQMonitor 项目实际用的就是它；<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 2 多线程</a> 把 Channel vs lock vs ConcurrentQueue 三件套做了对比。</p>
 <hr />
 <p><strong>🏗️ 项目任务</strong>：给 DAQ Monitor 加"模拟采集"后台线程 + <code>ConcurrentQueue</code> 缓冲 + <code>DispatcherTimer</code> 刷新（工程里 <code>AcquisitionPipeline</code> 已是这套架构的生产版）。把上面骨架接到项目里，形成真实的"后台采集→前台展示"并发闭环——这是 M6 实时监控的核心地基。</p>
 <p><strong>🎓 工控导师说</strong>：我见过最惨的多线程 bug——界面数字偶尔跳回旧值。查了三天发现：两个线程一个在 <code>Task.Run</code> 里直接改 UI 的 <code>TextBlock</code>，另一个在 UI 线程也改，两边打架。铁律：<strong>后台线程改 UI 一律 <code>Dispatcher.Invoke</code></strong>。</p>

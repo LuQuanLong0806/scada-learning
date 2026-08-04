@@ -112,8 +112,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 VS 调试器(条件断点/数据断点/Threads 窗口)
 - <strong>3 小时</strong>:全文精读 + Day 2 异常/竞态 + Day 3 内存泄漏 4 种 + Day 4 性能 + Day 5 Wireshark/万用表
 - 🎯 <strong>面试高频</strong>:<strong>条件断点 vs 数据断点</strong> / <strong>dotnet counters + gcdump 抓内存泄漏</strong> / Wireshark 抓 Modbus 字节 / Serilog + TraceId 跨线程关联 / "什么 bug 不在软件里要上示波器"
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.md">代码肌肉 B20 Serilog + TraceId</a> · <a href="代码肌肉训练手册_30天刷题版.md">Debug C7/C8/C9 全二刷</a> · <a href="记忆与复习机制_间隔重复版.md">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M19 用到的,陌生请查 <a href="CSharp语法速查_前端视角.md">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B20 Serilog + TraceId</a> · <a href="代码肌肉训练手册_30天刷题版.html">Debug C7/C8/C9 全二刷</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M19 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
 - <code>try { ... } catch (Exception ex) { Log.Error(ex, "msg"); throw; }</code> — 异常处理(注意 <code>throw;</code> vs <code>throw ex;</code>),速查 §9
 - <code>Log.Information("Point {Tag} = {Value}", tag, value)</code> — Serilog 结构化日志(命名占位符)
 - <code>LogContext.PushProperty("TraceId", traceId)</code> — Serilog 上下文(用 <code>using</code> 自动弹出),速查 §13
@@ -884,7 +884,7 @@ public class FrameParserBench
 // Parse_New  78.1 ns   0.32   0 B     ← 快 3 倍且零分配
 </code></pre>
 <blockquote>
-<p>详见 <a href="M9.5_性能压测与长跑稳定性_深度版.md">M9.5 性能压测</a>。<strong>优化前先 Benchmark，别拍脑袋</strong>。</p>
+<p>详见 <a href="M9.5_性能压测与长跑稳定性_深度版.html">M9.5 性能压测</a>。<strong>优化前先 Benchmark，别拍脑袋</strong>。</p>
 </blockquote>
 <h4>2. 性能优化实战例</h4>
 <p><strong>例 1：启动慢 5 秒</strong>

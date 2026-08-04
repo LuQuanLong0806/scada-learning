@@ -158,7 +158,7 @@
 <p><strong>优先级定位</strong>:🔴 <strong>必做(硬实力核心)</strong> · 每天 1 小时刷题,30 天形成"看代码瞬间能写"的肌肉记忆
 <strong>技术来源</strong>:🟦 C# 语法 + 🟩 BCL + 🟧 NuGet(全栈)
 <strong>给简历加的能力</strong>:面试时让你"白板写完一个 ModbusDevice"或"手算 Modbus CRC16",<strong>不卡壳、不思考、直接写</strong> —— 这就是 13-15K 和 8-10K 的差距。
-<strong>前置</strong>:配合 <a href="30天作战路线_转行冲刺版.md">30 天作战路线</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a> 使用。</p>
+<strong>前置</strong>:配合 <a href="30天作战路线_转行冲刺版.html">30 天作战路线</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a> 使用。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标(为什么有这份手册)</h2>
 <p><strong>前端工程师有"看代码瞬间能开发"的直觉</strong>,是因为你写过 1000 个组件、100 个 hook、调试过 100 个 bug。<strong>这种直觉 = 肌肉记忆 = 量变到质变</strong>。</p>
@@ -541,7 +541,7 @@ public class AlarmEngine
 - <strong>Q: 如果对端乱发数据,没有 0xAA 怎么办?</strong> A:<code>IndexOf</code> 返回 -1,清空缓冲。下次正确数据来时从头开始,不会丢帧。
 - <strong>Q: 1MB 的字节流里只有一个真帧,怎么避免遍历太慢?</strong> A:用 KMP 或 Boyer-Moore 找 <code>AA 55</code> 序列;或限制缓冲区最大长度(如 64KB),超了直接丢。
 - <strong>Q: 多线程同时 Feed 怎么办?</strong> A:<code>FrameParser</code> 不是线程安全,串口/TCP 的接收循环是单线程读,所以没问题;若要多线程喂,外面加 lock。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M1_串口与协议_深度版.md">M1 Day2 帧解析</a> · DAQMonitor <code>Core/Protocol/FrameParser.cs</code> + <code>FrameParserTests.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M1_串口与协议_深度版.html">M1 Day2 帧解析</a> · DAQMonitor <code>Core/Protocol/FrameParser.cs</code> + <code>FrameParserTests.cs</code></p>
 <h2 id="sec-2-20">B7. 手写 ModbusDevice.Connect / Read / Write(⏱️ 15 分钟)</h2>
 <p><strong>题目</strong>:基于 <code>DeviceBase</code>,实现一个 Modbus RTU 设备。<code>Connect</code> 打开串口 + 启动 500ms 轮询后台任务;<code>Read</code> 返回最近一次缓存值;<code>Write</code> 用功能码 0x06 写单寄存器。</p>
 <p><strong>🎯 面试官想听到</strong>:① 后台 <code>Task.Run</code> + <code>CancellationTokenSource</code> 的"启动-停止"模式;② Modbus RTU 帧结构(<code>[slave][func][addr 2B][count 2B][CRC_L CRC_H]</code>);③ <code>RaiseData</code> 把数据抬到上层,<strong>采集与 UI 解耦</strong>;④ CRC 字节序:寄存器值大端、CRC 低字节在前(双标准)。</p>
@@ -651,7 +651,7 @@ public class AlarmEngine
 - <strong>Q: 串口 3.5 字符静默判断帧边界,你这里没做?</strong> A:<code>while(BytesToRead &lt; minLen)</code> 是简化版,真实工程应按波特率算 3.5 字符时间(9600bps 约 4ms);或用 NModbus4 库 <code>async Task&lt;ushort[]&gt; ReadHoldingRegistersAsync()</code> 直接帮你处理。
 - <strong>Q: 设备掉线怎么发现?</strong> A:超时 1000ms 没响应 → 计数器累加 → 连续 3 次失败标 Offline → 触发重连(参 M9 容错讲义)。
 - <strong>Q: 多个设备共享一个串口怎么办?</strong> A:Modbus RTU 多机轮询靠 slave 地址区分,<strong>不能并发</strong>,必须串行(用一个调度器队列)。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M2_Modbus_深度版.md">M2 Modbus 深度版</a> · DAQMonitor <code>Core/Devices/ModbusDevice.cs</code> + <code>ModbusDeviceTests.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M2_Modbus_深度版.html">M2 Modbus 深度版</a> · DAQMonitor <code>Core/Devices/ModbusDevice.cs</code> + <code>ModbusDeviceTests.cs</code></p>
 <h2 id="sec-2-21">B8. 手写 Bootstrapper(DI 配置)(⏱️ 10 分钟)</h2>
 <p><strong>题目</strong>:用 <code>Microsoft.Extensions.DependencyInjection</code> 写一个组合根,注册:SQLite + EF Core(<code>IDbContextFactory&lt;AppDb&gt;</code>)、<code>PointStore</code> 单例、<code>AlarmEngine</code> 单例、<code>AcquisitionPipeline</code> 单例、<code>IDevice</code> 单例(模拟设备)。启动时建库 + 注入 2 条报警规则。</p>
 <p><strong>🎯 面试官想听到</strong>:① <strong>生命周期</strong>选择(Singleton vs Scoped vs Transient);② <strong><code>IDbContextFactory</code> 而非 <code>DbContext</code></strong>:EF Core 8 推荐,因 DbContext 不是线程安全;③ <strong>组合根放在 Core 而不是 UI</strong>:UI/测试/服务复用同一套装配;④ 启动期 <code>EnsureCreated</code>。</p>
@@ -722,7 +722,7 @@ device.Connect();
 - <strong>Q: 为啥用 <code>IDbContextFactory&lt;T&gt;</code> 不用 <code>AddDbContext</code> + Scoped?</strong> A:Scoped 在 ASP.NET Core 有请求作用域自然适用;在 WPF/服务这种没有"请求"概念的场景,用 Factory 让调用方显式控制 DbContext 生命周期更稳。
 - <strong>Q: 怎么切设备?</strong> A:Bootstrapper 里改一行 <code>services.AddSingleton&lt;IDevice&gt;(...)</code>,UI 和采集层零改动——这就是面向接口编程。
 - <strong>Q: 怎么测?</strong> A:Bootstrapper 返回 ServiceProvider,测试里 <code>provider.GetRequiredService&lt;PointStore&gt;()</code> 拿真实对象组合测;或写 <code>CompositionSmokeTests</code> 跑"能正常装配"冒烟测试(参 DAQMonitor 的 <code>CompositionSmokeTests.cs</code>)。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M4_数据持久化_深度版.md">M4 数据持久化</a> · DAQMonitor <code>Core/AppServices/Bootstrapper.cs</code> + <code>Tests/CompositionSmokeTests.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M4_数据持久化_深度版.html">M4 数据持久化</a> · DAQMonitor <code>Core/AppServices/Bootstrapper.cs</code> + <code>Tests/CompositionSmokeTests.cs</code></p>
 <h2 id="sec-2-22">B9. 手写 RelayCommand(ICommand 实现)(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:WPF 里 <code>Button.Command</code> 需要 <code>ICommand</code>,手写一个 <code>RelayCommand</code> 把 <code>Action</code> + <code>Func&lt;bool&gt;</code> 包成 ICommand。</p>
 <p><strong>🎯 面试官想听到</strong>:<code>CanExecuteChanged</code> 挂到 <code>CommandManager.RequerySuggested</code>(WPF 全局重算),<code>CanExecute</code> 返回 false 时按钮自动灰。</p>
@@ -760,7 +760,7 @@ public MainViewModel() =&gt; SaveCmd = new RelayCommand(_ =&gt; Save(), _ =&gt; 
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 按钮什么时候自动灰?</strong> A:绑定 <code>Command</code> + <code>CanExecute</code> 返回 false,WPF 自动设 <code>IsEnabled=false</code>,无需手动管 UI。
 - <strong>Q: CanExecute 怎么刷新?</strong> A:<code>CommandManager.InvalidateRequerySuggested()</code>(全局)或自己暴露 <code>RaiseCanExecuteChanged()</code>(精确)。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a> · DAQMonitor <code>UI/ViewModels/RelayCommand.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.html">M8 MVVM 深度版</a> · DAQMonitor <code>UI/ViewModels/RelayCommand.cs</code></p>
 <h2 id="sec-2-23">B10. 手写 INotifyPropertyChanged(无 Prism 基类)(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:不继承 <code>BindableBase</code>,从零实现 <code>INotifyPropertyChanged</code> + <code>SetProperty</code> 助手。</p>
 <p><strong>🎯 面试官想听到</strong>:① <code>PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)))</code>;② <code>SetProperty</code> 比较 + 赋值 + 触发事件三合一。</p>
@@ -793,7 +793,7 @@ public MainViewModel() =&gt; SaveCmd = new RelayCommand(_ =&gt; Save(), _ =&gt; 
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 为啥要用 <code>INotifyPropertyChanged</code> 而不是 DependencyProperty?</strong> A:DP 必须继承 DependencyObject(线程亲和),VM 里用 INPC 更易测、跨线程。
 - <strong>Q: 跨线程改属性 UI 会更新吗?</strong> A:WPF 自动 marshal 到 UI 线程(绑定引擎干的);UWP/WinUI 不行,必须 Dispatcher。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a> · <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 8</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.html">M8 MVVM 深度版</a> · <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 8</a></p>
 <h2 id="sec-2-24">B11. 手写 PointStore 内存索引 + SQLite 落库(⏱️ 15 分钟)</h2>
 <p><strong>题目</strong>:实现 <code>PointStore</code>,提供 <code>AddOrUpdate(point)</code> 同步刷新内存索引 + 异步落 SQLite;<code>QueryHistoryAsync(pointId, from, to)</code> 查历史。</p>
 <p><strong>🎯 面试官想听到</strong>:① <strong>双轨设计</strong>:内存索引服务实时路径(不阻塞 IO),SQLite 服务历史查询;② <strong>SQLite 单写者约束</strong>:用 <code>Channel&lt;T&gt;</code> 串行化所有写;③ <strong><code>IDbContextFactory</code> + <code>await using</code></strong>:每条写入独立 DbContext。④ <strong>采集线程不阻塞</strong>:写库通过 Channel 解耦。</p>
@@ -891,7 +891,7 @@ public MainViewModel() =&gt; SaveCmd = new RelayCommand(_ =&gt; Save(), _ =&gt; 
 - <strong>Q: 高频写(每秒 1000 点)SQLite 顶得住吗?</strong> A:单条 <code>SaveChangesAsync</code> 撑不住,改批量——pump 里 <code>BatchBlock</code> 攒 100 条/200ms 一批,用 <code>db.AddRangeRange + SaveChanges</code>,性能提升 10-50 倍。或换 LiteDB / 不落历史只留内存环形缓冲。
 - <strong>Q: 内存索引和 SQLite 不一致怎么办?</strong> A:设计上接受"内存是最新,SQLite 是历史",不要求强一致。落盘失败就丢这条历史,业务可接受。
 - <strong>Q: 为啥不用 <code>BufferBlock&lt;T&gt;</code>(TPL Dataflow)?</strong> A:Channel<T> 是 .NET Core 2.1+ 内置、API 更简洁、性能更好,Dataflow 已是上一代技术。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M4_数据持久化_深度版.md">M4 数据持久化</a> · DAQMonitor <code>Core/Store/PointStore.cs</code> + <code>Tests/PointStoreTests.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M4_数据持久化_深度版.html">M4 数据持久化</a> · DAQMonitor <code>Core/Store/PointStore.cs</code> + <code>Tests/PointStoreTests.cs</code></p>
 <h2 id="sec-2-25">B12. 手写 HttpClient Polly 重试 + 熔断(⏱️ 10 分钟)</h2>
 <p><strong>题目</strong>:用 <code>IHttpClientFactory</code> + Polly 注册一个 HttpClient,要求:① 5xx / 任务超时指数退避重试 3 次;② 连续 5 次失败熔断 30 秒;③ 每次请求 5 秒超时。</p>
 <p><strong>🎯 面试官想听到</strong>:① <strong>必须用 <code>IHttpClientFactory</code>,不能 <code>new HttpClient()</code></strong>(Socket 端口耗尽);② Polly 的 <code>AddPolicyHandler</code> 注册顺序:超时在最内层、重试中间、熔断最外;③ 熔断器三态(Closed / Open / HalfOpen)。</p>
@@ -955,7 +955,7 @@ public class ApiService
 - <strong>Q: 熔断了再请求会怎样?</strong> A:Polly 抛 <code>BrokenCircuitException</code>,你的 catch 应转 fallback(返回缓存/默认值),不要让熔断异常冒到用户。
 - <strong>Q: Polly v8 推荐写法?</strong> A:<code>new ResiliencePipelineBuilder().AddRetry(...).AddCircuitBreaker(...).AddTimeout(...).Build()</code>,然后 <code>services.AddHttpClient&lt;T&gt;().AddResilienceHandler("api", pipeline)</code>,更组合化。
 - <strong>Q: 怎么测重试?</strong> A:用 WireMock.Net 模拟 500 → 500 → 200,断言总共调用 3 次。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M9_容错与重试_深度版.md">M9 容错与重试</a> · DAQMonitor <code>Core/Resilience/Retry.cs</code>(手撸版)</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M9_容错与重试_深度版.html">M9 容错与重试</a> · DAQMonitor <code>Core/Resilience/Retry.cs</code>(手撸版)</p>
 <h2 id="sec-2-26">B13. 手写 MQTT Publish + Subscribe 双向(⏱️ 15 分钟)</h2>
 <p><strong>题目</strong>:用 MQTTnet 4 实现一个 <code>MqttClientService</code>:连接 broker、订阅 <code>device/+/data</code>、收到消息触发 <code>MessageReceived</code> 事件、提供 <code>PublishAsync(topic, payload)</code> 发布消息。带自动重连。</p>
 <p><strong>🎯 面试官想听到</strong>:① MQTTnet 4 的 <code>IMqttClient</code> + <code>MqttClientOptionsBuilder</code>;② 订阅用 <code>SubscribeAsync</code> + <code>ApplicationMessageReceivedAsync</code> 事件;③ <strong>自动重连</strong>:<code>MqttClientOptionsBuilder.WithAutoReconnectDelay</code>;④ 通配符订阅 <code>device/+/data</code>(+ 单层 / # 多层)。</p>
@@ -1045,7 +1045,7 @@ public sealed class MqttClientService : IAsyncDisposable
 - <strong>Q: 离线发布怎么保证不丢?</strong> A:<code>WithCleanSession(false)</code> + QoS 1,broker 缓存;客户端侧用本地 SQLite 队列,连上后回放。
 - <strong>Q: 主题通配符 <code>+</code> 和 <code>#</code> 区别?</strong> A:<code>device/+/data</code> 匹配 <code>device/A/data</code> 不匹配 <code>device/A/B/data</code>;<code>alarm/#</code> 匹配 <code>alarm/fire/1</code>、<code>alarm/any/multi/level</code>。
 - <strong>Q: 高频发布(每秒 1000 条)怎么压?</strong> A:批量构造 <code>MqttApplicationMessage[]</code>,<code>PublishAsync</code> 循环;或用 MQTTnet 的 <code>PublishAsync(IAsyncEnumerable&lt;...&gt;)</code> 流式发布;Payload 用 MessagePack 替代 JSON。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA + MQTT 深度版</a> · MQTTnet 官方 wiki</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M7_OPCUA_MQTT_深度版.html">M7 OPC UA + MQTT 深度版</a> · MQTTnet 官方 wiki</p>
 <h2 id="sec-2-27">B14. 手写 OPC UA 异步客户端(⏱️ 15 分钟,骨架)</h2>
 <p><strong>题目</strong>:用 Opc.Ua.Client 订阅 Server.Status.CurrentTime 节点,变化时打印。</p>
 <p><strong>🎯 面试官想听到</strong>:① Session + Subscription + MonitoredItem 三层结构;② 异步 <code>ConnectAsync</code> + <code>Subscription.CreateAsync</code>;③ <code>Notification</code> 事件回调。</p>
@@ -1121,7 +1121,7 @@ public sealed class OpcUaSubscriber : IAsyncDisposable
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: OPC UA 比 Modbus 强在哪?</strong> A:类型系统(对象/方法/事件)、内置安全(签名加密)、订阅模式(变化推送,不用轮询)、信息模型(每个变量都有 description/unit/engineeringRange)。
 - <strong>Q: 几千个点位订阅怎么压?</strong> A:一个 Subscription 装 1000 个 MonitoredItem,不要 1000 个 Subscription;调整 <code>PublishingInterval</code> 与 <code>SamplingInterval</code> 比例降流量。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA 深度版</a> · 官方 Opc.Ua.Client SDK</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M7_OPCUA_MQTT_深度版.html">M7 OPC UA 深度版</a> · 官方 Opc.Ua.Client SDK</p>
 <h2 id="sec-2-28">B15. 手写 PlcDevice(S7.Net 异步)(⏱️ 15 分钟)</h2>
 <p><strong>题目</strong>:基于 <code>DeviceBase</code>,用 S7NetPlus 实现一个 S7-1200 PLC 设备。<code>Connect</code> 建 TCP 长连 + 后台 500ms 轮询 <code>DB1.DBW0</code> 等;<code>Read</code> 返回缓存;<code>Write</code> 同步写。</p>
 <p><strong>🎯 面试官想听到</strong>:① S7 协议是 ISO-on-TCP(102 端口),<code>Plc(CpuType.S71200, ip, rack, slot)</code>;② <strong><code>IsConnected</code> 不可全信</strong>,真正"通不通"要看 <code>LastErrorCode</code>;③ 后台轮询同 ModbusDevice 模式;④ <strong>DB 块地址解析</strong>:<code>DB1.DBW0</code> = DB 块 1 的字 0(2 字节)。</p>
@@ -1229,7 +1229,7 @@ public sealed class PlcDevice : DeviceBase
 - <strong>Q: 怎么读一个 DWord 浮点?</strong> A:<code>(float)plc.Read("DB1.DBD0")</code>,DBD = Double Word = 4 字节。但要确认 PLC 程序员在 DB 块里把这个地址声明成 Real,不是 DInt。
 - <strong>Q: 多个 PLC 怎么并发读?</strong> A:每个 PLC 一个 <code>Plc</code> 实例,一个后台任务,<strong>不要共享 Plc</strong>(非线程安全)。
 - <strong>Q: 怎么订阅而不是轮询?</strong> A:S7 协议不原生支持订阅;OPC UA 才有。或 PLC 程序员写触发块,上位机用 alarmed 位轮询。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M3_PLC_深度版.md">M3 PLC 深度版</a> · DAQMonitor <code>Core/Devices/PlcDevice.cs</code> · S7NetPlus GitHub</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M3_PLC_深度版.html">M3 PLC 深度版</a> · DAQMonitor <code>Core/Devices/PlcDevice.cs</code> · S7NetPlus GitHub</p>
 <h2 id="sec-2-29">B16. 手写 TcpDevice 粘包处理(状态机)(⏱️ 15 分钟)</h2>
 <p><strong>题目</strong>:实现 TCP 长连接设备的接收循环。帧格式 <code>[AA 55][LEN_LO][LEN_HI][payload][CRC_LO][CRC_HI]</code>,处理:① 半包(收到的字节不够一帧);② 粘包(多条帧粘在一起);③ 头不对齐(乱码,需要重新同步);④ 心跳超时检测 + 自动重连。</p>
 <p><strong>🎯 面试官想听到</strong>:① <strong><code>ReceiveAsync</code> 循环 + 滚动缓冲 + <code>TryParse</code> 状态机</strong>;② 头不对齐丢 1 字节重同步;③ <strong>断线后指数退避重连</strong>(1s/2s/4s/8s/16s);④ 心跳用并行 <code>Task.Delay</code> + 静默时长判断。</p>
@@ -1414,7 +1414,7 @@ public sealed class PlcDevice : DeviceBase
 - <strong>Q: 服务端推 1MB 的数据,粘包缓冲怎么处理?</strong> A:<code>List&lt;byte&gt;</code> 在大 buffer 时 AddRange 慢,改用 <code>MemoryStream</code> + <code>Position</code> 滑窗;或 <code>System.IO.Pipelines</code>(PipeReader / PipeWriter),专门为大流量设计。
 - <strong>Q: 怎么测粘包?</strong> A:用 <code>SplitToken</code> 把一个完整帧拆成 2 段、3 段发送,断言接收端能正确拼出;或用 <code>TcpClient</code> + <code>Task.Delay(1)</code> 在每个字节间停顿,模拟逐字节到达。
 - <strong>Q: 重连时怎么知道是断线期间设备发的数据丢了?</strong> A:协议层加序列号(每帧自增),重连后看到序号跳变就知道中间丢了几帧;或用 MQTT/AMQP 这种有 QoS 的中间件。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M11_TCP_Socket_深度版.md">M11 TCP Socket 深度版</a> · DAQMonitor <code>Core/Devices/TcpDevice.cs</code> + <code>Protocol/TcpFrameParser.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M11_TCP_Socket_深度版.html">M11 TCP Socket 深度版</a> · DAQMonitor <code>Core/Devices/TcpDevice.cs</code> + <code>Protocol/TcpFrameParser.cs</code></p>
 <h2 id="sec-2-30">B17. 手写 EventAggregator(简化版)(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:不引入 Prism,自己写一个 <code>IEventAggregator</code>,支持 <code>Publish&lt;T&gt;()</code> / <code>Subscribe&lt;T&gt;(handler)</code> + 弱引用(订阅者 GC 后自动清理)。</p>
 <p><strong>🎯 面试官想听到</strong>:① 类型键 <code>Dictionary&lt;Type, List&lt;Delegate&gt;&gt;</code>;② 弱引用避免内存泄漏(VM 订阅但没退订时,VM 不会泄漏);③ 线程安全 lock。</p>
@@ -1501,7 +1501,7 @@ public sealed class EventAggregator : IEventAggregator
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: Prism 的 EventAggregator 比 yours 强在哪?</strong> A:支持 UI 线程自动 marshal、订阅过滤 <code>Subscribe(handler, thread =&gt; UI, filter: m =&gt; m.X &gt; 5)</code>、<code>KeepSubscriberReferenceAlive</code> 选项。
 - <strong>Q: 弱事件模式有现成的吗?</strong> A:WPF 内置 <code>WeakEventManager&lt;T&gt;</code>。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a> · Prism EventAggregator 文档</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.html">M8 MVVM 深度版</a> · Prism EventAggregator 文档</p>
 <h2 id="sec-2-31">B18. 手写 ViewModelLocator 命名约定绑定(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:WPF 里在 XAML 写 <code>ViewModelLocator.AutoWireViewModel="True"</code>,自动根据 View 名字找到对应 VM。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -1537,7 +1537,7 @@ public sealed class EventAggregator : IEventAggregator
 - 真实工程应通过 DI 容器 resolve VM,而不是 <code>Activator.CreateInstance</code></p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: Prism 的 <code>ViewModelLocatorProvider</code> 怎么改约定?</strong> A:<code>ViewModelLocationProvider.SetDefaultViewTypeToViewModelTypeResolver(viewType =&gt; viewType.FullName.Replace(".Views.", ".ViewModels").Replace("View", "ViewModel"))</code>。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.html">M8 MVVM 深度版</a></p>
 <h2 id="sec-2-32">B19. 手写 IDialogService 标准对话框(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:VM 不能直接 <code>MessageBox.Show</code>(破坏可测性 + UI 框架耦合),写一个 <code>IDialogService</code> 抽象。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -1586,7 +1586,7 @@ public class MainViewModel
 - 测试中 mock 时不要真弹窗</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: Prism 的 <code>IDialogService</code> 怎么用?</strong> A:<code>dialogService.ShowDialog("ConfirmDialog", parameters, callback =&gt; { /* 返回结果 */ })</code>,自定义弹窗注册到容器。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.md">M8 MVVM 深度版</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M8_MVVM_深度版.html">M8 MVVM 深度版</a></p>
 <h2 id="sec-2-33">B20. 手写 LogLevel 中间件(Serilog + TraceId)(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:ASP.NET Core 中间件,每个请求打一条结构化日志(方法、路径、状态码、耗时、TraceId)。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -1649,7 +1649,7 @@ public sealed class RequestLoggingMiddleware
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 怎么接入 OpenTelemetry?</strong> A:<code>builder.Services.AddOpenTelemetry().WithTracing(t =&gt; t.AddAspNetCoreInstrumentation().AddOtlpExporter())</code>,TraceId 自动注入 Activity。
 - <strong>Q: 日志怎么采样?</strong> A:高频路径(健康检查)用 <code>if (Random.Shared.Next(100) &lt; 5) _log.LogInformation(...)</code> 5% 采样;Serilog 还有 <code>MinimumLevel.Override("Microsoft.AspNetCore", Warning)</code>。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · Serilog 官方文档</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a> · Serilog 官方文档</p>
 <h2 id="sec-2-34">B21. 手写白名单验证器(IpAllowedHosts)(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:中间件,只允许配置的 IP 段访问,其他返回 403。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -1723,7 +1723,7 @@ public sealed class RequestLoggingMiddleware
 - 配置为空 = 全拒,不要默认全开</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 大量 IP(几万)查询会慢吗?</strong> A:CIDR 线性扫 O(N),生产用 Patricia Trie / LC-trie,查询 O(log N)。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a></p>
 <h2 id="sec-2-35">B22. 手写 AuditLogger 审计日志(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:关键操作(登录、删除、配置变更)写审计日志,字段:操作人、时间、IP、动作、目标、结果。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -1808,7 +1808,7 @@ public class UserController
 - 关键字段加密(如 PII)</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 审计日志要不可篡改,怎么保证?</strong> A:哈希链(每条带前一条的 SHA256),或写 append-only 存储(如 AWS QLDB)。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · OWASP Audit Logging Cheat Sheet</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a> · OWASP Audit Logging Cheat Sheet</p>
 <h2 id="sec-2-36">B23. 手写 Recipe 配方管理 + 切换 + 回滚(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:工业场景"配方"= 一组参数集。要求:<code>LoadAsync(name)</code> 加载、<code>ActivateAsync(name)</code> 激活、激活失败自动回滚到上一个;每次切换记录历史。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -1888,7 +1888,7 @@ public sealed class RecipeManager
 - 回滚也可能失败,要有"安全状态"(设备进入 STOP 模式)</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 配方版本管理?</strong> A:<code>Recipe</code> 加 <code>Version</code> 字段,存储所有版本,激活指定版本;关键变更走审批流。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M16_多设备接入_深度版.md">M16 设备管理</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M16_多设备接入_深度版.html">M16 设备管理</a></p>
 <h2 id="sec-2-37">B24. 手写 EngineeringConverter 量程标定(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:把 AD 原始码线性映射到工程量(4-20mA → 0-100℃),处理浮点字节序。</p>
 <p><strong>💻 关键代码</strong>(对照 <code>DAQMonitor/Core/Engineering/EngineeringConverter.cs</code>):</p>
@@ -1952,7 +1952,7 @@ public sealed class RecipeManager
 - 查表 <code>SortedList</code> 内存占用大,可改成二进制分度表文件 lazy load</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 标定参数怎么动态调整?</strong> A:存数据库 + 缓存,改了发事件让设备重新读取。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M12_工程量转换_深度版.md">M12 工程量转换</a> · DAQMonitor <code>Core/Engineering/EngineeringConverter.cs</code></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M12_工程量转换_深度版.html">M12 工程量转换</a> · DAQMonitor <code>Core/Engineering/EngineeringConverter.cs</code></p>
 <h2 id="sec-2-38">B25. 手写 PerformanceCounter 业务指标上报(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:统计 QPS、平均响应时间、错误率,定时推送到 Prometheus。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -2005,7 +2005,7 @@ public sealed class RecipeManager
 - 窗口期内 0 请求要特判(除零)</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 滑动窗口 vs 简单窗口?</strong> A:简单窗口有边界突变(窗口切换瞬间数据全变),滑动窗口(如 5 分钟内最近统计)更平滑;生产用 <code>prometheus-net</code> 内置或 Reservoir 算法。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · prometheus-net</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a> · prometheus-net</p>
 <h2 id="sec-2-39">B26. 手写 IDisposable 完整模式(含 finalizer)(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:封装非托管资源(如 IntPtr 句柄),实现完整 Dispose 模式 + finalizer 兜底。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -2158,7 +2158,7 @@ var u2 = await cache.GetOrAddAsync(&quot;user-1&quot;);   // 命中缓存
 - factory 抛异常:Lazy 会缓存异常,后续每次 GetOrAdd 都重抛(用 <code>LazyThreadSafetyMode.ExecutionAndPublication</code> 默认行为)。生产要包 try-catch 失败时移除 key</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: 缓存雪崩/击穿/穿透?</strong> A:雪崩=大量 key 同时过期(加随机 TTL);击穿=热 key 过期(Lazy 锁就是防击穿);穿透=查不存在的 key(布隆过滤器或缓存 null)。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a></p>
 <h2 id="sec-2-42">B29. 手写 MemoryCache 过期 + 容量(⏱️ 5 分钟,骨架)</h2>
 <p><strong>题目</strong>:基于 <code>Microsoft.Extensions.Caching.Memory</code>,实现 TTL 过期 + 容量限制 + 过期回调。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -2221,7 +2221,7 @@ var user = cache.GetOrCreate($&quot;user-{id}&quot;, () =&gt; LoadFromDb(id), Ti
 - 缓存大对象(&gt;1MB)用 redis,MemoryCache 是进程内</p>
 <p><strong>🎤 面试官追问</strong>:
 - <strong>Q: IMemoryCache 与 Redis 怎么选?</strong> A:单机用 MemoryCache(快但易失);分布式用 Redis(共享但慢)。生产常 two-layer:MemoryCache(L1) + Redis(L2),L1 miss 查 L2,L2 miss 查 DB。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a></p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a></p>
 <h2 id="sec-2-43">B30. 手写单元测试(xUnit + Moq 完整一条)(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:为 <code>AcquisitionPipeline.Register(device)</code> 写单元测试:① 设备成功注册;② 设备 <code>Connect()</code> 抛异常时管道不崩;③ 设备数据通过 <code>BatchReady</code> 事件传出。</p>
 <p><strong>💻 关键代码</strong>:</p>
@@ -2303,7 +2303,7 @@ public class AcquisitionPipelineTests
 - <strong>Q: 测并发竞态怎么写?</strong> A:<code>Channel&lt;T&gt;</code> 测试用 <code>Throws.Any&lt;InvalidOperationException&gt;</code> 验证 Closed 后写抛;并发用 <code>Parallel.For</code> 触发,断言 <code>Interlocked.Increment</code> 计数正确。
 - <strong>Q: 集成测试 vs 单元测试?</strong> A:单元测 mock 所有依赖(快、隔离);集成测用真实 DbContext + 内存 SQLite(测组合是否正确)。DAQMonitor 里 <code>PointStoreTests.cs</code> 是单元,<code>CompositionSmokeTests.cs</code> 是集成。
 - <strong>Q: 覆盖率工具?</strong> A:<code>coverlet</code> + <code>dotnet test --collect:"XPlat Code Coverage"</code>,生产建议 70%+ 覆盖核心路径。</p>
-<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> · DAQMonitor <code>Tests/</code> 目录全部测试代码</p>
+<p><strong>📚 延伸阅读</strong>:<a href="M19_问题排查与调试_深度版.html">M19 问题排查</a> · DAQMonitor <code>Tests/</code> 目录全部测试代码</p>
 <hr />
 <hr />
 <h1 id="sec-1-4">Part C · Debug 题(10 道)</h1>
@@ -2335,7 +2335,7 @@ private void OnDataArrived(object? s, DataEvent e)
     });
 }
 </code></pre>
-<p>或更优:用 <code>Channel&lt;T&gt;</code> 串行化(详 <a href="M7_OPCUA_MQTT_深度版.md">M7 OPC UA 修正版</a>)。</p>
+<p>或更优:用 <code>Channel&lt;T&gt;</code> 串行化(详 <a href="M7_OPCUA_MQTT_深度版.html">M7 OPC UA 修正版</a>)。</p>
 <h2 id="sec-2-45">C2. .Result 死锁</h2>
 <pre><code class="language-csharp">// WPF UI 线程
 private void BtnSave_Click(object sender, RoutedEventArgs e)
@@ -2400,7 +2400,7 @@ public int Count =&gt; _count;
     public void Dispose() =&gt; _bus.DataArrived -= OnData;
 }
 </code></pre>
-<p>详 <a href="M3_PLC_深度版.md">M3 PLC 修正版 退订模式</a>。</p>
+<p>详 <a href="M3_PLC_深度版.html">M3 PLC 修正版 退订模式</a>。</p>
 <h2 id="sec-2-48">C5. DbContext 线程不安全</h2>
 <pre><code class="language-csharp">public class Repository
 {
@@ -2415,7 +2415,7 @@ public int Count =&gt; _count;
 }
 </code></pre>
 <p><strong>Bug</strong>:DbContext 不是线程安全,多个并发调用 SaveChangesAsync 抛 <code>InvalidOperationException</code>。</p>
-<p><strong>修复</strong>:用 <code>IDbContextFactory</code> + 短作用域,详 <a href="M4_数据持久化_深度版.md">M4 修正版</a>。</p>
+<p><strong>修复</strong>:用 <code>IDbContextFactory</code> + 短作用域,详 <a href="M4_数据持久化_深度版.html">M4 修正版</a>。</p>
 <h2 id="sec-2-49">C6. struct 拷贝丢修改</h2>
 <pre><code class="language-csharp">public struct Point { public double X; public double Y; }
 
@@ -2450,7 +2450,7 @@ if (remaining &gt; 0)
 buf.SetLength(remaining);
 buf.Position = 0;
 </code></pre>
-<p>详 <a href="M11_TCP_Socket_深度版.md">M11 修正版</a>。</p>
+<p>详 <a href="M11_TCP_Socket_深度版.html">M11 修正版</a>。</p>
 <h2 id="sec-2-51">C8. 闭包捕获循环变量</h2>
 <pre><code class="language-csharp">for (int i = 0; i &lt; 5; i++)
 {
@@ -2493,7 +2493,7 @@ ushort reg1 = (ushort)(resp[3] | (resp[4] &lt;&lt; 8));   // 0x0A00 = 2560(错!)
 ushort reg1 = (ushort)((resp[3] &lt;&lt; 8) | resp[4]);   // 0x000A = 10(对)
 </code></pre>
 <p><strong>Bug</strong>:Modbus 寄存器是大端,但 Modbus CRC 是小端,<strong>别搞反</strong>。</p>
-<p>详 <a href="M2_Modbus_深度版.md">M2 Modbus 讲义 Day 3</a>。</p>
+<p>详 <a href="M2_Modbus_深度版.html">M2 Modbus 讲义 Day 3</a>。</p>
 <hr />
 <h1 id="sec-1-5">Part D · 30 天训练计划</h1>
 <blockquote>
@@ -2725,10 +2725,10 @@ ushort reg1 = (ushort)((resp[3] &lt;&lt; 8) | resp[4]);   // 0x000A = 10(对)
 <hr />
 <h2 id="sec-2-61">📌 配套讲义交叉引用</h2>
 <ul>
-<li>Part A 翻译题 → <a href="M0_每日讲义_深度版.md">M0 C# 基础</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></li>
+<li>Part A 翻译题 → <a href="M0_每日讲义_深度版.html">M0 C# 基础</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></li>
 <li>Part B 手写题 → 对应模块讲义(M1/M2/M3/M4/M7/M9 等)</li>
-<li>Part C Debug 题 → <a href="M19_问题排查与调试_深度版.md">M19 问题排查</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></li>
-<li>Part D 训练计划 → <a href="30天作战路线_转行冲刺版.md">30 天作战路线</a></li>
+<li>Part C Debug 题 → <a href="M19_问题排查与调试_深度版.html">M19 问题排查</a> + <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义</a></li>
+<li>Part D 训练计划 → <a href="30天作战路线_转行冲刺版.html">30 天作战路线</a></li>
 </ul>
 <h2 id="sec-2-62">📚 延伸刷题资源</h2>
 <ul>
