@@ -63,18 +63,19 @@
 <li class="l3"><a href="#sec-3-25">Day 22-23(周一-周二)· 交付文档 + M15 工程协作速过</a></li>
 <li class="l3"><a href="#sec-3-26">Day 24-25(周三-周四)· 简历 + 面试材料</a></li>
 <li class="l3"><a href="#sec-3-27">Day 26-27(周五-周六)· 差异化王牌:WebView2 + Vue3 工业大屏 ⭐ 两天加分包</a></li>
-<li class="l3"><a href="#sec-3-28">Day 28(周日)· 投递 + 模拟面试</a></li>
-<li class="l3"><a href="#sec-3-29">Day 29-30 · 真面试 + 边面边补</a></li>
+<li class="l3"><a href="#sec-3-28">Day 27.5(可选,周日,8h)· 差异化王牌三:运动控制卡 demo(雷赛/固高模拟器)⭐ 一天加分包</a></li>
+<li class="l3"><a href="#sec-3-29">Day 28(周日)· 投递 + 模拟面试</a></li>
+<li class="l3"><a href="#sec-3-30">Day 29-30 · 真面试 + 边面边补</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-7">应急预案(进度滞后怎么办)</a><ul>
-<li class="l3"><a href="#sec-3-30">滞后 1 周 → 砍 P2 内容</a></li>
-<li class="l3"><a href="#sec-3-31">滞后 2 周 → 砍到 W1+W2+W4</a></li>
-<li class="l3"><a href="#sec-3-32">完全来不及 → 项目当"学习项目"投</a></li>
+<li class="l3"><a href="#sec-3-31">滞后 1 周 → 砍 P2 内容</a></li>
+<li class="l3"><a href="#sec-3-32">滞后 2 周 → 砍到 W1+W2+W4</a></li>
+<li class="l3"><a href="#sec-3-33">完全来不及 → 项目当"学习项目"投</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-8">边面试边学策略</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-9">学习节奏(每天 4-5h 怎么分配)</a><ul>
-<li class="l3"><a href="#sec-3-33">🔁 间隔重复(防遗忘的核心机制)</a></li>
+<li class="l3"><a href="#sec-3-34">🔁 间隔重复(防遗忘的核心机制)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-10">检查点总览(每周自测)</a><ul>
 </ul></li>
@@ -234,7 +235,7 @@ git push -u origin main
 <p><strong>写进 DAQMonitor-mine</strong>(1.5h):
 - <strong>关掉 DAQMonitor 参考版</strong>,在你的 <code>DAQMonitor-mine/src/DaqMonitor.Core/</code> 下手敲:
   - <code>Devices/IDevice.cs</code> 接口(<code>ConnectAsync</code> / <code>ReadAsync</code> / <code>DisconnectAsync</code> / <code>event DataReceived</code>)
-  - <code>Devices/SensorPoint.cs</code> 类(或 record)
+  - <code>Models/SensorPoint.cs</code> record — <strong>完整字段</strong>:<code>int Id</code> / <code>string Name</code> / <code>double Value</code> / <code>DateTime Timestamp</code> / <code>Quality Quality</code>(枚举 Good/Uncertain/Bad)。<strong>别 Day 1 只写一半字段,Day 8 PointStore / Day 11 AlarmEngine 都依赖完整字段,后面回头改很烦</strong>
   - <code>Devices/SimulatedDevice.cs</code> — 实现接口,timer 每 500ms 生成随机数据触发事件
 - 写完打开 DAQMonitor 参考版的同名文件对比,补上你漏掉的(比如 CancellationToken)
 - 在 <code>DaqMonitor.Tests/</code> 写 1 个测试:验证 SimulatedDevice 触发事件
@@ -248,17 +249,20 @@ git push -u origin main
 - <a href="M1_串口通信_深度版.html">M1_串口通信_深度版.md</a> 全文(波特率/RS232/RS485/CRC/半包)
 - <a href="M2_Modbus_深度版.html">M2_Modbus_深度版.md</a> 全文 — <strong>手算 CRC 必须过关</strong></p>
 <p><strong>写进 DAQMonitor-mine</strong>(3h):
-- <strong>关掉参考版</strong>,在 <code>DAQMonitor-mine/src/DaqMonitor.Core/Devices/</code> 手敲:
-  - <code>SerialDevice.cs</code> — 用 <code>System.IO.Ports.SerialPort</code>,实现 IDevice,订阅 DataReceived
-  - <code>Modbus/ModbusRtuMaster.cs</code> — 自己写 RTU 帧组装 + CRC16 + 解析(先不用 NModbus4,自己写一遍才能懂)
-  - <code>Modbus/Crc16.cs</code> — 手写 CRC16 表(参考 <a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B1</a>)
-  - <code>ModbusDevice.cs</code> — 组合 SerialDevice + ModbusRtuMaster,实现 IDevice
+- <strong>关掉参考版</strong>,在 <code>DAQMonitor-mine/src/DaqMonitor.Core/</code> 手敲(注意目录名跟参考版对齐):
+  - <code>Devices/ISerialChannel.cs</code> — <strong>抽串口接口</strong>(参考版做了这层抽象,让串口可测试 — 依赖倒置原则的实战)
+  - <code>Devices/LoopbackSerialChannel.cs</code> — 不依赖真串口的回环实现,测试用
+  - <code>Devices/RealSerialChannel.cs</code> — 包 <code>System.IO.Ports.SerialPort</code>,实现 <code>ISerialChannel</code>
+  - <code>Devices/SerialDevice.cs</code> — 依赖 <code>ISerialChannel</code>(不是直接 <code>SerialPort</code>),实现 IDevice,订阅 DataReceived
+  - <code>Protocol/Crc16.cs</code> — 手写 CRC16 表(参考 <a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B1</a>)
+  - <code>Protocol/ModbusFrameParser.cs</code> — Modbus RTU 帧组装 + 解析(状态机 + 半包处理)
+  - <code>Devices/ModbusDevice.cs</code> — 组合 SerialDevice + ModbusFrameParser + Crc16,实现 IDevice(参考版把 RTU 主站逻辑直接合并进 ModbusDevice,没有独立的 ModbusRtuMaster 类)
 - 在 <code>DaqMonitor.Tests/</code> 写测试:
   - Crc16 测试(给定字节数组验证 CRC 值)
-  - ModbusRtuMaster 帧组装测试
+  - ModbusFrameParser 帧组装测试(用 LoopbackSerialChannel,不依赖真串口)
 - <strong>对照</strong> DAQMonitor 参考版,看差异,补漏
-- commit Day 2:<code>feat(M1): SerialDevice 实现 + 测试</code>
-- commit Day 3:<code>feat(M2): CRC16 + ModbusRtuMaster + ModbusDevice</code></p>
+- commit Day 2:<code>feat(M1): ISerialChannel + SerialDevice 实现 + 测试</code>
+- commit Day 3:<code>feat(M2): CRC16 + ModbusFrameParser + ModbusDevice</code></p>
 <p><strong>代码肌肉</strong>(2h):
 - Day 2: <strong>手写题 B1(CRC16,5 分钟白板)</strong> — 这是 13-15K 面试高频白板题
 - Day 2: 翻译题 A5-A8(filter/reduce/event/useState 翻译)
@@ -271,11 +275,13 @@ git push -u origin main
 - 不用精通,会用 S7.Net 读 DB1.DBX0.0 / DB1.DBD4 这种地址就行</p>
 <p><strong>写进 DAQMonitor-mine</strong>(3h):
 - <strong>关掉参考版</strong>,在 <code>DAQMonitor-mine/src/DaqMonitor.Core/Devices/</code> 手敲:
-  - <code>PlcDevice.cs</code> — 装 <code>S7.Net</code> NuGet 包,实现 IDevice,提供读 DB 块的方法
+  - <code>IPlcClient.cs</code> — <strong>先抽接口</strong>!S7.Net 的 <code>Plc</code> 类是 sealed,Moq 无法直接 mock,必须自己包一层接口(<code>Task Open()</code> / <code>Task Close()</code> / <code>Task&lt;object&gt; Read(string variable)</code> / <code>Task Write(string variable, object value)</code>),<code>PlcDevice</code> 依赖 <code>IPlcClient</code> 而不是 <code>Plc</code>。这是 13-15K 面试官会追问的"你测试怎么做的"的标准答法 — <strong>依赖倒置 → 可测试</strong>
+  - <code>S7PlcClient.cs</code> — 真正调 S7.Net 的 <code>Plc</code> 类,实现 <code>IPlcClient</code>
+  - <code>PlcDevice.cs</code> — 依赖 <code>IPlcClient</code>,实现 IDevice,提供读 DB 块的方法
   - 没有真实 PLC 不实测没关系,代码必须写对(对照参考版验证)
-- 在 <code>DaqMonitor.Tests/</code> 写测试:Mock S7.Net,验证调用姿势
-- commit Day 4:<code>feat(M3): PlcDevice + S7.Net 集成</code>
-- commit Day 5:<code>test(M3): PlcDevice Mock 测试</code></p>
+- 在 <code>DaqMonitor.Tests/</code> 写测试:Mock <code>IPlcClient</code>(不是 S7.Net 的 <code>Plc</code>),验证 PlcDevice 在 Open 失败时正确重试 / Read 返回正确类型转换
+- commit Day 4:<code>feat(M3): IPlcClient + S7PlcClient + PlcDevice</code>
+- commit Day 5:<code>test(M3): PlcDevice 用 Mock IPlcClient 测试</code></p>
 <p><strong>代码肌肉</strong>(2h):
 - Day 4: <strong>手写题 B2(Channel 生产消费者,10 分钟白板)</strong> — 13-15K 必考
 - Day 4: Debug 题 C3(多线程竞态丢数) + C4(event 没退订)
@@ -287,12 +293,13 @@ git push -u origin main
 - 复习 M0 Day 7(并发/Channel/CancellationToken)
 - 看 <a href="硬件替代方案与讲解_深度版.html">硬件替代方案与讲解_深度版.md</a> — 没硬件怎么练</p>
 <p><strong>写进 DAQMonitor-mine</strong>(3h):
-- <strong>关掉参考版</strong>,在 <code>DAQMonitor-mine/src/DaqMonitor.Core/</code> 手敲:
-  - <code>Acquisition/IAcquisitionPipeline.cs</code> — 统一采集管道接口
-  - <code>Acquisition/AcquisitionService.cs</code> — 用 <code>Channel&lt;SensorPoint&gt;</code> 把 4 种设备的数据汇总,后台任务消费
-  - <code>Devices/DeviceManager.cs</code> — 管理多设备(注册 / 启动 / 停止 / 切换)
-- 写测试:多设备并发采集,验证 Channel 不丢数据
-- commit:<code>feat(M0+M3): Channel 采集管道 + DeviceManager 多设备</code></p>
+- <strong>关掉参考版</strong>,在 <code>DAQMonitor-mine/src/DaqMonitor.Core/Acquisition/</code> 手敲:
+  - <code>AcquisitionPipeline.cs</code> — <strong>统一采集管道</strong>(参考版没有独立 <code>IAcquisitionPipeline</code> / <code>AcquisitionService</code> / <code>DeviceManager</code>,职责全部集中在 <code>AcquisitionPipeline</code> 一个类里:管理多设备注册、用 <code>Channel&lt;SensorPoint&gt;</code> 汇总、后台任务消费)。<strong>别过度拆分</strong>,先把功能跑通,Day 12 Prism 重构时再考虑分层
+  - 字段:<code>List&lt;IDevice&gt; _devices</code> / <code>Channel&lt;SensorPoint&gt; _channel</code>
+  - 方法:<code>RegisterDevice(IDevice)</code> / <code>StartAsync(CancellationToken)</code> / <code>StopAsync()</code> / <code>IAsyncEnumerable&lt;SensorPoint&gt; ReadAllAsync(CancellationToken)</code>
+  - 多设备并发:每个设备的 <code>DataReceived</code> 事件 → <code>_channel.Writer.WriteAsync(point)</code>
+- 写测试:多设备(SimulatedDevice × 3)并发采集 10 秒,验证 Channel 不丢数据(读到的点数 ≈ 设备数 × 采集频率 × 时长)
+- commit:<code>feat(M0+M3): AcquisitionPipeline 多设备 Channel 采集管道</code></p>
 <p><strong>代码肌肉</strong>(1h):
 - <strong>手写题 B3(IDevice 完整实现,15 分钟白板)</strong> — 含 Connect/Read/Disconnect/异常处理
 - 翻译题 A17-A20(模块化/枚举/接口/反射)</p>
@@ -329,6 +336,13 @@ git push -u origin main
 <p><strong>学习</strong>(3h):
 - <a href="M4_数据持久化_深度版.html">M4_数据持久化_深度版.md</a> 全文 — 重点 EF Core 变更追踪/迁移/DbContext 生命周期/异步查询
 - 学习 SQLite 浏览工具(DB Browser for SQLite)</p>
+<blockquote>
+<p>⚠️ <strong>EF Core 4 大必考点(15K 面试官会追问,讲义缺口,在此补)</strong>:
+1. <strong>为什么 DbContext 不能单例</strong>:变更追踪字典(ChangeTracker)非线程安全,同一实体被多线程同时修改会脏读;<code>SaveChanges</code> 是串行的,多个线程并发调会报 "A second operation was started on the same context instance" 异常。<strong>正确做法</strong>:<code>AddDbContextFactory</code>(工厂,每次 <code>CreateDbContext()</code> 拿短命实例)或 <code>AddDbContext(Scoped)</code>(每个 HTTP 请求/工作单元一个)
+2. <strong>AsNoTracking 何时用</strong>:批量只读查询(如历史数据导出)用 <code>_context.SensorRecords.AsNoTracking().Where(...).ToListAsync()</code>,<strong>跳过变更追踪字典的写入,提升性能 2-3 倍</strong>。写场景必须 tracking
+3. <strong>并发 Token(乐观锁)</strong>:两人同时改一条配方 → 后写的会覆盖先写的。解决:在实体加 <code>[Timestamp] public byte[] RowVersion { get; set; }</code>,SaveChanges 时 EF 自动 <code>WHERE RowVersion = @original</code>,冲突抛 <code>DbUpdateConcurrencyException</code>,业务侧 catch 后让用户选择"重看 / 强制覆盖"
+4. <strong>生产环境迁移怎么应用</strong>:❌ 启动时 <code>Database.Migrate()</code>(多实例并发会竞争,生产不建议);✅ <code>dotnet ef migrations script --idempotent -o migrate.sql</code> 生成幂等 SQL 让 DBA 执行;✅ EF Core 6+ 的 <code>Bundle</code> 生成独立可执行 migrate.exe</p>
+</blockquote>
 <p><strong>项目</strong>(3h):
 - 读+理解 <code>DAQMonitor/src/DaqMonitor.Core/Store/PointStore.cs</code>(双写内存+异步 SQLite)
 - 读+理解 <code>AppDbContext.cs</code> + <code>SensorRecord.cs</code>
@@ -360,6 +374,9 @@ git push -u origin main
 <p><strong>代码肌肉</strong>(1h):
 - <strong>手写题 B5(AlarmRule 回滞,15 分钟白板)</strong> — 这是 M6 的核心,面试高频</p>
 <p><strong>打卡</strong>:✅ Serilog 配置好 ✅ AlarmEngine 回滞能讲 ✅ dotnet counters 实操 ✅ B5 15 分钟白板</p>
+<blockquote>
+<p>📌 <strong>Day 11 末尾必做(30 分钟,Day 12 的前置)</strong>:在 <code>DAQMonitor-mine/src/DaqMonitor.UI/</code> 加一个 <code>Bootstrapper.cs</code>,用 <code>Microsoft.Extensions.DependencyInjection</code> 装配 <code>IDevice</code> / <code>IPlcClient</code> / <code>PointStore</code> / <code>AlarmEngine</code> / <code>MainViewModel</code>,在 <code>App.xaml.cs</code> 调用它。<strong>Day 12 你会把它改成 PrismBootstrapper,今天先有非 Prism 版才能"改造"</strong>。Day 12 的"改造 Bootstrapper.cs"指的是这个文件,不是凭空冒出来的。</p>
+</blockquote>
 <h3 id="sec-3-18">Day 12-14(周五-周末)· 工程素养 + Prism 重构</h3>
 <p><strong>学习</strong>(3h):
 - <a href="M9_工程素养_测试DI容错_深度版.html">M9_工程素养_测试DI容错_深度版.md</a> — 速过(项目已实现大部分)
@@ -405,16 +422,25 @@ git push -u origin main
 <p><strong>学习</strong>(2h):
 - <a href="M7_OPCUA_MQTT_深度版.html">M7_OPCUA_MQTT_深度版.md</a> — <strong>重点:全程 async/await + MQTT 双向</strong>
 - <a href="M12_工程量转换与多数据库_深度版.html">M12_工程量转换与多数据库_深度版.md</a> — 重点量程标定公式 + 字节序交换
-- 装本地 Mosquitto 或用 broker.emqx.io 测试</p>
+- 装本地 Mosquitto(Windows 安装包,断网车间也跑得起来,<strong>不依赖公网 broker</strong>)</p>
+<blockquote>
+<p>⚠️ <strong>MQTTnet 三大必考点(15K 面试官会追问,讲义缺口,在此补)</strong>:
+1. <strong>ManagedMqttClient vs MqttClient</strong>:<code>MqttClient</code> 裸用要自己写重连/订阅恢复/消息队列;<code>ManagedMqttClient</code> 内置这三件事(投递排队、断线重连后自动恢复订阅),业务侧省心。<strong>生产环境必用 Managed</strong>
+2. <strong>Topic 通配符</strong>:<code>+</code> 单层匹配(如 <code>daq/+/telemetry</code> 匹配 <code>daq/A/telemetry</code> 但不匹配 <code>daq/A/B/telemetry</code>),<code>#</code> 多层匹配(只能放最后,如 <code>daq/#</code> 匹配所有子路径)
+3. <strong>QoS 0/1/2</strong>:0 = 至多一次(TCP,丢就丢,遥测数据用)、1 = 至少一次(PUBACK,可能重复,要业务去重)、2 = 恰好一次(PUBREC/PUBREL/PUBCOMP 四次握手,命令用,但开销大)。<strong>遥测用 0,命令用 1</strong></p>
+</blockquote>
 <p><strong>项目</strong>(3h):
 - 读+理解 <code>DaqMonitor.Core/Cloud/MqttPublisher.cs</code>(MQTTnet 4.x 双向 + Channel 缓冲)
 - 读+理解 <code>DaqMonitor.Core/Engineering/EngineeringConverter.cs</code>(线性标定 + 字节序)
-- 用 MQTTX 工具订阅 <code>daq/+/telemetry</code> 看到上位机发的数据
-- 从 MQTTX 发命令到 <code>daq/{deviceId}/command</code>,PLC 真的写入</p>
+- <strong>本地 Mosquitto + MQTTX</strong> 模拟遥测(不依赖公网/不依赖真 PLC):
+  - 起 Mosquitto(<code>mosquitto.exe -v</code> 或装服务)
+  - MQTTX 订阅 <code>daq/+/telemetry</code>,看到上位机发的数据
+  - <strong>从 MQTTX 发命令到 <code>daq/{deviceId}/command</code></strong>:上位机订阅这个 topic 接收命令 → <strong>在 <code>MqttPublisher</code> 里把命令转回 <code>IPlcClient.WriteAsync</code></strong> → 命令真的写进 SimulatedDevice(不是真 PLC,但闭环通)。这一步替代"PLC 真的写入",<strong>断网车间也能跑</strong>
+- 用 Python 10 行脚本模拟订阅端(可选,练面试讲法)</p>
 <p><strong>代码肌肉</strong>(1h):
 - <strong>手写题 B13(MQTT Publish+Subscribe 双向,15 分钟白板)</strong> — 这是修正版核心
 - <strong>手写题 B24(EngineeringConverter 量程标定,5 分钟白板)</strong></p>
-<p><strong>打卡</strong>:✅ MQTTX 看到上位机发的数据 ✅ 从 MQTTX 发命令,PLC 真的写入 ✅ B13 15 分钟白板</p>
+<p><strong>打卡</strong>:✅ MQTTX 看到上位机发的数据 ✅ 从 MQTTX 发命令,SimulatedDevice 真的改值(本地闭环,不依赖外网/真 PLC) ✅ B13 15 分钟白板 ✅ 能讲清 Managed vs MqttClient / QoS 0-1-2 / 通配符 +/#</p>
 <h3 id="sec-3-21">Day 18(周四)· OPC UA【选做 P2】 + 性能压测</h3>
 <p><strong>学习</strong>(2h):
 - <a href="M7_OPCUA_MQTT_深度版.html">M7_OPCUA_MQTT_深度版.md</a> OPC UA 部分 — 全程 async(不再 .Result)
@@ -452,7 +478,7 @@ git push -u origin main
 - <a href="M18_配方管理_深度版.html">M18_配方管理_深度版.md</a> — 工艺参数版本 / ISA-88 / 审计
 - <strong>复习</strong> <a href="M19_问题排查与调试_深度版.html">M19_问题排查与调试_深度版.md</a> Day 2-5(异常/竞态/内存/性能/物理工具)</p>
 <p><strong>项目</strong>(3h,选做):
-- 新建 <code>DaqMonitor.Core/Recipe/RecipeManager.cs</code> — JSON 配方 + 版本化 + 回滚</p>
+- 新建 <code>DaqMonitor-mine/src/DaqMonitor.Core/Recipes/RecipeService.cs</code> — JSON 配方 + 版本化 + 回滚(参考版用 <code>Recipes/Recipe.cs</code> + <code>RecipeParameter.cs</code> + <code>RecipeSnapshot.cs</code> + <code>RecipeService.cs</code> 4 件套,<strong>手敲时先抄 4 个文件结构再填逻辑</strong>)</p>
 <p><strong>代码肌肉 + 调试综合实操</strong>(2h):
 - 手写题 B23(Recipe 配方管理,15 分钟)
 - <strong>M19 综合实操</strong>:故意造一个 bug(event 没退订导致内存泄漏),用 <code>dotnet gcdump</code> 抓快照,找出泄漏对象 → 修复
@@ -506,7 +532,8 @@ git push -u origin main
 <p><strong>Day 26(周五,5h)· WebSocket 服务 + Vue 大屏骨架</strong>
 - <strong>学习</strong>(1.5h):精读 <a href="前端×上位机差异化冲刺_WebView2与工业大屏.html">前端×上位机差异化冲刺</a> 第 1-2 节
 - <strong>项目</strong>(3.5h):
-  - 新建 <code>DaqMonitor.Web</code> 项目(独立,不污染 Core),用 ASP.NET Core Kestrel 起嵌入式 WebSocket 服务
+  - 在 <code>DAQMonitor-mine/</code> 根目录新建 <code>DaqMonitor.Web</code> 项目:<code>dotnet new web -o src/DaqMonitor.Web -n DaqMonitor.Web</code>(<code>web</code> 模板是 ASP.NET Core 空模板,比 <code>webapi</code> 更轻,自带 Kestrel),加到 sln:<code>dotnet sln add src/DaqMonitor.Web/DaqMonitor.Web.csproj</code>,加 Core 引用:<code>dotnet add src/DaqMonitor.Web reference src/DaqMonitor.Core</code>
+  - 用 ASP.NET Core Kestrel 起嵌入式 WebSocket 服务
   - 复制冲刺文档里的 <code>WebBroadcastService.cs</code>(已给完整 120 行代码)
   - Vue3 + Vite 起新项目,装 ECharts + Pinia,复制 <code>useWebSocket.ts</code>(含指数退避重连)
   - Vue 大屏接 WebSocket 实时点位跑通(先画一条曲线验证)</p>
@@ -526,7 +553,196 @@ git push -u origin main
 <blockquote>
 <p>⚠️ <strong>进度紧可砍</strong>:这两天的产出是 15K 加分包,如果 Week 1-3 主干还没稳,<strong>优先保主干</strong>,这 2 天改回原来的 Day 26-28 投递节奏。</p>
 </blockquote>
-<h3 id="sec-3-28">Day 28(周日)· 投递 + 模拟面试</h3>
+<h3 id="sec-3-28">Day 27.5(可选,周日,8h)· 差异化王牌三:运动控制卡 demo(雷赛/固高模拟器)⭐ 一天加分包</h3>
+<blockquote>
+<p><strong>为什么花一天做这个</strong>:<a href="JD调研_13-15K上位机岗位对照.html">JD 调研 P1 缺口 #2</a> — 设备控制类 JD 70% 写"运动控制卡经验优先",<strong>非标自动化 / 3C 装配 / 半导体设备</strong> 3 大行业几乎必考。你 DAQMonitor 已有 <code>IAxisController</code> 抽象(PLCopen 兼容,见 <code>src/DaqMonitor.Core/Motion/</code>),只需 8h 把它<strong>手敲一遍</strong>并<strong>接一次模拟器</strong>,简历多一句"运动控制卡模拟器实操",覆盖面从 60% JD → 80% JD。
+<strong>核心策略:30 天只用模拟器,不买真硬件</strong>。理由:① 真卡 + 步进 + 滑台至少 2000-3000 元,学习用一次性投入不划算;② 没机械配套真卡用不起来;③ 入职后公司有真机,1 个月真机经验 &gt; 自学 6 个月。<strong>模拟器 80% 加分效果,0% 成本</strong>,简历同样能写"模拟器联调"。
+<strong>可不可不做</strong>:可以。13K 主流盘子(数据采集 / 监控 / MES 上云)70% 不要运控,投递时避开"非标自动化 / 3C 装配 / 半导体设备"3 个运控密集行业,完全可以不学运控拿 13K。<strong>做 = 多覆盖 25% JD;不做 = 也能拿 13K</strong>。看你时间预算。</p>
+</blockquote>
+<h4>学习(2h):PLCopen 标准 + 轴状态机(讲义缺口补)</h4>
+<blockquote>
+<p><strong>为什么补这一节</strong>:<a href="M19_问题排查与调试_深度版.html">M19</a> 讲义没讲运控,DAQMonitor 项目里直接实现了 <code>IAxisController</code> 等代码但没讲原理,这是讲义缺口。先补理论再手敲,避免"看代码点头、关掉写不出"。</p>
+</blockquote>
+<ul>
+<li><strong>PLCopen Motion</strong>(IEC 61131-3 标准):<code>MC_MoveAbsolute</code> / <code>MC_MoveRelative</code> / <code>MC_Home</code> / <code>MC_Stop</code> 4 大动作 — <strong>工业通用语言</strong>,固高/雷赛/正运动/Beckhoff 都对齐这套命名,面试讲法标准化</li>
+<li><strong>轴状态机</strong>(5 态):
+  <code>Disabled ──Enable──&gt; Idle ──Move/Jog──&gt; Moving ──完成──&gt; Idle
+                        Idle ──Home───&gt; Homing ──完成──&gt; Idle
+                        任意态 ──E-Stop──&gt; Idle(立即停,但工业现场规范要求 E-Stop 后需操作员确认 → Reset 才能再 Move,本模拟器简化版直接回 Idle,真机/严格规范需加 Stopping 中间态)
+                        任意态 ──超限/超速/驱动故障──&gt; Alarm(锁死,需人工 Reset)</code><blockquote>
+<p><strong>注</strong>:严格 PLCopen 规范的 E-Stop 进 <code>Aborting</code>/<code>Stopping</code> 中间态、完成减速后才回 <code>Idle</code> 或 <code>ErrorStop</code>(若同时驱动故障);学习版状态机做简化,但<strong>面试被追问时要会答</strong>:"严格规范 E-Stop 不是瞬时回 Idle,要走 Stopping 减速曲线;真机版我会加 Stopping/ErrorStop 中间态,本模拟器为教学简化为直接回 Idle"</p>
+</blockquote>
+</li>
+<li><strong>软限位 vs 硬限位</strong>:软限位 = 软件检查 MinPosition/MaxPosition 拦截;硬限位 = 物理限位开关 + 继电器急停电路(独立于软件,软件挂了一样能停)</li>
+<li><strong>回零为什么必须</strong>:编码器只能记相对位移,机械装好后真实位置未知,必须慢速移动碰到回零开关 → 反向脱离一小段 → 记录 0 点。<strong>未回零时绝对定位无意义</strong></li>
+<li><strong>E-Stop vs Stop</strong>:E-Stop 立即切断伺服输出(可能丢位置,但避免碰撞);Stop 走减速曲线(平稳,不丢位置)</li>
+<li><strong>CountsPerUnit</strong>:脉冲 ↔ 用户单位转换系数(如 10000 脉冲/mm),真卡 API 用脉冲,业务用 mm,中间靠这个系数</li>
+</ul>
+<h4>写进 DAQMonitor-mine(4h):手敲 PLCopen 抽象</h4>
+<ul>
+<li><strong>关掉 DAQMonitor 参考</strong>,在 <code>DAQMonitor-mine/src/DaqMonitor.Core/Motion/</code> 手敲:</li>
+<li><code>AxisState.cs</code> — 5 态枚举(Disabled/Idle/Moving/Homing/Alarm)</li>
+<li><code>AxisConfiguration.cs</code> — 行程(MinPosition/MaxPosition)、MaxVelocity、HomeVelocity、CountsPerUnit、IsReversed 配置(<code>init</code> only 不可变)</li>
+<li><code>IAxisController.cs</code> — PLCopen 兼容接口(Home/MoveAbsolute/MoveRelative/Jog/Stop/EmergencyStop/ResetAlarm + StateChanged/PositionChanged/AlarmRaised 3 事件)</li>
+<li><code>SimulatedAxisController.cs</code> — 关键实现要点:<ul>
+<li><code>System.Timers.Timer</code> 10ms tick(工业典型 PLC 扫描周期 1-4ms,这里 10ms 平衡 CPU)</li>
+<li><code>lock</code> 保护状态(命令与 tick 不能同时改位置)</li>
+<li>Tick 内部:<code>newPosition = _position + _velocity * dt.TotalSeconds</code></li>
+<li>软限位检查:越界 → 设 Alarm,触发 AlarmRaised 事件</li>
+<li>到达目标判断:<code>_velocity &gt; 0 ? newPosition &gt;= _targetPosition : newPosition &lt;= _targetPosition</code></li>
+<li>回零完成:把 <code>_position</code> 重置为 0、<code>_isHomed = true</code></li>
+<li><strong>事件触发放 lock 外</strong>(避免订阅者回调里再 lock 造成死锁)</li>
+</ul>
+</li>
+<li>在 <code>DaqMonitor.Tests/MotionControlTests.cs</code> 写测试:</li>
+<li>软限位越界 → Alarm 触发</li>
+<li>未回零时 MoveAbsolute → InvalidOperationException</li>
+<li>Jog 撞软限位 → Alarm</li>
+<li>E-Stop 立即清零 velocity、回 Idle</li>
+<li>回零完成 → IsHomed = true 且 Position = 0</li>
+<li>commit:<code>feat(M-motion): IAxisController + SimulatedAxisController + 软限位 + 测试</code></li>
+</ul>
+<h4>模拟器实操(2h,0 元,不要买真硬件)</h4>
+<blockquote>
+<p>⚠️ <strong>30 天内绝对不要买真硬件</strong>。理由:① 入门真卡 + 步进 + 滑台至少 2000-3000 元,学习用一次性投入不划算;② 没机械配套真卡也用不起来;③ 入职后公司有真机,边工作边学免费还快。<strong>只用模拟器,简历同样能写"模拟器联调"</strong>,80% 加分效果,0% 成本。</p>
+</blockquote>
+<ul>
+<li>下载 <strong>雷赛 DMC SDK</strong>(官网免费,含 demo 控制卡模拟器 + C# API 文档):<a href="https://www.leisai.com/">https://www.leisai.com/</a></li>
+<li>模拟器与真卡的 C# API <strong>完全一致</strong>,只是不用接电机。学习阶段用模拟器=学真卡 API 95%,只差"真实编码器反馈/机械抖动/驱动器报警"5% 现场感(这 5% 留给入职后真机学)</li>
+<li>5 大核心 API(雷赛命名,固高 GT_ 前缀、正运动 zm_ 前缀类似):
+  | API | 作用 | 类比前端 |
+  |---|---|---|
+  | <code>dcm_set_axis(axis, mode)</code> | 配置轴模式(位置/速度/回零) | <code>el.style.display = 'flex'</code> |
+  | <code>dcm_home(axis, mode)</code> | 启动回零序列 | <code>await fetch('/api/reset')</code> |
+  | <code>dcm_pmove(axis, pos, vel)</code> | 点位运动到 pos | <code>element.scrollTo({left: pos})</code> |
+  | <code>dcm_get_pos(axis)</code> | 读当前位置(脉冲) | <code>element.scrollLeft</code> |
+  | <code>dcm_emg_stop()</code> | 全局急停 | <code>window.stop()</code> |</li>
+<li>在 <code>DAQMonitor-mine/src/DaqMonitor.Core/Motion/LeiSai/LeiSaiAxisController.cs</code> 实现 <code>IAxisController</code>:</li>
+<li>PLCopen 命令翻译成雷赛模拟器 API 调用</li>
+<li><code>CountsPerUnit</code> 单位转换(脉冲 ↔ mm)</li>
+<li>状态轮询线程(10ms tick 调 <code>dcm_get_pos</code>,推进状态机)</li>
+<li><code>EmergencyStopAsync</code> → <code>dcm_emg_stop()</code></li>
+<li>完整流程 demo 控制台程序:<strong>使能 → 回零 → MoveAbsolute(100mm) → MoveRelative(-10mm) → E-Stop</strong></li>
+<li>录屏 1 分钟,简历附件</li>
+</ul>
+<blockquote>
+<p>📌 <strong>真硬件什么时候碰</strong>:<strong>入职后第 1 个月</strong>。公司有真机 + 老员工带 + 真机械场景,1 个月真机经验 &gt; 自学 6 个月。简历的"运控真机经验"等入职 2-3 个月后再加这一句,30 天简历不要写。</p>
+</blockquote>
+<h4>简历话术(0.5h)</h4>
+<p>按 <a href="JD调研_13-15K上位机岗位对照.html">JD 调研</a> 第 7 节"按 JD 调简历"原则。<strong>关键:话术必须诚实降级,避免诚信风险</strong>——你只学过抽象层 + 模拟器,没碰过真机、没碰过插补算法,简历写"运动控制实操"投非标自动化岗,面试官一句"圆弧插补要哪几个参数"就拆穿。</p>
+<ul>
+<li><strong>基础版</strong>(只手敲 Simulated,<strong>推荐</strong>):<blockquote>
+<p>运动控制抽象层:基于 PLCopen (IEC 61131-3) 标准设计 <code>IAxisController</code> 接口(Home / MoveAbsolute / MoveRelative / Jog / Stop / EmergencyStop),<code>SimulatedAxisController</code> 用 10ms tick 推进位置 + 软限位 + 5 态状态机(Disabled/Idle/Moving/Homing/Alarm),业务代码零改动可接固高/雷赛/正运动卡</p>
+</blockquote>
+</li>
+<li><strong>升级版</strong>(接模拟器后加一句,<strong>不写"实操"写"模拟器联调"</strong>):<blockquote>
+<p>雷赛 DMC 模拟器联调,完成"使能 → 回零 → 点位 → 急停"全流程,实现 CountsPerUnit 脉冲↔mm 双向单位转换</p>
+</blockquote>
+</li>
+</ul>
+<p><strong>❌ 千万别这么写</strong>(15K 面试官 30 秒拆穿):
+- ❌ "运动控制实操经验" / "运动控制系统开发" — 你没真机经验
+- ❌ "精通运动控制" / "熟练掌握插补算法" — 你不会插补
+- ❌ "做过 3 轴 X/Y/R 项目" — 你只做过单轴模拟</p>
+<p><strong>面试讲法 STAR(诚实版)</strong>:
+- S(场景):"项目需要预留运动控制扩展位,未来可能接不同厂商的控制卡"
+- T(任务):"设计一套运控抽象层,业务代码不因换卡而改"
+- A(行动):"参考 PLCopen IEC 61131-3 标准,抽象 5 大动作 + 5 态状态机,用 SimulatedAxisController 验证逻辑,再实现 LeiSai 适配器接模拟器"
+- R(结果):"业务代码 0 改动切换实现,测试覆盖软限位/E-Stop/回零 5 个场景"</p>
+<p><strong>面试被追问插补/伺服/EtherCAT 时怎么回答</strong>(诚实回避,不装懂):
+- "插补算法(直线/圆弧)我学到的是概念,知道圆弧要圆心+半径+起止角,但没有真机实操过,可以入职后基于现有抽象层补充。"
+- "伺服 vs 步进的核心差异是闭环 vs 开环,伺服有编码器反馈不丢步,步进会失步——这些是基础知识,具体调试我还没做过。"
+- "EtherCAT 周期 100μs~1ms 比脉冲+方向延迟低,但具体选型我没实操过。"
+- <strong>关键:诚实回答 + 表达学习意愿 + 强调"我做了抽象层,真机来了我能基于抽象层扩展",这才是 13-15K 该有的姿态。</strong></p>
+<h4>打卡</h4>
+<ul>
+<li>✅ DAQMonitor-mine 里 <code>Motion/</code> 目录 4 个文件手敲完成</li>
+<li>✅ <code>MotionControlTests</code> 5 个测试全绿</li>
+<li>✅ 能 5 分钟白板画 IAxisController 状态机转移图</li>
+<li>✅ 能讲清:E-Stop vs Stop / 软限位 vs 硬限位 / 未回零为啥不能绝对定位</li>
+<li>✅ (选做)雷赛 DMC 模拟器跑通"使能→回零→点位→急停"</li>
+<li>✅ 简历加运动控制句(基础版或升级版)</li>
+</ul>
+<h4>硬件采购参考(30 天<strong>不要买</strong>,仅供将来入职后参考)</h4>
+<blockquote>
+<p>⚠️ <strong>30 天内不要花一分钱买真硬件</strong>。下面是入职后真机学习时的型号参考,让你心里有数,知道公司给你什么档次的卡。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>配置</th>
+<th>价格</th>
+<th>用途 / 何时考虑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>零成本</strong>(30 天用这个)</td>
+<td>雷赛 DMC 模拟器 / 固高 GTS 模拟器</td>
+<td><strong>0 元</strong></td>
+<td>30 天学习用,简历可写"模拟器联调"</td>
+</tr>
+<tr>
+<td><strong>入门真硬件</strong>(自学不推荐)</td>
+<td>雷赛 DMC1415 单轴脉冲卡 + 42 步进电机 + DM542 驱动器 + 简易滑台</td>
+<td><strong>2000-3000 元</strong></td>
+<td>自学深度上手,但缺机械场景性价比低</td>
+</tr>
+<tr>
+<td><strong>进阶真硬件</strong>(自学强烈不推荐)</td>
+<td>固高 GTS-400-PG-4 4 轴卡 + 汇川/松川伺服 + 多轴滑台 + IO 模块</td>
+<td><strong>6000-10000+ 元</strong></td>
+<td>自学不值得,公司全套都有</td>
+</tr>
+<tr>
+<td><strong>入职后</strong>(最优,30 天别想)</td>
+<td>公司现成硬件 + 真机 + 老员工带</td>
+<td><strong>免费 + 工资照拿</strong></td>
+<td>1 个月真机经验 &gt; 6 个月自学</td>
+</tr>
+</tbody>
+</table>
+<p><strong>主流品牌型号</strong>(2026 年市占率):
+- <strong>雷赛</strong>(深圳,国产主流):DMC 系列(脉冲卡,入门,1500-2500 元/2 轴)/ DMC-E 系列(EtherCAT,中高端)
+- <strong>固高</strong>(深圳,国产主流):GTS 系列(主流,2000-4000 元/4 轴)/ GTS-PG(高性能)
+- <strong>正运动</strong>(深圳):ZM 系列,价格中等,API 接近雷赛
+- <strong>凌华</strong>(台湾):PCI-1245/1245U,偏高端,半导体内资厂常用
+- <strong>国外品牌</strong>:Galil(美国)/ Beckhoff(德国,EtherCAT 顶级,TwinCAT 软件,半导体/锂电高端设备用)</p>
+<p><strong>行业惯例</strong>(对应目标行业):
+- <strong>3C 非标自动化</strong>:固高 + 雷赛 平分秋色,简历写"了解固高/雷赛 API"覆盖 80%
+- <strong>半导体设备</strong>:固高 + 凌华 + Beckhoff(高端),简历写"了解固高 + Beckhoff 概念"覆盖 60%
+- <strong>新能源锂电</strong>:雷赛 + 正运动 + EtherCAT 趋势,简历写"了解雷赛 + EtherCAT"覆盖 70%
+- <strong>包装/食品/传统制造</strong>:雷赛入门卡为主,简历写"了解雷赛 DMC"覆盖 80%</p>
+<h4>时间充足要不要加真硬件?(策略建议)</h4>
+<blockquote>
+<p>你可能想:"30 天主干 + 模拟运控学完后,如果时间充足,我再加真硬件对接是不是更好?"</p>
+</blockquote>
+<p><strong>简短答案</strong>:❌ <strong>不推荐 30 天内碰真硬件</strong>。真硬件永远等入职后用公司真机学。</p>
+<p>4 个理由:
+1. <strong>成本不划算</strong>:入门真硬件最低 2000-3000 元(单轴卡 + 步进 + 滑台),简历同样写"运控了解",面试官<strong>不会因为"你买过真卡"加分</strong>(他看简历是看项目,不是看你银行卡)
+2. <strong>学习曲线深</strong>:真硬件 ≠ "模拟器再多花几小时"。需要电气接线、电机参数整定、伺服/编码器调试、强电安全知识,前置学习 1-2 周才能让卡跑起来,<strong>挤爆你 30 天节奏</strong>
+3. <strong>30 天本来就紧</strong>:主干 21 天 + 加分包 + 投递/面试,挤时间做真硬件会拖累主干 + 简历质量
+4. <strong>入职后免费学</strong>:公司有真机 + 老员工带 + 真机械场景,<strong>1 个月真机经验 &gt; 6 个月自学</strong>,工资照拿</p>
+<p><strong>唯一例外</strong> — 3 个条件全部满足才考虑买:
+- 30 天学完后<strong>还没拿到 offer</strong>(投了 50+ 家都没下文)
+- 空档期 ≥ 1 个月(短期内不会入职)
+- 投的岗位 50%+ 是"非标自动化/3C 装配/半导体设备"运控密集行业(简历被运控卡住)</p>
+<p><strong>如果满足,最便宜方案</strong>(不要买 2000+ 元工业卡):
+- <strong>Arduino Mega 2560 + 42 步进电机 + DM542 驱动器 + 简易滑台套装</strong>:淘宝/拼多多 ~300-500 元
+- 学习目标:用 C# 写串口/USB 程序控制 Arduino → 步进电机转动,跑通"使能 → 回零 → 点位 → 急停"全流程
+- 简历写法:"运控真机实操(嵌入式方案 + C# 串口控制)",成本只有工业卡 1/4,简历效果 80%
+- 优势:强电安全要求低(5-24V)、套件成熟、社区资源多</p>
+<p><strong>最优时间线</strong>(强烈推荐):</p>
+<pre><code>Day 1-27.5:  30 天主干 + 模拟运控(0 元)→ 投递 13K
+Day 28-30:   投递 + 模拟面试 + 边面边补
+入职第 1 月: 用公司真机学,熟悉具体品牌(雷赛/固高/正运动)
+入职第 2-3 月: 简历加&quot;运控真机经验&quot;句,准备 16-18K 涨薪跳
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>进度紧可砍</strong>:这是 15K 加分包。Week 1-3 主干没稳优先保主干;<strong>真硬件永远不要自学买,入职后用公司真机学,2-3 个月深度上手 + 工资照拿</strong>。</p>
+</blockquote>
+<h3 id="sec-3-29">Day 28(周日)· 投递 + 模拟面试</h3>
 <ul>
 <li><strong>开始投简历</strong>(BOSS / 智联 / 拉勾 / 猎聘),先投 10-13K 练手,关键词镜像 JD</li>
 <li>找朋友或对着镜头模拟面试,录音回听;用 <a href="面试问答_逐字稿_30题.html">面试逐字稿</a> 自测</li>
@@ -535,7 +751,7 @@ git push -u origin main
 <p><strong>代码肌肉</strong>(每天 1h):
 - 每天白板 3 题(随机抽,模拟面试官出题)
 - 错题集中刷</p>
-<h3 id="sec-3-29">Day 29-30 · 真面试 + 边面边补</h3>
+<h3 id="sec-3-30">Day 29-30 · 真面试 + 边面边补</h3>
 <ul>
 <li>真去面试,每场面试后立刻记录"被问倒的题"</li>
 <li>当晚针对问倒的题查文档/补代码/补到逐字稿</li>
@@ -546,19 +762,19 @@ git push -u origin main
 - 任意一段代码 5 秒内能说"这里有什么坑"</p>
 <hr />
 <h2 id="sec-2-7">应急预案(进度滞后怎么办)</h2>
-<h3 id="sec-3-30">滞后 1 周 → 砍 P2 内容</h3>
+<h3 id="sec-3-31">滞后 1 周 → 砍 P2 内容</h3>
 <ul>
 <li>砍 M16(CAN/USB-HID 详学,保留概念)、M14(WinForm 详学)、M18(配方管理)</li>
 <li>砍 Day 18(OPC UA)/ Day 20(MES)/ Day 21(Recipe)3 个选做日</li>
 <li>重点保 W1+W2 主干 + W3 必做 3 项 + W4</li>
 </ul>
-<h3 id="sec-3-31">滞后 2 周 → 砍到 W1+W2+W4</h3>
+<h3 id="sec-3-32">滞后 2 周 → 砍到 W1+W2+W4</h3>
 <ul>
 <li>只做 串口/Modbus/PLC/SQLite/可视化/报警/Prism + 简历面试</li>
 <li>TCP/上云/报表 简历"了解"即可,不写代码</li>
 <li>这样也能投 10-13K</li>
 </ul>
-<h3 id="sec-3-32">完全来不及 → 项目当"学习项目"投</h3>
+<h3 id="sec-3-33">完全来不及 → 项目当"学习项目"投</h3>
 <ul>
 <li>老老实实说"自学项目,做到 M9",投助理岗(8-10K)</li>
 <li>边工作边补完</li>
@@ -582,7 +798,7 @@ git push -u origin main
 - <strong>通勤/排队 10 分钟:间隔重复刷 5-10 张速记卡</strong>(Anki 风格,记 1d/3d/7d/15d 节奏)
 - 晚上 0.5h:打卡 + 复盘 + 第二天预览 + <strong>当天复习队列</strong>(看 <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a>)
 - 周末加量:5-7h 集中突破</p>
-<h3 id="sec-3-33">🔁 间隔重复(防遗忘的核心机制)</h3>
+<h3 id="sec-3-34">🔁 间隔重复(防遗忘的核心机制)</h3>
 <p><strong>问题</strong>:只学不复习,7 天后忘 70%。<strong>解决</strong>:用 1d/3d/7d/15d/30d 五段间隔重复(基于艾宾浩斯曲线)。
 - 每天打卡块多加 <strong>15-20 分钟复习队列</strong>(不是新学,是复习 N 天前学过的)
 - 每周日闭卷自测 30 题(Week 1-4 各 120 题,见 <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a> 第 2 节)

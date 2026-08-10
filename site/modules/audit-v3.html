@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔍 30 天路线第二轮审计 v3 · 连贯性/正确性/深度 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="audit-v3">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">✅ 本轮已修(P0 + P1,直接进 30 天路线)</a><ul>
+<li class="l3"><a href="#sec-3-1">P0 闭环断裂(4 处)</a></li>
+<li class="l3"><a href="#sec-3-2">P1 路径错误(讲义引用的代码文件实际不存在或路径错)</a></li>
+<li class="l3"><a href="#sec-3-3">P1 概念补强(15K 必考,讲义缺口,直接进 30 天路线)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">⚠️ P2 留给后续补(讲义级缺口,改 M2/M3/M4 工作量大)</a><ul>
+<li class="l3"><a href="#sec-3-4">1. M2 Modbus 深度补 3 点(15K 必考)</a></li>
+<li class="l3"><a href="#sec-3-5">2. M3 PLC 深度补 3 点(15K 半导体设备岗必问)</a></li>
+<li class="l3"><a href="#sec-3-6">3. M4 EF Core 注册方式自相矛盾(技术正确性)</a></li>
+<li class="l3"><a href="#sec-3-7">4. M9 / 逐字稿 多线程 4 选 1 缺失(15K 必考)</a></li>
+<li class="l3"><a href="#sec-3-8">5. 运动控制概念外延(Day 27.5)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📊 4 个维度的总评</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">💡 给用户的 3 条最高优先级建议</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">关联文档</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">审计 · 30 天作战路线第二轮(v3)· 知识点连贯性 / 正确性 / 深度</h1>
+<blockquote>
+<p><strong>触发</strong>:用户反馈"仔细检查知识点连贯性、正确性、深度"
+<strong>审计日期</strong>:2026-08-10
+<strong>审计方法</strong>:4 个并行 agent 分别审"讲义代码一致性 / 技术正确性 / 学习闭环 / 15K 深度",采样 100 行/讲义 × 6 个讲义
+<strong>本轮已修复</strong>:P0(4 处闭环断裂) + P1(路径错误 + MQTT/EF Core 概念补强)已在 30 天路线主文档直接修改
+<strong>本报告作用</strong>:记录 P2 留作后续补的讲义级缺口(改讲义工作量大,留给你第二轮学习时补)</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">✅ 本轮已修(P0 + P1,直接进 30 天路线)</h2>
+<h3 id="sec-3-1">P0 闭环断裂(4 处)</h3>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>问题</th>
+<th>修复</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Day 27.5 简历话术</td>
+<td>"运动控制实操"有诚信风险(只讲状态机不讲插补,投非标岗被拆穿)</td>
+<td>简历话术降级为"运控抽象层设计 + 模拟器联调",加"❌ 千万别这么写"清单 + 诚实回答模板</td>
+</tr>
+<tr>
+<td>Day 4 PlcDevice 测试</td>
+<td>S7.Net 的 <code>Plc</code> 是 sealed,Moq 不能直接 mock,测试卡死</td>
+<td>加"先抽 <code>IPlcClient</code> 接口"步骤,<code>PlcDevice</code> 依赖接口不是 <code>Plc</code> 类</td>
+</tr>
+<tr>
+<td>Day 12 Bootstrapper 断档</td>
+<td>Day 12 说"改造 Bootstrapper.cs",但用户从未写过这个文件</td>
+<td>Day 11 末尾加 30 分钟"先写非 Prism 版 Bootstrapper",Day 12 才能"改造"它</td>
+</tr>
+<tr>
+<td>Day 17 MQTT air-gapped 冲突</td>
+<td>打卡项"PLC 真的写入"在断网车间不可验收</td>
+<td>改"本地 Mosquitto + MQTTX 发命令 → SimulatedDevice 改值"闭环,不依赖外网/真 PLC</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">P1 路径错误(讲义引用的代码文件实际不存在或路径错)</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>错路径</th>
+<th>真路径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Day 1</td>
+<td><code>Devices/SensorPoint.cs</code></td>
+<td><code>Models/SensorPoint.cs</code></td>
+</tr>
+<tr>
+<td>Day 2-3</td>
+<td><code>Modbus/ModbusRtuMaster.cs</code></td>
+<td>已重构进 <code>Devices/ModbusDevice.cs</code> + <code>Protocol/ModbusFrameParser.cs</code>(无独立 Master 类)</td>
+</tr>
+<tr>
+<td>Day 2-3</td>
+<td><code>Modbus/Crc16.cs</code></td>
+<td><code>Protocol/Crc16.cs</code></td>
+</tr>
+<tr>
+<td>Day 6</td>
+<td><code>IAcquisitionPipeline.cs</code> + <code>AcquisitionService.cs</code> + <code>DeviceManager.cs</code></td>
+<td>全部合并在 <code>Acquisition/AcquisitionPipeline.cs</code> 一个类</td>
+</tr>
+<tr>
+<td>Day 21</td>
+<td><code>Recipe/RecipeManager.cs</code></td>
+<td><code>Recipes/RecipeService.cs</code> + 3 个相关类</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">P1 概念补强(15K 必考,讲义缺口,直接进 30 天路线)</h3>
+<ul>
+<li><strong>Day 8-9 EF Core 4 缺</strong>:为什么不能单例 / AsNoTracking / 并发 Token <code>[Timestamp]</code> / 生产迁移脚本(<code>--idempotent</code> 而非 <code>Migrate()</code>)</li>
+<li><strong>Day 17 MQTT 3 缺</strong>:ManagedMqttClient vs MqttClient / Topic 通配符 <code>+</code>/<code>#</code> / QoS 0/1/2 三档语义</li>
+<li><strong>Day 26 缺失命令</strong>:补 <code>dotnet new web</code> 创建 <code>DaqMonitor.Web</code> 的完整命令链</li>
+<li><strong>Day 27.5 状态机 E-Stop 注释</strong>:严格 PLCopen 应进 Stopping/ErrorStop 中间态,学习版简化,加面试被追问的诚实回答</li>
+</ul>
+<hr />
+<h2 id="sec-2-2">⚠️ P2 留给后续补(讲义级缺口,改 M2/M3/M4 工作量大)</h2>
+<h3 id="sec-3-4">1. M2 Modbus 深度补 3 点(15K 必考)</h3>
+<ul>
+<li><strong>CRC16 反射多项式</strong>:讲算法时只给 0xA001,没说<strong>为什么是 0xA001 而不是 0x8005</strong>。补一句:"Modbus 用 LSB-first 位移实现,采用反射多项式,0x8005 反转后 = 0xA001"。面试官追问"为啥反转"才答得上来</li>
+<li><strong>TCP vs RTU 并发性差异</strong>:讲 TCP/RTU 差异时只说"去 CRC + MBAP 头",<strong>漏了并发性</strong>:TCP 走 6 字节 MBAP 头含事务元 ID,<strong>支持并发请求</strong>(多请求同时发,响应按 ID 匹配);RTU 单总线串行,<strong>必须排队轮询</strong>。15K 必问</li>
+<li><strong>TCP 粘包解法缺第三种</strong>:M11 只讲"长度前缀 / 分隔符",<strong>漏了"固定长度法"</strong>(每帧定长)。面试常追问"还有别的吗"</li>
+</ul>
+<h3 id="sec-3-5">2. M3 PLC 深度补 3 点(15K 半导体设备岗必问)</h3>
+<ul>
+<li><strong>Snap7 vs S7.Net 对比</strong>:M3 只用 S7.Net,<strong>完全没提 Snap7</strong>。补:Snap7 是 C++ 原生绑定,性能更高 / 支持 300/400/1200/1500 全系 / 国内厂商更常用;S7.Net 纯托管 C#,仅 200/1200/1500</li>
+<li><strong>1200 vs 1500 通信差异</strong>:1500 PUT/GET 默认开启、1200 默认关闭;1500 有 Profinet IRT、1200 只有 RT;1500 DB 块默认优化、1200 早期版本绝对寻址</li>
+<li><strong>优化块访问机制</strong>:M3 一句"勾掉优化访问"带过,<strong>没讲机制</strong>:符号寻址 vs 绝对偏移、TIA 内部按符号哈希存储、S7.Net v3 的 <code>ReadClass</code> 才能读优化块</li>
+</ul>
+<h3 id="sec-3-6">3. M4 EF Core 注册方式自相矛盾(技术正确性)</h3>
+<ul>
+<li><strong>L72 推荐 <code>AddDbContextFactory</code></strong>,<strong>L113 注释又写"<code>AppDbContext</code>(Scoped 生命周期)"</strong>。两种注册混着说会让面试官问"你到底用哪种"懵</li>
+<li>修复:统一表述 — 高并发采集用 Factory、Web 请求用 Scoped;讲义改一处即可</li>
+</ul>
+<h3 id="sec-3-7">4. M9 / 逐字稿 多线程 4 选 1 缺失(15K 必考)</h3>
+<ul>
+<li><strong>Monitor vs Mutex vs SemaphoreSlim 怎么选</strong>:Monitor 进程内轻量、Mutex 跨进程、SemaphoreSlim 异步资源限流 — 讲义没对比</li>
+<li><strong>Channel vs BlockingCollection</strong>:Channel 异步原生 awaitable、BlockingCollection 同步阻塞消费线程,Channel 是 .NET Core 后续首选 — 讲义没对比</li>
+<li><strong>SynchronizationContext 下 await 线程切换</strong>:WPF ConfigureAwait(true) 回 UI 线程、false 不回 — C# 陷阱提了 ConfigureAwait 但没讲 SC</li>
+<li>修复:在 <a href="面试问答_逐字稿_30题.html">面试问答_逐字稿_30题.md</a> Q4-Q6 区域补 4 题(每题 200 字)</li>
+</ul>
+<h3 id="sec-3-8">5. 运动控制概念外延(Day 27.5)</h3>
+<p>Day 27.5 只讲 PLCopen 抽象,<strong>没讲插补/伺服步进/EtherCAT</strong>。<strong>这不是 bug 是设计取舍</strong> — 只学 1 天不可能全懂,<strong>靠"诚实回答模板"覆盖</strong>(已在 Day 27.5 简历话术一节加诚实降级 + 面试被追问的回避话术)。如果想再深一层,补:
+- 直线插补要 2 轴 + 速度同步;圆弧插补要圆心 + 半径 + 起止角 + 进给速度
+- 伺服闭环(编码器反馈,不丢步) vs 步进开环(易失步,成本 1/3)
+- EtherCAT 周期 100μs~1ms vs 脉冲+方向最高 500kHz(无实时反馈)</p>
+<hr />
+<h2 id="sec-2-3">📊 4 个维度的总评</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>评分</th>
+<th>一句话结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>代码-讲义一致性</strong></td>
+<td>6/10</td>
+<td>Day 1/2-3/6/21 路径错(本轮已修);仍有 <code>Auth/</code> <code>Health/</code> <code>Diagnostics/</code> <code>CanDevice</code> 等代码存在但路线未引用,属"加分可选"非必修</td>
+</tr>
+<tr>
+<td><strong>技术正确性</strong></td>
+<td>8/10</td>
+<td>0 硬错误;Modbus CRC / async void / .Result 死锁 / DbContext 非线程安全 / PLCopen 命名全对;M4 注册方式矛盾是唯一明显 bug</td>
+</tr>
+<tr>
+<td><strong>学习闭环</strong></td>
+<td>7/10</td>
+<td>Week 1=8/10、Week 2=6/10(Bootstrapper 断档已修)、Week 3=5/10(MQTT air-gapped 已修)、Week 4=8/10;Day 27.5=9/10</td>
+</tr>
+<tr>
+<td><strong>15K 深度</strong></td>
+<td>6/10</td>
+<td>13K 稳过、15K 悬崖边;运动控制(已诚实化)、Snap7、EF 迁移、Monitor 4 选 1 是 4 个深度漏洞</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-4">💡 给用户的 3 条最高优先级建议</h2>
+<ol>
+<li><strong>投简历前</strong>:把 Day 27.5 简历话术改成"基础版"(只写 Simulated),投非标自动化岗位被问插补时<strong>老实说"做了抽象层,具体插补算法可入职后补"</strong>,不要吹精通</li>
+<li><strong>Week 1 学到 Day 4 时</strong>:严格按"先抽 <code>IPlcClient</code> 再写 <code>PlcDevice</code>"步骤来,否则 Day 5 测试卡死你会以为代码错了去找半天</li>
+<li><strong>Week 4 投 15K 岗位前</strong>:补 4 件事(每件 30 分钟)— ① Snap7 vs S7.Net 看官方 wiki;② EF Core 迁移脚本试跑一次 <code>--idempotent</code>;③ Monitor/Mutex/SemaphoreSlim 选型表抄一遍;④ Modbus TCP 事务 ID 并发特性看 M2 补充章节</li>
+</ol>
+<hr />
+<h2 id="sec-2-5">关联文档</h2>
+<ul>
+<li>主路线:<a href="30天作战路线_转行冲刺版.html">30天作战路线_转行冲刺版.md</a> — 已应用本轮 P0+P1 修复</li>
+<li>第一轮审计:<a href="审计_整体串联复核_v2.html">审计_整体串联复核_v2.md</a></li>
+<li>15K 完整性:<a href="审计_15K完整性复核.html">审计_15K完整性复核.md</a></li>
+<li>讲义质量:<a href="审计_讲义质量评估.html">审计_讲义质量评估.md</a></li>
+</ul>
+<div class="pager">
+  <a class="prev" href="audit-v2.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🔍 整体串联审计 v2 · 由粗到细</div></a>
+  <a class="next" href="jd-research.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📊 JD 调研 · 13-15K 上位机岗位对照</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>
