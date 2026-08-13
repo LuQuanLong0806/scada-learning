@@ -29,34 +29,39 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-2">Day 1 — TCP 基础 + 第一个回显 + 粘包拆包 🟡</a><ul>
 <li class="l3"><a href="#sec-3-1">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
-<li class="l3"><a href="#sec-3-3">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：粘包到底怎么回事</a></li>
-<li class="l3"><a href="#sec-3-5">⭐ 重点 / 🔥 坑</a></li>
-<li class="l3"><a href="#sec-3-6">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-7">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-8">🔴 挑战题</a></li>
-<li class="l3"><a href="#sec-3-9">💓 心跳实现完整版（4 件套）</a></li>
+<li class="l3"><a href="#sec-3-2">🎭 拟人秒懂:水龙头流水 + 快递员批量送货(画面感记忆锚点)</a></li>
+<li class="l3"><a href="#sec-3-3">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-4">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-5">🎭 拟人秒懂:挂号信的信封(帧格式记忆锚点)</a></li>
+<li class="l3"><a href="#sec-3-6">🎭 拟人秒懂:夫妻吵架冷战 + 重拨电话(心跳 + 重连记忆锚点)</a></li>
+<li class="l3"><a href="#sec-3-7">🔬 掰开揉碎：粘包到底怎么回事</a></li>
+<li class="l3"><a href="#sec-3-8">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-9">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-10">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-11">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-12">💓 心跳实现完整版（4 件套）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">Day 2 — 私有协议帧设计 + 接入 DAQMonitor 🟡</a><ul>
-<li class="l3"><a href="#sec-3-10">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-11">前端类比秒懂</a></li>
-<li class="l3"><a href="#sec-3-12">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-13">🔬 掰开揉碎：校验到底防什么</a></li>
-<li class="l3"><a href="#sec-3-14">⭐ 重点 / 🔥 坑</a></li>
-<li class="l3"><a href="#sec-3-15">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-16">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-17">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-13">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-14">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-15">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-16">🔬 掰开揉碎：校验到底防什么</a></li>
+<li class="l3"><a href="#sec-3-17">⭐ 重点 / 🔥 坑</a></li>
+<li class="l3"><a href="#sec-3-18">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-19">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-20">🔴 挑战题</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-4">📌 温故知新 / 跨模块联动</a><ul>
+<li class="l2"><a href="#sec-2-4">🎤 M11 整体面试 3 分钟讲法(模块综合)</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（TcpDevice 可直接抄进工程）</a><ul>
+<li class="l2"><a href="#sec-2-5">📌 温故知新 / 跨模块联动</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+<li class="l2"><a href="#sec-2-6">🧩 完整代码组装（TcpDevice 可直接抄进工程）</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-7">📚 延伸阅读</a><ul>
+<li class="l2"><a href="#sec-2-7">🔗 明日预告</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-8">📎 关联附录</a><ul>
+<li class="l2"><a href="#sec-2-8">📚 延伸阅读</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">📎 关联附录</a><ul>
 </ul></li>
 </ul></aside>
   <main class="content">
@@ -90,7 +95,26 @@
 <h2 id="sec-2-2">Day 1 — TCP 基础 + 第一个回显 + 粘包拆包 🟡</h2>
 <h3 id="sec-3-1">一句话讲清楚</h3>
 <p>TCP 是一条"字节河流"，<strong>只保证顺序、不保证边界</strong>。你发 100 字节，对方可能一次收 100、也可能先收 30 再收 70；你发两条 50 字节，对方可能一次收 100（<strong>粘包</strong>）。所以必须自己定义"一帧从哪到哪"。</p>
-<h3 id="sec-3-2">前端类比秒懂</h3>
+<h3 id="sec-3-2">🎭 拟人秒懂:水龙头流水 + 快递员批量送货(画面感记忆锚点)</h3>
+<blockquote>
+<p>把 TCP 字节流想象成"水龙头往水桶里放水,你来舀"。</p>
+</blockquote>
+<ul>
+<li><strong>TCP 像水龙头</strong>:上游(发送方)随时开水龙头倒水,下游(接收方)拿着水桶舀</li>
+<li><strong>舀水的量不确定</strong>:你发 100 滴水,对面<strong>可能一勺舀到 100 滴,也可能第一勺 30 滴 + 第二勺 70 滴</strong>(拆包)</li>
+<li><strong>多次发水可能混一勺</strong>:你发了 50 滴 + 又发 50 滴,对面<strong>可能一勺舀到 100 滴</strong>(粘包)— 因为 TCP 不管你"发了多少次",只看到一条河</li>
+<li><strong>TCP 的承诺</strong>:水滴顺序不会乱(顺序保证),水滴不会丢(可靠传输);<strong>但它不承诺"一勺正好一瓢"</strong>(无消息边界)</li>
+</ul>
+<p><strong>唯一正确做法</strong>:<strong>把所有水舀进自己的大水缸(累积缓冲区)</strong>,然后按"标记"从水缸里<strong>精确分装</strong>:
+- <strong>长度前缀法</strong>(推荐):每瓢水开头贴"本瓢 30 滴"标签,你按标签舀
+- <strong>分隔符法</strong>:每瓢水结尾掺红色染料,你看到红色就停 — 简单但水里不能本来就有红色</p>
+<p><strong>新人 100% 翻车场景</strong>:</p>
+<pre><code class="language-csharp">// ❌ 错误:Read 一次当一帧
+int n = await ns.ReadAsync(buf, 0, buf.Length);
+ProcessFrame(buf[..n]);   // 设备一次发 2 帧 → 这里只处理一半,后一半丢了
+</code></pre>
+<p>正确做法:<strong>累积 + 循环切帧</strong>(<code>TryParseFrames</code>),刻进骨头里。</p>
+<h3 id="sec-3-3">前端类比秒懂</h3>
 <table>
 <thead>
 <tr>
@@ -132,7 +156,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-3">分点精讲</h3>
+<h3 id="sec-3-4">分点精讲</h3>
 <p><strong>① 建立连接 + 异步读写</strong>（🟩）</p>
 <pre><code class="language-csharp">using System.Net.Sockets;
 using System.Text;
@@ -180,14 +204,52 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <p><strong>④ 两种主流切帧法</strong>（🟧 私有协议设计）
 - <strong>长度前缀法（推荐）</strong>：帧头 <code>AA 55</code> + <code>长度(2字节)</code> + <code>命令</code> + <code>数据</code> + <code>校验</code>。先读固定头，拿到长度，再精确读"长度"个体。
 - <strong>分隔符法</strong>：用 <code>\r\n</code> 或 <code>|</code> 分隔（如文本协议），按分隔符 Split。简单但数据里不能出现分隔符。</p>
+<h3 id="sec-3-5">🎭 拟人秒懂:挂号信的信封(帧格式记忆锚点)</h3>
+<blockquote>
+<p>把私有协议帧想象成"中国邮政的挂号信"。</p>
+</blockquote>
+<pre><code>[AA 55]  [长度 2B]  [命令 1B]  [数据 N B]  [校验 1B]  [尾 0D]
+ 信封封面  重量标签   信件类型   信纸内容    防拆印     封口蜡
+</code></pre>
+<ul>
+<li><strong><code>AA 55</code> 帧头(信封封面)</strong>:告诉接收方"新信开始啦"。为什么选 <code>AA 55</code>?<strong>二进制 <code>10101010 01010101</code></strong> — 0 和 1 交替最容易和随机噪声区分,<strong>电磁干扰很难正好生成 <code>AA 55</code> 序列</strong></li>
+<li><strong>长度 2B(重量标签)</strong>:告诉接收方"信纸多重"。先读 2 字节拿到 N,再精确读 N 字节 — 这样<strong>不管粘包还是拆包,都能精准切</strong></li>
+<li><strong>命令 1B(信件类型)</strong>:01=读、02=写、03=心跳、04=报警...像 HTTP 的 method</li>
+<li><strong>数据 N B(信纸内容)</strong>:实际业务数据(温度值、设定值等)</li>
+<li><strong>校验 1B(防拆印)</strong>:和校验或 CRC8 — 邮递员篡改过内容,防拆印对不上</li>
+<li><strong>尾 <code>0D</code>(封口蜡)</strong>:可选,部分协议用来标识"信件完"(冗余设计,有长度其实不需要)</li>
+</ul>
+<p><strong>为什么长度前缀 &gt; 分隔符</strong>:
+- 长度前缀:<strong>数据里可以出现任何字节</strong>(包括 <code>0D</code>),只要按长度读就行
+- 分隔符法:数据里<strong>绝不能出现分隔符</strong>(否则误切帧),工业二进制数据几乎肯定会有这些字节 → <strong>分隔符只适合文本协议</strong></p>
 <p><strong>⑤ 心跳 + 断线重连</strong>（🟦，呼应 M9 容错）
 - 每 5s 发 <code>0x00</code> 心跳；超时未收到响应 → 标记断线 → 指数退避重连（M9 的 <code>Retry</code> 直接复用）。</p>
-<h3 id="sec-3-4">🔬 掰开揉碎：粘包到底怎么回事</h3>
+<h3 id="sec-3-6">🎭 拟人秒懂:夫妻吵架冷战 + 重拨电话(心跳 + 重连记忆锚点)</h3>
+<blockquote>
+<p>把 TCP 连接的"假在线"想象成"夫妻吵架冷战,电话还显示通话中,但对方早睡着了"。</p>
+</blockquote>
+<ul>
+<li><strong>TCP 的"已连接"是软状态</strong>:OS 只知道"连接握手过",<strong>网线被拔、路由器重启、对端断电,OS 可能几十秒都不知道</strong>链路已经断了</li>
+<li><strong>心跳 = 周期性"喂"一声</strong>:</li>
+<li>每 5s 你发"喂"(0x00 心跳包)</li>
+<li>对端正常 5s 内回"嗯"(任何数据都算,或者协议规定的心跳应答帧)</li>
+<li>你只要"听到对方说话"就刷新判活时间戳</li>
+<li><strong>连续 3 次没回应(15s 静默)→ 判死,触发重连</strong></li>
+<li><strong>断线重连 = 重拨电话指数退避</strong>:</li>
+<li>第 1 次重连:等 1s(可能只是抖动)</li>
+<li>第 2 次:等 2s(可能路由器重启中)</li>
+<li>第 3 次:等 4s</li>
+<li>第 4 次:等 8s...</li>
+<li><strong>为什么指数退避而不是每秒重试</strong>:服务端可能已经崩了在重启,你每秒一次重连 = DOS 攻击自己的服务端;指数退避给对方喘息时间</li>
+</ul>
+<p><strong>前端类比</strong>:WebSocket 不发 ping/pong 就会"假在线" — <code>ws.readyState === OPEN</code> 但实际对端早死了。WebSocket 协议层自带 ping/pong,但 TCP 是裸的,<strong>心跳必须应用层自己实现</strong>。</p>
+<p><strong>新人坑</strong>:<code>SocketException</code> 不 catch → 进程崩。TCP 网络异常是常态不是异常,<strong>必须有 try-catch + 重连机制</strong>。</p>
+<h3 id="sec-3-7">🔬 掰开揉碎：粘包到底怎么回事</h3>
 <p>假设你连发两帧 <code>[AA55 03 ..][AA55 04 ..]</code>：
 - 理想：对面两次 Read 各收一帧。
 - 现实：可能一次 Read 收到 <code>[AA55 03 .. AA55 04 ..]</code>（<strong>粘包</strong>），也可能 <code>[AA55 03 ..AA]</code> + <code>[55 04 ..]</code>（<strong>拆包</strong>）。
 - <strong>唯一正确做法</strong>：把所有收到的字节塞进累积缓冲，按"头 + 长度"算法循环切帧；切不完整的就留在缓冲等下次。缓冲区不会被"一次 Read"骗到。</p>
-<h3 id="sec-3-5">⭐ 重点 / 🔥 坑</h3>
+<h3 id="sec-3-8">⭐ 重点 / 🔥 坑</h3>
 <table>
 <thead>
 <tr>
@@ -226,11 +288,11 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-6">🟢 基础题</h3>
+<h3 id="sec-3-9">🟢 基础题</h3>
 <p>用 <code>TcpListener</code> 写一个回显服务端，<code>TcpClient</code> 连上后发 "HELLO" 收到原样返回。</p>
-<h3 id="sec-3-7">🟡 进阶题</h3>
+<h3 id="sec-3-10">🟡 进阶题</h3>
 <p>在回显服务端基础上，给客户端加一个"后台线程每秒发一条 <code>AA 55 &lt;len&gt; &lt;cmd&gt; &lt;data&gt; &lt;sum&gt;</code>"，服务端按长度前缀切帧后回显"收到帧数"。</p>
-<h3 id="sec-3-8">🔴 挑战题</h3>
+<h3 id="sec-3-11">🔴 挑战题</h3>
 <p>写一个 <code>TryParseFrames(MemoryStream buf)</code> 静态方法：支持<strong>粘包</strong>（一次塞两帧）和<strong>拆包</strong>（一帧被拆成两次 Read 才到齐）；用 <code>LoopbackTcpChannel</code> 模拟这两种情况并写测试断言两帧都被正确切出。</p>
 <p><strong>✅ 答案（挑战题骨架）</strong></p>
 <blockquote>
@@ -270,7 +332,7 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <p><strong>🏗️ 项目任务</strong>：实现 <code>TcpDevice : IDevice</code>，用长度前缀帧解析，触发 <code>DataReceived</code>，在 <code>Bootstrapper</code> 注册，DAQ Monitor 点"启动采集"能收到 TCP 模拟器发的点。</p>
 <p><strong>🎓 工控导师说</strong>：调试 TCP 设备，第一招永远是"先用网络调试助手（如 SSCOM 的 TCP 模式 / Hercules）手动连、手动发，确认设备回了啥"，<strong>再写代码</strong>。我见过太多人代码里 <code>Read</code> 一次当一帧，设备明明回了，他那边死活解析不出——就是栽在粘包上。累积缓冲 + 切帧，刻进骨头里。</p>
 <p><strong>💼 职业建议</strong>："TCP 粘包怎么处理？"是上位机面试必考题。答"TCP 是字节流无边界，必须自管累积缓冲 + 长度前缀（或分隔符）切帧，绝不 Read 一次当一帧"——这一句直接证明你真写过 Socket 通信，不是只会 <code>HttpClient</code>。</p>
-<h3 id="sec-3-9">💓 心跳实现完整版（4 件套）</h3>
+<h3 id="sec-3-12">💓 心跳实现完整版（4 件套）</h3>
 <p>前面只提了"每 5s 发 0x00 心跳"，没给完整代码——这块在面试里被追问的频率超高，这里把<strong>定时器 + 心跳响应校验 + 超时判活 + 重连触发</strong>完整补上（呼应 M9 容错）。</p>
 <blockquote>
 <p>💡 <strong>为什么必须心跳</strong>：TCP 的"已连接"状态是软的，网线被拔 / 路由器重启后 OS 可能几十秒都不知道链路断了。心跳是<strong>应用层探活</strong>，让上位机能秒级感知掉线。<strong>前端类比</strong>：WebSocket 不发 ping 就会"假在线"，明明对端早死了，本地 <code>readyState</code> 还是 1。</p>
@@ -365,9 +427,9 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M11',1)"> 打卡</label></strong></p>
 <hr />
 <h2 id="sec-2-3">Day 2 — 私有协议帧设计 + 接入 DAQMonitor 🟡</h2>
-<h3 id="sec-3-10">一句话讲清楚</h3>
+<h3 id="sec-3-13">一句话讲清楚</h3>
 <p>真实设备手册会给"通信协议"：帧格式、命令字、数据域含义、校验算法。你的 job 是把手册翻成"封帧函数 + 解析函数"。</p>
-<h3 id="sec-3-11">前端类比秒懂</h3>
+<h3 id="sec-3-14">前端类比秒懂</h3>
 <table>
 <thead>
 <tr>
@@ -390,7 +452,7 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-12">分点精讲</h3>
+<h3 id="sec-3-15">分点精讲</h3>
 <p><strong>① 典型私有帧</strong></p>
 <pre><code>[头 AA55][长度 2B][命令 1B][数据 N B][校验 1B][尾 0D]
 </code></pre>
@@ -412,9 +474,9 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 </code></pre>
 <p><strong>③ 接进 DAQMonitor（零改采集层）</strong>
 - <code>TcpDevice</code> 实现 <code>IDevice</code>；<code>Bootstrapper</code> 里 <code>services.AddSingleton&lt;IDevice, TcpDevice&gt;()</code> 一行切换，UI/管道/报警<strong>完全不用动</strong>——这就是 M0 面向接口的价值。</p>
-<h3 id="sec-3-13">🔬 掰开揉碎：校验到底防什么</h3>
+<h3 id="sec-3-16">🔬 掰开揉碎：校验到底防什么</h3>
 <p>串口/网线传输偶尔会"翻转一位"（电磁干扰）。校验和/CRC 就是"收完一帧算一遍，对不上就丢"——<strong>宁可丢一帧，也不让错误数据进报警/报表</strong>。M2 的 Modbus CRC16、M1 的串口 CRC、本模块的和校验，本质都是同一件事：用一点算力换数据可信。</p>
-<h3 id="sec-3-14">⭐ 重点 / 🔥 坑</h3>
+<h3 id="sec-3-17">⭐ 重点 / 🔥 坑</h3>
 <table>
 <thead>
 <tr>
@@ -441,11 +503,11 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-15">🟢 基础题</h3>
+<h3 id="sec-3-18">🟢 基础题</h3>
 <p>写一个 <code>Checksum(byte[] data)</code> 和校验（所有字节相加取低 8 位），并用它给一帧 <code>[AA 55 02 01 0A]</code> 算出校验字节。</p>
-<h3 id="sec-3-16">🟡 进阶题</h3>
+<h3 id="sec-3-19">🟡 进阶题</h3>
 <p>把 <code>BuildFrame</code> 和 <code>TryParseFrames</code> 串起来：构造一帧 → 塞进缓冲 → 切出来 → 断言命令字和数据一致（端到端自洽测试）。</p>
-<h3 id="sec-3-17">🔴 挑战题</h3>
+<h3 id="sec-3-20">🔴 挑战题</h3>
 <p>给 <code>TcpDevice</code> 加"断线自动重连"：捕获 <code>IOException</code>/<code>SocketException</code> 后用 M9 的 <code>Retry.ExecuteAsync</code> 指数退避重连，并重订阅 <code>RecvLoop</code>；写测试模拟"连接断开后恢复"断言能继续收数。</p>
 <p><strong>✅ 答案（基础题）</strong></p>
 <pre><code class="language-csharp">byte Checksum(byte[] d) { int s = 0; foreach (var b in d) s += b; return (byte)(s &amp; 0xFF); }
@@ -456,14 +518,30 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <p><strong>💼 职业建议</strong>：能独立"读懂一份私有协议文档 → 写出封帧/解帧 → 接进采集系统"的人，在上位机岗非常稀缺。这是 M11 给你的"可写进简历"的硬实力，面试时带一台模拟器现场 demo 最炸。</p>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M11',2)"> 打卡</label></strong></p>
 <hr />
-<h2 id="sec-2-4">📌 温故知新 / 跨模块联动</h2>
+<h2 id="sec-2-4">🎤 M11 整体面试 3 分钟讲法(模块综合)</h2>
+<blockquote>
+<p>"TCP 是字节流,<strong>没有消息边界</strong>,这是新人 100% 翻车的地方。<code>Read</code> 一次 ≠ 一帧,必须自管累积缓冲 + 切帧状态机。</p>
+<p><strong>切帧我用长度前缀法</strong>:帧格式 <code>[AA 55][长度 2B][命令 1B][数据 N B][校验 1B]</code>。先读 4 字节头拿到长度 N,再精确读 N 字节体。<strong>累积缓冲 + 循环切帧</strong>,粘包(一次收多帧)和拆包(一帧分多次收)都能处理。</p>
+<p><strong>粘包状态机的关键</strong>:半包时回退 Position 让帧头留在缓冲等下次拼接;切完的帧从缓冲前部移走,用 <code>Array.Copy</code> 原地搬移比 MemoryStream 高效 10 倍。</p>
+<p><strong>心跳保活</strong>:TCP 的'已连接'是软状态,网线拔了 OS 几十秒不知道。我每 5s 发心跳包,RecvLoop 收到任何字节就刷新判活时间戳,15s 静默判死。<strong>指数退避重连</strong>(1s/2s/4s/8s)防止 DOS 自己的服务端。</p>
+<p><strong>异常处理</strong>:<code>ReadAsync</code> 必须 catch <code>SocketException</code>(硬断开 RST)和 <code>IOException</code>(网线拔),<code>n==0</code> 是对端正常关闭 FIN,三种情况都要处理否则进程崩。</p>
+<p>我项目里 <code>TcpDevice : DeviceBase</code>,实现了 IDevice 接口,在 Bootstrapper 一行注册切换,UI 和采集管道零改动 — 这就是面向接口的价值。"</p>
+</blockquote>
+<p><strong>面试官可能连环追问</strong>:
+- "粘包和拆包具体怎么处理?" → 累积到 MemoryStream,循环读头+长度+体,半包时回退 Position 留到下次,完整帧 yield return。<strong>核心:不假设一次 Read 等于一帧</strong>
+- "为什么用长度前缀不用分隔符?" → 长度前缀允许数据域出现任意字节(包括分隔符本身),分隔符法数据里不能出现分隔符。工业二进制协议数据域几乎肯定会有这些字节,所以首选长度前缀
+- "心跳为什么用应用层而不是 TCP keepalive?" → TCP keepalive 默认 2 小时才探一次,太慢;且修改系统参数需要 root 权限。应用层心跳可以 5-15s 探一次,且能携带业务信息
+- "指数退避为什么必须有上限?" → 不设上限会无限重试耗资源;一般上限 30s 或 1min,达到上限后保持等间隔重试。同时要有总重试次数限制(避免日志爆炸)
+- "怎么调试 TCP 协议?" → 网络调试助手(SSCOM/Hercules)手动连手动发,确认设备回了什么;Wireshark 抓包逐字节看;先确认协议对了再写代码
+- "怎么处理 TCP 帧头找不到的情况?" → 状态机有"找帧头"状态,逐字节扫描直到匹配 <code>AA 55</code>,丢弃前面的"垃圾字节"。这是流式协议的标准做法</p>
+<h2 id="sec-2-5">📌 温故知新 / 跨模块联动</h2>
 <ul>
 <li><strong>M0 并发</strong>：<code>RecvLoop</code> 跑在 <code>Task</code>/后台线程，UI 不卡（同 M0 Day7）。</li>
 <li><strong>M1 串口</strong>：串口也是"字节流 + 事件"，M1 的解析函数<strong>直接复用</strong>到 TCP——区别只是"水从串口来还是从网口来"。</li>
 <li><strong>M9 容错</strong>：心跳超时 → 用 M9 的 <code>Retry</code> 重连；切帧缓冲思路与 M1 的 <code>FrameParser</code> 同源。</li>
 <li><strong>M12</strong>：解出的原始值交给 M12 工程量转换才变成真实物理量。</li>
 </ul>
-<h2 id="sec-2-5">🧩 完整代码组装（TcpDevice 可直接抄进工程）</h2>
+<h2 id="sec-2-6">🧩 完整代码组装（TcpDevice 可直接抄进工程）</h2>
 <pre><code class="language-csharp">// DaqMonitor.Core/Devices/TcpDevice.cs
 using System.Net.Sockets;
 using DaqMonitor.Core.Models;
@@ -511,15 +589,15 @@ public class TcpDevice : DeviceBase
 <blockquote>
 <p>接进工程：在 <code>Bootstrapper</code> 里 <code>services.AddSingleton&lt;IDevice&gt;(_ =&gt; new TcpDevice(3, "TCP-01", "127.0.0.1", 502));</code>，UI 与采集层一行不用改。</p>
 </blockquote>
-<h2 id="sec-2-6">🔗 明日预告</h2>
+<h2 id="sec-2-7">🔗 明日预告</h2>
 <p><strong>M12 工程量转换 与 企业数据库（SQL Server / MySQL）</strong>：今天解出的"原始字节值"还不能直接显示给人看——要标定成真实温度/压力，还要能存进企业最常见的 SQL Server/MySQL。这就是 M12 要解决的。</p>
-<h2 id="sec-2-7">📚 延伸阅读</h2>
+<h2 id="sec-2-8">📚 延伸阅读</h2>
 <ul>
 <li>Microsoft Learn · <a href="https://learn.microsoft.com/zh-cn/dotnet/api/system.net.sockets.tcpclient">TcpClient 类</a></li>
 <li>Microsoft Learn · <a href="https://learn.microsoft.com/zh-cn/dotnet/api/system.net.sockets.networkstream">NetworkStream</a></li>
 <li>SuperSocket（国产 TCP 框架）· <a href="https://github.com/kerryjiang/SuperSocket">GitHub</a></li>
 </ul>
-<h2 id="sec-2-8">📎 关联附录</h2>
+<h2 id="sec-2-9">📎 关联附录</h2>
 <ul>
 <li>工程量转换见 <strong>M12</strong>；多设备接入见 <strong>M1/M2/M3/M13</strong>；断线重连见 <strong>M9</strong>。</li>
 </ul>

@@ -33,18 +33,19 @@
 <li class="l3"><a href="#sec-3-3">分点精讲</a></li>
 <li class="l3"><a href="#sec-3-4">⚠️ 重点 &amp; 易踩坑</a></li>
 <li class="l3"><a href="#sec-3-5">✏️ 练习</a></li>
+<li class="l3"><a href="#sec-3-6">🎭 拟人秒懂:RS232 vs RS485(面试高频考点画面感记忆)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">Day 2 — 协议帧解析（把字节流变成业务数据）</a><ul>
-<li class="l3"><a href="#sec-3-6">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-7">前端类比秒懂</a></li>
-<li class="l3"><a href="#sec-3-8">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-9">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</a></li>
-<li class="l3"><a href="#sec-3-10">🧪 手算验证例（自己算一遍才算会，面试硬要求）</a></li>
-<li class="l3"><a href="#sec-3-11">✏️ CRC 三档练习</a></li>
-<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</a></li>
-<li class="l3"><a href="#sec-3-13">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</a></li>
-<li class="l3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
-<li class="l3"><a href="#sec-3-15">✏️ 练习</a></li>
+<li class="l3"><a href="#sec-3-7">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-8">前端类比秒懂</a></li>
+<li class="l3"><a href="#sec-3-9">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-10">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</a></li>
+<li class="l3"><a href="#sec-3-11">🧪 手算验证例（自己算一遍才算会，面试硬要求）</a></li>
+<li class="l3"><a href="#sec-3-12">✏️ CRC 三档练习</a></li>
+<li class="l3"><a href="#sec-3-13">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</a></li>
+<li class="l3"><a href="#sec-3-14">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</a></li>
+<li class="l3"><a href="#sec-3-15">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-16">✏️ 练习</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
 </ul></li>
@@ -196,10 +197,71 @@ Console.WriteLine(&quot;按任意键退出&quot;); Console.ReadKey(); port.Close
 <p>🔗 <strong>本项目已含参考实现（可直接读，不必从零）</strong>：<code>DaqMonitor.Core/Devices/</code> 下已有 <code>ISerialChannel</code>/<code>RealSerialChannel</code>/<code>LoopbackSerialChannel</code>/<code>SerialDevice</code>（含 <code>FrameParser.Build</code> 双向建帧 + CRC 校验），并配 5 个单测全绿（单帧/粘包/半包/坏CRC/管道集成）。<strong>建议</strong>：先读这份实现理清思路 → 自己照着重写一遍加深记忆 → 跑 <code>dotnet test</code> 看那 5 个绿。这就是"边做边学"：你手里的工程已经是能跑的真实代码。</p>
 </blockquote>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M1',1)"> 打卡</label></strong></p>
+<hr />
+<h3 id="sec-3-6">🎭 拟人秒懂:RS232 vs RS485(面试高频考点画面感记忆)</h3>
+<blockquote>
+<p>把串口通信介质想象成"两种不同的电话"。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><strong>RS232</strong>(单车道电话)</th>
+<th><strong>RS485</strong>(对讲机总线)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>信号方式</strong></td>
+<td>单端(信号 vs 地线)— 像"电压喊话"</td>
+<td><strong>差分</strong>(两根线 A/B,看电压差)— 像"两人举旗方向"</td>
+</tr>
+<tr>
+<td><strong>抗干扰</strong></td>
+<td>弱 — 电磁干扰直接进入信号</td>
+<td><strong>强</strong> — 干扰同时打到两根线上,<strong>电压差不变</strong></td>
+</tr>
+<tr>
+<td><strong>传输距离</strong></td>
+<td>&lt; 15 米(短距离)</td>
+<td><strong>&lt; 1200 米</strong>(工厂车间够用)</td>
+</tr>
+<tr>
+<td><strong>拓扑</strong></td>
+<td>点对点(1 对 1)</td>
+<td><strong>总线</strong>(1 主多从,可挂 32 个设备)</td>
+</tr>
+<tr>
+<td><strong>速率</strong></td>
+<td>9600-115200 bps</td>
+<td>同样,但长距离会降速</td>
+</tr>
+<tr>
+<td><strong>典型场景</strong></td>
+<td>PC ↔ 单台仪表、调试口</td>
+<td>PLC ↔ 多台变频器、车间总线</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么工厂 90% 用 RS485</strong>:
+- <strong>差分信号抗干扰</strong>:工厂车间电磁干扰强(电机启停、变频器、电焊机),RS232 一干扰就乱码,RS485 两根线一起被干扰但<strong>电压差不变</strong>,信号保真
+- <strong>总线拓扑</strong>:一根 RS485 线串 32 个设备(每个有唯一从站地址),省线材 — 工厂动辄几十台仪表,RS232 一台一根线不现实
+- <strong>长距离</strong>:15 米连车间都过不去,1200 米能跑全厂</p>
+<p><strong>记忆口诀</strong>:
+- <strong>232 = 短、点对点、抗干扰弱</strong>(像家用电话)— PC 调试用
+- <strong>485 = 长、总线、抗干扰强</strong>(像军用对讲机)— 车间生产用</p>
+<p><strong>9600-8-N-1 四参数是什么</strong>:
+- <strong>9600</strong>:波特率(语速)— 双方必须一致,否则听不懂
+- <strong>8</strong>:数据位(每个字几位)— 8 位 = 1 byte
+- <strong>N</strong>:校验位(None/Even/Odd)— N=不校验,E=偶校验,O=奇校验
+- <strong>1</strong>:停止位(标志字节结束)— 1 位或 2 位
+- 口诀:<strong>"语速 9600 / 每字 8 位 / 无校验 / 1 位停止"</strong> — 这是 90% 工业设备默认配置</p>
+<p><strong>新手 100% 翻车场景</strong>:波特率不匹配 → 收的全是乱码。<strong>调试第一招:用万用表/示波器测波特率,或抓包看字节是不是合理范围</strong>(ASCII 设备应在 0x20-0x7E 范围内,出现大量 0x80+ 多半是波特率错了)。</p>
+<hr />
 <h2 id="sec-2-3">Day 2 — 协议帧解析（把字节流变成业务数据）</h2>
-<h3 id="sec-3-6">一句话讲清楚</h3>
+<h3 id="sec-3-7">一句话讲清楚</h3>
 <p>裸字节没意义，必须按"协议帧"切包：每个帧有【帧头 + 长度 + 数据 + 校验】，像处理 TCP 粘包一样拼包、校验、提取。</p>
-<h3 id="sec-3-7">前端类比秒懂</h3>
+<h3 id="sec-3-8">前端类比秒懂</h3>
 <table>
 <thead>
 <tr>
@@ -222,7 +284,7 @@ Console.WriteLine(&quot;按任意键退出&quot;); Console.ReadKey(); port.Close
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-8">分点精讲</h3>
+<h3 id="sec-3-9">分点精讲</h3>
 <p><strong>① 拼包缓冲（解决半包 / 粘包）</strong>（🟦）</p>
 <pre><code class="language-csharp">private readonly List&lt;byte&gt; _buffer = new();
 private void OnBytes(byte[] chunk)
@@ -249,7 +311,7 @@ private void OnBytes(byte[] chunk)
 }
 </code></pre>
 <p><strong>③ 完整帧示例</strong>：<code>AA 55 | Len | Payload... | CRC_L CRC_H</code></p>
-<h3 id="sec-3-9">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</h3>
+<h3 id="sec-3-10">🔬 掰开揉碎：CRC16 到底在算什么（新手最卡的一关）</h3>
 <p>代码只有 8 行，但「为什么是 0xA001」「为什么初始 0xFFFF」「右移/异或在干啥」——不讲清楚你永远只会抄。
 - <strong>它算的是「数据指纹」</strong>：发送方把整帧(除 CRC 本身)算出一个 16 位校验值附在末尾；接收方用<strong>同样算法</strong>重算一遍，比对一致才说明传输没出错（类比：你给文件算个 MD5，对方再算一次对不对得上）。
 - <strong>初始值 0xFFFF</strong>：所有位先置 1 再开始异或，是为了让「全 0 数据」也能产生非零校验（否则 0 数据校验也是 0，分不清是没传还是传错了）。
@@ -263,7 +325,7 @@ private void OnBytes(byte[] chunk)
 - <strong>线序坑（本项目测试踩过）</strong>：算出的寄存器值是 <code>0x0A84</code>，但 Modbus <strong>先传低字节</strong><code>84</code>、再传高字节<code>0A</code>，所以线上字节顺序是 <code>84 0A</code>，人们常写成「0x840A」。<strong>寄存器真值是 0x0A84</strong>，本项目 <code>Crc16.Modbus</code> 返回的就是这个（测试断言 <code>0x0A84</code>，不是 <code>0x840A</code>）。
 - <strong>查表法为什么快</strong>：上面是「计算法」每字节循环 8 次；工业用「256 项预计算表」，每字节直接查表异或，快一个数量级。本项目 <code>FrameParser</code> 用计算法够用，真高频场景再换表。</p>
 </blockquote>
-<h3 id="sec-3-10">🧪 手算验证例（自己算一遍才算会，面试硬要求）</h3>
+<h3 id="sec-3-11">🧪 手算验证例（自己算一遍才算会，面试硬要求）</h3>
 <blockquote>
 <p>用本模块的 <code>Crc16.Modbus</code> 跑一遍，确认输出和手搓帧对得上。</p>
 </blockquote>
@@ -277,20 +339,20 @@ Console.WriteLine($&quot;{lo:X2} {hi:X2}&quot;);   // 运行结果：C4 0B
 <blockquote>
 <p>⚠️ <strong>连「标准答案」都可能错</strong>：某份流传的 Modbus 讲义写「<code>01 06 00 01 00 64</code> 的 CRC 是 <code>19 98</code>」——<strong>实测是 <code>D9 E1</code></strong>（用上面同样的函数一算便知）。所以 CRC 必须自己会手算/会跑代码验证，不能抄别人的结论。</p>
 </blockquote>
-<h3 id="sec-3-11">✏️ CRC 三档练习</h3>
+<h3 id="sec-3-12">✏️ CRC 三档练习</h3>
 <ul>
 <li>🟢 <strong>基础题</strong>：用 <code>Crc16.Modbus</code> 算 <code>01 06 00 01 00 64</code>（写寄存器 40002 = 100）的 CRC，打印低/高字节。
   <strong>✅ 答案</strong>：<code>D9 E1</code>（不是网上有些资料写的 <code>19 98</code>）。</li>
 <li>🟡 <strong>进阶题</strong>：写一个 <code>VerifyCrc(byte[] frame)</code>：拆出末尾 2 字节与 <code>Crc16.Modbus(数据部分)</code> 比对，返回 <code>bool</code>。</li>
 <li>🔴 <strong>挑战题</strong>：把 <code>Crc16.Modbus</code> 改成<strong>查表法</strong>（预生成 256 项表），和原实现跑同一组输入，断言结果一致。</li>
 </ul>
-<h3 id="sec-3-12">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</h3>
+<h3 id="sec-3-13">🔬 掰开揉碎：为什么会有「半包 / 粘包」（现场最难查的 bug 源头）</h3>
 <p>串口是<strong>字节流</strong>，不保证「你发一次、我收一次」：
 - <strong>半包</strong>：下位机一次发 20 字节，你 <code>DataReceived</code> 可能先收到 5 字节、再 15 字节（系统缓冲没攒够就通知你了）。
 - <strong>粘包</strong>：下位机连发两帧，你一次收到 40 字节（两帧粘一起）。
 - <strong>后果</strong>：直接按「收到=一帧」解析 = 偶发乱码/丢数据，<strong>现场几周才复现一次</strong>，极难查。
 - <strong>正解（本项目 FrameParser 的做法）</strong>：维护一个 <code>_buffer</code>，来啥都 <code>AddRange</code> 进去，然后<strong>循环尝试拆帧</strong>（<code>TryTakeFrame</code> 找帧头→读长度→够长才取出），拆不出就<strong>留着等下一波</strong>；注意：永远拆不出完整帧时（比如收到垃圾头）要<strong>清空缓冲</strong>，否则缓冲无限增长 = 内存泄漏。</p>
-<h3 id="sec-3-13">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</h3>
+<h3 id="sec-3-14">🔬 掰开揉碎：SerialPort 真实项目里的「坑」（光会 Open/Read 不够）</h3>
 <ul>
 <li><strong><code>DataReceived</code> 在某些机器/某些 USB 转串口上不触发</strong>：这是 .NET <code>SerialPort</code> 的已知老毛病（基于 Win32 事件，不稳定）。<strong>企业级写法</strong>是用 <code>BaseStream.ReadAsync</code> 自己开一个读循环，不依赖 <code>DataReceived</code>：
   <code>csharp
@@ -305,7 +367,7 @@ Console.WriteLine($&quot;{lo:X2} {hi:X2}&quot;);   // 运行结果：C4 0B
 <li><strong>跨线程 <code>Close()</code> 崩溃</strong>：<code>DataReceived</code> 在后台线程，若在 UI 线程直接 <code>port.Close()</code> 可能和后台读冲突。统一用 <code>CancellationToken</code> 先停止读循环、再 <code>Close()</code>。</li>
 <li><strong><code>BytesToRead</code> 一次性读不完</strong>：循环读直到 <code>BytesToRead == 0</code>，别只 <code>Read</code> 一次。</li>
 </ul>
-<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
+<h3 id="sec-3-15">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
 <thead>
 <tr>
@@ -332,7 +394,7 @@ Console.WriteLine($&quot;{lo:X2} {hi:X2}&quot;);   // 运行结果：C4 0B
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-15">✏️ 练习</h3>
+<h3 id="sec-3-16">✏️ 练习</h3>
 <p>实现 <code>TryTakeFrame</code>：从 <code>_buffer</code> 找 <code>AA 55</code> 开头、按第 3 字节长度取出完整帧并移除缓冲；校验 CRC。</p>
 <p><strong>✅ 答案</strong>（骨架）</p>
 <pre><code class="language-csharp">private bool TryTakeFrame(out byte[] frame)

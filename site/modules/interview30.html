@@ -44,48 +44,49 @@
 <li class="l3"><a href="#sec-3-10">Q10. S7.Net 怎么读 DB1.DBX0.0 / DB1.DBD4?</a></li>
 <li class="l3"><a href="#sec-3-11">Q11. event 不退订会怎样?</a></li>
 <li class="l3"><a href="#sec-3-12">Q12. PLC 读写为什么必须异步?同步阻塞 UI 线程的后果?</a></li>
+<li class="l3"><a href="#sec-3-13">Q12.5 西门子通讯全景(15K 必考 5 问)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-5">五、EF Core + SQLite</a><ul>
-<li class="l3"><a href="#sec-3-13">Q13. DbContext 生命周期?为什么不能 Singleton?</a></li>
-<li class="l3"><a href="#sec-3-14">Q14. IDbContextFactory vs 直接注入 DbContext,什么时候选哪个?</a></li>
-<li class="l3"><a href="#sec-3-15">Q15. AsNoTracking 什么时候用?变更追踪的成本多大?</a></li>
+<li class="l3"><a href="#sec-3-14">Q13. DbContext 生命周期?为什么不能 Singleton?</a></li>
+<li class="l3"><a href="#sec-3-15">Q14. IDbContextFactory vs 直接注入 DbContext,什么时候选哪个?</a></li>
+<li class="l3"><a href="#sec-3-16">Q15. AsNoTracking 什么时候用?变更追踪的成本多大?</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-6">六、Prism + MVVM</a><ul>
-<li class="l3"><a href="#sec-3-16">Q16. Prism 的 RegionManager 干嘛的?和 ContentControl 区别?</a></li>
-<li class="l3"><a href="#sec-3-17">Q17. EventAggregator 内存泄漏怎么避免?</a></li>
-<li class="l3"><a href="#sec-3-18">Q18. Prism 模块化 vs 手写 DI 的核心优势?</a></li>
+<li class="l3"><a href="#sec-3-17">Q16. Prism 的 RegionManager 干嘛的?和 ContentControl 区别?</a></li>
+<li class="l3"><a href="#sec-3-18">Q17. EventAggregator 内存泄漏怎么避免?</a></li>
+<li class="l3"><a href="#sec-3-19">Q18. Prism 模块化 vs 手写 DI 的核心优势?</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-7">七、TCP Socket + 协议设计</a><ul>
-<li class="l3"><a href="#sec-3-19">Q19. TCP 粘包/拆包 4 种解法?</a></li>
-<li class="l3"><a href="#sec-3-20">Q20. SocketException 怎么处理?ReadAsync 返回 0 意味着什么?</a></li>
-<li class="l3"><a href="#sec-3-21">Q21. 设计一个工业协议帧:帧头 + 长度 + payload + CRC,字节级讲清楚</a></li>
+<li class="l3"><a href="#sec-3-20">Q19. TCP 粘包/拆包 4 种解法?</a></li>
+<li class="l3"><a href="#sec-3-21">Q20. SocketException 怎么处理?ReadAsync 返回 0 意味着什么?</a></li>
+<li class="l3"><a href="#sec-3-22">Q21. 设计一个工业协议帧:帧头 + 长度 + payload + CRC,字节级讲清楚</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-8">八、报警 + 日志</a><ul>
-<li class="l3"><a href="#sec-3-22">Q22. 报警回滞机制?为什么不能直接用 if(value &gt; threshold)?</a></li>
-<li class="l3"><a href="#sec-3-23">Q23. Serilog 的 Sink / Enricher / MinimumLevel 怎么用?</a></li>
-<li class="l3"><a href="#sec-3-24">Q24. TraceId 跨线程怎么传?</a></li>
+<li class="l3"><a href="#sec-3-23">Q22. 报警回滞机制?为什么不能直接用 if(value &gt; threshold)?</a></li>
+<li class="l3"><a href="#sec-3-24">Q23. Serilog 的 Sink / Enricher / MinimumLevel 怎么用?</a></li>
+<li class="l3"><a href="#sec-3-25">Q24. TraceId 跨线程怎么传?</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-9">九、性能 + 长跑稳定性</a><ul>
-<li class="l3"><a href="#sec-3-25">Q25. 7×24 跑 3 天后内存涨到 1GB,怎么排查?</a></li>
-<li class="l3"><a href="#sec-3-26">Q26. 事件订阅 / static 集合 / 闭包 / GDI 4 种典型内存泄漏</a></li>
-<li class="l3"><a href="#sec-3-27">Q27. 性能瓶颈定位:VS Profiler / dotnet-trace 火焰图 / BenchmarkDotNet</a></li>
+<li class="l3"><a href="#sec-3-26">Q25. 7×24 跑 3 天后内存涨到 1GB,怎么排查?</a></li>
+<li class="l3"><a href="#sec-3-27">Q26. 事件订阅 / static 集合 / 闭包 / GDI 4 种典型内存泄漏</a></li>
+<li class="l3"><a href="#sec-3-28">Q27. 性能瓶颈定位:VS Profiler / dotnet-trace 火焰图 / BenchmarkDotNet</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-10">十、调试 + 工程素养</a><ul>
-<li class="l3"><a href="#sec-3-28">Q28. 条件断点 + 数据断点 + Hit Count 分别什么时候用?</a></li>
-<li class="l3"><a href="#sec-3-29">Q29. 工业现场设备偶发掉线 30 秒自动恢复,怎么排查?</a></li>
-<li class="l3"><a href="#sec-3-30">Q30. 你最满意的 bug 是怎么排查的?(STAR 法开放题)</a></li>
+<li class="l3"><a href="#sec-3-29">Q28. 条件断点 + 数据断点 + Hit Count 分别什么时候用?</a></li>
+<li class="l3"><a href="#sec-3-30">Q29. 工业现场设备偶发掉线 30 秒自动恢复,怎么排查?</a></li>
+<li class="l3"><a href="#sec-3-31">Q30. 你最满意的 bug 是怎么排查的?(STAR 法开放题)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-11">30 题自测清单(逐条打勾)</a><ul>
-<li class="l3"><a href="#sec-3-31">C# 核心 + 异步(3)</a></li>
-<li class="l3"><a href="#sec-3-32">多线程 + 并发(3)</a></li>
-<li class="l3"><a href="#sec-3-33">串口 + Modbus(3)</a></li>
-<li class="l3"><a href="#sec-3-34">PLC + S7.Net(3)</a></li>
-<li class="l3"><a href="#sec-3-35">EF Core + SQLite(3)</a></li>
-<li class="l3"><a href="#sec-3-36">Prism + MVVM(3)</a></li>
-<li class="l3"><a href="#sec-3-37">TCP Socket + 协议设计(3)</a></li>
-<li class="l3"><a href="#sec-3-38">报警 + 日志(3)</a></li>
-<li class="l3"><a href="#sec-3-39">性能 + 长跑稳定性(3)</a></li>
-<li class="l3"><a href="#sec-3-40">调试 + 工程素养(3)</a></li>
+<li class="l3"><a href="#sec-3-32">C# 核心 + 异步(3)</a></li>
+<li class="l3"><a href="#sec-3-33">多线程 + 并发(3)</a></li>
+<li class="l3"><a href="#sec-3-34">串口 + Modbus(3)</a></li>
+<li class="l3"><a href="#sec-3-35">PLC + S7.Net(3)</a></li>
+<li class="l3"><a href="#sec-3-36">EF Core + SQLite(3)</a></li>
+<li class="l3"><a href="#sec-3-37">Prism + MVVM(3)</a></li>
+<li class="l3"><a href="#sec-3-38">TCP Socket + 协议设计(3)</a></li>
+<li class="l3"><a href="#sec-3-39">报警 + 日志(3)</a></li>
+<li class="l3"><a href="#sec-3-40">性能 + 长跑稳定性(3)</a></li>
+<li class="l3"><a href="#sec-3-41">调试 + 工程素养(3)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-12">📚 参考来源</a><ul>
 </ul></li>
@@ -772,9 +773,148 @@ public async Task&lt;float&gt; ReadTemperatureAsync() {
 第三,<strong>绝对不写 .Result 或 .Wait()</strong>,在 UI 线程是定时炸弹。</p>
 <p>这个知识点的本质是 <strong>JS 的 event loop 模型——前端工程师天生不能写阻塞代码</strong>,因为 JS 是单线程。C# 多线程,但 UI 线程一样的规则:不能阻塞。所以前端转 C# 这块是天然优势,我从 Cypress 测试 Promise 链时积累的经验直接复用。"</p>
 </blockquote>
+<h3 id="sec-3-13">Q12.5 西门子通讯全景(15K 必考 5 问)</h3>
+<blockquote>
+<p>投半导体设备 / 汽车零部件 / 新能源锂电岗<strong>必背</strong>。投数据采集 / 监控 / MES 类 13K 岗<strong>了解即可</strong>(被问到能答 30 秒)。详细原理见 <a href="M3_PLC_深度版.html">M3 附录 · 西门子通讯全景</a>。</p>
+</blockquote>
+<h4>Q12.5-a 上位机访问西门子 PLC 有几种方式?怎么选?</h4>
+<p><strong>🎯 面试官想听到什么</strong>:6 种方式 + 性能/适用场景取舍,不是只会 S7.Net。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>库</th>
+<th>适用</th>
+<th>性能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S7.Net</strong></td>
+<td>开源 NuGet,纯 C#</td>
+<td>200smart/1200/1500</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Snap7</strong></td>
+<td>C++ 原生 + wrapper</td>
+<td>全系 200/300/400/1200/1500</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>Sharp7</strong></td>
+<td>Snap7 的纯 C# 移植</td>
+<td>同 Snap7</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>OPC UA</strong></td>
+<td>OpcUaNet</td>
+<td>1200/1500 内置 Server</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Modbus TCP</strong></td>
+<td>NModbus4</td>
+<td>1200/1500 作 Server</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>TIA Portal SDK</strong></td>
+<td>Siemens 官方</td>
+<td>TIA 项目集成</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选型原则</strong>:
+- 学习/小项目 → S7.Net(简单)
+- 高并发/老设备(300/400) → Snap7(性能+全系)
+- 不想用 C++ 绑定 → Sharp7
+- 跨厂商标准化 → OPC UA</p>
+<h4>Q12.5-b S7-1200 和 S7-1500 通讯上有什么差异?</h4>
+<p><strong>🎯 面试官想听到什么</strong>:不是价位,是通信能力差异。</p>
+<p><strong>✅ 标准答案</strong></p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>S7-1200</th>
+<th>S7-1500</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PUT/GET 跨 PLC</td>
+<td><strong>默认关</strong>,需配置</td>
+<td>默认开</td>
+</tr>
+<tr>
+<td>PROFINET IRT</td>
+<td>不支持(只 RT)</td>
+<td><strong>支持</strong>(伺服高精度)</td>
+</tr>
+<tr>
+<td>OPC UA Server</td>
+<td>基础版</td>
+<td>完整版</td>
+</tr>
+<tr>
+<td>S7 连接数</td>
+<td>8-10 个</td>
+<td>32+</td>
+</tr>
+<tr>
+<td>优化块访问</td>
+<td>默认优化</td>
+<td>默认优化</td>
+</tr>
+</tbody>
+</table>
+<p><strong>记忆口诀</strong>:<strong>"1200 什么都默认关,1500 什么都默认开"</strong></p>
+<h4>Q12.5-c 什么是优化块访问?S7.Net 怎么读?</h4>
+<p><strong>🎯 面试官想听到什么</strong>:符号寻址 vs 绝对偏移 + ReadClass 用法。</p>
+<p><strong>✅ 标准答案</strong></p>
+<ul>
+<li><strong>优化访问</strong>(1200/1500 默认):TIA 按符号哈希存储,<strong>不能 <code>DB1.DBX0.0</code> 绝对寻址</strong>;S7.Net 用 <code>plc.ReadClass&lt;T&gt;(dbNo)</code> 按结构体读</li>
+<li><strong>非优化访问</strong>(取消勾选"优化块访问"):按绝对偏移,可用 <code>plc.Read("DB1.DBX0.0")</code></li>
+<li><strong>现场坑</strong>:从客户拿到的程序是优化访问,直接读绝对地址报错 → 在 TIA 取消勾选重新下载,或改用 <code>ReadClass&lt;T&gt;</code></li>
+</ul>
+<pre><code class="language-csharp">// 非优化访问 - 直接读地址
+var bit = plc.Read(&quot;DB1.DBX0.0&quot;);
+var real = ((uint)plc.Read(&quot;DB1.DBD4&quot;)).ConvertToFloat();
+
+// 优化访问 - 读整个结构体
+var data = plc.ReadClass&lt;MyDbStruct&gt;(1);   // DB1
+</code></pre>
+<h4>Q12.5-d PUT/GET 是什么?为什么 S7-1200 默认关?</h4>
+<p><strong>🎯 面试官想听到什么</strong>:跨 PLC 读写 + 安全考虑。</p>
+<p><strong>✅ 标准答案</strong></p>
+<ul>
+<li><strong>PUT/GET</strong>:S7 协议的跨 PLC 读写命令,PLC A 可以直接读写 PLC B 的数据区,不需要上位机中转</li>
+<li><strong>1200 默认关</strong>:安全考虑(防止未授权 PLC 篡改数据)</li>
+<li><strong>开启路径</strong>:TIA Portal → PLC 属性 → "防护与安全" → 勾选"允许 PUT/GET 通信访问"</li>
+<li><strong>上位机相关</strong>:S7.Net 读 1200 时,如果没开 PUT/GET 会报"无法访问块" — 新手常误以为代码错</li>
+</ul>
+<h4>Q12.5-e S7-1200 连接数限制是多少?多客户端怎么办?</h4>
+<p><strong>🎯 面试官想听到什么</strong>:连接资源管理 + OPC UA 中间层方案。</p>
+<p><strong>✅ 标准答案</strong></p>
+<ul>
+<li><strong>S7-1200</strong>:默认 8-10 个 S7 连接(Web Server / HMI / OPC UA Server 都占)</li>
+<li><strong>S7-1500</strong>:32+ 个</li>
+<li><strong>多客户端顶满现象</strong>:多开几个上位机就连不上,关一个就好</li>
+<li><strong>3 种解决方案</strong>:
+  1. PLC 配置加连接数(1200 上限就那么多)
+  2. 用 OPC UA Server 做中间层,多客户端共享一个 PLC 连接
+  3. 上位机端做连接池/复用(本机多客户端共享一个 S7.Net 实例)</li>
+</ul>
+<blockquote>
+<p><strong>答得漂亮的关键</strong>:讲完连接数后,主动提一句"我项目里如果遇到多客户端场景,会用 OPC UA 做中间层,PLC 端只开 1 个连接给 OPC Server,所有客户端订阅 OPC"。这等于告诉面试官"我懂架构,不是只会调 API"。</p>
+</blockquote>
 <hr />
 <h2 id="sec-2-5">五、EF Core + SQLite</h2>
-<h3 id="sec-3-13">Q13. DbContext 生命周期?为什么不能 Singleton?</h3>
+<h3 id="sec-3-14">Q13. DbContext 生命周期?为什么不能 Singleton?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:Scoped 生命周期 + 并发不安全 + ChangeTracker 状态。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p><code>DbContext</code> <strong>不是线程安全的</strong>——内部维护 <code>ChangeTracker</code>、<code>IDbContextTransaction</code>、缓存。生命周期:</p>
@@ -842,7 +982,7 @@ public class DataService {
 <p>前端没有完全对应的概念,但<strong>类似 Redux 的 store 状态——你不能多线程同时改 store,要么加锁要么用单向数据流</strong>。DbContext 的 ChangeTracker 类似,需要一个明确的 owner。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-14">Q14. IDbContextFactory vs 直接注入 DbContext,什么时候选哪个?</h3>
+<h3 id="sec-3-15">Q14. IDbContextFactory vs 直接注入 DbContext,什么时候选哪个?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:Scoped 的局限 + Factory 的优势 + 选型决策。</p>
 <p><strong>✅ 标准答案</strong></p>
 <table>
@@ -913,7 +1053,7 @@ public async Task&lt;Summary&gt; GetSummaryAsync() {
 <p>前端类似的概念是 <strong>Redux Saga / Effect 的每次执行创建独立作用域</strong>,不能多请求共享一个 Saga 上下文。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-15">Q15. AsNoTracking 什么时候用?变更追踪的成本多大?</h3>
+<h3 id="sec-3-16">Q15. AsNoTracking 什么时候用?变更追踪的成本多大?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:读多写少场景 + ChangeTracker 性能成本 + 全局禁用选项。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p><code>AsNoTracking</code> 告诉 EF Core "<strong>这次查询的结果不要追踪变更</strong>",跳过 ChangeTracker 的快照机制。<strong>优势</strong>:</p>
@@ -958,7 +1098,7 @@ await db.SaveChangesAsync();  // ✅ 正常更新
 </blockquote>
 <hr />
 <h2 id="sec-2-6">六、Prism + MVVM</h2>
-<h3 id="sec-3-16">Q16. Prism 的 RegionManager 干嘛的?和 ContentControl 区别?</h3>
+<h3 id="sec-3-17">Q16. Prism 的 RegionManager 干嘛的?和 ContentControl 区别?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:Region 抽象 + 视图注入 + 导航 + 模块解耦。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p><code>ContentControl</code> 是 WPF 的<strong>容器控件</strong>,直接 <code>Content = new SomeView()</code> 设置内容,<strong>强耦合</strong>。</p>
@@ -991,7 +1131,7 @@ _regionManager.RequestNavigate(&quot;MainRegion&quot;, &quot;DeviceView&quot;);
 <p>这个类比是前端转上位机最大的优势——<strong>MVVM 思想 + 路由思想前端用了 5 年,迁移到 Prism 一模一样</strong>。面试时强调这点,面试官会立刻 get 到你不是从零起步。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-17">Q17. EventAggregator 内存泄漏怎么避免?</h3>
+<h3 id="sec-3-18">Q17. EventAggregator 内存泄漏怎么避免?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:弱引用 + Unsubscribe + 生命周期配对。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p>Prism <code>EventAggregator</code> 内部维护<strong>强引用订阅列表</strong>,不退订 = 内存泄漏。</p>
@@ -1031,7 +1171,7 @@ _regionManager.RequestNavigate(&quot;MainRegion&quot;, &quot;DeviceView&quot;);
 <p>前端类似的概念是 <strong>RxJS Subscription 必须 unsubscribe</strong>,否则内存泄漏。React useEffect 清理函数就是这个意思。<strong>前端 5 年积累的'订阅必清理'直觉,在 C# 里完全适用</strong>。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-18">Q18. Prism 模块化 vs 手写 DI 的核心优势?</h3>
+<h3 id="sec-3-19">Q18. Prism 模块化 vs 手写 DI 的核心优势?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:运行时加载 + 解耦 + 团队协作 + 大型项目架构。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p>Prism 模块化(IModule)的核心价值:</p>
@@ -1108,7 +1248,7 @@ protected override void ConfigureModuleCatalog(IModuleCatalog catalog) {
 </blockquote>
 <hr />
 <h2 id="sec-2-7">七、TCP Socket + 协议设计</h2>
-<h3 id="sec-3-19">Q19. TCP 粘包/拆包 4 种解法?</h3>
+<h3 id="sec-3-20">Q19. TCP 粘包/拆包 4 种解法?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:TCP 是字节流 + 4 种定界方案 + 各自优缺点。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p>TCP 不维护消息边界,4 种定界方案:</p>
@@ -1202,7 +1342,7 @@ private async Task ReadExactAsync(NetworkStream s, byte[] buf, int count, Cancel
 <p>前端类似的概念是 <strong>WebSocket 帧边界</strong>——WebSocket 协议帮我们处理了,但底层 TCP 是字节流。理解了 TCP 定界,任何应用层协议都通。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-20">Q20. SocketException 怎么处理?ReadAsync 返回 0 意味着什么?</h3>
+<h3 id="sec-3-21">Q20. SocketException 怎么处理?ReadAsync 返回 0 意味着什么?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:返回 0 = 对端关闭 + SocketError 枚举 + 重连策略。</p>
 <p><strong>✅ 标准答案</strong></p>
 <pre><code class="language-csharp">try {
@@ -1254,7 +1394,7 @@ await retry.ExecuteAsync(ConnectAndReadAsync);
 <p>前端类似的概念是 <strong>WebSocket 的 onclose 事件 + 自动重连库(ReconnectingWebSocket)</strong>,思路完全一致——监听关闭、指数退避、重建连接。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-21">Q21. 设计一个工业协议帧:帧头 + 长度 + payload + CRC,字节级讲清楚</h3>
+<h3 id="sec-3-22">Q21. 设计一个工业协议帧:帧头 + 长度 + payload + CRC,字节级讲清楚</h3>
 <p><strong>🎯 面试官想听到什么</strong>:帧结构 + 字段含义 + 边界情况 + 错误恢复。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p><strong>协议帧设计</strong>(工业主流模式):</p>
@@ -1308,7 +1448,7 @@ XX XX        CRC16
 </blockquote>
 <hr />
 <h2 id="sec-2-8">八、报警 + 日志</h2>
-<h3 id="sec-3-22">Q22. 报警回滞机制?为什么不能直接用 <code>if(value &gt; threshold)</code>?</h3>
+<h3 id="sec-3-23">Q22. 报警回滞机制?为什么不能直接用 <code>if(value &gt; threshold)</code>?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:阈值抖动 + Hysteresis + 双阈值设计。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p>直接 <code>if (value &gt; threshold)</code> 的问题:<strong>值在阈值附近抖动时,报警反复触发和清除</strong>(每秒触发几十次,日志爆炸,操作员崩溃)。</p>
@@ -1352,7 +1492,7 @@ XX XX        CRC16
 <p>回滞算法源自继电器控制,叫 Hysteresis,工业用了 50 年。<strong>前端类似的概念是 debounce / throttle</strong>,防止按钮疯狂点击触发。本质都是'加缓冲区避免高频抖动'。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-23">Q23. Serilog 的 Sink / Enricher / MinimumLevel 怎么用?</h3>
+<h3 id="sec-3-24">Q23. Serilog 的 Sink / Enricher / MinimumLevel 怎么用?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:结构化日志 + Sink 多通道 + Enricher 上下文 + Level 动态。</p>
 <p><strong>✅ 标准答案</strong></p>
 <pre><code class="language-csharp">// 配置
@@ -1399,7 +1539,7 @@ using (LogContext.PushProperty(&quot;TraceId&quot;, Guid.NewGuid()))
 <p>前端类似的是 <strong>Winston / Bunyan 的 JSON 日志</strong>——结构化日志是 ELK 栈的核心,Serilog 思路完全一致。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-24">Q24. TraceId 跨线程怎么传?</h3>
+<h3 id="sec-3-25">Q24. TraceId 跨线程怎么传?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:AsyncLocal<T> + LogContext + 显式传递。</p>
 <p><strong>✅ 标准答案</strong></p>
 <pre><code class="language-csharp">// 方案 1:AsyncLocal&lt;T&gt;(推荐,.NET 标准)
@@ -1442,7 +1582,7 @@ await Task.Run(() =&gt; DoWork(traceId));
 </blockquote>
 <hr />
 <h2 id="sec-2-9">九、性能 + 长跑稳定性</h2>
-<h3 id="sec-3-25">Q25. 7×24 跑 3 天后内存涨到 1GB,怎么排查?</h3>
+<h3 id="sec-3-26">Q25. 7×24 跑 3 天后内存涨到 1GB,怎么排查?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:三层定位法 - counters / dump / gcroot。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p><strong>Step 1:dotnet counters 实时监控</strong></p>
@@ -1486,7 +1626,7 @@ dotnet-dump analyze core.dmp
 <p>常见泄漏模式 4 种:event 不退订、static 集合只加不删、闭包捕获、GDI 句柄。<strong>前端类似的概念是 Chrome DevTools 的 Memory 标签</strong>——Heap Snapshot、Retaining Tree,我用 Cypress 调 ECharts 时积累的内存排查经验,直接迁移到 C#。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-26">Q26. 事件订阅 / static 集合 / 闭包 / GDI 4 种典型内存泄漏</h3>
+<h3 id="sec-3-27">Q26. 事件订阅 / static 集合 / 闭包 / GDI 4 种典型内存泄漏</h3>
 <p><strong>🎯 面试官想听到什么</strong>:每种泄漏的成因 + 检测 + 修复。</p>
 <p><strong>✅ 标准答案</strong></p>
 <table>
@@ -1587,7 +1727,7 @@ using var bmp = new Bitmap(1920, 1080);
 <p>前端类似的概念是 <strong>React useEffect 清理函数 + Cypress 内存检测</strong>——前端内存泄漏主要是 DOM 引用 / 闭包 / 事件监听,C# 这边类型多但本质一样:<strong>谁持有引用,谁就要负责释放</strong>。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-27">Q27. 性能瓶颈定位:VS Profiler / dotnet-trace 火焰图 / BenchmarkDotNet</h3>
+<h3 id="sec-3-28">Q27. 性能瓶颈定位:VS Profiler / dotnet-trace 火焰图 / BenchmarkDotNet</h3>
 <p><strong>🎯 面试官想听到什么</strong>:三套工具各自定位 + 实战流程。</p>
 <p><strong>✅ 标准答案</strong></p>
 <table>
@@ -1662,7 +1802,7 @@ public class CrcBenchmark {
 </blockquote>
 <hr />
 <h2 id="sec-2-10">十、调试 + 工程素养</h2>
-<h3 id="sec-3-28">Q28. 条件断点 + 数据断点 + Hit Count 分别什么时候用?</h3>
+<h3 id="sec-3-29">Q28. 条件断点 + 数据断点 + Hit Count 分别什么时候用?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:三种断点的场景 + 实战经验。</p>
 <p><strong>✅ 标准答案</strong></p>
 <table>
@@ -1714,7 +1854,7 @@ public class CrcBenchmark {
 <p>这些工具前端 DevTools 都有类似—— conditional breakpoint、logpoint。<strong>Chrome DevTools 调了 5 年,VS 这套断点我上手 1 天就熟</strong>。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-29">Q29. 工业现场设备偶发掉线 30 秒自动恢复,怎么排查?</h3>
+<h3 id="sec-3-30">Q29. 工业现场设备偶发掉线 30 秒自动恢复,怎么排查?</h3>
 <p><strong>🎯 面试官想听到什么</strong>:三层排查法 - 物理层 / 协议层 / 应用层 + 排除法。</p>
 <p><strong>✅ 标准答案</strong></p>
 <p><strong>Step 1:物理层(Physical Layer)</strong></p>
@@ -1759,7 +1899,7 @@ public class CrcBenchmark {
 <p>排查必须<strong>排除法</strong>:先物理、再协议、最后应用。<strong>工业现场 70% 问题在物理层</strong>,工程师只看软件日志会走弯路。"</p>
 </blockquote>
 <hr />
-<h3 id="sec-3-30">Q30. 你最满意的 bug 是怎么排查的?(STAR 法开放题)</h3>
+<h3 id="sec-3-31">Q30. 你最满意的 bug 是怎么排查的?(STAR 法开放题)</h3>
 <p><strong>🎯 面试官想听到什么</strong>:STAR 结构 + 技术深度 + 思维流程。</p>
 <p><strong>✅ 标准答案</strong>(参考答案,可改写)</p>
 <p><strong>S(背景)</strong>:DAQMonitor 上线后,某客户的西门子 S7-1200 PLC 在每天凌晨 3 点准时重启采集服务,<strong>白天完全正常</strong>。</p>
@@ -1808,61 +1948,61 @@ public class CrcBenchmark {
 <blockquote>
 <p>面试前一夜,把这 30 条过一遍,<strong>每条都能用自己的话讲 1 分钟</strong> 就稳了。</p>
 </blockquote>
-<h3 id="sec-3-31">C# 核心 + 异步(3)</h3>
+<h3 id="sec-3-32">C# 核心 + 异步(3)</h3>
 <ul>
 <li>[ ] 1. 我能解释 struct vs class,能复述 <code>List&lt;struct&gt;</code> 改字段丢失的根因。</li>
 <li>[ ] 2. 我能画出 async/await 状态机的伪代码,能区分 Task 和 Thread。</li>
 <li>[ ] 3. 我能说出 async void 的 3 个致命问题,知道唯一合法场景。</li>
 </ul>
-<h3 id="sec-3-32">多线程 + 并发(3)</h3>
+<h3 id="sec-3-33">多线程 + 并发(3)</h3>
 <ul>
 <li>[ ] 4. 我能解释为什么 lock(this) 危险,知道标准的 <code>_sync</code> 模式。</li>
 <li>[ ] 5. 我能说出 Channel<T> 比 ConcurrentQueue 多了什么,知道何时选哪个。</li>
 <li>[ ] 6. 我能写出 CancellationTokenSource 超时 + 链式取消的代码,知道 Dispose 重要性。</li>
 </ul>
-<h3 id="sec-3-33">串口 + Modbus(3)</h3>
+<h3 id="sec-3-34">串口 + Modbus(3)</h3>
 <ul>
 <li>[ ] 7. 我能复述串口半包粘包的 RDBE 处理模式。</li>
 <li>[ ] 8. 我能手算 Modbus RTU CRC16,知道 0xA001 多项式 + 0xFFFF 初值。</li>
 <li>[ ] 9. 我能解释浮点 4 种字节序 ABCD/CDAB/BADC/DCBA,知道必须做成配置项。</li>
 </ul>
-<h3 id="sec-3-34">PLC + S7.Net(3)</h3>
+<h3 id="sec-3-35">PLC + S7.Net(3)</h3>
 <ul>
 <li>[ ] 10. 我能复述 S7 地址格式 DBX/DBB/DBW/DBD,知道批量读取优化。</li>
 <li>[ ] 11. 我能解释 event 不退订的内存泄漏,知道 DeviceHost 模式。</li>
 <li>[ ] 12. 我能解释 PLC 同步阻塞 UI 的死锁,知道 ConfigureAwait(false)。</li>
 </ul>
-<h3 id="sec-3-35">EF Core + SQLite(3)</h3>
+<h3 id="sec-3-36">EF Core + SQLite(3)</h3>
 <ul>
 <li>[ ] 13. 我能解释 DbContext 为什么不能 Singleton,知道 Scoped 和 Factory 选型。</li>
 <li>[ ] 14. 我能复述 IDbContextFactory vs 直接注入 DbContext 的 5 个场景。</li>
 <li>[ ] 15. 我能解释 AsNoTracking 的性能收益,知道全局 NoTracking 配置。</li>
 </ul>
-<h3 id="sec-3-36">Prism + MVVM(3)</h3>
+<h3 id="sec-3-37">Prism + MVVM(3)</h3>
 <ul>
 <li>[ ] 16. 我能复述 RegionManager 抽象,能类比 React Router / Vue Router。</li>
 <li>[ ] 17. 我能说出 EventAggregator 泄漏避免方案,知道 SubscriptionToken 用法。</li>
 <li>[ ] 18. 我能解释 Prism 模块化 vs 手写 DI 的核心优势,能类比微前端。</li>
 </ul>
-<h3 id="sec-3-37">TCP Socket + 协议设计(3)</h3>
+<h3 id="sec-3-38">TCP Socket + 协议设计(3)</h3>
 <ul>
 <li>[ ] 19. 我能复述 TCP 粘包 4 种解法,知道长度前缀是工业主流。</li>
 <li>[ ] 20. 我能解释 ReadAsync 返回 0 的含义,知道 Polly 重连策略。</li>
 <li>[ ] 21. 我能设计一个完整的工业协议帧,字节级讲清 7 个字段。</li>
 </ul>
-<h3 id="sec-3-38">报警 + 日志(3)</h3>
+<h3 id="sec-3-39">报警 + 日志(3)</h3>
 <ul>
 <li>[ ] 22. 我能解释回滞算法,知道为什么不能直接 if(value &gt; threshold)。</li>
 <li>[ ] 23. 我能复述 Serilog Sink / Enricher / MinimumLevel 的用法。</li>
 <li>[ ] 24. 我能解释 AsyncLocal<T> 跨线程传 TraceId 的原理。</li>
 </ul>
-<h3 id="sec-3-39">性能 + 长跑稳定性(3)</h3>
+<h3 id="sec-3-40">性能 + 长跑稳定性(3)</h3>
 <ul>
 <li>[ ] 25. 我能用 dotnet counters + gcdump + dump 三件套排查内存泄漏。</li>
 <li>[ ] 26. 我能背出 4 种典型内存泄漏:event / static / 闭包 / GDI。</li>
 <li>[ ] 27. 我能用 BenchmarkDotNet / VS Profiler / dotnet-trace 三套工具定位瓶颈。</li>
 </ul>
-<h3 id="sec-3-40">调试 + 工程素养(3)</h3>
+<h3 id="sec-3-41">调试 + 工程素养(3)</h3>
 <ul>
 <li>[ ] 28. 我能复述条件断点 / 数据断点 / Hit Count 各自场景。</li>
 <li>[ ] 29. 我能讲清"设备掉线 30 秒自动恢复"的三层排查法。</li>

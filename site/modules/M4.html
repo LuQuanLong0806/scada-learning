@@ -32,31 +32,34 @@
 <li class="l3"><a href="#sec-3-2">前端类比秒懂</a></li>
 <li class="l3"><a href="#sec-3-3">分点精讲</a></li>
 <li class="l3"><a href="#sec-3-4">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</a></li>
-<li class="l3"><a href="#sec-3-5">🔬 掰开揉碎：迁移（Migration）是干什么的</a></li>
-<li class="l3"><a href="#sec-3-6">⚠️ 重点 &amp; 易踩坑</a></li>
-<li class="l3"><a href="#sec-3-7">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-8">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-9">🔴 挑战题</a></li>
-<li class="l3"><a href="#sec-3-10">🔬 掰开揉碎：DbContext 三大性能利器</a></li>
-<li class="l3"><a href="#sec-3-11">🔬 掰开揉碎：迁移与回滚（生产必备）</a></li>
+<li class="l3"><a href="#sec-3-5">🎭 拟人秒懂:公司记账员 + 便签纸工厂(DbContext 记忆锚点)</a></li>
+<li class="l3"><a href="#sec-3-6">🔬 掰开揉碎：迁移（Migration）是干什么的</a></li>
+<li class="l3"><a href="#sec-3-7">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-8">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-9">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-10">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-11">🔬 掰开揉碎：DbContext 三大性能利器</a></li>
+<li class="l3"><a href="#sec-3-12">🔬 掰开揉碎：迁移与回滚（生产必备）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">Day 2 — 查询 + 导出 CSV + 仓储模式 🟡</a><ul>
-<li class="l3"><a href="#sec-3-12">一句话讲清楚</a></li>
-<li class="l3"><a href="#sec-3-13">分点精讲</a></li>
-<li class="l3"><a href="#sec-3-14">⚠️ 重点 &amp; 易踩坑</a></li>
-<li class="l3"><a href="#sec-3-15">🟢 基础题</a></li>
-<li class="l3"><a href="#sec-3-16">🟡 进阶题</a></li>
-<li class="l3"><a href="#sec-3-17">🔴 挑战题</a></li>
+<li class="l3"><a href="#sec-3-13">一句话讲清楚</a></li>
+<li class="l3"><a href="#sec-3-14">分点精讲</a></li>
+<li class="l3"><a href="#sec-3-15">⚠️ 重点 &amp; 易踩坑</a></li>
+<li class="l3"><a href="#sec-3-16">🟢 基础题</a></li>
+<li class="l3"><a href="#sec-3-17">🟡 进阶题</a></li>
+<li class="l3"><a href="#sec-3-18">🔴 挑战题</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-4">📌 温故知新（跨模块联动）</a><ul>
+<li class="l2"><a href="#sec-2-4">🎤 M4 整体面试 3 分钟讲法(模块综合)</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-5">🧩 完整代码组装（HistoryRepository 可直接抄进工程）</a><ul>
+<li class="l2"><a href="#sec-2-5">📌 温故知新（跨模块联动）</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-6">🔗 明日预告</a><ul>
+<li class="l2"><a href="#sec-2-6">🧩 完整代码组装（HistoryRepository 可直接抄进工程）</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-7">📚 延伸阅读（卡点时点开）</a><ul>
+<li class="l2"><a href="#sec-2-7">🔗 明日预告</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-8">模块交付清单（M4）</a><ul>
+<li class="l2"><a href="#sec-2-8">📚 延伸阅读（卡点时点开）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">模块交付清单（M4）</a><ul>
 </ul></li>
 </ul></aside>
   <main class="content">
@@ -149,12 +152,34 @@ await db.SaveChangesAsync();                          // 提交事务(异步,不
 <strong>Bootstrapper 注册</strong>:<code>services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlite("Data Source=daq.db"));</code></p>
 </blockquote>
 <h3 id="sec-3-4">🔬 掰开揉碎：DbContext 到底在管什么（变更追踪 Change Tracking）</h3>
+<h3 id="sec-3-5">🎭 拟人秒懂:公司记账员 + 便签纸工厂(DbContext 记忆锚点)</h3>
+<blockquote>
+<p>把 DbContext 想象成"公司记账员",把 IDbContextFactory 想象成"便签纸工厂"。</p>
+</blockquote>
+<p><strong>DbContext = 记账员</strong>:
+- 你 <code>db.Records.Add(x)</code> → 记账员在草稿本上记"新增 SensorRecord(状态=Added)"
+- 你改 <code>r.Value = 99</code> → 记账员标注"Modified"
+- 你 <code>db.Records.Remove(y)</code> → 记账员标注"Deleted"
+- <strong>这时数据库还没动</strong> — 记账员只在自己草稿本上画
+- 你调 <code>SaveChangesAsync()</code> → 记账员<strong>一次性翻账本</strong>,把所有 Added/Modified/Deleted 都提交到银行(数据库)
+- <strong>为什么要短生命周期</strong>:记账员的草稿本会越记越厚(实体引用),用一辈子就装满内存 + 并发改时草稿被多人乱画 → 必须每次任务用完就换人</p>
+<p><strong>IDbContextFactory = 便签纸工厂</strong>:
+- <code>services.AddDbContextFactory&lt;AppDb&gt;(...)</code> → 注册一个"便签纸工厂"
+- 每次 <code>_factory.CreateDbContext()</code> → <strong>撕一张新的便签纸</strong>(独立 DbContext 实例)
+- 用完 <code>await using</code> → <strong>扔掉这张便签纸</strong>(Dispose)
+- 谁用谁借,用完即还 — <strong>天然线程安全</strong>,因为没人共享同一张便签</p>
+<p><strong>前端类比</strong>:
+- DbContext = React Query 的 <code>queryClient</code>(不能跨组件共享 mutable state)
+- IDbContextFactory = <code>createQueryClient()</code> 工厂函数,每次调一次拿新实例</p>
+<p><strong>为什么不用单例(Singleton)</strong>:
+- 单例 DbContext = 一个记账员干全公司的账 → 草稿本爆炸 + 串行 SaveChanges 报错
+- Factory 模式 = 公司有便签纸盒子,谁要用谁拿一张 → 完美</p>
 <p>很多人 <code>SaveChangesAsync()</code> 调得好好的，但被面试官问「它怎么知道哪些改了」就懵。拆开讲：
 - <strong>DbContext 是个「工作单元 + 缓存」</strong>：你 <code>db.Records.Add(x)</code> 或改 <code>r.Value=99</code>，它并<strong>不立刻写库</strong>，而是把实体记进内部「追踪缓存」并标记状态（Added/Modified/Deleted）。
 - <strong><code>SaveChangesAsync()</code> 才一次性比对、生成 SQL、提交事务</strong>。这就是为什么你改了属性不调 <code>SaveChangesAsync</code> 数据库没变化。
 - <strong>为什么要「短生命周期」</strong>：追踪缓存会一直持有实体引用，一个 DbContext 用一辈子 = 缓存无限膨胀 + 并发写冲突。<strong>正确</strong>：每次操作 <code>new AppDb()</code> 用完 <code>Dispose</code>（<code>using</code>），或 DI 里用 <code>Scoped</code>（一次请求/一次批量任务一个实例）。
 - <strong>高频写入策略</strong>：每秒几千条别每条 <code>SaveChangesAsync</code>（每次都开事务，慢 10 倍）。攒一批（如每秒 500 条）一次 <code>AddRange</code>+<code>SaveChangesAsync</code>；或用 SQLite 的 WAL 模式（<code>PRAGMA journal_mode=WAL</code>）提升并发读写。</p>
-<h3 id="sec-3-5">🔬 掰开揉碎：迁移（Migration）是干什么的</h3>
+<h3 id="sec-3-6">🔬 掰开揉碎：迁移（Migration）是干什么的</h3>
 <ul>
 <li><strong>问题</strong>：你改了 <code>SensorRecord</code> 加个字段，数据库表结构不会自动变。手动改表易错、不可复现。</li>
 <li><strong>迁移 = 把「模型变化」记成一份</strong>可版本化的脚本<strong>，一路 <code>Up</code>/<code>Down</code></strong>：
@@ -166,7 +191,7 @@ await db.SaveChangesAsync();                          // 提交事务(异步,不
   # 以后改模型 → dotnet ef migrations add AddColumnX → update</code></li>
 <li><strong>为什么 15K 必须会</strong>：企业项目表结构随需求变，靠迁移才能「代码和库结构同步、可回滚、可部署到客户机自动建库」。本项目为演示用了 Code First 运行时建库，真项目请用迁移。</li>
 </ul>
-<h3 id="sec-3-6">⚠️ 重点 &amp; 易踩坑</h3>
+<h3 id="sec-3-7">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
 <thead>
 <tr>
@@ -197,11 +222,11 @@ await db.SaveChangesAsync();                          // 提交事务(异步,不
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-7">🟢 基础题</h3>
+<h3 id="sec-3-8">🟢 基础题</h3>
 <p>建 <code>SensorRecord</code> 实体 + <code>AppDb</code>，插入 3 条记录并查询打印。</p>
-<h3 id="sec-3-8">🟡 进阶题</h3>
+<h3 id="sec-3-9">🟡 进阶题</h3>
 <p>插入 100 条随机温度（1~100℃），用 LINQ 查出平均值 &gt; 50 的条数。</p>
-<h3 id="sec-3-9">🔴 挑战题</h3>
+<h3 id="sec-3-10">🔴 挑战题</h3>
 <p>写一个 <code>BulkInsertAsync(IEnumerable&lt;SensorRecord&gt; batch)</code>，用 <code>AddRange</code> + 单次 <code>SaveChangesAsync</code> 批量提交，并测量「单条循环 SaveChangesAsync」vs「攒批一次 SaveChangesAsync」的耗时差距（体会 10 倍性能差）。</p>
 <p><strong>✅ 答案（挑战题核心）</strong></p>
 <pre><code class="language-csharp">// 通过 DI 注入 AppDbContext(Scoped 生命周期,每次请求一个实例)
@@ -228,7 +253,7 @@ services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlite("Data Source=daq.d
 <p><strong>🏗️ 项目任务</strong>：在 <code>DaqMonitor.Core</code> 加 <code>Persistence/AppDb.cs</code> 与 <code>SensorRecord</code>；建 <code>HistoryRepository</code> 封装"批量写入 + 查询"（参考工程里已有的 <code>Store/PointStore.cs</code> 双索引思路）。DAQ Monitor 的 <code>DataReceived</code> 事件里把点存库。（EF 历史库接进工程为下一轮落地项。）</p>
 <p><strong>🎓 工控导师说</strong>：现场一个真实事故——某系统每秒 2000 条数据，每条都 <code>SaveChangesAsync()</code>，结果数据库 CPU 跑满、写入积压、界面卡死。改成"每 500ms 攒一批 <code>AddRange</code> 提交"，CPU 直接掉到 5%。<strong>工业写入第一原则：攒批，别逐条提交。</strong></p>
 <p><strong>💼 职业建议</strong>：数据库是 13K 必考。面试被问"EF Core 怎么优化写入"，答"短生命周期 DbContext + 攒批 AddRange + WAL 模式 + 异步 SaveChanges"这四点是满分答案，直接区分"用过"和"懂原理"。</p>
-<h3 id="sec-3-10">🔬 掰开揉碎：DbContext 三大性能利器</h3>
+<h3 id="sec-3-11">🔬 掰开揉碎：DbContext 三大性能利器</h3>
 <p>会写 <code>SaveChangesAsync</code> 只是及格,知道下面三招才是 15K 的写法:</p>
 <p><strong>① <code>AsNoTracking()</code> — 只读查询关掉变更追踪,性能 2-3 倍</strong></p>
 <pre><code class="language-csharp">// 查历史曲线(只读,不修改) → 关掉追踪,跳过状态字典维护
@@ -251,7 +276,7 @@ db.ChangeTracker.AutoDetectChangesEnabled = true;    // AddRange 完成后开回
 await db.SaveChangesAsync();
 </code></pre>
 <p><strong>原理</strong>:<code>Add</code>/<code>AddRange</code> 默认会触发 <code>DetectChanges</code>,全量比对追踪字典,几千条会慢成 O(n²)。关掉后只在 <code>SaveChanges</code> 时一次性 diff,大批量插入提速明显。</p>
-<h3 id="sec-3-11">🔬 掰开揉碎：迁移与回滚（生产必备）</h3>
+<h3 id="sec-3-12">🔬 掰开揉碎：迁移与回滚（生产必备）</h3>
 <p>讲义上面讲了正向迁移(<code>migrations add</code> → <code>database update</code>),但<strong>回滚</strong>和<strong>种子数据</strong>也是 15K 必会:</p>
 <p><strong>① 加迁移命令(规范)</strong></p>
 <pre><code class="language-bash"># 把迁移文件输出到指定目录,团队协作必备(默认散在根目录难管)
@@ -277,9 +302,9 @@ dotnet ef migrations remove                  # 删掉最近一次迁移文件(�
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('M4',1)"> 打卡</label></strong></p>
 <hr />
 <h2 id="sec-2-3">Day 2 — 查询 + 导出 CSV + 仓储模式 🟡</h2>
-<h3 id="sec-3-12">一句话讲清楚</h3>
+<h3 id="sec-3-13">一句话讲清楚</h3>
 <p>存进去是为了查：按点位 / 时间段捞历史，再导出 CSV 给 Excel 分析 —— 这是"数据价值"闭环。</p>
-<h3 id="sec-3-13">分点精讲</h3>
+<h3 id="sec-3-14">分点精讲</h3>
 <p><strong>① LINQ 查询</strong>（🟧🟦，呼应 M0 Day 3）</p>
 <pre><code class="language-csharp">var today = db.Records
     .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; DateTime.Now.AddHours(-1))
@@ -310,7 +335,7 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
         =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToListAsync();
 }
 </code></pre>
-<h3 id="sec-3-14">⚠️ 重点 &amp; 易踩坑</h3>
+<h3 id="sec-3-15">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
 <thead>
 <tr>
@@ -337,11 +362,11 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-15">🟢 基础题</h3>
+<h3 id="sec-3-16">🟢 基础题</h3>
 <p>写 <code>HistoryRepository.Query</code> 按点位 + 时间段查询，返回列表。</p>
-<h3 id="sec-3-16">🟡 进阶题</h3>
+<h3 id="sec-3-17">🟡 进阶题</h3>
 <p>加 <code>ExportCsv(path)</code> 方法，把查询结果写成 CSV。</p>
-<h3 id="sec-3-17">🔴 挑战题</h3>
+<h3 id="sec-3-18">🔴 挑战题</h3>
 <p>写一个 <code>GetHourlyAverage(pointId, date)</code>：用 LINQ <code>GroupBy(r =&gt; r.Time.Hour)</code> 算出当天每小时的平均温度（M10 报表的预演）。</p>
 <p><strong>✅ 答案（挑战题核心）</strong></p>
 <pre><code class="language-csharp">var hourly = db.Records
@@ -355,13 +380,29 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
 <p><strong>💼 职业建议</strong>：仓储模式（Repository）是面试常考点，答出"UI 不依赖具体 DbContext、便于单测替换（用 InMemory 库或 Mock）"就到位了——这正对应我们 <code>DaqMonitor.Tests</code> 里用 Moq 测存储的思路。</p>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="2" onchange="toggleDay('M4',2)"> 打卡</label></strong></p>
 <hr />
-<h2 id="sec-2-4">📌 温故知新（跨模块联动）</h2>
+<h2 id="sec-2-4">🎤 M4 整体面试 3 分钟讲法(模块综合)</h2>
+<blockquote>
+<p>"EF Core 是 .NET 的 ORM,我用 Code First 模式定义实体类(SensorRecord),通过 DbContext 映射到 SQLite。</p>
+<p><strong>核心原则</strong>:DbContext <strong>短生命周期 + 线程不安全</strong>,生产用 <code>IDbContextFactory&lt;AppDb&gt;</code> 每次创建独立实例,<code>await using</code> 自动 Dispose。<strong>绝不做 Singleton</strong>。</p>
+<p><strong>变更追踪</strong>:DbContext 内部有 ChangeTracker,Add/Modify/Remove 只标状态不立刻写库,<code>SaveChangesAsync</code> 才一次性提交事务。只读查询用 <code>AsNoTracking()</code> 关闭追踪,性能提升 2-3 倍。</p>
+<p><strong>高频写入优化</strong>:每秒几千条不能每条 SaveChanges(每次开事务慢 10 倍)。我的做法是 200ms 攒一批 <code>AddRange</code> 一次 SaveChanges + SQLite WAL 模式,实测 CPU 从 30% 降到 5%。</p>
+<p><strong>索引</strong>:<code>[Index(PointId, Time)]</code> 复合索引,按点位 + 时间段查 100 倍速。索引顺序很关键 — <code>(PointId, Time)</code> 适合按点位查时间段,反过来适合按时间段查所有点位。</p>
+<p><strong>迁移</strong>:<code>dotnet ef migrations add Init -o Migrations</code> + <code>database update</code>,代码和库结构可版本化同步。已上线的迁移不能 <code>remove</code>,要写反向迁移再 update。"</p>
+</blockquote>
+<p><strong>面试官可能连环追问</strong>:
+- "DbContext 为什么不能 Singleton?" → ① ChangeTracker 内部字典非线程安全,多线程并发 SaveChanges 会冲突 ② 实体引用一直累积内存泄漏 ③ 连接池串行化导致并发性能下降
+- "AsNoTracking 什么场景用?" → 只读查询(报表、历史曲线、列表展示)。不需要修改的场景都该加,跳过追踪字典维护
+- "SaveChanges 失败了怎么办?" → 默认全部回滚(事务原子性)。如果想部分成功,要拆成多个 SaveChanges 或手动开 TransactionScope
+- "EF Core 怎么知道改了哪个字段?" → ChangeTracker 内部存原始值快照,SaveChanges 时比对当前值 vs 快照,生成 UPDATE 语句只改变化的列(乐观锁)
+- "SQLite 并发怎么样?" → 默认串行写(WAL 模式可改善),读并发数高。生产场景大数据量用 SQL Server / PostgreSQL
+- "怎么避免 N+1 查询?" → <code>.Include(r =&gt; r.Related)</code> 预加载关联,或 <code>Select</code> 投影只取需要的字段</p>
+<h2 id="sec-2-5">📌 温故知新（跨模块联动）</h2>
 <ul>
 <li><strong>M0 Day3 LINQ → 这里 <code>Where/OrderBy/Average</code> 直接复用</strong>：查询语法完全一致，只是数据源从内存集合变成数据库（<code>IQueryable</code> 会翻译成 SQL）。</li>
 <li><strong>M9 DI 生命周期 → 这里 <code>Scoped</code> 的由来</strong>：为什么 DbContext 在 DI 里用 <code>AddDbContext</code>（本质 Scoped）而非 Singleton，正是上面「变更追踪缓存」那节讲的。</li>
 <li><strong>前瞻 M10 报表</strong>：本模块存的 <code>SensorRecord</code> 历史，就是 M10 聚合报表的「米」。</li>
 </ul>
-<h2 id="sec-2-5">🧩 完整代码组装（HistoryRepository 可直接抄进工程）</h2>
+<h2 id="sec-2-6">🧩 完整代码组装（HistoryRepository 可直接抄进工程）</h2>
 <pre><code class="language-csharp">// DaqMonitor.Core/Persistence/AppDb.cs
 public class SensorRecord
 {
@@ -403,16 +444,16 @@ public class HistoryRepository
     }
 }
 </code></pre>
-<h2 id="sec-2-6">🔗 明日预告</h2>
+<h2 id="sec-2-7">🔗 明日预告</h2>
 <p><strong>M5 实时可视化（LiveCharts）</strong>：把 M0 的"滚动数字"升级成<strong>动态曲线 + 仪表盘</strong>——这才是上位机界面该有的样子，也是面试演示最吸睛的部分。</p>
-<h2 id="sec-2-7">📚 延伸阅读（卡点时点开）</h2>
+<h2 id="sec-2-8">📚 延伸阅读（卡点时点开）</h2>
 <ul>
 <li>EF Core 官方文档（变更追踪/迁移/索引全有）：https://learn.microsoft.com/ef/core/</li>
 <li>迁移入门：https://learn.microsoft.com/ef/core/managing-schemas/migrations</li>
 <li>SQLite 官方：https://www.sqlite.org/index.html</li>
 <li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
 </ul>
-<h2 id="sec-2-8">模块交付清单（M4）</h2>
+<h2 id="sec-2-9">模块交付清单（M4）</h2>
 <ul>
 <li>[ ] EF Core + SQLite 建模（Code First）</li>
 <li>[ ] DbContext 短生命周期 + 变更追踪理解</li>
