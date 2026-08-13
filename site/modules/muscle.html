@@ -341,6 +341,9 @@ catch (Exception ex) when (ex is not TaskCanceledException)   // C# 异常过滤
 - 为什么初值 0xFFFF?(让全 0 数据也产生非零校验)
 - 为什么用 0xA001 不用 0x8005?(Modbus 用反向多项式)
 - 怎么验证 CRC 是低字节在前还是高字节在前?(看规范 / 抓帧)</p>
+<blockquote>
+<p>🎭 <strong>拟人段辅助记忆</strong>:见 <a href="M2_Modbus_深度版.html">M2_Modbus_深度版.md §CRC16 手算</a> 「快递指纹 + 魔刷 0xA001」—— 每个字节盖一次指纹,8 轮魔刷刷出 16 位校验码。</p>
+</blockquote>
 <p><strong>判据</strong>:<strong>5 分钟内白板写出,不查文档,代码能跑通</strong>。</p>
 <h2 id="sec-2-15">B2. 手写 System.Threading.Channel 生产者消费者(⏱️ 10 分钟)</h2>
 <p><strong>题目</strong>:写一个采集线程(每 100ms 产生一个 int)+ 消费线程(打印平方)+ 5 秒后优雅退出。</p>
@@ -378,6 +381,9 @@ await Task.WhenAll(producer, consumer);
 - 为什么用 Channel 不用 ConcurrentQueue?(异步无锁,前端类比 RxJS Subject)
 - 有界 vs 无界?(OOM 风险 vs 背压)
 - DropOldest vs Wait?(生产现场不同选择)</p>
+<blockquote>
+<p>🎭 <strong>拟人段辅助记忆</strong>:见 <a href="M0_每日讲义_深度版.html">M0_每日讲义_深度版.md §Day 7</a> 「前台窗口 + 后厨传菜口」—— 后厨(采集线程)做好菜放传菜口,前台(UI 线程)按自己节奏端出去,互不卡。</p>
+</blockquote>
 <h2 id="sec-2-16">B3. 手写 IDevice 实现(⏱️ 15 分钟)</h2>
 <p><strong>题目</strong>:实现一个 SimulatedDevice,继承 DeviceBase,每 500ms 产生一个随机值,通过 DataReceived 事件触发。</p>
 <p><strong>目标答案</strong>:</p>
@@ -482,6 +488,9 @@ public class AlarmEngine
 </code></pre>
 <p><strong>易错点</strong>:① 锁要细(只在 Evaluate + 事件触发);② 边沿触发(只在状态变化时触发事件,不重复);③ 回滞带 = HighThreshold - LowThreshold。</p>
 <p><strong>面试官追问</strong>:为什么需要回滞?(防抖,温度在 79-81 之间晃,不报警每秒触发)</p>
+<blockquote>
+<p>🎭 <strong>拟人段辅助记忆</strong>:就像空调设定 26℃ — 升到 27℃ 才启动制冷,降到 25℃ 才停机,不在 26℃ 边界反复开关机磨坏压缩机。温度报警同理,高温 +5℃ 才报,回落到阈值以下 -5℃ 才解。</p>
+</blockquote>
 <h2 id="sec-2-19">B6. 手写帧解析 AA55 帧头 + 长度 + payload + CRC(⏱️ 10 分钟)</h2>
 <p><strong>题目</strong>:实现一个 <code>FrameParser</code>,处理字节流粘包/半包。帧格式 <code>AA 55 | Len | Payload | CRC_L CRC_H</code>。提供 <code>Feed(chunk)</code> 喂入字节流,返回本次拆出的所有完整帧。</p>
 <p><strong>🎯 面试官想听到</strong>:① 半包/粘包概念;② 滚动缓冲 + 状态机思路;③ 缓冲无限增长的防御(找不到帧头就清空)。</p>
@@ -1415,6 +1424,9 @@ public sealed class PlcDevice : DeviceBase
 - <strong>Q: 怎么测粘包?</strong> A:用 <code>SplitToken</code> 把一个完整帧拆成 2 段、3 段发送,断言接收端能正确拼出;或用 <code>TcpClient</code> + <code>Task.Delay(1)</code> 在每个字节间停顿,模拟逐字节到达。
 - <strong>Q: 重连时怎么知道是断线期间设备发的数据丢了?</strong> A:协议层加序列号(每帧自增),重连后看到序号跳变就知道中间丢了几帧;或用 MQTT/AMQP 这种有 QoS 的中间件。</p>
 <p><strong>📚 延伸阅读</strong>:<a href="M11_TCP_Socket_深度版.html">M11 TCP Socket 深度版</a> · DAQMonitor <code>Core/Devices/TcpDevice.cs</code> + <code>Protocol/TcpFrameParser.cs</code></p>
+<blockquote>
+<p>🎭 <strong>拟人段辅助记忆</strong>:见 <a href="M11_TCP_Socket_深度版.html">M11_TCP_Socket_深度版.md</a> 「水龙头流水 / 挂号信信封帧格式 / 夫妻吵架冷战 + 重拨电话指数退避」—— 字节流像水龙头没刻度,AA55 长度域像信封写"内含 3 张纸",断线重连像冷战夫妻拨电话不通 → 等 1s/2s/4s/8s 再拨,不一直狂拨。</p>
+</blockquote>
 <h2 id="sec-2-30">B17. 手写 EventAggregator(简化版)(⏱️ 10 分钟,骨架)</h2>
 <p><strong>题目</strong>:不引入 Prism,自己写一个 <code>IEventAggregator</code>,支持 <code>Publish&lt;T&gt;()</code> / <code>Subscribe&lt;T&gt;(handler)</code> + 弱引用(订阅者 GC 后自动清理)。</p>
 <p><strong>🎯 面试官想听到</strong>:① 类型键 <code>Dictionary&lt;Type, List&lt;Delegate&gt;&gt;</code>;② 弱引用避免内存泄漏(VM 订阅但没退订时,VM 不会泄漏);③ 线程安全 lock。</p>

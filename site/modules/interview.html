@@ -61,13 +61,15 @@
 <h2 id="sec-2-2">二、并发与异步（必考）</h2>
 <p><strong>Q4：后台采集怎么做到不卡界面？</strong>
 - UI 线程只负责渲染；采集放<strong>后台线程</strong>（Task/后台 Timer/Channel 消费者）。数据通过 <code>Channel&lt;T&gt;</code> 批量交给 UI 刷新，不在 UI 线程做重活。
-- 本项目：<code>AcquisitionPipeline</code> 用 <code>Channel&lt;T&gt;</code> + Timer 每 200ms 批量出队 → <code>BatchReady</code> 事件 → ViewModel 切回 UI 线程刷新。</p>
+- 本项目：<code>AcquisitionPipeline</code> 用 <code>Channel&lt;T&gt;</code> + Timer 每 200ms 批量出队 → <code>BatchReady</code> 事件 → ViewModel 切回 UI 线程刷新。
+- 🎭 拟人段辅助记忆:见 <a href="M0_每日讲义_深度版.html">M0_每日讲义_深度版.md#day-7</a> §Dispatcher + .Result 死锁 + Channel 队列（"前台窗口 + 后厨传菜口"）</p>
 <p><strong>Q5：Task 和 Thread 区别？async/await 是什么？</strong>
 - <code>Thread</code> 是操作系统线程；<code>Task</code> 是"任务"，由线程池调度更轻量。<code>async/await</code> 让异步代码写起来像同步，不阻塞线程。
 - 坑：<code>async</code> 方法里别用 <code>.Result</code>/<code>.Wait()</code> 同步阻塞——UI 线程会<strong>死锁</strong>（本项目 M7 早期就踩过，已改 <code>await</code>）。</p>
 <p><strong>Q6：Channel<T> 是什么？为什么用它而不是 ObservableCollection 直接 Add？</strong>
 - <code>Channel&lt;T&gt;</code> 是<strong>高性能生产者-消费者队列</strong>，解耦"采样的线程"和"消费的线程"，天然线程安全、背压可控。
-- 直接往 <code>ObservableCollection</code> Add 会跨线程异常或卡 UI；Channel 把数据"攒一批"再给 UI，流畅且不崩。</p>
+- 直接往 <code>ObservableCollection</code> Add 会跨线程异常或卡 UI；Channel 把数据"攒一批"再给 UI，流畅且不崩。
+- 🎭 拟人段辅助记忆:见 <a href="C#_陷阱_前端转上位机必看_深度版.md">C#_陷阱_前端转上位机必看_深度版.md#陷阱-2async-void--会议室抢厕所死锁</a> §会议室抢厕所 + <a href="M0_每日讲义_深度版.html">M0 Day 7</a> §Channel 队列（"前台窗口 + 后厨传菜口"）</p>
 <hr />
 <h2 id="sec-2-3">三、串口 / 通信（必考）</h2>
 <p><strong>Q7：RS232 和 RS485 区别？</strong>
@@ -101,12 +103,14 @@
 <hr />
 <h2 id="sec-2-5">五、报警 / 上云 / 控件</h2>
 <p><strong>Q15：报警为什么要用"回滞（hysteresis）"？</strong>
-- 阈值在边界抖动时，纯比较会让报警<strong>反复触发/消除</strong>（"跳变"）。回滞：超过上限才报，要<strong>回落到下限以下</strong>才解除。本项目 <code>AlarmEngine</code> 已实现。</p>
+- 阈值在边界抖动时，纯比较会让报警<strong>反复触发/消除</strong>（"跳变"）。回滞：超过上限才报，要<strong>回落到下限以下</strong>才解除。本项目 <code>AlarmEngine</code> 已实现。
+- 🎭 拟人段辅助记忆:就像空调设定 26℃ — 升到 27℃ 才启动制冷，降到 25℃ 才停机，不会在 26℃ 边界反复开关机磨坏压缩机。</p>
 <p><strong>Q16：OPC UA 和 MQTT 区别？</strong>
 - OPC UA：工业标准、<strong>强类型、安全、适合厂内 SCADA/MES</strong> 对接。MQTT：物联网轻量发布订阅，<strong>适合上云、跨网络</strong>。本项目 M7 两者都讲。</p>
 <p><strong>Q17：自定义控件 vs UserControl？</strong>
 - UserControl：组合现有控件，快但难换肤/难复用。自定义控件（继承 <code>Control</code> + <code>Generic.xaml</code> + 依赖属性）：可换肤、可主题、可跨项目。
-- <strong>坑</strong>：少写 <code>[assembly: ThemeInfo(...)]</code> 控件不报错但<strong>一片空白</strong>。本项目 <code>GaugeControl</code>/<code>StatusDot</code> 就是正宗写法。</p>
+- <strong>坑</strong>：少写 <code>[assembly: ThemeInfo(...)]</code> 控件不报错但<strong>一片空白</strong>。本项目 <code>GaugeControl</code>/<code>StatusDot</code> 就是正宗写法。
+- 🎭 拟人段辅助记忆:UserControl = 拼乐高（快，但只能这模样）；自定义控件 = 自己造乐高零件（难，但能给别人用、能换色）。</p>
 <hr />
 <h2 id="sec-2-6">六、工程素养（13K→15K 分水岭）</h2>
 <p><strong>Q18：为什么用接口（IDevice）和依赖注入？</strong>
