@@ -74,6 +74,8 @@
 - <code>=&gt; x =&gt; x * 2</code> — Lambda,速查 §7
 - <code>async Task</code> / <code>await</code> — 异步,速查 §8
 - <code>using var port = ...</code> — 资源释放(SerialPort 必须释放),速查 §13</p>
+<p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
+M1 示例引用 <code>DeviceBase</code> / <code>IDevice</code> / <code>SensorPoint</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>SerialDevice : DeviceBase</code> 和 <code>FrameParser</code>,跟着 Day 1-3 敲即可。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写出一个串口采集器：配置波特率 → 打开端口 → 接收字节流 → 解析成业务数据 → 通过 <code>DataReceived</code> 事件抛给 UI → 显示在 DAQ Monitor。</p>

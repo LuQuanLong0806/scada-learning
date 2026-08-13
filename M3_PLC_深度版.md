@@ -23,6 +23,9 @@
 > - `Interlocked.Exchange(ref _isConnected, value)` — 原子操作,速查 §14
 > - `CancellationToken` — 取消令牌,速查 §8
 
+> 📦 **前置类型**(本模块示例代码用到的核心自定义类型)
+> M3 示例引用 `DeviceBase` / `IDevice` / `SensorPoint` 等类型 — 这些在 [📦 前置类型定义 · 学员粘贴版](前置类型定义_学员粘贴版.md) **集中定义**。**遇到"找不到类型 XXX"报错,先去那份文档复制对应类型**,在项目里建 `_PredefinedTypes.cs` 粘进去就能跑。本模块会**新建** `PlcDevice : DeviceBase`(用 S7.Net 库),跟着 Day 1-3 敲。
+
 ## 模块目标
 用 S7.Net 连接一台西门子 S7-1200 / 1500 PLC，读取 DB 块里的温度 / 压力点位，写入 DAQ Monitor。学完你能讲清：**为什么 `IsConnected` 不可信、错误码怎么判、连不上怎么一步步排查**——这三点是现场和面试的生死线。
 

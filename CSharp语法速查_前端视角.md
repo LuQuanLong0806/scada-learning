@@ -32,6 +32,30 @@
 
 ---
 
+## 📦 本文档用到的核心类型(粘贴即可编译)
+
+> 下面 §1-§15 的示例代码会引用一个自定义类型 `SensorPoint`。**复制这段到你的代码顶部,所有示例都能跑**:
+```csharp
+public class SensorPoint     // 或 struct,这里用 class 便于演示引用语义
+{
+    public int Id { get; set; }
+    public double Value { get; set; }
+    public string Name { get; set; } = "";
+}
+
+public class Device
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public DeviceState State { get; set; }
+}
+
+public enum DeviceState { Offline, Connecting, Online }
+```
+> 想要更完整的"业务类型集合"(含 IDevice/DeviceBase/AlarmRule 等),见 [📦 前置类型定义 · 学员粘贴版](前置类型定义_学员粘贴版.md)。
+
+---
+
 ## 1. 类型推断
 
 ### `var` — 让编译器推

@@ -20,6 +20,9 @@
 > - `for (int i = 0; i < buf.Length; i++)` — 经典 for 循环(位移运算用)
 > - `event EventHandler<byte[]>?` — 事件,速查 §7
 
+> 📦 **前置类型**(本模块示例代码用到的核心自定义类型)
+> M2 示例引用 `DeviceBase` / `IDevice` / `SensorPoint` / `ByteOrder` 等类型 — 这些在 [📦 前置类型定义 · 学员粘贴版](前置类型定义_学员粘贴版.md) **集中定义**。**遇到"找不到类型 XXX"报错,先去那份文档复制对应类型**,在项目里建 `_PredefinedTypes.cs` 粘进去就能跑。本模块还会**新建** `ModbusDevice : DeviceBase`,跟着 Day 1-3 敲。
+
 ## 模块目标
 用 NModbus 连接一个 Modbus 从站（RTU 走串口 / TCP 走网口），循环读取保持寄存器，把值写入 DAQ Monitor 的 `PointStore`。并且——**你能从零手搓一帧 Modbus RTU 请求、手算它的 CRC、再解析响应**，因为现场排错和面试都靠这个。
 

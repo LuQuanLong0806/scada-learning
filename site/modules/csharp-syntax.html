@@ -27,11 +27,13 @@
   <aside class="toc"><p class="tt">本页目录</p><ul>
 <li class="l2"><a href="#sec-2-1">目录</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-2">1. 类型推断</a><ul>
+<li class="l2"><a href="#sec-2-2">📦 本文档用到的核心类型(粘贴即可编译)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">1. 类型推断</a><ul>
 <li class="l3"><a href="#sec-3-1">var — 让编译器推</a></li>
 <li class="l3"><a href="#sec-3-2">new() — target-typed new(C# 9.0+)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-3">2. 集合</a><ul>
+<li class="l2"><a href="#sec-2-4">2. 集合</a><ul>
 <li class="l3"><a href="#sec-3-3">List&lt;T&gt; — 动态数组(JS Array / TS T[])</a></li>
 <li class="l3"><a href="#sec-3-4">Dictionary&lt;K,V&gt; — 哈希表(JS Map / TS Record)</a></li>
 <li class="l3"><a href="#sec-3-5">HashSet&lt;T&gt; — 去重集合(JS Set)</a></li>
@@ -39,76 +41,76 @@
 <li class="l3"><a href="#sec-3-7">IEnumerable&lt;T&gt; — "可遍历的"(JS Iterable)</a></li>
 <li class="l3"><a href="#sec-3-8">何时选哪个(决策表)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-4">3. 对象初始化器</a><ul>
+<li class="l2"><a href="#sec-2-5">3. 对象初始化器</a><ul>
 <li class="l3"><a href="#sec-3-9">创建对象 + 给属性赋值</a></li>
 <li class="l3"><a href="#sec-3-10">集合初始化器</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-5">4. 属性</a><ul>
+<li class="l2"><a href="#sec-2-6">4. 属性</a><ul>
 <li class="l3"><a href="#sec-3-11">5 种形态</a></li>
 <li class="l3"><a href="#sec-3-12">init-only(C# 9.0+,record 友好)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-6">5. 可空类型与 null 安全</a><ul>
+<li class="l2"><a href="#sec-2-7">5. 可空类型与 null 安全</a><ul>
 <li class="l3"><a href="#sec-3-13">引用类型可空(C# 8.0+)</a></li>
 <li class="l3"><a href="#sec-3-14">值类型可空 int? / double?</a></li>
 <li class="l3"><a href="#sec-3-15">三大 null 操作符</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-7">6. 方法参数</a><ul>
+<li class="l2"><a href="#sec-2-8">6. 方法参数</a><ul>
 <li class="l3"><a href="#sec-3-16">ref — 引用传递(双向)</a></li>
 <li class="l3"><a href="#sec-3-17">out — 输出参数(方法返回多个值)</a></li>
 <li class="l3"><a href="#sec-3-18">in — 只读引用(性能优化)</a></li>
 <li class="l3"><a href="#sec-3-19">params — 可变参数(JS 的 ...args)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-8">7. Lambda / 委托 / 事件</a><ul>
+<li class="l2"><a href="#sec-2-9">7. Lambda / 委托 / 事件</a><ul>
 <li class="l3"><a href="#sec-3-20">Lambda 表达式</a></li>
 <li class="l3"><a href="#sec-3-21">Action / Func&lt;T&gt; — 委托类型</a></li>
 <li class="l3"><a href="#sec-3-22">event — 事件(发布订阅)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-9">8. async / await</a><ul>
+<li class="l2"><a href="#sec-2-10">8. async / await</a><ul>
 <li class="l3"><a href="#sec-3-23">Task — 异步操作(JS Promise)</a></li>
 <li class="l3"><a href="#sec-3-24">⭐ async void 陷阱(必踩)</a></li>
 <li class="l3"><a href="#sec-3-25">.Result / .Wait() 死锁陷阱</a></li>
 <li class="l3"><a href="#sec-3-26">CancellationToken — 取消令牌</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-10">9. 模式匹配</a><ul>
+<li class="l2"><a href="#sec-2-11">9. 模式匹配</a><ul>
 <li class="l3"><a href="#sec-3-27">is 模式</a></li>
 <li class="l3"><a href="#sec-3-28">switch expression(C# 8.0+,前端最爱)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-11">10. 字符串</a><ul>
+<li class="l2"><a href="#sec-2-12">10. 字符串</a><ul>
 <li class="l3"><a href="#sec-3-29">插值 $"..."(JS 模板字符串)</a></li>
 <li class="l3"><a href="#sec-3-30">Verbatim 字符串 @"..."(忽略转义)</a></li>
 <li class="l3"><a href="#sec-3-31">$@ 组合(插值 + verbatim,常用于多行 SQL 或 JSON)</a></li>
 <li class="l3"><a href="#sec-3-32">字符串构建 StringBuilder(性能)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-12">11. 元组</a><ul>
+<li class="l2"><a href="#sec-2-13">11. 元组</a><ul>
 <li class="l3"><a href="#sec-3-33">创建与解构</a></li>
 <li class="l3"><a href="#sec-3-34">弃元 _</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-13">12. 泛型 / interface / class / struct / record</a><ul>
+<li class="l2"><a href="#sec-2-14">12. 泛型 / interface / class / struct / record</a><ul>
 <li class="l3"><a href="#sec-3-35">class vs struct</a></li>
 <li class="l3"><a href="#sec-3-36">interface — 像抽象类 / TS interface</a></li>
 <li class="l3"><a href="#sec-3-37">泛型 — 像 TS &lt;T&gt;</a></li>
 <li class="l3"><a href="#sec-3-38">record(C# 9.0+,不可变值对象)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-14">13. using / namespace</a><ul>
+<li class="l2"><a href="#sec-2-15">13. using / namespace</a><ul>
 <li class="l3"><a href="#sec-3-39">using — 导入命名空间(像 import)</a></li>
 <li class="l3"><a href="#sec-3-40">using static(C# 6.0+)</a></li>
 <li class="l3"><a href="#sec-3-41">namespace — 命名空间声明</a></li>
 <li class="l3"><a href="#sec-3-42">using 语句 — 资源释放(Dispose)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-15">14. lock 与线程安全</a><ul>
+<li class="l2"><a href="#sec-2-16">14. lock 与线程安全</a><ul>
 <li class="l3"><a href="#sec-3-43">lock — 互斥锁</a></li>
 <li class="l3"><a href="#sec-3-44">并发集合(免 lock)</a></li>
 <li class="l3"><a href="#sec-3-45">Interlocked(原子操作)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-16">15. 扩展方法 / LINQ</a><ul>
+<li class="l2"><a href="#sec-2-17">15. 扩展方法 / LINQ</a><ul>
 <li class="l3"><a href="#sec-3-46">扩展方法(给已有类型加方法)</a></li>
 <li class="l3"><a href="#sec-3-47">LINQ(集合操作一站式)</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-17">速查地图:看到陌生语法去哪查</a><ul>
+<li class="l2"><a href="#sec-2-18">速查地图:看到陌生语法去哪查</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-18">学习路径建议</a><ul>
+<li class="l2"><a href="#sec-2-19">学习路径建议</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-19">这份文档不是终点</a><ul>
+<li class="l2"><a href="#sec-2-20">这份文档不是终点</a><ul>
 </ul></li>
 </ul></aside>
   <main class="content">
@@ -142,7 +144,31 @@
 <li><a href="#15-扩展方法--linq">扩展方法 / LINQ 一行流</a></li>
 </ol>
 <hr />
-<h2 id="sec-2-2">1. 类型推断</h2>
+<h2 id="sec-2-2">📦 本文档用到的核心类型(粘贴即可编译)</h2>
+<blockquote>
+<p>下面 §1-§15 的示例代码会引用一个自定义类型 <code>SensorPoint</code>。<strong>复制这段到你的代码顶部,所有示例都能跑</strong>:</p>
+</blockquote>
+<pre><code class="language-csharp">public class SensorPoint     // 或 struct,这里用 class 便于演示引用语义
+{
+    public int Id { get; set; }
+    public double Value { get; set; }
+    public string Name { get; set; } = &quot;&quot;;
+}
+
+public class Device
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = &quot;&quot;;
+    public DeviceState State { get; set; }
+}
+
+public enum DeviceState { Offline, Connecting, Online }
+</code></pre>
+<blockquote>
+<p>想要更完整的"业务类型集合"(含 IDevice/DeviceBase/AlarmRule 等),见 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">1. 类型推断</h2>
 <h3 id="sec-3-1"><code>var</code> — 让编译器推</h3>
 <pre><code class="language-csharp">var x = 10;              // int
 var name = &quot;Tom&quot;;        // string
@@ -167,7 +193,7 @@ SensorPoint p = new() { Id = 1, Value = 10 };        // ✅
 </code></pre>
 <p>⭐ <strong>易踩坑</strong>:看到 <code>= new()</code> 不要慌,看左边类型就知道是什么。</p>
 <hr />
-<h2 id="sec-2-3">2. 集合</h2>
+<h2 id="sec-2-4">2. 集合</h2>
 <h3 id="sec-3-3"><code>List&lt;T&gt;</code> — 动态数组(JS Array / TS <code>T[]</code>)</h3>
 <pre><code class="language-csharp">List&lt;int&gt; nums = new() { 1, 2, 3 };
 nums.Add(4);                    // push
@@ -324,7 +350,7 @@ foreach (var n in GetNumbers()) { ... }
 </tbody>
 </table>
 <hr />
-<h2 id="sec-2-4">3. 对象初始化器</h2>
+<h2 id="sec-2-5">3. 对象初始化器</h2>
 <h3 id="sec-3-9">创建对象 + 给属性赋值</h3>
 <pre><code class="language-csharp">public class SensorPoint
 {
@@ -365,7 +391,7 @@ Dictionary&lt;int, string&gt; map = new()
 };
 </code></pre>
 <hr />
-<h2 id="sec-2-5">4. 属性</h2>
+<h2 id="sec-2-6">4. 属性</h2>
 <p>C# 的属性是"看起来像字段,实际是方法(get/set)"。前端可以理解为 JS 的 <code>Object.defineProperty</code> getter/setter。</p>
 <h3 id="sec-3-11">5 种形态</h3>
 <pre><code class="language-csharp">public class Device
@@ -416,7 +442,7 @@ c.Name = &quot;压力&quot;;   // ❌ init-only,创建后不能改
 </code></pre>
 <p>类似 TS 的 <code>readonly</code>,但更灵活 — 只能在 <code>new() { }</code> 初始化器里赋。</p>
 <hr />
-<h2 id="sec-2-6">5. 可空类型与 null 安全</h2>
+<h2 id="sec-2-7">5. 可空类型与 null 安全</h2>
 <h3 id="sec-3-13">引用类型可空(C# 8.0+)</h3>
 <pre><code class="language-csharp">string name = &quot;Tom&quot;;     // 不可空,编译器保证一定有值
 string? maybeName = null; // 可空引用类型(注意 ? 后缀)
@@ -458,7 +484,7 @@ var x = maybeName!.Length;    // 强行解引用,出事自己负责
 <p><strong>JS/TS 类比</strong>:<code>?.</code> 完全一致,<code>??</code> 完全一致,<code>??=</code> 类似 <code>||=</code>。</p>
 <p>⭐ <strong>易踩坑</strong>:看到 <code>device?.Name.Length</code> 注意 — 如果 device 为 null,<strong>整个表达式</strong>返回 null,不是只 <code>device?.Name</code> 返回 null 然后 <code>.Length</code> 抛异常。C# 的 <code>?.</code> 是短路到底的。</p>
 <hr />
-<h2 id="sec-2-7">6. 方法参数</h2>
+<h2 id="sec-2-8">6. 方法参数</h2>
 <h3 id="sec-3-16"><code>ref</code> — 引用传递(双向)</h3>
 <pre><code class="language-csharp">void Increment(ref int x) { x++; }
 
@@ -504,7 +530,7 @@ Sum(1, 2, 3, 4, 5);
 </code></pre>
 <p><strong>JS 类比</strong>:<code>function sum(...nums)</code> 完全一致。</p>
 <hr />
-<h2 id="sec-2-8">7. Lambda / 委托 / 事件</h2>
+<h2 id="sec-2-9">7. Lambda / 委托 / 事件</h2>
 <h3 id="sec-3-20">Lambda 表达式</h3>
 <pre><code class="language-csharp">Func&lt;int, int&gt; square = x =&gt; x * x;          // 输入 int,返回 int
 Action&lt;string&gt; log = msg =&gt; Console.WriteLine(msg);   // 无返回
@@ -607,7 +633,7 @@ emitter.emit('data', { value: 10 });
 - <code>Event?.Invoke(this, args)</code> 触发
 - <code>event += handler</code> / <code>event -= handler</code> 订阅/退订</p>
 <hr />
-<h2 id="sec-2-9">8. async / await</h2>
+<h2 id="sec-2-10">8. async / await</h2>
 <h3 id="sec-3-23"><code>Task</code> — 异步操作(JS Promise)</h3>
 <pre><code class="language-csharp">// 等价 JS:async function 返回 Promise
 public async Task&lt;int&gt; GetCountAsync()
@@ -713,7 +739,7 @@ fetch(url, { signal: controller.signal });
 controller.abort();
 </code></pre>
 <hr />
-<h2 id="sec-2-10">9. 模式匹配</h2>
+<h2 id="sec-2-11">9. 模式匹配</h2>
 <h3 id="sec-3-27"><code>is</code> 模式</h3>
 <pre><code class="language-csharp">object obj = &quot;hello&quot;;
 if (obj is string s &amp;&amp; s.Length &gt; 3)
@@ -757,7 +783,7 @@ string Describe(object o) =&gt; o switch
 </code></pre>
 <p>C# 的 switch expression 更紧凑,而且<strong>模式匹配是类型安全的</strong>(漏 case 编译警告)。</p>
 <hr />
-<h2 id="sec-2-11">10. 字符串</h2>
+<h2 id="sec-2-12">10. 字符串</h2>
 <h3 id="sec-3-29">插值 <code>$"..."</code>(JS 模板字符串)</h3>
 <pre><code class="language-csharp">var name = &quot;Tom&quot;;
 var age = 25;
@@ -803,7 +829,7 @@ for (int i = 0; i &lt; 1000; i++)
 string result = sb.ToString();
 </code></pre>
 <hr />
-<h2 id="sec-2-12">11. 元组</h2>
+<h2 id="sec-2-13">11. 元组</h2>
 <h3 id="sec-3-33">创建与解构</h3>
 <pre><code class="language-csharp">// 创建(C# 7.0+)
 var point = (X: 10, Y: 20);
@@ -833,7 +859,7 @@ if (int.TryParse(&quot;42&quot;, out _))   // 不关心结果值
 </code></pre>
 <p>⭐ <strong>现代 C# 风格</strong>:能用元组就别用 <code>out</code>,代码更易读。</p>
 <hr />
-<h2 id="sec-2-13">12. 泛型 / interface / class / struct / record</h2>
+<h2 id="sec-2-14">12. 泛型 / interface / class / struct / record</h2>
 <h3 id="sec-3-35">class vs struct</h3>
 <pre><code class="language-csharp">// 引用类型(堆) — 类似 JS 的 class
 public class Sensor
@@ -905,7 +931,7 @@ var p3 = p1 with { Value = 20 };  // p3 = SensorPoint(1, 20)
 - 想要 with 表达式创建副本</p>
 <p>class 适合"有身份、有状态变化"的对象,record 适合"数据快照"。</p>
 <hr />
-<h2 id="sec-2-14">13. using / namespace</h2>
+<h2 id="sec-2-15">13. using / namespace</h2>
 <h3 id="sec-3-39"><code>using</code> — 导入命名空间(像 import)</h3>
 <pre><code class="language-csharp">using System;                    // 基础类型 Console / DateTime
 using System.Collections.Generic; // List / Dictionary
@@ -959,7 +985,7 @@ try { ... } finally { conn.close(); }
 <p>C# 的 <code>IDisposable</code> 模式 = 强制约定 try-finally。</p>
 <p>⭐ <strong>必背</strong>:<code>IDbConnection</code> / <code>FileStream</code> / <code>StreamReader</code> / <code>Timer</code> / <code>Mutex</code> / 自定义带 timer 的类 都必须 <code>using</code>。</p>
 <hr />
-<h2 id="sec-2-15">14. lock 与线程安全</h2>
+<h2 id="sec-2-16">14. lock 与线程安全</h2>
 <h3 id="sec-3-43"><code>lock</code> — 互斥锁</h3>
 <pre><code class="language-csharp">private readonly object _lock = new();
 
@@ -1004,7 +1030,7 @@ Interlocked.Add(ref _counter, 10);        // 原子 +=
 Interlocked.Exchange(ref _counter, 0);    // 原子赋值
 </code></pre>
 <hr />
-<h2 id="sec-2-16">15. 扩展方法 / LINQ</h2>
+<h2 id="sec-2-17">15. 扩展方法 / LINQ</h2>
 <h3 id="sec-3-46">扩展方法(给已有类型加方法)</h3>
 <pre><code class="language-csharp">// 定义(static class + this 参数)
 public static class StringExtensions
@@ -1115,7 +1141,7 @@ var dict = nums.ToDictionary(n =&gt; n, n =&gt; n * n);     // {1:1, 2:4, 3:9, .
 </table>
 <p>⭐ <strong>现代 C# 必备</strong> — 看到 <code>.Where().Select().ToList()</code> 不要慌,就是 filter + map + 数组化。</p>
 <hr />
-<h2 id="sec-2-17">速查地图:看到陌生语法去哪查</h2>
+<h2 id="sec-2-18">速查地图:看到陌生语法去哪查</h2>
 <table>
 <thead>
 <tr>
@@ -1233,7 +1259,7 @@ var dict = nums.ToDictionary(n =&gt; n, n =&gt; n * n);     // {1:1, 2:4, 3:9, .
 </tbody>
 </table>
 <hr />
-<h2 id="sec-2-18">学习路径建议</h2>
+<h2 id="sec-2-19">学习路径建议</h2>
 <p>如果你完全没接触过 C#:
 1. <strong>先精读 §1-§5</strong>(类型推断 / 集合 / 初始化 / 属性 / null) — 这些是每个文件都会出现的
 2. <strong>再读 §6-§9</strong>(参数 / 委托 / async / 模式匹配) — 上位机通讯代码的核心
@@ -1242,11 +1268,11 @@ var dict = nums.ToDictionary(n =&gt; n, n =&gt; n * n);     // {1:1, 2:4, 3:9, .
 - 把这份文档<strong>当字典</strong>,遇到陌生语法 Ctrl+F
 - 不要从头到尾读,效率低</p>
 <hr />
-<h2 id="sec-2-19">这份文档不是终点</h2>
+<h2 id="sec-2-20">这份文档不是终点</h2>
 <p>如果有这里<strong>没讲到</strong>的语法让你云里雾里,直接在 22 模块的 .md 文件里加 <code>&lt;details&gt;</code> 提问,或直接告诉我补这一节。这份速查会持续更新。</p>
 <div class="pager">
   <a class="prev" href="traps.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">⚠️ C# 陷阱 · 前端转上位机必看</div></a>
-  <a class="next" href="roadmap30.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📅 30 天作战路线 · 转行冲刺版</div></a>
+  <a class="next" href="predefined-types.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📦 前置类型定义 · 学员粘贴版</div></a>
 </div>
   <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
   </main>

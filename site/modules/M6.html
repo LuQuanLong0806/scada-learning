@@ -78,6 +78,8 @@
 - <code>interface IAlarmRule { bool Check(double value); }</code> — 接口,速查 §12
 - <code>class ThresholdRule : IAlarmRule</code> — 实现接口
 - <code>DateTime.UtcNow</code> — 时间,速查 §10(<code>$"{now:yyyy-MM-dd HH:mm:ss}"</code>)</p>
+<p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
+M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>AlarmLevel</code> / <code>IAlarmRule</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AlarmLevel</code>/<code>AlarmEvent</code> 在"一、核心数据类型",<code>IAlarmRule</code>/<code>ThresholdRule</code> 在"三、报警规则")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>AlarmEngine</code> 引擎类,跟着 Day 1-4 敲。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写一套报警引擎：配置"点位 + 阈值 + 级别"，数据进来自动判警并通知；用 Serilog 把运行/错误写进日志文件。</p>

@@ -97,6 +97,8 @@
 - <code>services.AddSingleton&lt;IAlarmEngine, AlarmEngine&gt;()</code> — DI 注册,速查 §12
 - <code>Interlocked.Increment(ref _retryCount)</code> — 原子计数(重试),速查 §14
 - <code>async Task ExecuteWithRetry(Func&lt;Task&gt; action, ct)</code> — 异步委托参数,速查 §7/§8</p>
+<p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
+M9 示例大量引用 <code>IDevice</code> / <code>DeviceBase</code> / <code>SensorPoint</code> / <code>AlarmEngine</code> / <code>AlarmRule</code> / <code>AcquisitionPipeline</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>Retry</code> 工具类(指数退避),跟着 Day 1-4 敲。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>① <strong>单元测试</strong>（xUnit + Moq）：核心逻辑可验证，改代码不怕回归；② <strong>DI 容器</strong>：服务一处注册、随处可取，便于替换与测试；③ <strong>统一采集架构</strong>（<code>Channel&lt;T&gt;</code> + <code>Timer</code> 批量）：修正 M5③/M7② 的"逐点刷新/逐点发布"坑；④ <strong>生产级容错与重试</strong>：通信断了自动退避重试，而不是裸 <code>try/catch</code> 抛给用户。</p>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📦 前置类型定义 · 学员粘贴版 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="predefined-types">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、核心数据类型(M0 Day 2 定义,几乎所有模块都用)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、设备抽象(M0 Day 5 定义,M1/M2/M3/M11/M13 都继承)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、报警规则(M6 用,Day 7 也提过回滞)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、采集管道简化版(M0 Day 7 / M7 / M9 都引用)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、报表统计类型(M10 用,本模块特有)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、ByteOrder 枚举(M2 Modbus 字节序用)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、使用说明</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">📦 前置类型定义 · 学员粘贴版</h1>
+<blockquote>
+<p><strong>用途</strong>:这份文档集中定义<strong>所有讲义示例代码用到的核心自定义类型</strong>。如果你跟着某模块敲代码遇到"找不到类型 XXX",<strong>先来这里复制粘贴</strong>,在文件顶部贴上对应类型即可独立编译。</p>
+<p><strong>配合</strong>:<a href="M0_每日讲义_深度版.html">M0 Day 2</a> 讲过值/引用类型 → 这里 <code>SensorPoint</code> 用 struct,<code>Device</code> 用 class;<a href="M0_每日讲义_深度版.html">M0 Day 5</a> 讲过接口 → <code>IDevice</code> 是接口、<code>DeviceBase</code> 是抽象类。</p>
+<p><strong>建议</strong>:把下面所有代码存为 <code>DaqMonitor.Core/Models/_PredefinedTypes.cs</code>,跟着项目一起编译,所有模块的示例都能直接跑。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、核心数据类型(M0 Day 2 定义,几乎所有模块都用)</h2>
+<pre><code class="language-csharp">using System;
+
+namespace DaqMonitor.Core.Models;
+
+// 设备状态(值类型,适合状态机)
+public enum DeviceState
+{
+    Offline,        // 离线
+    Connecting,     // 连接中
+    Online,         // 在线
+    Error           // 异常
+}
+
+// 报警级别
+public enum AlarmLevel
+{
+    Normal,         // 正常
+    Warning,        // 预警
+    Critical        // 严重
+}
+
+// 采集点位 - 上位机最基础的数据载体
+// struct:值类型,小而频繁传递,GC 压力小(Day 2 学过)
+public readonly struct SensorPoint
+{
+    public int Id { get; init; }            // 点位编号
+    public double Value { get; init; }      // 实时数值
+    public DateTime Time { get; init; }     // 采集时刻
+
+    public SensorPoint(int id, double value, DateTime? time = null)
+    {
+        Id = id;
+        Value = value;
+        Time = time ?? DateTime.Now;
+    }
+}
+
+// 历史记录(M4 持久化用,带主键 ID 便于 EF Core 落库)
+public class SensorRecord
+{
+    public long Id { get; set; }            // 自增主键
+    public int PointId { get; set; }        // 点位编号
+    public double Value { get; set; }       // 数值
+    public DateTime Time { get; set; }      // 时刻
+}
+
+// 报警事件
+public class AlarmEvent
+{
+    public int PointId { get; init; }
+    public double Value { get; init; }
+    public AlarmLevel Level { get; init; }
+    public DateTime Time { get; init; } = DateTime.Now;
+    public string Message { get; init; } = &quot;&quot;;
+}
+</code></pre>
+<hr />
+<h2 id="sec-2-2">二、设备抽象(M0 Day 5 定义,M1/M2/M3/M11/M13 都继承)</h2>
+<pre><code class="language-csharp">using System.Threading;
+using System.Threading.Tasks;
+
+namespace DaqMonitor.Core.Devices;
+
+// 设备统一接口 - &quot;合同&quot;:任何设备都得能 Connect/Disconnect/Read
+public interface IDevice : IDisposable
+{
+    int Id { get; }
+    string Name { get; }
+    Core.Models.DeviceState State { get; }
+
+    Task ConnectAsync(CancellationToken ct = default);
+    Task DisconnectAsync(CancellationToken ct = default);
+
+    // 事件:数据到达时触发(Day 6 学过 event)
+    event EventHandler&lt;Core.Models.SensorPoint&gt;? DataReceived;
+}
+
+// 设备基类 - &quot;师傅&quot;:实现通用骨架,子类只填 ConnectAsync 内部细节
+public abstract class DeviceBase : IDevice
+{
+    public int Id { get; }
+    public string Name { get; }
+    public Core.Models.DeviceState State { get; protected set; }
+
+    protected DeviceBase(int id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
+
+    public abstract Task ConnectAsync(CancellationToken ct = default);
+    public abstract Task DisconnectAsync(CancellationToken ct = default);
+
+    // 子类调用:触发数据到达事件
+    protected void RaiseData(Core.Models.SensorPoint point)
+    {
+        State = Core.Models.DeviceState.Online;
+        DataReceived?.Invoke(this, point);
+    }
+
+    public event EventHandler&lt;Core.Models.SensorPoint&gt;? DataReceived;
+
+    public virtual void Dispose() { }
+}
+</code></pre>
+<blockquote>
+<p>⭐ <strong>为什么抽象类 + 接口双写</strong>:<code>IDevice</code> 定义"能力"(可被多个不同基类实现),<code>DeviceBase</code> 提供"共享实现"(子类省代码)。Day 5 详细讲过。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-3">三、报警规则(M6 用,Day 7 也提过回滞)</h2>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Alarming;
+
+// 报警规则接口
+public interface IAlarmRule
+{
+    int PointId { get; }
+    Core.Models.AlarmLevel Evaluate(double value);
+}
+
+// 阈值规则 + 回滞(防止边界抖动反复触发)
+public class ThresholdRule : IAlarmRule
+{
+    public int PointId { get; }
+    public double HighThreshold { get; }     // 超过此值 → 报警
+    public double LowThreshold { get; }      // 降回此值以下 → 解除
+    public Core.Models.AlarmLevel TriggerLevel { get; }
+
+    private bool _isAlarming;
+
+    public ThresholdRule(int pointId, double high, double low,
+                         Core.Models.AlarmLevel level = Core.Models.AlarmLevel.Warning)
+    {
+        PointId = pointId;
+        HighThreshold = high;
+        LowThreshold = low;
+        TriggerLevel = level;
+    }
+
+    public Core.Models.AlarmLevel Evaluate(double value)
+    {
+        if (value &gt; HighThreshold) _isAlarming = true;
+        else if (value &lt; LowThreshold) _isAlarming = false;
+        // 中间区(回滞带):保持原状态
+        return _isAlarming ? TriggerLevel : Core.Models.AlarmLevel.Normal;
+    }
+}
+</code></pre>
+<hr />
+<h2 id="sec-2-4">四、采集管道简化版(M0 Day 7 / M7 / M9 都引用)</h2>
+<blockquote>
+<p>真实工程里 <code>AcquisitionPipeline</code> 是 Channel<T> + Timer + 批量出队的复杂版,这里给学员可编译的最小骨架:</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Threading.Channels;
+using System.Threading.Tasks;
+using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Pipeline;
+
+// 采集管道:后台线程采集 → Channel 缓冲 → 批量事件触发
+public class AcquisitionPipeline
+{
+    private readonly Channel&lt;SensorPoint&gt; _channel =
+        Channel.CreateBounded&lt;SensorPoint&gt;(1000);
+
+    // 外部订阅:每批数据到达时触发
+    public event EventHandler&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;? BatchReady;
+
+    public void Enqueue(SensorPoint point) =&gt; _channel.Writer.TryWrite(point);
+
+    public async Task RunAsync(System.Threading.CancellationToken ct)
+    {
+        await foreach (var batch in ReadBatchesAsync(ct))
+            BatchReady?.Invoke(this, batch);
+    }
+
+    private async IAsyncEnumerable&lt;IReadOnlyList&lt;SensorPoint&gt;&gt; ReadBatchesAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] System.Threading.CancellationToken ct)
+    {
+        var batch = new List&lt;SensorPoint&gt;(100);
+        await foreach (var p in _channel.Reader.ReadAllAsync(ct))
+        {
+            batch.Add(p);
+            if (batch.Count &gt;= 100)
+            {
+                yield return batch;
+                batch = new List&lt;SensorPoint&gt;(100);
+            }
+        }
+        if (batch.Count &gt; 0) yield return batch;
+    }
+}
+</code></pre>
+<hr />
+<h2 id="sec-2-5">五、报表统计类型(M10 用,本模块特有)</h2>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Reporting;
+
+// 报表聚合结果(M10 报表模块核心类型)
+public record PointStat(
+    int PointId,
+    double Min,
+    double Max,
+    double Average,
+    double Sum,
+    int Count,
+    DateTime FirstTime,
+    DateTime LastTime
+);
+
+// 报表时间范围
+public record TimeRange(DateTime Start, DateTime End);
+</code></pre>
+<hr />
+<h2 id="sec-2-6">六、ByteOrder 枚举(M2 Modbus 字节序用)</h2>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Protocol;
+
+// Modbus 寄存器字节序(4 字节拼 float 时不同设备不同顺序)
+public enum ByteOrder
+{
+    ABCD,   // 大端:默认,西门子 PLC
+    CDAB,   // 字交换:常见于施耐德/部分仪表
+    BADC,   // 字节交换
+    DCBA    // 完全小端
+}
+</code></pre>
+<hr />
+<h2 id="sec-2-7">七、使用说明</h2>
+<p><strong>遇到"找不到类型 X"</strong>:</p>
+<ol>
+<li>在本文件搜索 X,找到定义块</li>
+<li>复制整个 <code>namespace ... { ... }</code> 块(或多个相关类型)</li>
+<li>在你的项目里新建一个 <code>.cs</code> 文件粘贴(建议命名 <code>_PredefinedTypes.cs</code>)</li>
+<li>重新编译</li>
+</ol>
+<p><strong>namespace 怎么改</strong>:
+- 讲义示例代码里 <code>using DaqMonitor.Core.Models;</code> 等
+- 如果你的项目根命名空间是 <code>MyScada</code>,把上面所有 <code>DaqMonitor.Core</code> 全替换成 <code>MyScada.Core</code> 即可</p>
+<p><strong>为什么有些类型用 struct,有些用 class</strong>:
+- <code>SensorPoint</code> 用 struct(值类型,小而频繁,GC 压力小) — Day 2 学过
+- <code>SensorRecord</code> 用 class(引用类型,EF Core 需要,有 Id 主键)
+- <code>PointStat</code> 用 record(值相等 + 不可变,M0 Day 4 学过)</p>
+<hr />
+<blockquote>
+<p>💡 <strong>教学约定</strong>:本仓库所有讲义都是<strong>项目驱动</strong> — 完整代码在 <code>DaqMonitor.sln</code> 真实存在。本文件是"独立模块学习"的桥接,让跳跃学习的学员也能跑通示例。</p>
+</blockquote>
+<div class="pager">
+  <a class="prev" href="csharp-syntax.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">📚 C# 语法速查 · 前端视角</div></a>
+  <a class="next" href="roadmap30.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📅 30 天作战路线 · 转行冲刺版</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+</body>
+</html>

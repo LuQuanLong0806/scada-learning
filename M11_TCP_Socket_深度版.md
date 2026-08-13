@@ -23,6 +23,9 @@
 > - `enum ParseState { WaitHeader, ReadLength, ReadBody, CheckCrc }` — 状态机枚举,速查 §12
 > - `class FrameParser` 内部 `private int _state;` 字段 + 方法 — 完整 class 设计
 
+> 📦 **前置类型**(本模块示例代码用到的核心自定义类型)
+> M11 示例引用 `DeviceBase` / `IDevice` / `SensorPoint` 等类型 — 这些在 [📦 前置类型定义 · 学员粘贴版](前置类型定义_学员粘贴版.md) **集中定义**。**遇到"找不到类型 XXX"报错,先去那份文档复制对应类型**,在项目里建 `_PredefinedTypes.cs` 粘进去就能跑。本模块会**新建** `TcpDevice : DeviceBase` 和 `TcpFrameParser`(状态机),跟着 Day 1-3 敲。
+
 ## 模块目标
 写出一个 `TcpDevice` 实现 `IDevice`：连接 TCP → 收字节流 → 按自定义帧解析（处理**粘包/拆包**）→ 通过 `DataReceived` 事件抛业务数据 → 进 DAQ Monitor。证明"换通信介质不改采集层"。
 

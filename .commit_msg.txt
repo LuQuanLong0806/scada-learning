@@ -1,0 +1,28 @@
+docs: 修复"示例代码引用未定义类型"系统性问题
+
+用户痛点:前端转上位机学员照抄教程代码,编译报错"找不到类型 XXX"。
+排查所有模块后,系统化修复:核心自定义类型(SensorPoint/DeviceBase/IDevice/
+AlarmRule/PointStat 等)集中定义 + 各讲义加"📦 前置类型"锚点。
+
+新增文档:
+- 前置类型定义_学员粘贴版.md(7 大类型集合)
+  · 一、核心数据类型(SensorPoint/DeviceState/AlarmLevel/SensorRecord/AlarmEvent)
+  · 二、设备抽象(IDevice/DeviceBase)
+  · 三、报警规则(IAlarmRule/ThresholdRule 带回滞)
+  · 四、采集管道(AcquisitionPipeline 简化版)
+  · 五、报表统计(PointStat/TimeRange)
+  · 六、ByteOrder 枚举(M2 字节序)
+  · 七、使用说明(遇到找不到类型怎么办)
+
+讲义加"📦 前置类型"锚点(10 份):
+- M0 头部加全局"学习约定"(项目驱动模式 + 三步学习姿势)
+- M0 Day 3 开头加"前置代码"块(SensorPoint + Device inline 定义)
+- CSharp 语法速查 §1 前加 SensorPoint/Device/DeviceState 定义
+- M1/M2/M3/M11/M13(通信模块组)各加前置类型锚点
+- M5/M6/M7/M9/M10(应用模块组)各加前置类型锚点
+
+README + build_site.py:
+- README 转行冲刺专项表加"前置类型定义"行
+- build_site.py PAGES 列表注册 predefined-types → site/modules/predefined-types.html
+
+site 重建 49 页(48→49)。

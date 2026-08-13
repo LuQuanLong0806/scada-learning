@@ -22,6 +22,9 @@
 > - `switch (brand) { case "Mitsubishi": ... case "Omron": ... }` — 多品牌分支
 > - `event EventHandler<DataReceivedEventArgs>? DataReceived` — 统一事件契约
 
+> 📦 **前置类型**(本模块示例代码用到的核心自定义类型)
+> M13 示例引用 `IDevice` / `SensorPoint` / `PlcDeviceBase`(本模块新建抽象基类)等 — 其中 `IDevice` / `SensorPoint` 在 [📦 前置类型定义 · 学员粘贴版](前置类型定义_学员粘贴版.md) **集中定义**。**遇到"找不到类型 XXX"报错,先去那份文档复制对应类型**,在项目里建 `_PredefinedTypes.cs` 粘进去就能跑。本模块还会**新建** `PlcDeviceBase` 抽象类 + `MitsubishiPlcDevice` / `OmronPlcDevice` 子类。
+
 ## 模块目标
 用 `HslCommunication` 封装一个 `PlcDevice : IDevice`，支持西门子/三菱/欧姆龙统一读点；理解"为什么国内爱 Hsl"，并能讲清多品牌地址差异这一最大坑。
 

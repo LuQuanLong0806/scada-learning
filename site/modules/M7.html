@@ -79,6 +79,8 @@
 - <code>await Task.Delay(TimeSpan.FromSeconds(30), ct)</code> — 异步延迟
 - <code>class MqttClient : IDisposable</code> / <code>using var client = ...</code> — 必须 Dispose,速查 §13
 - <code>Interlocked.Exchange(ref _retryCount, 0)</code> — 原子重试计数,速查 §14</p>
+<p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
+M7 示例引用 <code>SensorPoint</code> / <code>AcquisitionPipeline</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AcquisitionPipeline</code> 简化版在"四、采集管道简化版")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>MqttPublisher</code> / <code>CloudCommand</code>(下行命令 record)。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。</p>

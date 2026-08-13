@@ -20,6 +20,9 @@
 > - `class MqttClient : IDisposable` / `using var client = ...` — 必须 Dispose,速查 §13
 > - `Interlocked.Exchange(ref _retryCount, 0)` — 原子重试计数,速查 §14
 
+> 📦 **前置类型**(本模块示例代码用到的核心自定义类型)
+> M7 示例引用 `SensorPoint` / `AcquisitionPipeline` 等类型 — 这些在 [📦 前置类型定义 · 学员粘贴版](前置类型定义_学员粘贴版.md) **集中定义**(`AcquisitionPipeline` 简化版在"四、采集管道简化版")。**遇到"找不到类型 XXX"报错,先去那份文档复制对应类型**,在项目里建 `_PredefinedTypes.cs` 粘进去就能跑。本模块会**新建** `MqttPublisher` / `CloudCommand`(下行命令 record)。
+
 ## 模块目标
 把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。
 
