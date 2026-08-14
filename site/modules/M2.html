@@ -296,8 +296,14 @@ CRC校验：稍后算（低字节在前！）
 <p>解决：<strong>发送方在包尾加 2 字节 CRC，接收方用同样算法重算，对比一致才认账。</strong>
 前端类比：<code>const sign = md5(params + secretKey)</code> —— Modbus 的 CRC 是同一思路，只是算法换成多项式除法。</p>
 <p><strong>Step 2：最小可用实现（CrcCalculator.cs）</strong></p>
+<blockquote>
+<p>📂 <code>DaqMonitor.Core/Protocol/CrcCalculator.cs</code> · namespace <code>DaqMonitor.Core.Protocol</code>
+🔧 无 NuGet(纯位运算)
+💡 不依赖任何前置类型,可独立编译
+⚠️ 命名空间必须用 <code>DaqMonitor.Core.Protocol</code>(跟项目结构对齐),不要照抄早期资料的 <code>SCADA.Modbus</code>,否则后面 ModbusDevice.cs 里 <code>using</code> 找不到。</p>
+</blockquote>
 <pre><code class="language-csharp">// CrcCalculator.cs —— Modbus RTU CRC16
-namespace SCADA.Modbus
+namespace DaqMonitor.Core.Protocol
 {
     public static class CrcCalculator
     {
@@ -367,6 +373,11 @@ bool ok = resp.VerifyCrc();                  // true = 数据没被篡改
 <h3 id="sec-3-7">🔴 知识点 3：用 NModbus 读保持寄存器（调库，别重复造轮子）</h3>
 <blockquote>
 <p>原理你刚手搓过了，实际项目直接用库，10 行搞定。</p>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.Core/</code> 目录执行):
+<code>bash
+cd src/DaqMonitor.Core
+dotnet add package NModbus4</code>
+💡 NModbus4 是 Modbus RTU/TCP 主从站库,装完才能 <code>using Modbus.Device;</code></p>
 </blockquote>
 <pre><code class="language-csharp">using Modbus.Device;
 using System.IO.Ports;

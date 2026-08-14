@@ -47,18 +47,31 @@ PLC 把工艺数据存在"DB 数据块"里，上位机用 S7 协议直接读 / �
 
 ### 分点精讲
 **① 连接 + 读字节**（🟧）
+
+> 🔧 **必装 NuGet**(在 `src/DaqMonitor.Core/` 目录执行):
+> ```bash
+> cd src/DaqMonitor.Core
+> dotnet add package S7.Net
+> ```
 > 💡 **为什么用 Async**：S7.Net 同步 API 会阻塞线程，真实项目里 1 个 PLC 连接可能挂多个读请求，异步才能并发。**前端类比**：像 `Promise.all` 比多个 `await` 快——并发请求才能压榨网络吞吐。
+
+> 📂 **代码放哪**:这段是语法演示,可临时放在 `Program.cs` 跑。**真实工程**放进 `DaqMonitor.Core/Devices/PlcDevice.cs`(继承 `DeviceBase`)。
 
 ```csharp
 using S7.Net;
+using System.Threading.Tasks;
 
-var plc = new Plc(CpuType.S71200, "192.168.0.1", 0, 1); // Rack=0, Slot=1
-await plc.OpenAsync();
-if (plc.IsConnected)
+// ⚠️ 外层方法必须标 async Task,不能是 void / 同步方法
+public async Task ReadTempAsync()
 {
-    byte[] buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
-    float temp = S7.GetRealAt(buf, 0);                                  // 一个 float
-    Console.WriteLine($"温度={temp}");
+    var plc = new Plc(CpuType.S71200, "192.168.0.1", 0, 1); // Rack=0, Slot=1
+    await plc.OpenAsync();
+    if (plc.IsConnected)
+    {
+        byte[] buf = await plc.ReadBytesAsync(DataType.DataBlock, 1, 0, 4); // 读 DB1 偏移0 共4字节
+        float temp = S7.GetRealAt(buf, 0);                                  // 一个 float
+        Console.WriteLine($"温度={temp}");
+    }
 }
 ```
 > 注：外层方法签名要改成 `async Task`，调用方 `await` 它；别用 `.Result` / `.Wait()`，会死锁（M0 Day7 讲过）。

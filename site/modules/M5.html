@@ -115,25 +115,65 @@ M5 示例引用 <code>SensorPoint</code> / <code>IDevice</code> 等类型 — �
 </table>
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① ViewModel 准备数据</strong>（🟧🟦）</p>
-<pre><code class="language-csharp">using LiveChartsCore;
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.UI/</code> 目录执行,<strong>不是 Core</strong>!WPF 控件只能在 UI 项目用):
+<code>bash
+cd src/DaqMonitor.UI
+dotnet add package LiveChartsCore.SkiaSharpView.WPF</code>
+💡 LiveCharts2 是开源 WPF/WinForms 图表库。装完会自动带 SkiaSharp 依赖,体积约 30MB。</p>
+<p>📂 <code>DaqMonitor.UI/ViewModels/ChartVm.cs</code> · namespace <code>DaqMonitor.UI.ViewModels</code>(可改,要跟项目根命名空间对齐)
+💡 用到 <code>SensorPoint</code>(<a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
-using LiveChartsCore.SkiaSharpView.WPF;
 
-public class ChartVm
+namespace DaqMonitor.UI.ViewModels;
+
+// ⚠️ WPF 数据绑定要求 ViewModel 实现 INotifyPropertyChanged
+// (虽然这里 Series 是只读属性不触发通知,但项目里其他属性需要,养成习惯都加)
+public class ChartVm : INotifyPropertyChanged
 {
     public ISeries[] Series { get; } =
     {
         new LineSeries&lt;ObservablePoint&gt;
         {
             Values = new ObservableCollection&lt;ObservablePoint&gt;(),
-            Fill = null,        // 不填充，只画线
+            Fill = null,        // 不填充,只画线
         }
     };
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected void OnPropertyChanged([CallerMemberName] string? name = null)
+        =&gt; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 </code></pre>
 <p><strong>② XAML 绑定</strong>（🟩 WPF）</p>
-<pre><code class="language-xml">&lt;lvc:CartesianChart Series=&quot;{Binding Series}&quot; /&gt;
+<blockquote>
+<p>📂 <code>DaqMonitor.UI/MainWindow.xaml</code>(替换默认 Grid 内容)
+⚠️ 必须加 <code>xmlns:lvc</code>(命名空间声明),否则 XAML 编译报"找不到 lvc"</p>
+</blockquote>
+<pre><code class="language-xml">&lt;Window x:Class=&quot;DaqMonitor.UI.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        xmlns:lvc=&quot;clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF&quot;
+        Title=&quot;实时曲线&quot; Height=&quot;450&quot; Width=&quot;800&quot;&gt;
+    &lt;Grid&gt;
+        &lt;lvc:CartesianChart Series=&quot;{Binding Series}&quot; /&gt;
+    &lt;/Grid&gt;
+&lt;/Window&gt;
 </code></pre>
+<blockquote>
+<p>💡 <strong>别忘了在 MainWindow.xaml.cs 里设 DataContext</strong>:
+<code>csharp
+public MainWindow()
+{
+    InitializeComponent();
+    DataContext = new ChartVm();   // 让 XAML 的 {Binding Series} 能找到 ViewModel
+}</code></p>
+</blockquote>
 <p><strong>③ 实时追加（事件→入队→定时批量）</strong>（呼应 M0 Day 7 跨线程 + M5② 批量刷新）</p>
 <blockquote>
 <p>🔥 <strong>修正说明</strong>：早期版本在 <code>DataReceived</code> 里用 <code>Dispatcher.Invoke</code> 逐点刷新 UI —— 100Hz×多设备时直接卡死。正确做法是：事件<strong>只负责入队</strong>，UI 用定时器<strong>批量</strong>刷新。</p>

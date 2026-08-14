@@ -115,13 +115,29 @@ M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>Alarm
 </table>
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① 规则模型 + 引擎</strong>（🟦）</p>
-<pre><code class="language-csharp">public class AlarmRule
+<blockquote>
+<p>📂 <strong>教学版</strong>:<code>DaqMonitor.Core/Alarms/AlarmRule.cs</code> + <code>AlarmEngine.cs</code> · namespace <code>DaqMonitor.Core.Alarms</code>
+🔧 无 NuGet(纯 C# 逻辑)
+💡 用到 <code>SensorPoint</code> / <code>AlarmLevel</code> / <code>AlarmEvent</code>(都在 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)
+⚠️ <strong>教学版 vs 项目版</strong>:本节 <code>AlarmRule</code> 字段是 <code>Threshold + IsHigh</code>,<strong>项目实际生产版</strong>是 <code>ThresholdRule</code>(参前置类型定义,字段 <code>HighThreshold + LowThreshold</code> 实现回滞)。本节先学简版,Day 1 末「掰开揉碎」会升级到回滞版。</p>
+</blockquote>
+<pre><code class="language-csharp">// DaqMonitor.Core/Alarms/AlarmRule.cs
+namespace DaqMonitor.Core.Alarms;
+
+using DaqMonitor.Core.Models;
+
+public class AlarmRule
 {
     public int PointId { get; set; }
     public double Threshold { get; set; }
     public AlarmLevel Level { get; set; }      // M0 Day2 的 enum
     public bool IsHigh { get; set; } = true;   // true: 超上限报警；false: 低于下限
 }
+</code></pre>
+<pre><code class="language-csharp">// DaqMonitor.Core/Alarms/AlarmEngine.cs
+namespace DaqMonitor.Core.Alarms;
+
+using DaqMonitor.Core.Models;
 
 public class AlarmEngine
 {
@@ -134,14 +150,27 @@ public class AlarmEngine
     {
         foreach (var r in _rules)
             if (r.PointId == p.Id &amp;&amp; (r.IsHigh ? p.Value &gt; r.Threshold : p.Value &lt; r.Threshold))
-                AlarmTriggered?.Invoke(this, new AlarmEvent { PointId = p.Id, Level = r.Level, Value = p.Value });
+                // ⚠️ AlarmEvent 用 init 属性,可用对象初始化器;Timestamp 走默认值 DateTime.Now
+                AlarmTriggered?.Invoke(this, new AlarmEvent
+                {
+                    PointId = p.Id,
+                    Level = r.Level,
+                    Value = p.Value
+                });
     }
 }
 </code></pre>
 <p><strong>② 接到数据流</strong>（呼应 M0 Day 6）</p>
+<blockquote>
+<p>⚠️ <strong>修一个真实 bug</strong>:旧版写 <code>new SensorPoint { Id = e.PointId, Value = e.Value }</code> 用对象初始化器,
+但 <code>SensorPoint</code> 是带自定义构造函数的 struct,对象初始化器会先调默认构造(全字段归零)再 set,
+结果 <code>Timestamp</code> 是 <code>default(DateTime)</code> = <code>0001-01-01</code>,<strong>不是</strong> <code>DateTime.Now</code>!
+<strong>正确写法</strong>:走构造函数 <code>new SensorPoint(id, value)</code>,Timestamp 走构造函数默认参数。</p>
+</blockquote>
 <pre><code class="language-csharp">device.DataReceived += (s, e) =&gt;
 {
-    var p = new SensorPoint { Id = e.PointId, Value = e.Value };
+    // ✅ 走构造函数,Timestamp 自动取 DateTime.Now
+    var p = new SensorPoint(e.PointId, e.Value);
     engine.Evaluate(p);          // 自动判警
 };
 engine.AlarmTriggered += (s, a) =&gt; Console.WriteLine($&quot;⚠ 点位{a.PointId} 报警{a.Level} 值={a.Value}&quot;);
@@ -202,6 +231,16 @@ engine.AlarmTriggered += (s, a) =&gt; Console.WriteLine($&quot;⚠ 点位{a.Poin
 <p>Serilog 把"发生了什么"按级别（Info/Warn/Error）结构化写进文件，出问题能回放 —— 企业级必不可少的"黑匣子"。</p>
 <h3 id="sec-3-10">分点精讲</h3>
 <p><strong>① 配置 + 写日志</strong>（🟧）</p>
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.Core/</code> 目录执行):
+<code>bash
+cd src/DaqMonitor.Core
+dotnet add package Serilog                         # 核心库
+dotnet add package Serilog.Sinks.File              # 文件 sink(按天滚动)
+dotnet add package Serilog.Sinks.Console           # 控制台 sink(调试用,可选)</code>
+💡 Serilog 是 C# 最流行的结构化日志库,装完才能 <code>using Serilog;</code></p>
+<p>📂 配置代码放 <code>DaqMonitor.UI/App.xaml.cs</code> 的 <code>OnStartup</code> 里(全局只配一次),业务代码到处用 <code>Log.Information(...)</code>。</p>
+</blockquote>
 <pre><code class="language-csharp">using Serilog;
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
