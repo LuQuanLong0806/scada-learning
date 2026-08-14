@@ -194,12 +194,61 @@ dotnet new xunit    -o src/DaqMonitor.Tests
 <blockquote>
 <p><strong>为什么加这一步</strong>:你看 <a href="实操入门_从零搭建企业级工程.html">实操入门</a> 是"读懂",但面试官问"你这项目怎么建的",你能脱口而出 <code>dotnet new sln + 3 个 csproj + reference</code> 才算你的。<strong>只花 30 分钟,在你自己的工作目录建一个空骨架</strong>——这就是你接下来 30 天每天往里加代码的项目。</p>
 </blockquote>
-<p><strong>动作清单</strong>(全部命令行,不用 VS):</p>
+<h4>🚦 前置检查(2 分钟,不做后面全卡死)</h4>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>命令</th>
+<th>期望</th>
+<th>卡死场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.NET 8+ SDK 装了吗</td>
+<td><code>dotnet --version</code></td>
+<td><code>8.0.xxx</code> 或 <code>10.x.x</code></td>
+<td>没装 → <code>dotnet new</code> 命令找不到</td>
+</tr>
+<tr>
+<td>Git 装了吗</td>
+<td><code>git --version</code></td>
+<td><code>git version 2.x</code></td>
+<td>没装 → 第 5 步推不上去</td>
+</tr>
+<tr>
+<td>GitHub 账号 + SSH key 配了吗</td>
+<td><code>ssh -T git@github.com</code></td>
+<td>看到 <code>Hi 你的用户名!</code></td>
+<td>没配 → <code>git push</code> 报权限错</td>
+</tr>
+<tr>
+<td>当前目录对吗</td>
+<td><code>pwd</code> (Git Bash)</td>
+<td><code>f:\00_project\上位机学习</code></td>
+<td>不对 → 后面路径全错</td>
+</tr>
+<tr>
+<td>DAQMonitor-mine 是否已存在</td>
+<td><code>ls</code></td>
+<td>不存在</td>
+<td>已存在 → 换名 or 删了重建</td>
+</tr>
+</tbody>
+</table>
+<h4>📂 关于 src/ 目录(新手必看)</h4>
+<p>下面的命令 <code>dotnet new classlib -o src/DaqMonitor.Core</code> 会<strong>自动创建 src/ 父目录</strong>,你<strong>不用手动 <code>mkdir src</code></strong>。<code>dotnet new -o &lt;路径&gt;</code> 会创建路径上所有不存在的目录。</p>
+<h4>动作清单(全部命令行,不用 VS)</h4>
+<blockquote>
+<p>⚠️ <strong>每条命令单独执行,等上一条跑完再敲下一条</strong>。一次性粘贴多条容易因为某条失败导致后面全废。</p>
+</blockquote>
 <pre><code class="language-bash"># 1. 在你的工作目录(不在 DAQMonitor 参考版内)新建空项目
 mkdir DAQMonitor-mine &amp;&amp; cd DAQMonitor-mine
 git init
 
 # 2. 建解决方案 + 3 个工程(对照参考版 DAQMonitor/src/ 的结构)
+#    src/ 目录会自动建,不用手动 mkdir
 dotnet new sln -n DaqMonitor
 dotnet new classlib -o src/DaqMonitor.Core -n DaqMonitor.Core
 dotnet new wpf      -o src/DaqMonitor.UI   -n DaqMonitor.UI
@@ -212,17 +261,55 @@ dotnet sln add src/DaqMonitor.Tests/DaqMonitor.Tests.csproj
 dotnet add src/DaqMonitor.UI/DaqMonitor.UI.csproj reference src/DaqMonitor.Core/DaqMonitor.Core.csproj
 dotnet add src/DaqMonitor.Tests/DaqMonitor.Tests.csproj reference src/DaqMonitor.Core/DaqMonitor.Core.csproj
 
-# 4. 验证
+# 4. 验证(每条都应成功,失败先看错误信息再继续)
 dotnet build           # 必须 0 错
-dotnet test            # xUnit 默认 1 个测试通过
-dotnet run --project src/DaqMonitor.UI   # WPF 空窗口能开
+dotnet test            # xUnit 默认 1 个测试通过(看到 Passed: 1 即可)
+dotnet run --project src/DaqMonitor.UI   # WPF 空窗口能开(看到空白窗口就成功,close 关掉)
 
 # 5. 推到 GitHub(你的私人仓库,简历用)
+#    先去 https://github.com/new 建一个名为 DAQMonitor-mine 的空仓库(不要勾 README)
 git add -A
 git commit -m &quot;chore: init DAQMonitor-mine skeleton (Day 0.5)&quot;
 git remote add origin git@github.com:你的用户名/DAQMonitor-mine.git
 git push -u origin main
 </code></pre>
+<h4>❓ 常见卡死</h4>
+<table>
+<thead>
+<tr>
+<th>报错</th>
+<th>原因</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dotnet new wpf</code> 失败</td>
+<td>你在 Mac/Linux 上</td>
+<td>WPF 只能 Windows 跑,改用 WinForms 或换 Windows 机器</td>
+</tr>
+<tr>
+<td><code>dotnet test</code> 报 "No test found"</td>
+<td>xUnit 模板版本差异</td>
+<td>跑 <code>dotnet new xunit -o src/DaqMonitor.Tests</code> 重建测试工程</td>
+</tr>
+<tr>
+<td><code>dotnet run</code> 报找不到 MainWindow</td>
+<td>WPF 模板没装</td>
+<td>装 <code>.NET Desktop Runtime</code> + 桌面开发 workload</td>
+</tr>
+<tr>
+<td><code>git push</code> 报 Permission denied</td>
+<td>SSH key 没配</td>
+<td>看 https://docs.github.com/ssh 配 key,或改用 HTTPS</td>
+</tr>
+<tr>
+<td><code>dotnet build</code> 报 NETSDK109</td>
+<td>SDK 版本太低</td>
+<td>装 .NET 8 SDK 或更高</td>
+</tr>
+</tbody>
+</table>
 <p><strong>别删!这是你接下来 30 天的"主战场",每天 commit 都进这里。</strong></p>
 <p><strong>打卡</strong>:✅ 不查文档能背 <code>dotnet new sln/classlib/wpf/xunit</code> 4 个命令 ✅ <code>dotnet build</code> 0 错 ✅ WPF 空窗口能开 ✅ 已推到 GitHub</p>
 <hr />

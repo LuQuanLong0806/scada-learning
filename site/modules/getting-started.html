@@ -32,11 +32,14 @@
 <li class="l3"><a href="#sec-3-2">1.2 为什么这么分？（企业真实项目的理由）</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">2. 从空文件夹，用命令行一步步建出来（照抄即可）</a><ul>
-<li class="l3"><a href="#sec-3-3">2.1 想要某个第三方能力？dotnet add package</a></li>
+<li class="l3"><a href="#sec-3-3">🚦 前置检查(2 分钟,不做必卡死)</a></li>
+<li class="l3"><a href="#sec-3-4">🔍 跑完看到什么(对照确认)</a></li>
+<li class="l3"><a href="#sec-3-5">2.1 想要某个第三方能力？dotnet add package</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">3. git 初始化 + 忽略编译产物（必做，否则仓库会炸）</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-5">4. 三板斧：build / run / test（每天都会用）</a><ul>
+<li class="l3"><a href="#sec-3-6">⚠️ 验收前置(刚建空骨架时必读)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-6">5. ✏️ 练习（从最简单的动手）</a><ul>
 </ul></li>
@@ -147,7 +150,47 @@
 <p>这就是面试时能讲清楚的"<strong>分层架构 / 依赖方向单一</strong>"——13K 与 8K 的分水岭之一。</p>
 <hr />
 <h2 id="sec-2-3">2. 从空文件夹，用命令行一步步建出来（照抄即可）</h2>
-<p>打开终端（PowerShell / CMD / Git Bash 都行），进到你想放工程的地方：</p>
+<h3 id="sec-3-3">🚦 前置检查(2 分钟,不做必卡死)</h3>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>命令</th>
+<th>期望结果</th>
+<th>不达标怎么办</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>.NET SDK 装了吗</td>
+<td><code>dotnet --version</code></td>
+<td>输出 <code>8.0.xxx</code> 或更高</td>
+<td>去 https://dotnet.microsoft.com 下载 <strong>.NET 8 SDK</strong>(不是 Runtime)</td>
+</tr>
+<tr>
+<td><code>dotnet new</code> 模板能用吗</td>
+<td><code>dotnet new --list</code></td>
+<td>列出一堆模板含 <code>classlib</code>/<code>wpf</code>/<code>xunit</code></td>
+<td>SDK 没装好,重装</td>
+</tr>
+<tr>
+<td>当前目录对吗</td>
+<td><code>pwd</code> (Git Bash) 或 <code>cd</code> (CMD, 无参数)</td>
+<td><code>f:\00_project\上位机学习</code></td>
+<td>用 <code>cd</code> 切过去</td>
+</tr>
+<tr>
+<td>目录下有没有 <code>DAQMonitor/</code></td>
+<td><code>ls</code></td>
+<td>没有(第一次建)</td>
+<td>如已建过,跳到第 3 节或换个目录</td>
+</tr>
+</tbody>
+</table>
+<p>打开终端(PowerShell / CMD / Git Bash 都行),<strong>确认上面 4 项全过</strong>再继续。</p>
+<blockquote>
+<p>💡 <strong>本机常见情况</strong>:本机已装 .NET 10 SDK,工程目标框架是 <code>net8.0</code>。<code>dotnet --version</code> 输出 <code>10.x.x</code> 也算合格,后面会用 <code>&lt;RollForward&gt;</code> 让 net8 滚动到 net10。</p>
+</blockquote>
 <pre><code class="language-bash"># ① 建解决方案根目录并进入
 mkdir DAQMonitor &amp;&amp; cd DAQMonitor
 
@@ -155,6 +198,7 @@ mkdir DAQMonitor &amp;&amp; cd DAQMonitor
 dotnet new sln -n DaqMonitor
 
 # ③ 建三个子工程（classlib=类库, wpf=WPF 界面, xunit=测试）
+#    注意: -o src/DaqMonitor.Core 会自动建 src/ 目录,不用手动 mkdir
 dotnet new classlib -o src/DaqMonitor.Core -n DaqMonitor.Core
 dotnet new wpf      -o src/DaqMonitor.UI   -n DaqMonitor.UI
 dotnet new xunit    -o src/DaqMonitor.Tests -n DaqMonitor.Tests
@@ -169,8 +213,30 @@ dotnet add src/DaqMonitor.UI/DaqMonitor.UI.csproj    reference src/DaqMonitor.Co
 dotnet add src/DaqMonitor.Tests/DaqMonitor.Tests.csproj reference src/DaqMonitor.Core/DaqMonitor.Core.csproj
 </code></pre>
 <p>🟩 以上全是 .NET SDK 自带的命令，不需要装任何第三方包。</p>
-<p>跑完你会得到和本项目一模一样的骨架。<strong>此时你已经完成了"企业级工程的地基"——这比写第一行业务代码都重要。</strong></p>
-<h3 id="sec-3-3">2.1 想要某个第三方能力？<code>dotnet add package</code></h3>
+<h3 id="sec-3-4">🔍 跑完看到什么(对照确认)</h3>
+<p>跑完 ⑥ 步后,执行 <code>ls</code> (Git Bash) 或 <code>dir</code> (CMD),应该看到这个结构:</p>
+<pre><code>DAQMonitor/
+├── DaqMonitor.sln                         ← 解决方案清单(统领下面所有子工程)
+└── src/
+    ├── DaqMonitor.Core/                   ← 核心层(类库)
+    │   ├── Class1.cs                      ← dotnet 默认生成的,可删
+    │   └── DaqMonitor.Core.csproj
+    ├── DaqMonitor.UI/                     ← WPF 应用(会自动生成 App.xaml + MainWindow.xaml)
+    │   ├── App.xaml
+    │   ├── App.xaml.cs
+    │   ├── MainWindow.xaml
+    │   ├── MainWindow.xaml.cs
+    │   └── DaqMonitor.UI.csproj
+    └── DaqMonitor.Tests/                  ← xUnit 测试工程
+        ├── UnitTest1.cs                   ← xUnit 默认 1 个示例测试
+        └── DaqMonitor.Tests.csproj
+</code></pre>
+<p><strong>结构对不上的常见原因</strong>:
+- 看不到 <code>DaqMonitor.sln</code> → 第 ② 步 <code>dotnet new sln</code> 没跑或失败了
+- 看不到 <code>src/</code> → 第 ③ 步 <code>dotnet new classlib -o src/...</code> 路径敲错了
+- 看不到 <code>MainWindow.xaml</code> → 第 ③ 步 <code>dotnet new wpf</code> 失败(SDK 没装 WPF 模板,Windows 才有)</p>
+<p><strong>此时你已经完成了"企业级工程的地基"——这比写第一行业务代码都重要。</strong></p>
+<h3 id="sec-3-5">2.1 想要某个第三方能力？<code>dotnet add package</code></h3>
 <p>比如核心层要用依赖注入（Microsoft 官方库，🟧 要装）：</p>
 <pre><code class="language-bash">dotnet add src/DaqMonitor.Core/DaqMonitor.Core.csproj package Microsoft.Extensions.DependencyInjection
 </code></pre>
@@ -214,7 +280,36 @@ git commit -m &quot;chore: 搭建 DAQMonitor 分层骨架(Core/UI/Tests)&quot;
 </tr>
 </tbody>
 </table>
-<p>✅ <strong>验收标准（你学每一步都要能回答）</strong>：
+<h3 id="sec-3-6">⚠️ 验收前置(刚建空骨架时必读)</h3>
+<p>刚跑完第 2 节的命令后,你只有空骨架,<strong>别期望立刻能跑通 3 条验收</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>验收项</th>
+<th>空骨架状态</th>
+<th>何时能达到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dotnet build</code> → 0 错误 0 警告</td>
+<td>✅ 现在就应该过</td>
+<td>已达标</td>
+</tr>
+<tr>
+<td><code>dotnet test</code> → 全绿</td>
+<td>⚠️ 只有 xUnit 默认 1 个 <code>UnitTest1.cs</code>,会过但没意义</td>
+<td>M9 学完写真正的测试</td>
+</tr>
+<tr>
+<td><code>dotnet run</code> → 弹窗看点位跳动</td>
+<td>❌ 现在只是空 WPF 窗口</td>
+<td>M0 Day 7 + M1 后</td>
+</tr>
+</tbody>
+</table>
+<p><strong>新手误区</strong>:看到 <code>dotnet run</code> 只弹空白窗口就以为"建错了"。<strong>没错,这就是空骨架该有的样子</strong>。等你跟着 M0 Day 2-7 把 SensorPoint / IDevice / Pipeline / ViewModel 一步步加进去,窗口才会有内容。</p>
+<p>✅ <strong>完整验收标准</strong>(学到 M1 末尾时回来看):
 - <code>dotnet build</code> → 0 错误 0 警告
 - <code>dotnet test</code> → 全部绿灯
 - <code>dotnet run</code> → 弹出 DAQ Monitor 窗口，点"启动采集"能看到点位跳动 + 偶发报警</p>

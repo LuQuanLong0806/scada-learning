@@ -34,7 +34,19 @@
 
 ## 📦 本文档用到的核心类型(粘贴即可编译)
 
-> 下面 §1-§15 的示例代码会引用一个自定义类型 `SensorPoint`。**复制这段到你的代码顶部,所有示例都能跑**:
+> ### 🚦 使用说明(小白必读)
+> **场景 A:你正在跟练 DAQMonitor 项目**(已建好 `DaqMonitor.Core/Models/SensorPoint.cs`)
+> → **不要重复粘贴**!项目里已经有定义了。直接看 §1-§15 示例即可。
+> 看到示例里的 `SensorPoint` 就当它是项目里的那个(虽然项目的 SensorPoint 是 readonly struct + 构造函数,本文档为了演示用 class + setter,语法演示用,**不要替换项目里的版本**)。
+>
+> **场景 B:你只是在空白项目里练 C# 语法**(没用 DAQMonitor)
+> → 新建一个文件 `PredefinedTypes.cs`,放在项目根目录(跟 `Program.cs` 同级),粘贴下面的类型,**确保文件顶部的 namespace 是你的项目名**。
+> 这样 §1-§15 示例代码就能找到 `SensorPoint` 等类型了。
+>
+> **如果看到"类型 SensorPoint 已存在"错误**:说明你的项目里已有定义,**不要重复粘贴**,直接用现有的。
+>
+> **如果看到"找不到类型 SensorPoint"错误**:检查 namespace 是否对齐 —— 示例代码隐式用全局命名空间,如果你的 `PredefinedTypes.cs` 写了 `namespace Foo`,示例代码也要 `using Foo;`。
+
 ```csharp
 public class SensorPoint     // 或 struct,这里用 class 便于演示引用语义
 {
