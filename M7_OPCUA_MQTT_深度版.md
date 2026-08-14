@@ -185,11 +185,10 @@ public async Task SubscribeCommandsAsync(CancellationToken ct)
                     _log?.LogInformation("云端下发设定值: PointId={Id} Value={V}", cmd.PointId, cmd.Value);
                     break;
                 case "start":
-                    _pipelineRunCts = new CancellationTokenSource();
-                    _ = _pipeline.RunAsync(_pipelineRunCts.Token);   // 后台启动采集(参考 AcquisitionPipeline.RunAsync)
+                    _plcDevice.Connect();        // 管道构造即运行,采集开关在设备侧(同步门面)
                     break;
                 case "stop":
-                    _pipelineRunCts?.Cancel();                      // 取消 token = 停止采集
+                    _plcDevice.Disconnect();
                     break;
             }
         }
@@ -371,8 +370,6 @@ public class MqttPublisher
     private readonly Channel<IReadOnlyList<SensorPoint>> _publishQ =
         Channel.CreateBounded<IReadOnlyList<SensorPoint>>(100);
 
-    private CancellationTokenSource? _pipelineRunCts;   // 控制 pipeline 启停(参考 AcquisitionPipeline.RunAsync)
-
     public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline,
         IPlcDevice plcDevice, ILogger<MqttPublisher>? log = null)
     {
@@ -455,11 +452,10 @@ public class MqttPublisher
                             cmd.PointId, cmd.Value);
                         break;
                     case "start":
-                        _pipelineRunCts = new CancellationTokenSource();
-                        _ = _pipeline.RunAsync(_pipelineRunCts.Token);   // 后台启动采集
+                        _plcDevice.Connect();   // 采集开关在设备侧(管道构造即运行)
                         break;
                     case "stop":
-                        _pipelineRunCts?.Cancel();                      // 取消即停
+                        _plcDevice.Disconnect();
                         break;
                 }
             }

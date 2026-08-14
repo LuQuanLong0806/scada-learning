@@ -285,11 +285,11 @@ public class AuditLogger
     }
 }
 
-// PlcDevice.Write 前后包一层
+// PlcDevice.Write 前后包一层(PLC 走 IDevice 同步门面,审计落库是真异步)
 public async Task WriteSetpointAsync(int pointId, double newValue, string user, CancellationToken ct)
 {
-    double oldValue = await ReadAsync(pointId, ct);
-    await _plc.WriteAsync(pointId, newValue, ct);
+    double oldValue = _plc.Read(pointId);
+    _plc.Write(pointId, newValue);
     await _audit.LogAsync(
         new AuditEntry(user, "WriteSetpoint", $"point#{pointId}",
                        oldValue, newValue, DateTime.UtcNow), ct);

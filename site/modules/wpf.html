@@ -181,7 +181,7 @@ public MainWindow() { InitializeComponent(); DataContext = new MainViewModel(); 
 <h3 id="sec-3-4">④ 命令绑定：Command ≈ useCallback</h3>
 <pre><code class="language-xml">&lt;Button Command=&quot;{Binding StartCmd}&quot; Content=&quot;启动&quot;/&gt;
 </code></pre>
-<pre><code class="language-csharp">[ICommand] private void StartCmd() =&gt; _pipeline.Start();  // CommunityToolkit 源生成 ICommand
+<pre><code class="language-csharp">[ICommand] private void StartCmd() =&gt; _device.Connect();  // 真实工程:管道构造即启动,启停控制的是设备
 </code></pre>
 <p><strong>前端类比</strong>：<code>Command</code> 是把"点击该干嘛"也变成可绑定的数据，比 <code>Click</code> 事件更适合 MVVM（界面和逻辑彻底解耦）。<code>[ICommand]</code> 自动生成 <code>StartCmd</code> 属性。</p>
 <h3 id="sec-3-5">⑤ 模板：ControlTemplate ≈ 重写 render</h3>

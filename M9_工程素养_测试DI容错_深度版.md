@@ -17,7 +17,7 @@
 > 📚 **前置语法**(M9 用到的,陌生请查 [C# 语法速查 — 前端视角](CSharp语法速查_前端视角.md))
 > - `[Fact]` / `[Theory]` / `[InlineData(1, 2, 3)]` — xUnit 测试特性
 > - `Assert.Equal(expected, actual)` / `Assert.Throws<T>(...)` — 断言
-> - `Mock<IDevice>` / `.Setup(x => x.ConnectAsync()).ReturnsAsync(true)` — Moq
+> - `Mock<IDevice>` / `.Setup(x => x.Read(100)).Returns(42.0)` — Moq
 > - `Channel<T>.CreateUnbounded()` / `await channel.Reader.ReadAsync(ct)` — 生产消费,速查 §14
 > - `services.AddSingleton<IAlarmEngine, AlarmEngine>()` — DI 注册,速查 §12
 > - `Interlocked.Increment(ref _retryCount)` — 原子计数(重试),速查 §14
@@ -69,7 +69,6 @@ dotnet add reference ../DaqMonitor.Core        # 引用被测工程
 > 📂 `DaqMonitor.Tests/AlarmEngineTests.cs` · namespace `DaqMonitor.Tests`
 > 🔧 已装 `Moq` (本节①已装)
 > 💡 用到 `AlarmEngine` / `AlarmRule`(M6) + `SensorPoint` / `AlarmLevel`([前置类型定义](前置类型定义_学员粘贴版.md))
-> ⚠️ **修一个真实 bug**:旧版 `new SensorPoint { Id = 3, Value = 200 }` 用对象初始化器,但 SensorPoint 是带自定义构造函数的 struct,初始化器走默认构造 → Timestamp=default(DateTime)。**改用 `new SensorPoint(3, 200)`** 走构造函数,Timestamp 自动取 DateTime.Now。
 
 报警引擎是典型纯逻辑——给它点，断言是否触发。本项目真实用例：
 ```csharp
@@ -89,9 +88,9 @@ public class AlarmEngineTests
         int count = 0;
         engine.AlarmTriggered += (s, e) => count++;
 
-        // ✅ 走构造函数,Timestamp 自动取 DateTime.Now(不是 default)
-        engine.Evaluate(new SensorPoint(3, 200));
-        engine.Evaluate(new SensorPoint(3, 200));   // 仍超阈值,不应重复报
+        // SensorPoint 无构造函数,用对象初始化器(判警逻辑不关心时间,Timestamp 可省)
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });   // 仍超阈值,不应重复报
         Assert.Equal(1, count);
     }
 }
@@ -111,7 +110,7 @@ public async Task Pipeline_ReceivesData_FromMockedDevice()   // 真实存在于�
 
     pipeline.Register(device.Object);
     device.Raise(d => d.DataReceived += null,    // Moq 模拟"设备来了一帧"
-        new SensorPoint(7, 42, DateTime.Now));   // SensorPoint 在 DaqMonitor.Core.Models 定义
+        new DataEventArgs { PointId = 7, Value = 42 });   // 事件参数是 DataEventArgs(不是 SensorPoint),在 DaqMonitor.Core.Devices
 
     await Task.WhenAny(done.Task, Task.Delay(2000));
     Assert.Single(received);
@@ -149,7 +148,7 @@ public void Remove(int id) { _byId.Remove(id); _points.RemoveAll(x => x.Id == id
 // PointStoreTests.cs
 [Fact] public void Remove_ExistingId_ThenGetNull()
 {
-    var s = new PointStore(); s.AddOrUpdate(new SensorPoint(5, 1));   // ⚠️ 走构造函数,Timestamp 才不会是 default(DateTime)
+    var s = new PointStore(); s.AddOrUpdate(new SensorPoint { Id = 5, Value = 1 });   // struct 无构造函数,用对象初始化器(测试不关心时间,Timestamp 可省)
     s.Remove(5); Assert.Null(s.Get(5));
 }
 [Fact] public void Remove_MissingId_NoThrow()
@@ -281,7 +280,8 @@ public sealed class AcquisitionPipeline : IDisposable
 
     public void Register(IDevice device)
         => device.DataReceived += (s, e) =>
-            _channel.Writer.TryWrite(e);   // e 已经是 SensorPoint,直接入队
+            _channel.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp });
+            // ⚠️ e 是 DataEventArgs(PointId/Value/Timestamp),必须转成 SensorPoint 且抄下 Timestamp
 
     private void Flush()
     {

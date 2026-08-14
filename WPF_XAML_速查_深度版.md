@@ -76,7 +76,7 @@ public MainWindow() { InitializeComponent(); DataContext = new MainViewModel(); 
 <Button Command="{Binding StartCmd}" Content="启动"/>
 ```
 ```csharp
-[ICommand] private void StartCmd() => _pipeline.Start();  // CommunityToolkit 源生成 ICommand
+[ICommand] private void StartCmd() => _device.Connect();  // 真实工程:管道构造即启动,启停控制的是设备
 ```
 **前端类比**：`Command` 是把"点击该干嘛"也变成可绑定的数据，比 `Click` 事件更适合 MVVM（界面和逻辑彻底解耦）。`[ICommand]` 自动生成 `StartCmd` 属性。
 

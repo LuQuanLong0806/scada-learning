@@ -194,20 +194,18 @@ public class PlcDevice : DeviceBase
         };
     }
 
-    public override Task ConnectAsync(CancellationToken ct = default)
+    public override void Connect()
     {
-        // Hsl 多数"随读即连",这里启动后台轮询,数据走事件推送(reactive)
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        // Hsl 多数"随读即连",这里启动后台轮询,数据走事件推送(与 SimulatedDevice 同套路)
+        _cts = new CancellationTokenSource();
         _ = PollLoop(_cts.Token);
         State = DeviceState.Online;
-        return Task.CompletedTask;
     }
 
-    public override Task DisconnectAsync(CancellationToken ct = default)
+    public override void Disconnect()
     {
         _cts?.Cancel();
         State = DeviceState.Offline;
-        return Task.CompletedTask;
     }
 
     private async Task PollLoop(CancellationToken ct)
@@ -218,17 +216,20 @@ public class PlcDevice : DeviceBase
             {
                 var r = _client.ReadFloat(_addr);   // 真实项目按点位配置表映射多地址
                 if (r.IsSuccess)
-                    RaiseData(new SensorPoint(Id, r.Content));   // ⚠️ 走构造函数
+                    RaiseData(Id, r.Content);       // RaiseData(pointId, value)
                 else
-                    State = DeviceState.Offline;   // 失败不抛,交心跳重连
+                    State = DeviceState.Offline;    // 失败不抛,交心跳重连
             }
             catch { /* 通信错交给 M9 心跳重连 */ }
             await Task.Delay(500, ct);
         }
     }
 
-    // 独立写入方法(教学版;M9 工程版会抽到 IWriteableDevice 接口)
-    public void Write(string addr, double value) { _client.Write(addr, (float)value); }
+    public override double Read(int addr)
+        => _client.ReadFloat(_addr).Content;   // 简化:真实项目缓存 _last 字典
+
+    public override void Write(int addr, double value)
+        => _client.Write(_addr, (float)value);
 }
 ```
 > 接进工程：`services.AddSingleton<IDevice>(_ => new PlcDevice(2, "PLC-多品牌", Brand.Melsec, "192.168.0.2"));`，UI 零改。

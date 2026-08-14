@@ -92,7 +92,7 @@
 <p>📚 <strong>前置语法</strong>(M9 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
 - <code>[Fact]</code> / <code>[Theory]</code> / <code>[InlineData(1, 2, 3)]</code> — xUnit 测试特性
 - <code>Assert.Equal(expected, actual)</code> / <code>Assert.Throws&lt;T&gt;(...)</code> — 断言
-- <code>Mock&lt;IDevice&gt;</code> / <code>.Setup(x =&gt; x.ConnectAsync()).ReturnsAsync(true)</code> — Moq
+- <code>Mock&lt;IDevice&gt;</code> / <code>.Setup(x =&gt; x.Read(100)).Returns(42.0)</code> — Moq
 - <code>Channel&lt;T&gt;.CreateUnbounded()</code> / <code>await channel.Reader.ReadAsync(ct)</code> — 生产消费,速查 §14
 - <code>services.AddSingleton&lt;IAlarmEngine, AlarmEngine&gt;()</code> — DI 注册,速查 §12
 - <code>Interlocked.Increment(ref _retryCount)</code> — 原子计数(重试),速查 §14
@@ -159,8 +159,7 @@ dotnet add reference ../DaqMonitor.Core        # 引用被测工程
 <blockquote>
 <p>📂 <code>DaqMonitor.Tests/AlarmEngineTests.cs</code> · namespace <code>DaqMonitor.Tests</code>
 🔧 已装 <code>Moq</code> (本节①已装)
-💡 用到 <code>AlarmEngine</code> / <code>AlarmRule</code>(M6) + <code>SensorPoint</code> / <code>AlarmLevel</code>(<a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)
-⚠️ <strong>修一个真实 bug</strong>:旧版 <code>new SensorPoint { Id = 3, Value = 200 }</code> 用对象初始化器,但 SensorPoint 是带自定义构造函数的 struct,初始化器走默认构造 → Timestamp=default(DateTime)。<strong>改用 <code>new SensorPoint(3, 200)</code></strong> 走构造函数,Timestamp 自动取 DateTime.Now。</p>
+💡 用到 <code>AlarmEngine</code> / <code>AlarmRule</code>(M6) + <code>SensorPoint</code> / <code>AlarmLevel</code>(<a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)</p>
 </blockquote>
 <p>报警引擎是典型纯逻辑——给它点，断言是否触发。本项目真实用例：</p>
 <pre><code class="language-csharp">using DaqMonitor.Core.Alarms;
@@ -179,9 +178,9 @@ public class AlarmEngineTests
         int count = 0;
         engine.AlarmTriggered += (s, e) =&gt; count++;
 
-        // ✅ 走构造函数,Timestamp 自动取 DateTime.Now(不是 default)
-        engine.Evaluate(new SensorPoint(3, 200));
-        engine.Evaluate(new SensorPoint(3, 200));   // 仍超阈值,不应重复报
+        // SensorPoint 无构造函数,用对象初始化器(判警逻辑不关心时间,Timestamp 可省)
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });   // 仍超阈值,不应重复报
         Assert.Equal(1, count);
     }
 }
@@ -199,7 +198,7 @@ public async Task Pipeline_ReceivesData_FromMockedDevice()   // 真实存在于�
 
     pipeline.Register(device.Object);
     device.Raise(d =&gt; d.DataReceived += null,    // Moq 模拟&quot;设备来了一帧&quot;
-        new SensorPoint(7, 42, DateTime.Now));   // SensorPoint 在 DaqMonitor.Core.Models 定义
+        new DataEventArgs { PointId = 7, Value = 42 });   // 事件参数是 DataEventArgs(不是 SensorPoint),在 DaqMonitor.Core.Devices
 
     await Task.WhenAny(done.Task, Task.Delay(2000));
     Assert.Single(received);
@@ -252,7 +251,7 @@ public void Remove(int id) { _byId.Remove(id); _points.RemoveAll(x =&gt; x.Id ==
 // PointStoreTests.cs
 [Fact] public void Remove_ExistingId_ThenGetNull()
 {
-    var s = new PointStore(); s.AddOrUpdate(new SensorPoint(5, 1));   // ⚠️ 走构造函数,Timestamp 才不会是 default(DateTime)
+    var s = new PointStore(); s.AddOrUpdate(new SensorPoint { Id = 5, Value = 1 });   // struct 无构造函数,用对象初始化器(测试不关心时间,Timestamp 可省)
     s.Remove(5); Assert.Null(s.Get(5));
 }
 [Fact] public void Remove_MissingId_NoThrow()
@@ -414,7 +413,8 @@ var provider = services.BuildServiceProvider();
 
     public void Register(IDevice device)
         =&gt; device.DataReceived += (s, e) =&gt;
-            _channel.Writer.TryWrite(e);   // e 已经是 SensorPoint,直接入队
+            _channel.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp });
+            // ⚠️ e 是 DataEventArgs(PointId/Value/Timestamp),必须转成 SensorPoint 且抄下 Timestamp
 
     private void Flush()
     {

@@ -602,27 +602,26 @@ public class TcpDevice : DeviceBase
     private TcpClient? _client; private NetworkStream? _ns;
     private readonly MemoryStream _acc = new();
     private TcpHeartbeatHost? _heartbeat;   // 心跳探活, 见 Day1 「心跳实现完整版」
-    private CancellationTokenSource? _recvCts;   // 控制 RecvLoop 取消
+    private CancellationTokenSource? _cts;  // 控制 RecvLoop 取消
 
     public TcpDevice(int id, string name, string host, int port) : base(id, name)
         =&gt; (_host, _port) = (host, port);
 
-    public override async Task ConnectAsync(CancellationToken ct = default)
+    public override void Connect()
     {
-        _client = new TcpClient(); await _client.ConnectAsync(_host, _port, ct);
+        _client = new TcpClient(); _client.Connect(_host, _port);
         _ns = _client.GetStream(); State = DeviceState.Online;
         _heartbeat = new TcpHeartbeatHost(_client, _ns);
         _heartbeat.ConnectionLost += (s, e) =&gt; _ = ReconnectAsync(CancellationToken.None);
         _heartbeat.Start();
-        _recvCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _ = RecvLoop(_recvCts.Token);
+        _cts = new CancellationTokenSource();
+        _ = RecvLoop(_cts.Token);   // 接口同步返回,收包循环在后台跑(与 SimulatedDevice 同套路)
     }
-    public override Task DisconnectAsync(CancellationToken ct = default)
+    public override void Disconnect()
     {
-        _recvCts?.Cancel();
+        _cts?.Cancel();
         _heartbeat?.Stop(); _ns?.Close(); _client?.Close();
         State = DeviceState.Offline;
-        return Task.CompletedTask;
     }
 
     private async Task RecvLoop(CancellationToken ct)
@@ -640,7 +639,7 @@ public class TcpDevice : DeviceBase
             _heartbeat?.NotifyAlive();    // 收到任何字节都算对端活着
             _acc.Write(buf, 0, n);
             foreach (var body in FrameParser.TryParseFrames(_acc))
-                RaiseData(new SensorPoint(Id, body[0]));   // ⚠️ 走构造函数,简化: 首字节当值,真实按协议拆
+                RaiseData(Id, body[0]);   // RaiseData(pointId, value),Timestamp 由它统一打;简化:首字节当值,真实按协议拆
         }
         // 退出循环 = 掉线, 触发重连 (TcpHeartbeatHost 也会判活触发, 双保险)
         if (!ct.IsCancellationRequested) _ = ReconnectAsync(ct);
@@ -648,9 +647,9 @@ public class TcpDevice : DeviceBase
     private async Task ReconnectAsync(CancellationToken ct)
     {
         State = DeviceState.Offline;
-        // 简化版重连: 真实场景用 M9 的 Retry.ExecuteAsync 指数退避
+        // 简化版重连: 真实场景用 M9 的 Retry.ExecuteAsync 指数退避(参考工程 TcpDevice 用 1/2/4/8/16s)
         await Task.Delay(1000, ct);
-        try { await ConnectAsync(ct); } catch { /* 重连失败, 等 Retry 再试 */ }
+        try { Connect(); } catch { /* 重连失败, 等 Retry 再试 */ }
     }
 }
 </code></pre>

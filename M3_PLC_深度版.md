@@ -174,9 +174,9 @@ var model = new
 
 **③ 接入统一接口**（呼应 M0 Day 5）
 ```csharp
-IDevice dev = new PlcDevice(1, "PLC-01", "192.168.0.1");
-dev.DataReceived += (s, e) => Console.WriteLine($"点{e.Id}={e.Value}");
-await dev.ConnectAsync();
+IDevice dev = new PlcDevice(1, "PLC-01", new[] { new PlcDevice.PlcMap(1, "DB1.DBW0") });
+dev.DataReceived += (s, e) => Console.WriteLine($"点{e.PointId}={e.Value}");
+dev.Connect();   // 同步门面:内部起后台轮询循环(与 SimulatedDevice 同套路)
 ```
 
 ### ⚠️ 重点 & 易踩坑
@@ -255,70 +255,113 @@ public sealed class DeviceHost : IDisposable
 - **M2 轮询/重试 → 这里同样适用**：PLC 扫描周期有限，轮询别 <50ms；通信错用 M9 的 `Retry` 退避。
 - **前瞻 M9**：多设备统一调度最终由 `AcquisitionPipeline` 收口，别各自写轮询循环；心跳重连见 M9 Day4 + M15。
 
-## 🧩 完整代码组装（PlcDevice 可直接抄进工程）
+## 🧩 完整代码组装（PlcDevice,与参考工程一字不差）
 
 > 📂 `DaqMonitor.Core/Devices/PlcDevice.cs` · namespace `DaqMonitor.Core.Devices`
-> 🔧 **必装 NuGet**(在 `src/DaqMonitor.Core/` 执行):`dotnet add package S7.Net`
-> 💡 继承 [`DeviceBase`](前置类型定义_学员粘贴版.md#devicebase) 实现 [`IDevice`](前置类型定义_学员粘贴版.md#idevice) · `SensorPoint` 来自 `DaqMonitor.Core.Models` · `RaiseData(...)` 是 DeviceBase 的 protected 助手,内部触发 `DataReceived` 事件
+> 🔧 模拟模式**零 NuGet**;真实模式需在 `src/DaqMonitor.Core/` 执行 `dotnet add package S7NetPlus`(工程为保持零依赖可编译,真实路径以注释保留)
+> 💡 继承 [`DeviceBase`](前置类型定义_学员粘贴版.md),`RaiseData(pointId, value)` 触发事件。**接口是同步的** `Connect()`,轮询在内部 `Task.Run` 后台循环跑 — 这是工程"同步门面 + 内部异步"的标准套路(参 SimulatedDevice)
 
 ```csharp
-// DaqMonitor.Core/Devices/PlcDevice.cs
-using S7.Net;
+// DaqMonitor.Core/Devices/PlcDevice.cs(工程真实文件,模拟模式默认开,零硬件可跑)
 using DaqMonitor.Core.Models;
 
 namespace DaqMonitor.Core.Devices;
 
-public class PlcDevice : DeviceBase
+public sealed class PlcDevice : DeviceBase
 {
-    private readonly string _ip;
-    private Plc? _plc;
+    // 点位 → PLC 地址映射,如 "DB1.DBW0"(数据块1、字0)
+    public sealed record PlcMap(int PointId, string DbAddress);
+
+    private readonly bool _simulate;
+    private readonly List<PlcMap> _maps;
     private CancellationTokenSource? _cts;
-    private int _addr;     // 主轮询点位(约定:DB号*10000 + 偏移,DB1.4 => 10004)
+    private Task? _loop;
+    private readonly Random _rnd = new();
+    private readonly Dictionary<int, double> _last = new();
 
-    public PlcDevice(int id, string name, string ip) : base(id, name) => _ip = ip;
-
-    public override async Task ConnectAsync(CancellationToken ct = default)
+    public PlcDevice(int id, string name, IEnumerable<PlcMap> maps, bool simulate = true)
+        : base(id, name)
     {
-        _plc = new Plc(CpuType.S71200, _ip, 0, 1);
-        await _plc.OpenAsync();
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _ = PollLoop(_cts.Token);   // 后台轮询,数据走事件推送(reactive 模型)
+        _simulate = simulate;
+        _maps = maps.ToList();
     }
 
-    public override Task DisconnectAsync(CancellationToken ct = default)
+    public override void Connect()
     {
-        _cts?.Cancel();
-        _plc?.Close();
-        _plc = null;
-        return Task.CompletedTask;
+        State = DeviceState.Connecting;
+        Start();                              // 起后台轮询循环
+        State = DeviceState.Online;
     }
 
-    // 后台轮询:周期读 PLC → 走 RaiseData 触发事件(对应 IDevice 没有 ReadAsync 的设计)
-    private async Task PollLoop(CancellationToken ct)
+    public override void Disconnect()
     {
-        while (!ct.IsCancellationRequested && _plc is not null)
+        Stop();
+        State = DeviceState.Offline;
+    }
+
+    private void Start()
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =>
         {
             try
             {
-                int db = _addr / 10000, off = _addr % 10000;
-                var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
-                if (_plc.LastErrorCode == 0)
+                while (!token.IsCancellationRequested)
                 {
-                    double v = S7.GetRealAt(buf, 0);
-                    RaiseData(new SensorPoint(Id, v));   // ⚠️ 走构造函数,Timestamp 才不会是 default
+                    Tick();
+                    await Task.Delay(500, token);
                 }
             }
-            catch { /* 通信错交给 M9 心跳重连,这里不抛 */ }
-            await Task.Delay(500, ct);
-        }
+            catch (OperationCanceledException) { /* 正常退出 */ }
+        }, token);
     }
 
-    // 独立写入方法(教学版;M9 工程版会抽到 IWriteableDevice 接口)
-    public async Task WriteAsync(int addr, double v)
+    private void Stop()
     {
-        if (_plc is null) return;
-        int db = addr / 10000, off = addr % 10000;
-        await _plc.WriteAsync(DataType.DataBlock, db, off, (float)v);
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { /* 忽略 */ }
+        _cts?.Dispose(); _cts = null; _loop = null;
+    }
+
+    private void Tick()
+    {
+        if (_simulate)   // 模拟模式:随机值,零硬件跑通链路
+        {
+            foreach (var m in _maps)
+            {
+                double v = Math.Round(20 + _rnd.NextDouble() * 70, 2);
+                _last[m.PointId] = v;
+                RaiseData(m.PointId, v);
+            }
+            return;
+        }
+
+        // —— 真实 S7.Net 写法(需 dotnet add package S7NetPlus,填 PLC 的 IP)——
+        // using S7;
+        // var plc = new Plc(CpuType.S71200, "192.168.0.1", 0, 1);
+        // plc.Open();
+        // try
+        // {
+        //     foreach (var m in _maps)
+        //     {
+        //         var raw = (short)plc.Read(m.DbAddress);
+        //         if (plc.LastErrorCode != 0) continue;   // IsConnected 不可全信,看错误码
+        //         _last[m.PointId] = raw;
+        //         RaiseData(m.PointId, raw);
+        //     }
+        // }
+        // finally { plc.Close(); }
+    }
+
+    public override double Read(int addr)
+        => _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        if (_simulate) return;
+        // 真实模式:plc.Write(map.DbAddress, (short)value);
     }
 }
 ```

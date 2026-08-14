@@ -72,14 +72,13 @@
 - 🎯 <strong>面试高频</strong>:<strong>回滞机制(为什么不能直接阈值判断)</strong> / Serilog 结构化日志 / 报警级别(Info/Warning/Critical)
 - 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B5 AlarmRule 回滞手写</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
 <p>📚 <strong>前置语法</strong>(M6 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
-- <code>enum AlarmLevel { Info, Warning, Critical }</code> — 枚举,速查 §12
-- <code>event Action&lt;AlarmEvent&gt;?</code> — 委托事件,速查 §7
-- <code>class AlarmEvent { ... }</code> — 报警事件类型(参 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>,字段 PointId/Value/Level/Timestamp/Message),速查 §4 init 属性
-- <code>interface IAlarmRule { AlarmLevel Evaluate(double value); }</code> — 接口,速查 §12
-- <code>class ThresholdRule : IAlarmRule</code> — 实现接口
+- <code>enum AlarmLevel { Normal, Warning, Critical }</code> — 枚举,速查 §12
+- <code>event EventHandler&lt;AlarmEvent&gt;?</code> — 事件,速查 §7
+- <code>class AlarmEvent { ... }</code> — 报警事件类型(参 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a> §四,字段 PointId/Level/Value),速查 §4 init 属性
+- <code>class AlarmRule { ... }</code> — 报警规则类(前置类型定义 §四,字段 PointId/Threshold/Hysteresis/Level/IsHigh)
 - <code>DateTime.UtcNow</code> — 时间,速查 §10(<code>$"{now:yyyy-MM-dd HH:mm:ss}"</code>)</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>AlarmLevel</code> / <code>IAlarmRule</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AlarmLevel</code>/<code>AlarmEvent</code> 在"一、核心数据类型",<code>IAlarmRule</code>/<code>ThresholdRule</code> 在"三、报警规则")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>AlarmEngine</code> 引擎类,跟着 Day 1-4 敲。</p>
+M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>AlarmLevel</code> / <code>AlarmRule</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AlarmLevel</code> 在"一、核心数据类型",<code>AlarmRule</code>/<code>AlarmEvent</code> 在"四、报警引擎")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>AlarmEngine</code> 引擎类(教学简版),跟着 Day 1-4 敲。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写一套报警引擎：配置"点位 + 阈值 + 级别"，数据进来自动判警并通知；用 Serilog 把运行/错误写进日志文件。</p>
@@ -116,14 +115,11 @@ M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>Alarm
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① 规则模型 + 引擎</strong>（🟦）</p>
 <blockquote>
-<p>📂 <strong>教学版</strong>:<code>DaqMonitor.Core/Alarms/AlarmRule.cs</code> + <code>AlarmEngine.cs</code> · namespace <code>DaqMonitor.Core.Alarms</code>
+<p>📂 两个文件:<code>DaqMonitor.Core/Alarms/AlarmRule.cs</code> + <code>AlarmEngine.cs</code> · namespace <code>DaqMonitor.Core.Alarms</code>
 🔧 无 NuGet(纯 C# 逻辑)
-💡 用到 <code>SensorPoint</code> / <code>AlarmLevel</code> / <code>AlarmEvent</code>(都在 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)
-⚠️ <strong>教学版 vs 项目版</strong>:本节 <code>AlarmRule</code> 字段是 <code>Threshold + IsHigh</code>,<strong>项目实际生产版</strong>是 <code>ThresholdRule</code>(参前置类型定义,字段 <code>HighThreshold + LowThreshold</code> 实现回滞)。本节先学简版,Day 1 末「掰开揉碎」会升级到回滞版。</p>
-<p>⚠️ <strong>教学版 vs 项目版</strong>:<strong>项目真实代码用 <code>ThresholdRule</code> 实现了 <a href="前置类型定义_学员粘贴版.html#ialarmrule"><code>IAlarmRule</code></a> 接口</strong>(参考版 <code>DaqMonitor.Core/Alarms/ThresholdRule.cs</code>),
-字段更全(<code>HighThreshold</code> / <code>LowThreshold</code> / <code>Hysteresis</code> 等),下面是<strong>教学版</strong>(只读这节就够理解概念)。</p>
+💡 用到 <code>SensorPoint</code> / <code>AlarmLevel</code> / <code>AlarmEvent</code>(都在 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>);<code>AlarmRule</code> 与参考工程一字不差,<code>AlarmEngine</code> 是教学简版(工程完整版含回滞+边沿触发,见下「掰开揉碎」和前置类型定义 §四)</p>
 </blockquote>
-<pre><code class="language-csharp">// 教学版 AlarmRule(项目里实际叫 ThresholdRule,字段更多,见前置类型定义)
+<pre><code class="language-csharp">// DaqMonitor.Core/Alarms/AlarmRule.cs
 namespace DaqMonitor.Core.Alarms;
 
 using DaqMonitor.Core.Models;
@@ -132,7 +128,7 @@ public class AlarmRule
 {
     public int PointId { get; set; }
     public double Threshold { get; set; }
-    public double Hysteresis { get; set; }      // 回滞带(下面&quot;回滞&quot;小节详解),生产必填
+    public double Hysteresis { get; set; }      // 回滞带(下面&quot;回滞&quot;小节详解),生产必配
     public AlarmLevel Level { get; set; }      // M0 Day2 的 enum
     public bool IsHigh { get; set; } = true;   // true: 超上限报警；false: 低于下限
 }
@@ -165,16 +161,18 @@ public class AlarmEngine
 </code></pre>
 <p><strong>② 接到数据流</strong>（呼应 M0 Day 6）</p>
 <blockquote>
-<p>💡 <code>SensorPoint</code> 已经是完整数据(Id/Value/Timestamp),事件参数 <code>e</code> 就是 <code>SensorPoint</code>,
-<strong>直接传给 <code>Evaluate(e)</code> 即可</strong>,不需要再 new 一个 — 早期版本写 <code>new SensorPoint(e.PointId, ...)</code> 还有个
-双重 bug:<code>SensorPoint</code> 根本没有 <code>PointId</code> 字段(只有 <code>Id</code>),且对象初始化器会绕过自定义构造函数,
-让 <code>Timestamp</code> 落到 <code>default(DateTime)</code> = <code>0001-01-01</code>。</p>
+<p>💡 <code>DataReceived</code> 的事件参数 <code>e</code> 是 <strong><code>DataEventArgs</code>(PointId/Value/Timestamp)</strong>,而 <code>Evaluate</code> 吃的是 <code>SensorPoint</code> — 中间要做一次转换,<strong><code>e.Timestamp</code> 必须抄过来</strong>(否则落 <code>default(DateTime)</code> = <code>0001-01-01</code>)。
+真实工程里这层转换由 <code>AcquisitionPipeline.OnPoint</code> 统一做,报警引擎订阅的是管道的 <code>BatchReady</code> 批量事件(M9 架构);下面给"直接订阅设备事件"的教学版。</p>
 </blockquote>
 <pre><code class="language-csharp">device.DataReceived += (s, e) =&gt;
 {
-    engine.Evaluate(e);          // e 已是完整 SensorPoint,直接送判警
+    var p = new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp };
+    engine.Evaluate(p);          // 转成 SensorPoint 再送判警
 };
 engine.AlarmTriggered += (s, a) =&gt; Console.WriteLine($&quot;⚠ 点位{a.PointId} 报警{a.Level} 值={a.Value}&quot;);
+
+// 工程版(M9):订阅管道批量事件,一批一起判,不用自己转
+// pipeline.BatchReady += (s, batch) =&gt; { foreach (var p in batch) engine.Evaluate(p); };
 </code></pre>
 <h3 id="sec-3-4">🔬 掰开揉碎：回滞（Hysteresis）—— 生产报警的「必做题」</h3>
 <p>讲义之前把回滞标成「可选进阶」，<strong>但本项目的 <code>AlarmEngine.cs</code> 真实代码已经用了它</strong>，你必须会写，否则你写不出和项目一致的实现。
@@ -201,7 +199,7 @@ engine.AlarmTriggered += (s, a) =&gt; Console.WriteLine($&quot;⚠ 点位{a.Poin
 </tr>
 <tr>
 <td>⭐ 防抖 / 回滞</td>
-<td>值在阈值附近抖动会狂报警，用"恢复区间"避免（可选进阶）</td>
+<td>值在阈值附近抖动会狂报警，用"恢复区间"避免（生产必做，见上「掰开揉碎」）</td>
 </tr>
 <tr>
 <td>🔥 报警风暴</td>

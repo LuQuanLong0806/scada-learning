@@ -205,7 +205,7 @@
 <pre><code class="language-csharp">_points.Count                     // 看集合大小
 JsonSerializer.Serialize(p)       // 把对象序列化成 JSON 看内容
 p.Children.Select(x =&gt; x.Name)    // LINQ 临时查询
-_plc.ReadAsync(42).Result         // 临时调一下设备（注意死锁，下面坑点会讲）
+_db.Records.ToListAsync().Result  // 临时查下库（EF Core 真 异步；.Result 死锁风险下面讲）
 </code></pre>
 <p>前端类比：Sources 面板暂停时在 Console 里输入变量。C# 的 Immediate 比 JS Console 强 10 倍——支持 LINQ、反射、泛型。</p>
 <p><strong>⑤ Edit and Continue（C# 10+ 大幅增强）</strong>
@@ -249,7 +249,7 @@ Debug → Windows → Exception Settings（Ctrl+Alt+E）。勾选 "Common Langua
 </tr>
 <tr>
 <td>⭐ 同步阻塞 Immediate</td>
-<td><code>_plc.ReadAsync(42).Result</code> 在 UI 线程会死锁；切到非 UI 线程或用 <code>.GetAwaiter().GetResult()</code> 仍可能死，最好另起 Task</td>
+<td><code>_db.Records.ToListAsync().Result</code> 在 UI 线程会死锁；切到非 UI 线程或用 <code>.GetAwaiter().GetResult()</code> 仍可能死，最好另起 Task</td>
 </tr>
 <tr>
 <td>⭐ 符号缓存</td>
@@ -1096,8 +1096,8 @@ public class FrameParserBench
 <p><strong>为什么需要 TraceId？</strong>
 工业现场一条数据流要经过：UI → 采集层 → PLC 驱动 → 物理层 → PLC → 反向回来。出问题时，10 个点位并发读取，你不知道哪条日志对应哪个点位。</p>
 <p><strong>解决方案</strong>：每次请求开始时分配一个唯一 <code>TraceId</code>，通过 <code>LogContext.PushProperty</code> 推入日志上下文，<strong>整条调用链的所有日志自动带上这个字段</strong>。事后查询："TraceId=xxx" 一搜就能看到完整链路。</p>
-<pre><code class="language-csharp">// 入口处分配 TraceId
-public async Task&lt;SensorPoint&gt; ReadPointAsync(int pointId, CancellationToken ct)
+<pre><code class="language-csharp">// 入口处分配 TraceId（IDevice 是同步门面，这里就同步写）
+public SensorPoint ReadPoint(int pointId)
 {
     using (LogContext.PushProperty(&quot;TraceId&quot;, Guid.NewGuid().ToString(&quot;N&quot;).Substring(0, 8)))
     using (LogContext.PushProperty(&quot;PointId&quot;, pointId))
@@ -1105,11 +1105,11 @@ public async Task&lt;SensorPoint&gt; ReadPointAsync(int pointId, CancellationTok
         _log.Information(&quot;开始读取&quot;);
         try
         {
-            var raw = await _plc.ReadAsync(pointId, ct);
+            var raw = _plc.Read(pointId);
             _log.Information(&quot;PLC 返回 Raw={Raw}&quot;, raw);
             var value = _scaler.Scale(raw);
             _log.Information(&quot;工程量={Value}&quot;, value);
-            return new SensorPoint(pointId, value, DateTime.UtcNow);
+            return new SensorPoint { Id = pointId, Value = value, Timestamp = DateTime.UtcNow };
         }
         catch (Exception ex)
         {

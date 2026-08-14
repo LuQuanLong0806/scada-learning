@@ -134,7 +134,7 @@ public class EngineeringSample
     public string Unit { get; set; } = &quot;℃&quot;;
 }
 // 工程实践:在 AcquisitionPipeline 里,标定器把 SensorPoint.Value(raw)
-//          → EngineeringConverter.ToEng(raw) → 重新 new SensorPoint(id, eng, ts)
+//          → EngineeringConverter.ToEng(raw) → 重新组装 new SensorPoint { Id, Value=eng, Timestamp }
 //          落库时 Raw/EngValue 都存,SensorRecord 加两列即可。
 </code></pre>
 <h3 id="sec-3-4">🔬 掰开揉碎：标定为啥用两点法</h3>
@@ -362,7 +362,7 @@ services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlServer(cs));
 <blockquote>
 <p>📂 <code>DaqMonitor.Core/Models/EngineeringConverter.cs</code> · namespace <code>DaqMonitor.Core.Models</code>
 🔧 无 NuGet（纯 .NET 类库）
-💡 被 <code>AcquisitionPipeline</code> 调用:把 <code>SensorPoint.Value</code>(原始值)→ <code>ToEng()</code> → 重新 <code>new SensorPoint(id, eng, ts)</code>(参 M11 完整代码组装)</p>
+💡 被 <code>AcquisitionPipeline</code> 调用:把 <code>SensorPoint.Value</code>(原始值)→ <code>ToEng()</code> → 重新组装 <code>new SensorPoint { Id = ..., Value = eng, Timestamp = ... }</code>(参 M11 完整代码组装)</p>
 </blockquote>
 <pre><code class="language-csharp">// DaqMonitor.Core/Models/EngineeringConverter.cs
 using System;
