@@ -120,6 +120,14 @@ M7 示例引用 <code>SensorPoint</code> / <code>AcquisitionPipeline</code> 等�
 </table>
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① 连接 + 发布</strong>（🟧）</p>
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.Core/</code> 目录执行):
+<code>bash
+cd src/DaqMonitor.Core
+dotnet add package MQTTnet</code>
+💡 MQTTnet 4.x 是 .NET 最流行的 MQTT 客户端/服务端库。装完才能 <code>using MQTTnet;</code> <code>using MQTTnet.Client;</code></p>
+<p>📂 语法演示可放 <code>Program.cs</code> 跑;<strong>真实工程</strong>放 <code>DaqMonitor.Core/Cloud/MqttPublisher.cs</code>(本节②会建)。</p>
+</blockquote>
 <pre><code class="language-csharp">using MQTTnet;
 using MQTTnet.Client;
 
@@ -137,11 +145,27 @@ await client.PublishAsync(msg);
 </code></pre>
 <p><strong>② 批量发布（事件→入队→后台 consumer 串行消费，呼应 M9）</strong>（🟧）</p>
 <blockquote>
+<p>📂 <code>DaqMonitor.Core/Cloud/MqttPublisher.cs</code> · namespace <code>DaqMonitor.Core.Cloud</code>
+🔧 已装 MQTTnet(本节①已装)
+💡 用到 <code>SensorPoint</code> / <code>AcquisitionPipeline</code>(M9 定义)</p>
 <p>🔥 <strong>修正说明</strong>：早期版本在 <code>DataReceived</code> 里 <code>await client.PublishAsync(...)</code> 逐点发布 —— 高频下会阻塞采集线程、MQTT 抖动。正确做法：从 <strong>M9 的统一采集管道 <code>BatchReady</code></strong> 批量发布；且<strong>事件处理器仅入队(同步)</strong>，后台 consumer 异步消费(解决 <code>async void</code> 反模式)。</p>
 </blockquote>
 <pre><code class="language-csharp">// 正确版:BatchReady 仅入队(同步,绝不 async void),后台 consumer 异步消费
-private readonly Channel&lt;List&lt;SensorPoint&gt;&gt; _publishQ =
-    Channel.CreateBounded&lt;List&lt;SensorPoint&gt;&gt;(100);   // 有界,防 OOM
+// 完整代码放 DaqMonitor.Core/Cloud/MqttPublisher.cs
+using MQTTnet;
+using MQTTnet.Client;
+using System.Threading.Channels;
+using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Pipeline;
+
+namespace DaqMonitor.Core.Cloud;
+
+public class MqttPublisher
+{
+    private readonly IMqttClient _client;
+    private readonly AcquisitionPipeline _pipeline;
+    private readonly Channel&lt;List&lt;SensorPoint&gt;&gt; _publishQ =
+        Channel.CreateBounded&lt;List&lt;SensorPoint&gt;&gt;(100);   // 有界,防 OOM
 
 public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
 {

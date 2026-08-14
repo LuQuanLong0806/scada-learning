@@ -115,9 +115,21 @@
 </table>
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① ViewModel（CommunityToolkit.Mvvm）</strong>（🟧🟦）</p>
-<pre><code class="language-csharp">using CommunityToolkit.Mvvm.ComponentModel;
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.UI/</code> 目录执行):
+<code>bash
+cd src/DaqMonitor.UI
+dotnet add package CommunityToolkit.Mvvm</code>
+💡 CommunityToolkit.Mvvm 是微软官方 MVVM 库,用源生成器自动写 INotifyPropertyChanged 样板。</p>
+<p>📂 <code>DaqMonitor.UI/ViewModels/MainViewModel.cs</code> · namespace <code>DaqMonitor.UI.ViewModels</code></p>
+</blockquote>
+<pre><code class="language-csharp">using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+namespace DaqMonitor.UI.ViewModels;
+
+// ⚠️ 必须标 partial(源生成器需要),必须继承 ObservableObject
 public partial class MainViewModel : ObservableObject
 {
     [ObservableProperty] private string _status = &quot;就绪&quot;;
@@ -136,6 +148,14 @@ public partial class MainViewModel : ObservableObject
 &lt;Button Command=&quot;{Binding StartCommand}&quot; Content=&quot;启动&quot; /&gt;
 </code></pre>
 <p><strong>③ 配置化</strong>（🟦 <code>IConfiguration</code> + 🟧 <code>Microsoft.Extensions.Configuration.Json</code>）</p>
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.UI/</code> 目录执行):
+<code>bash
+cd src/DaqMonitor.UI
+dotnet add package Microsoft.Extensions.Configuration.Json
+dotnet add package Microsoft.Extensions.Hosting       # 推荐:Hosting 包含 Configuration + DI + Options</code></p>
+<p>📂 <code>DaqMonitor.UI/appsettings.json</code>(项目根,设"复制到输出目录 = 如果较新则复制")</p>
+</blockquote>
 <pre><code class="language-json">// appsettings.json
 {
   &quot;Devices&quot;: [
@@ -146,7 +166,12 @@ public partial class MainViewModel : ObservableObject
   &quot;Mqtt&quot;: { &quot;Broker&quot;: &quot;broker.emqx.io&quot;, &quot;Port&quot;: 1883, &quot;TopicPrefix&quot;: &quot;factory/line1&quot; }
 }
 </code></pre>
-<pre><code class="language-csharp">var cfg = new ConfigurationBuilder().AddJsonFile(&quot;appsettings.json&quot;).Build();
+<pre><code class="language-csharp">using Microsoft.Extensions.Configuration;
+
+var cfg = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)   // 重要:WPF 默认在 bin/ 目录找
+    .AddJsonFile(&quot;appsettings.json&quot;, optional: false)
+    .Build();
 var devices = cfg.GetSection(&quot;Devices&quot;).Get&lt;List&lt;DeviceConfig&gt;&gt;();
 </code></pre>
 <h3 id="sec-3-4">🔬 掰开揉碎：<code>[ObservableProperty]</code> 到底生成了什么（源生成器 Source Generator）</h3>

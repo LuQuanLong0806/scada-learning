@@ -121,13 +121,31 @@
 </table>
 <h3 id="sec-3-3">分点精讲</h3>
 <p><strong>① 创建工程</strong>（🟩）</p>
-<pre><code class="language-xml">&lt;PropertyGroup&gt;&lt;UseWindowsForms&gt;true&lt;/UseWindowsForms&gt;&lt;/PropertyGroup&gt;
-</code></pre>
+<blockquote>
+<p>🔧 <strong>创建命令</strong>(在解决方案根目录执行,注意模板名是 <code>winform</code> 不是 <code>winforms</code>):
+```bash</p>
+<h1 id="sec-1-2">注意模板名:dotnet new winform(单数),不是 winforms(复数)</h1>
+<p>dotnet new winform -o src/DaqMonitor.WinFormsDemo
+dotnet sln add src/DaqMonitor.WinFormsDemo/DaqMonitor.WinFormsDemo.csproj
+<code>``
+💡 这条命令会自动生成两个文件,见下「Form1 双文件结构」。
+💡</code>dotnet new winform<code>自动在</code>.csproj<code>里写好</code><UseWindowsForms>true</UseWindowsForms><code>+</code><OutputType>WinExe</OutputType>`,不用手动改。</p>
+</blockquote>
+<p><strong>📂 Form1 双文件结构(WinForm 老项目标准,小白必懂)</strong>
+| 文件 | 内容 | 你做什么 |
+|---|---|---|
+| <code>Form1.cs</code> | 事件处理代码(<code>button1_Click</code> 等) | 写业务逻辑 |
+| <code>Form1.Designer.cs</code> | 控件声明 + 布局(<code>this.button1 = new Button();</code>) | <strong>别手改</strong>,VS 拖拽自动生成 |</p>
+<blockquote>
+<p>💡 WinForm 把"界面布局"和"事件代码"分两个文件,Designer 文件由 VS 自动维护;<strong>手动改 Designer 会被下次拖拽覆盖</strong>,小白踩过这个坑就懂了。</p>
+</blockquote>
 <p><strong>② 控件 + 事件</strong>（🟩）</p>
-<pre><code class="language-csharp">button1.Click += (s, e) =&gt; label1.Text = &quot;clicked&quot;;
+<pre><code class="language-csharp">// 写在 Form1.cs 里(不是 Designer.cs)
+button1.Click += (s, e) =&gt; label1.Text = &quot;clicked&quot;;
 </code></pre>
 <p><strong>③ 后台线程刷新 UI —— 必须 Invoke</strong>（🟦，WinForm 专属坑）</p>
-<pre><code class="language-csharp">Task.Run(() =&gt;
+<pre><code class="language-csharp">// 写在 Form1.cs 的某个方法里
+Task.Run(() =&gt;
 {
     var v = ReadSensor();
     // 跨线程直接改 label1.Text 会抛&quot;线程间操作无效&quot;
@@ -268,7 +286,17 @@ Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri(&quot
 <li><strong>M12 / M6</strong>：<code>GaugeControl</code> 的 <code>Value</code>/<code>Level</code> 被工程量、报警驱动，控件零改 = 企业级复用实证。</li>
 </ul>
 <h2 id="sec-2-5">🧩 完整代码组装（GaugeControl 关键片段，已在你工程里）</h2>
+<blockquote>
+<p>📂 <code>DaqMonitor.UI/Controls/GaugeControl.cs</code> · namespace <code>DaqMonitor.UI.Controls</code>
+🔧 无 NuGet(<code>System.Windows.Controls</code> 是 WPF BCL)
+💡 WPF 自定义控件标准套路:<code>DependencyProperty</code> + <code>DefaultStyleKey</code> + <code>Themes/Generic.xaml</code> + <code>Properties/AssemblyInfo.cs</code> 的 <code>[assembly: ThemeInfo]</code></p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.UI/Controls/GaugeControl.cs
+using System.Windows;
+using System.Windows.Controls;
+
+namespace DaqMonitor.UI.Controls;
+
 public class GaugeControl : Control
 {
     public static readonly DependencyProperty ValueProperty =

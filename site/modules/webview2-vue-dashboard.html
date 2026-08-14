@@ -170,6 +170,95 @@
 <hr />
 <h3 id="sec-3-2">Day 1:Vue3 + Vite 项目搭起来,跑通一个 Dashboard</h3>
 <p><strong>目标</strong>:本地起一个 Vue3 大屏页面,有标题、3 个卡片、1 个折线图占位。这一天<strong>只写前端</strong>,完全不碰 C#。</p>
+<p><strong>🚦 前置检查(2 分钟,不做 Day 1 就卡死)</strong></p>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>命令</th>
+<th>期望</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node 20+ 装了吗</td>
+<td><code>node -v</code></td>
+<td>v20.x.x 或更高(Vite 5 要求)</td>
+</tr>
+<tr>
+<td>pnpm 装了吗</td>
+<td><code>pnpm -v</code></td>
+<td>9.x.x 或更高(没装:<code>npm i -g pnpm</code>)</td>
+</tr>
+<tr>
+<td>TypeScript 装了吗</td>
+<td><code>tsc -v</code></td>
+<td>Vite 模板自带,<strong>不报错就行</strong></td>
+</tr>
+<tr>
+<td>当前目录对吗</td>
+<td><code>pwd</code> (bash) / <code>cd</code> (cmd)</td>
+<td><code>f:\00_project\上位机学习</code></td>
+</tr>
+<tr>
+<td>DAQMonitor 已落地</td>
+<td><code>ls DAQMonitor/src</code></td>
+<td>能看到 <code>DaqMonitor.Core</code> / <code>DaqMonitor.UI</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>npm vs pnpm 命令对照(纯前端背景的同学切换指南)</strong></p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>npm 命令</th>
+<th>pnpm 命令</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>装依赖</td>
+<td><code>npm install</code> / <code>npm i</code></td>
+<td><code>pnpm install</code> / <code>pnpm i</code></td>
+<td>pnpm 用硬链接省磁盘</td>
+</tr>
+<tr>
+<td>加新包</td>
+<td><code>npm i echarts</code></td>
+<td><code>pnpm add echarts</code></td>
+<td><strong>命令名不同,这是最大坑</strong></td>
+</tr>
+<tr>
+<td>加 dev 包</td>
+<td><code>npm i -D vitest</code></td>
+<td><code>pnpm add -D vitest</code></td>
+<td>同上加 -D 标志</td>
+</tr>
+<tr>
+<td>跑脚本</td>
+<td><code>npm run dev</code></td>
+<td><code>pnpm dev</code></td>
+<td>pnpm 可省略 <code>run</code></td>
+</tr>
+<tr>
+<td>删包</td>
+<td><code>npm un echarts</code></td>
+<td><code>pnpm remove echarts</code></td>
+<td>pnpm 用 <code>remove</code> 不是 <code>un</code></td>
+</tr>
+<tr>
+<td>跑 bin</td>
+<td><code>npx vue-tsc</code></td>
+<td><code>pnpm dlx vue-tsc</code></td>
+<td>pnpm 用 <code>dlx</code> 不是 <code>npx</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>💡 <strong>混用警告</strong>:一个项目要么全 npm 要么全 pnpm,<strong>别混着用</strong> — <code>package-lock.json</code> 和 <code>pnpm-lock.yaml</code> 冲突会让 CI 直接挂。本文统一用 pnpm(快、省磁盘)。</p>
+</blockquote>
 <p><strong>步骤</strong>:</p>
 <ol>
 <li><strong>安装 Node 20+ 和 pnpm</strong>(你应该早就有,跳过)。</li>

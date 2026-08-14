@@ -168,7 +168,18 @@
 - 写"会 Prism 模块化开发" → 13-15K 岗位(中级)
 - 两个都会 → 15K 稳</p>
 <h3 id="sec-3-4">🟡 知识点 2:Bootstrapper 重构(从手写 DI → PrismBootstrapper)</h3>
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.UI/</code> 目录执行):
+<code>bash
+cd src/DaqMonitor.UI
+dotnet add package Prism.DryIoc              # Prism 核心 + DryIoc 容器(8.1.97 版)
+dotnet add package Prism.Wpf                  # WPF 集成(Regions/Navigation/Dialogs)</code>
+💡 Prism 是企业级 MVVM 框架,提供 Bootstrapper/Region/EventAggregator/DialogService 等。DryIoc 是性能最好的 DI 容器,Prism 默认配它。</p>
+</blockquote>
 <p><strong>改造前(项目现状,M9 自定义 Bootstrapper)</strong>:</p>
+<blockquote>
+<p>📂 <code>DaqMonitor.Core/AppServices/Bootstrapper.cs</code> · namespace <code>DaqMonitor.Core.AppServices</code></p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.Core/AppServices/Bootstrapper.cs
 public static class Bootstrapper
 {
@@ -183,6 +194,10 @@ public static class Bootstrapper
 }
 </code></pre>
 <p><strong>改造后(Prism 版)</strong>:</p>
+<blockquote>
+<p>📂 <code>DaqMonitor.UI/App.xaml.cs</code> + <code>DaqMonitor.UI/DaqBootstrapper.cs</code> · namespace <code>DaqMonitor.UI</code>
+🔧 已装 Prism.DryIoc + Prism.Wpf(本节开头已装)</p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.UI/App.xaml.cs
 public partial class App : Application
 {
@@ -193,6 +208,14 @@ public partial class App : Application
         bootstrapper.Run();
     }
 }
+</code></pre>
+<pre><code class="language-csharp">// DaqMonitor.UI/DaqBootstrapper.cs
+using Prism.DryIoc;
+using Prism.Ioc;
+using Prism.Unity;
+using System.Windows;
+
+namespace DaqMonitor.UI;
 
 public class DaqBootstrapper : PrismBootstrapper
 {

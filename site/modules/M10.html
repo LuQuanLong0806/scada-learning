@@ -249,23 +249,44 @@ alarms.GroupBy(a =&gt; a.PointId)
 </tr>
 </tbody>
 </table>
-<p><strong>③ 导出 Excel</strong>（🟧 ClosedXML，<code>dotnet add package ClosedXML</code>）</p>
+<p><strong>③ 导出 Excel</strong>（🟧 ClosedXML）</p>
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.UI/</code> 目录执行,UI 项目里弹 SaveFileDialog):
+<code>bash
+cd src/DaqMonitor.UI
+dotnet add package ClosedXML</code>
+💡 ClosedXML 是开源 Excel 操作库,<strong>不需要装 Office</strong>,纯托管代码生成 .xlsx。
+(QuestPDF 同理:<code>dotnet add package QuestPDF</code>,社区许可证免费)</p>
+<p>📂 <code>DaqMonitor.UI/Reporting/ReportExporter.cs</code> · namespace <code>DaqMonitor.UI.Reporting</code>
+💡 用到 <code>PointStat</code>(M10 Day 1 / <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)</p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.UI/Reporting/ReportExporter.cs
-public static void ExportToExcel(IEnumerable&lt;PointStat&gt; stats, string path)
+using System.Collections.Generic;
+using ClosedXML.Excel;
+using DaqMonitor.Core.Reporting;
+
+namespace DaqMonitor.UI.Reporting;
+
+public static class ReportExporter
 {
-    using var wb = new XLWorkbook();
-    var ws = wb.Worksheets.Add(&quot;报表&quot;);
-    ws.Cell(1,1).Value = &quot;点位&quot;; ws.Cell(1,2).Value = &quot;样本数&quot;; /* …表头… */
-    int r = 2;
-    foreach (var s in stats)
+    public static void ExportToExcel(IEnumerable&lt;PointStat&gt; stats, string path)
     {
-        ws.Cell(r,1).Value = s.PointId; ws.Cell(r,2).Value = s.Count;
-        ws.Cell(r,3).Value = s.Min;      ws.Cell(r,4).Value = s.Max;
-        ws.Cell(r,5).Value = s.Avg;      ws.Cell(r,6).Value = s.First;
-        ws.Cell(r,7).Value = s.Last;     r++;
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add(&quot;报表&quot;);
+        ws.Cell(1,1).Value = &quot;点位&quot;; ws.Cell(1,2).Value = &quot;样本数&quot;;
+        ws.Cell(1,3).Value = &quot;最小&quot;; ws.Cell(1,4).Value = &quot;最大&quot;;
+        ws.Cell(1,5).Value = &quot;平均&quot;; ws.Cell(1,6).Value = &quot;首条&quot;; ws.Cell(1,7).Value = &quot;末条&quot;;
+        int r = 2;
+        foreach (var s in stats)
+        {
+            ws.Cell(r,1).Value = s.PointId; ws.Cell(r,2).Value = s.Count;
+            ws.Cell(r,3).Value = s.Min;      ws.Cell(r,4).Value = s.Max;
+            ws.Cell(r,5).Value = s.Avg;      ws.Cell(r,6).Value = s.First;
+            ws.Cell(r,7).Value = s.Last;     r++;
+        }
+        ws.Columns().AdjustToContents();   // 自动列宽
+        wb.SaveAs(path);
     }
-    ws.Columns().AdjustToContents();   // 自动列宽
-    wb.SaveAs(path);
 }
 </code></pre>
 <blockquote>

@@ -47,15 +47,32 @@ WinForm = 拖控件 + 双击写事件，**直接操作控件属性**；WPF = XAM
 
 ### 分点精讲
 **① 创建工程**（🟩）
-```xml
-<PropertyGroup><UseWindowsForms>true</UseWindowsForms></PropertyGroup>
-```
+
+> 🔧 **创建命令**(在解决方案根目录执行,注意模板名是 `winform` 不是 `winforms`):
+> ```bash
+> # 注意模板名:dotnet new winform(单数),不是 winforms(复数)
+> dotnet new winform -o src/DaqMonitor.WinFormsDemo
+> dotnet sln add src/DaqMonitor.WinFormsDemo/DaqMonitor.WinFormsDemo.csproj
+> ```
+> 💡 这条命令会自动生成两个文件,见下「Form1 双文件结构」。
+> 💡 `dotnet new winform` 自动在 `.csproj` 里写好 `<UseWindowsForms>true</UseWindowsForms>` + `<OutputType>WinExe</OutputType>`,不用手动改。
+
+**📂 Form1 双文件结构(WinForm 老项目标准,小白必懂)**
+| 文件 | 内容 | 你做什么 |
+|---|---|---|
+| `Form1.cs` | 事件处理代码(`button1_Click` 等) | 写业务逻辑 |
+| `Form1.Designer.cs` | 控件声明 + 布局(`this.button1 = new Button();`) | **别手改**,VS 拖拽自动生成 |
+
+> 💡 WinForm 把"界面布局"和"事件代码"分两个文件,Designer 文件由 VS 自动维护;**手动改 Designer 会被下次拖拽覆盖**,小白踩过这个坑就懂了。
+
 **② 控件 + 事件**（🟩）
 ```csharp
+// 写在 Form1.cs 里(不是 Designer.cs)
 button1.Click += (s, e) => label1.Text = "clicked";
 ```
 **③ 后台线程刷新 UI —— 必须 Invoke**（🟦，WinForm 专属坑）
 ```csharp
+// 写在 Form1.cs 的某个方法里
 Task.Run(() =>
 {
     var v = ReadSensor();
@@ -178,8 +195,18 @@ Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("Them
 - **M12 / M6**：`GaugeControl` 的 `Value`/`Level` 被工程量、报警驱动，控件零改 = 企业级复用实证。
 
 ## 🧩 完整代码组装（GaugeControl 关键片段，已在你工程里）
+
+> 📂 `DaqMonitor.UI/Controls/GaugeControl.cs` · namespace `DaqMonitor.UI.Controls`
+> 🔧 无 NuGet(`System.Windows.Controls` 是 WPF BCL)
+> 💡 WPF 自定义控件标准套路:`DependencyProperty` + `DefaultStyleKey` + `Themes/Generic.xaml` + `Properties/AssemblyInfo.cs` 的 `[assembly: ThemeInfo]`
+
 ```csharp
 // DaqMonitor.UI/Controls/GaugeControl.cs
+using System.Windows;
+using System.Windows.Controls;
+
+namespace DaqMonitor.UI.Controls;
+
 public class GaugeControl : Control
 {
     public static readonly DependencyProperty ValueProperty =

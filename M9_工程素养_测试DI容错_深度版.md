@@ -46,27 +46,54 @@
 ### 分点精讲
 
 **① 测试项目怎么建**（🟧）
+
+> ⚠️ **执行位置**:下面命令在**解决方案根目录**(含 `DaqMonitor.sln` 的目录)执行,**不是**在 `src/DaqMonitor.Core/` 里!
+> 如果你在 Day 0.5 已经建过 `DaqMonitor.Tests`,跳过 `dotnet new xunit` 那行,只跑后两条装包+引用。
+
 ```bash
-dotnet new xunit -o src/DaqMonitor.Tests
+# 1. 在解决方案根目录(含 DaqMonitor.sln 的目录)执行
+dotnet new xunit -o src/DaqMonitor.Tests        # 如果 Day 0.5 已建过,这行跳过
+dotnet sln add src/DaqMonitor.Tests/DaqMonitor.Tests.csproj   # 挂到解决方案
+
+# 2. 切到测试项目目录,装包 + 引用 Core
 cd src/DaqMonitor.Tests
-dotnet add package Moq
-dotnet add reference ../DaqMonitor.Core   # 引用被测工程
+dotnet add package Moq                          # Mock 框架(造替身)
+dotnet add package FluentAssertions            # (可选)更友好的断言 API
+dotnet add reference ../DaqMonitor.Core        # 引用被测工程
 ```
+
 > 约定：测试类名 = `被测类 + Tests`，方法名 = `被测方法_场景_预期`（`Evaluate_FiresOnlyOnRisingEdge`）。
 
 **② 测"纯逻辑"（不依赖外部）**（🟦🟧）
+
+> 📂 `DaqMonitor.Tests/AlarmEngineTests.cs` · namespace `DaqMonitor.Tests`
+> 🔧 已装 `Moq` (本节①已装)
+> 💡 用到 `AlarmEngine` / `AlarmRule`(M6) + `SensorPoint` / `AlarmLevel`([前置类型定义](前置类型定义_学员粘贴版.md))
+> ⚠️ **修一个真实 bug**:旧版 `new SensorPoint { Id = 3, Value = 200 }` 用对象初始化器,但 SensorPoint 是带自定义构造函数的 struct,初始化器走默认构造 → Timestamp=default(DateTime)。**改用 `new SensorPoint(3, 200)`** 走构造函数,Timestamp 自动取 DateTime.Now。
+
 报警引擎是典型纯逻辑——给它点，断言是否触发。本项目真实用例：
 ```csharp
-[Fact]
-public void Evaluate_FiresOnlyOnRisingEdge()   // 边沿触发：只报一次，不刷屏
+using DaqMonitor.Core.Alarms;
+using DaqMonitor.Core.Models;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class AlarmEngineTests
 {
-    var engine = new AlarmEngine();
-    engine.Add(new AlarmRule { PointId = 3, Threshold = 100, Level = AlarmLevel.Critical, IsHigh = true });
-    int count = 0;
-    engine.AlarmTriggered += (s, e) => count++;
-    engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });
-    engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });   // 仍超阈值，不应重复报
-    Assert.Equal(1, count);
+    [Fact]
+    public void Evaluate_FiresOnlyOnRisingEdge()   // 边沿触发:只报一次,不刷屏
+    {
+        var engine = new AlarmEngine();
+        engine.Add(new AlarmRule { PointId = 3, Threshold = 100, Level = AlarmLevel.Critical, IsHigh = true });
+        int count = 0;
+        engine.AlarmTriggered += (s, e) => count++;
+
+        // ✅ 走构造函数,Timestamp 自动取 DateTime.Now(不是 default)
+        engine.Evaluate(new SensorPoint(3, 200));
+        engine.Evaluate(new SensorPoint(3, 200));   // 仍超阈值,不应重复报
+        Assert.Equal(1, count);
+    }
 }
 ```
 同样写法覆盖：`PointStore.AddOrUpdate`（双索引增改）、`Crc16.Modbus`（寄存器值 `0x0A84`，注意 Modbus 低字节在前的线序）、`FrameParser.Feed`（半包/粘包拆分）。

@@ -68,6 +68,29 @@
 
 **目标**:本地起一个 Vue3 大屏页面,有标题、3 个卡片、1 个折线图占位。这一天**只写前端**,完全不碰 C#。
 
+**🚦 前置检查(2 分钟,不做 Day 1 就卡死)**
+
+| 检查项 | 命令 | 期望 |
+|---|---|---|
+| Node 20+ 装了吗 | `node -v` | v20.x.x 或更高(Vite 5 要求) |
+| pnpm 装了吗 | `pnpm -v` | 9.x.x 或更高(没装:`npm i -g pnpm`) |
+| TypeScript 装了吗 | `tsc -v` | Vite 模板自带,**不报错就行** |
+| 当前目录对吗 | `pwd` (bash) / `cd` (cmd) | `f:\00_project\上位机学习` |
+| DAQMonitor 已落地 | `ls DAQMonitor/src` | 能看到 `DaqMonitor.Core` / `DaqMonitor.UI` |
+
+**npm vs pnpm 命令对照(纯前端背景的同学切换指南)**
+
+| 操作 | npm 命令 | pnpm 命令 | 备注 |
+|---|---|---|---|
+| 装依赖 | `npm install` / `npm i` | `pnpm install` / `pnpm i` | pnpm 用硬链接省磁盘 |
+| 加新包 | `npm i echarts` | `pnpm add echarts` | **命令名不同,这是最大坑** |
+| 加 dev 包 | `npm i -D vitest` | `pnpm add -D vitest` | 同上加 -D 标志 |
+| 跑脚本 | `npm run dev` | `pnpm dev` | pnpm 可省略 `run` |
+| 删包 | `npm un echarts` | `pnpm remove echarts` | pnpm 用 `remove` 不是 `un` |
+| 跑 bin | `npx vue-tsc` | `pnpm dlx vue-tsc` | pnpm 用 `dlx` 不是 `npx` |
+
+> 💡 **混用警告**:一个项目要么全 npm 要么全 pnpm,**别混着用** — `package-lock.json` 和 `pnpm-lock.yaml` 冲突会让 CI 直接挂。本文统一用 pnpm(快、省磁盘)。
+
 **步骤**:
 
 1. **安装 Node 20+ 和 pnpm**(你应该早就有,跳过)。

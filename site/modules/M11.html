@@ -299,33 +299,47 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <p><strong>✅ 答案（挑战题骨架）</strong></p>
 <blockquote>
 <p>💡 <strong>为什么不用 <code>MemoryStream.CopyTo</code></strong>：它内部循环 byte-by-byte，高频小包时性能炸。<code>Array.Copy</code> 走 SIMD，差 10 倍。<strong>前端类比</strong>：在循环里 <code>arr.push(...bigArr)</code> vs 用 <code>TypedArray.set</code> 批量拷贝，后者快得多。</p>
+<p>📂 <code>DaqMonitor.Core/Protocol/FrameParser.cs</code> · namespace <code>DaqMonitor.Core.Protocol</code>
+🔧 无 NuGet（纯 .NET 类库，<code>System.IO</code> 是 BCL）
+💡 静态工具类，被 <code>TcpDevice.RecvLoop</code> 调用（见 Day2「完整代码组装」）</p>
 </blockquote>
-<pre><code class="language-csharp">static IEnumerable&lt;byte[]&gt; TryParseFrames(MemoryStream buf)
+<pre><code class="language-csharp">// DaqMonitor.Core/Protocol/FrameParser.cs
+using System.Collections.Generic;
+using System.IO;
+
+namespace DaqMonitor.Core.Protocol;
+
+/// &lt;summary&gt;长度前缀帧解析器：帧格式 [AA 55][长度 2B 大端][命令 1B][数据 N B][校验 1B]&lt;/summary&gt;
+public static class FrameParser
 {
-    byte[] header = new byte[4];
-    buf.Position = 0;
-    while (buf.Length - buf.Position &gt;= 4)            // 至少够读头+长度
+    /// &lt;summary&gt;从累积缓冲区里循环切出所有完整帧；半包留到下次拼接。&lt;/summary&gt;
+    public static IEnumerable&lt;byte[]&gt; TryParseFrames(MemoryStream buf)
     {
-        buf.Read(header, 0, 4);                        // AA 55 lenHi lenLo
-        int bodyLen = (header[2] &lt;&lt; 8) | header[3];
-        if (buf.Length - buf.Position &lt; bodyLen)
-        {
-            // 头已读但体不全: 回退 Position, 让半包(含头)留到下次
-            buf.Position -= 4;
-            break;
-        }
-        var body = new byte[bodyLen]; buf.Read(body, 0, bodyLen);
-        yield return body;
-    }
-    // 半包留到下次拼接: 用 Array.Copy 比 MemoryStream 高效 10 倍
-    int remaining = (int)(buf.Length - buf.Position);
-    if (remaining &gt; 0 &amp;&amp; buf.Position &gt; 0)
-    {
-        Array.Copy(buf.GetBuffer(), buf.Position, buf.GetBuffer(), 0, remaining);
-        buf.SetLength(remaining);
+        byte[] header = new byte[4];
         buf.Position = 0;
+        while (buf.Length - buf.Position &gt;= 4)            // 至少够读头+长度
+        {
+            buf.Read(header, 0, 4);                        // AA 55 lenHi lenLo
+            int bodyLen = (header[2] &lt;&lt; 8) | header[3];
+            if (buf.Length - buf.Position &lt; bodyLen)
+            {
+                // 头已读但体不全: 回退 Position, 让半包(含头)留到下次
+                buf.Position -= 4;
+                break;
+            }
+            var body = new byte[bodyLen]; buf.Read(body, 0, bodyLen);
+            yield return body;
+        }
+        // 半包留到下次拼接: 用 Array.Copy 比 MemoryStream 高效 10 倍
+        int remaining = (int)(buf.Length - buf.Position);
+        if (remaining &gt; 0 &amp;&amp; buf.Position &gt; 0)
+        {
+            Array.Copy(buf.GetBuffer(), buf.Position, buf.GetBuffer(), 0, remaining);
+            buf.SetLength(remaining);
+            buf.Position = 0;
+        }
+        else { buf.SetLength(0); buf.Position = 0; }
     }
-    else { buf.SetLength(0); buf.Position = 0; }
 }
 </code></pre>
 <blockquote>
@@ -338,8 +352,19 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <p>前面只提了"每 5s 发 0x00 心跳"，没给完整代码——这块在面试里被追问的频率超高，这里把<strong>定时器 + 心跳响应校验 + 超时判活 + 重连触发</strong>完整补上（呼应 M9 容错）。</p>
 <blockquote>
 <p>💡 <strong>为什么必须心跳</strong>：TCP 的"已连接"状态是软的，网线被拔 / 路由器重启后 OS 可能几十秒都不知道链路断了。心跳是<strong>应用层探活</strong>，让上位机能秒级感知掉线。<strong>前端类比</strong>：WebSocket 不发 ping 就会"假在线"，明明对端早死了，本地 <code>readyState</code> 还是 1。</p>
+<p>📂 <code>DaqMonitor.Core/Devices/TcpHeartbeatHost.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>
+🔧 无 NuGet（<code>System.Net.Sockets</code> 是 BCL）
+💡 被 <code>TcpDevice</code> 持有为字段；<code>ConnectionLost</code> 事件触发后由 <code>TcpDevice</code> 调用 M9 的 <code>Retry</code> 重连</p>
 </blockquote>
-<pre><code class="language-csharp">public class TcpHeartbeatHost
+<pre><code class="language-csharp">// DaqMonitor.Core/Devices/TcpHeartbeatHost.cs
+using System;
+using System.IO;
+using System.Net.Sockets;
+using System.Threading;
+
+namespace DaqMonitor.Core.Devices;
+
+public class TcpHeartbeatHost
 {
     private readonly TcpClient _client;
     private readonly NetworkStream _ns;
@@ -463,7 +488,13 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <li>数据域：按手册拆成"通道号 + 原始值"，再交给 M12 的工程量转换。</li>
 </ul>
 <p><strong>② 封帧 / 解帧对称</strong></p>
-<pre><code class="language-csharp">byte[] BuildFrame(byte cmd, byte[] payload)
+<blockquote>
+<p>📂 把 <code>BuildFrame</code> / <code>Checksum</code> 加到 <code>DaqMonitor.Core/Protocol/FrameParser.cs</code>(就是 Day1 那个静态类)
+🔧 无 NuGet
+💡 <code>BuildFrame</code> 是封帧(发送方用),<code>TryParseFrames</code> 是解帧(接收方用),两者对称</p>
+</blockquote>
+<pre><code class="language-csharp">// 加在 FrameParser 静态类里(同 Day1 那个文件)
+public static byte[] BuildFrame(byte cmd, byte[] payload)
 {
     var ms = new MemoryStream();
     ms.Write(new byte[] { 0xAA, 0x55 });
@@ -472,6 +503,11 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
     ms.Write(payload);
     ms.Write(new[] { Checksum(ms.ToArray()) });
     return ms.ToArray();
+}
+
+public static byte Checksum(byte[] d)
+{
+    int s = 0; foreach (var b in d) s += b; return (byte)(s &amp; 0xFF);
 }
 </code></pre>
 <p><strong>③ 接进 DAQMonitor（零改采集层）</strong>
@@ -544,15 +580,28 @@ TCP 把你的 <code>Write</code> 当成"往河里倒水"，对面 <code>Read</co
 <li><strong>M12</strong>：解出的原始值交给 M12 工程量转换才变成真实物理量。</li>
 </ul>
 <h2 id="sec-2-6">🧩 完整代码组装（TcpDevice 可直接抄进工程）</h2>
+<blockquote>
+<p>📂 <code>DaqMonitor.Core/Devices/TcpDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>
+🔧 无 NuGet（<code>System.Net.Sockets</code> 是 BCL）
+💡 依赖 <code>DeviceBase</code> / <code>SensorPoint</code>(前置类型定义) + <code>FrameParser.TryParseFrames</code>(Day1 静态类) + <code>TcpHeartbeatHost</code>(本模块「心跳实现完整版」)</p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.Core/Devices/TcpDevice.cs
+using System;
+using System.IO;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Protocol;   // 用 FrameParser.TryParseFrames
+
+namespace DaqMonitor.Core.Devices;
 
 public class TcpDevice : DeviceBase
 {
     private readonly string _host; private readonly int _port;
     private TcpClient? _client; private NetworkStream? _ns;
     private readonly MemoryStream _acc = new();
+    private TcpHeartbeatHost? _heartbeat;   // 心跳探活, 见 Day1 「心跳实现完整版」
 
     public TcpDevice(int id, string name, string host, int port) : base(id, name)
         =&gt; (_host, _port) = (host, port);
@@ -561,9 +610,12 @@ public class TcpDevice : DeviceBase
     {
         _client = new TcpClient(); _client.Connect(_host, _port);
         _ns = _client.GetStream(); State = DeviceState.Online;
+        _heartbeat = new TcpHeartbeatHost(_client, _ns);
+        _heartbeat.ConnectionLost += (s, e) =&gt; _ = ReconnectAsync(CancellationToken.None);
+        _heartbeat.Start();
         _ = RecvLoop(CancellationToken.None);
     }
-    public override void Disconnect() { _ns?.Close(); _client?.Close(); State = DeviceState.Offline; }
+    public override void Disconnect() { _heartbeat?.Stop(); _ns?.Close(); _client?.Close(); State = DeviceState.Offline; }
 
     private async Task RecvLoop(CancellationToken ct)
     {
@@ -573,19 +625,25 @@ public class TcpDevice : DeviceBase
             int n;
             try { n = await ns.ReadAsync(buf, 0, buf.Length, ct); }
             catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionReset)
-            { /* 客户端硬断开, 优雅退出 */ _logger.Warn(ex, &quot;对端 RST&quot;); break; }
-            catch (IOException ex) when (ex.InnerException is SocketException)
-            { /* 网络中断: 网线拔掉 / 路由器重启 */ _logger.Warn(ex, &quot;网络中断&quot;); break; }
+            { /* 客户端硬断开, 优雅退出 */ break; }
+            catch (IOException) { break; }   // 网络中断: 网线拔掉 / 路由器重启
             catch (OperationCanceledException) { break; }   // 正常关闭
             if (n == 0) break;   // 对端正常关闭 (FIN)
+            _heartbeat?.NotifyAlive();    // 收到任何字节都算对端活着
             _acc.Write(buf, 0, n);
-            foreach (var body in TryParseFrames(_acc))
+            foreach (var body in FrameParser.TryParseFrames(_acc))
                 RaiseData(Id, body[0]);   // 简化: 首字节当值, 真实按协议拆
         }
-        // 退出循环 = 掉线, 触发重连 (见文末心跳实现)
+        // 退出循环 = 掉线, 触发重连 (TcpHeartbeatHost 也会判活触发, 双保险)
         _ = ReconnectAsync(ct);
     }
-    // TryParseFrames 见 Day1 挑战题骨架
+    private async Task ReconnectAsync(CancellationToken ct)
+    {
+        State = DeviceState.Offline;
+        // 简化版重连: 真实场景用 M9 的 Retry.ExecuteAsync 指数退避
+        await Task.Delay(1000, ct);
+        try { Connect(); } catch { /* 重连失败, 等 Retry 再试 */ }
+    }
 }
 </code></pre>
 <blockquote>

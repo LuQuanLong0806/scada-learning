@@ -256,15 +256,30 @@ a = 10/4095，b = 0，<code>EngValue(2048) = 10×2048/4095 ≈ 5.003</code>。</
 </table>
 <h3 id="sec-3-12">分点精讲</h3>
 <p><strong>① EF Core 换提供程序</strong>（🟧）</p>
-<pre><code class="language-xml">&lt;!-- 把 M4 的 Sqlite 包换成 --&gt;
-&lt;PackageReference Include=&quot;Microsoft.EntityFrameworkCore.SqlServer&quot; /&gt;
-</code></pre>
-<pre><code class="language-csharp">// Program / Bootstrapper 里只改这一行：
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.Core/</code> 目录执行,把 Sqlite 包换掉):
+```bash</p>
+<h1 id="sec-1-2">SQL Server(微软系上位机标配)</h1>
+<p>dotnet add package Microsoft.EntityFrameworkCore.SqlServer</p>
+<h1 id="sec-1-3">或 MySQL(跨平台/成本敏感场景)</h1>
+<p>dotnet add package Pomelo.EntityFrameworkCore.MySql
+```
+💡 EF Core 是面向提供程序的:换库 = 换连接串 + 换 NuGet 包,业务代码(M4 写的 Repository)<strong>一行不改</strong></p>
+</blockquote>
+<pre><code class="language-csharp">// 在 Bootstrapper / Program.cs 里只改这一行：
 options.UseSqlServer(&quot;Server=.;Database=DAQ;Trusted_Connection=true;&quot;);
 // 原来 UseSqlite(...) 换成 UseSqlServer(...) 即可
 </code></pre>
 <p><strong>② Dapper 轻量批量写</strong>（🟧，高频点位写入更快）</p>
+<blockquote>
+<p>🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.Core/</code> 目录执行):
+<code>bash
+dotnet add package Dapper
+dotnet add package Microsoft.Data.SqlClient   # SqlConnection 现在在这个包</code></p>
+</blockquote>
 <pre><code class="language-csharp">using Dapper;
+using Microsoft.Data.SqlClient;
+
 await using var conn = new SqlConnection(cs);
 await conn.ExecuteAsync(
   &quot;INSERT INTO Points(Chan,Raw,Eng,Unit,Ts) VALUES(@Chan,@Raw,@Eng,@Unit,@Ts)&quot;,
@@ -344,7 +359,16 @@ services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlServer(cs));
 <li><strong>M11</strong>：M11 解出的 <code>Raw</code> 由本模块的 <code>EngineeringConverter</code> 变成 <code>EngValue</code>。</li>
 </ul>
 <h2 id="sec-2-5">🧩 完整代码组装（EngineeringConverter 可直接抄进工程）</h2>
+<blockquote>
+<p>📂 <code>DaqMonitor.Core/Models/EngineeringConverter.cs</code> · namespace <code>DaqMonitor.Core.Models</code>
+🔧 无 NuGet（纯 .NET 类库）
+💡 被 <code>AcquisitionPipeline</code> 调用:把 <code>SensorPoint.Value</code>(原始值)→ <code>ToEng()</code> → 重新 <code>new SensorPoint(id, eng, ts)</code>(参 M11 完整代码组装)</p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.Core/Models/EngineeringConverter.cs
+using System;
+
+namespace DaqMonitor.Core.Models;
+
 public class EngineeringConverter
 {
     public double RawLo { get; }

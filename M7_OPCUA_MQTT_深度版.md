@@ -42,6 +42,16 @@ MQTT = 物联网的"微信群"：设备往"主题(topic)"发消息，订阅同�
 
 ### 分点精讲
 **① 连接 + 发布**（🟧）
+
+> 🔧 **必装 NuGet**(在 `src/DaqMonitor.Core/` 目录执行):
+> ```bash
+> cd src/DaqMonitor.Core
+> dotnet add package MQTTnet
+> ```
+> 💡 MQTTnet 4.x 是 .NET 最流行的 MQTT 客户端/服务端库。装完才能 `using MQTTnet;` `using MQTTnet.Client;`
+
+> 📂 语法演示可放 `Program.cs` 跑;**真实工程**放 `DaqMonitor.Core/Cloud/MqttPublisher.cs`(本节②会建)。
+
 ```csharp
 using MQTTnet;
 using MQTTnet.Client;
@@ -60,12 +70,30 @@ await client.PublishAsync(msg);
 ```
 
 **② 批量发布（事件→入队→后台 consumer 串行消费，呼应 M9）**（🟧）
+
+> 📂 `DaqMonitor.Core/Cloud/MqttPublisher.cs` · namespace `DaqMonitor.Core.Cloud`
+> 🔧 已装 MQTTnet(本节①已装)
+> 💡 用到 `SensorPoint` / `AcquisitionPipeline`(M9 定义)
+
 > 🔥 **修正说明**：早期版本在 `DataReceived` 里 `await client.PublishAsync(...)` 逐点发布 —— 高频下会阻塞采集线程、MQTT 抖动。正确做法：从 **M9 的统一采集管道 `BatchReady`** 批量发布；且**事件处理器仅入队(同步)**，后台 consumer 异步消费(解决 `async void` 反模式)。
 
 ```csharp
 // 正确版:BatchReady 仅入队(同步,绝不 async void),后台 consumer 异步消费
-private readonly Channel<List<SensorPoint>> _publishQ =
-    Channel.CreateBounded<List<SensorPoint>>(100);   // 有界,防 OOM
+// 完整代码放 DaqMonitor.Core/Cloud/MqttPublisher.cs
+using MQTTnet;
+using MQTTnet.Client;
+using System.Threading.Channels;
+using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Pipeline;
+
+namespace DaqMonitor.Core.Cloud;
+
+public class MqttPublisher
+{
+    private readonly IMqttClient _client;
+    private readonly AcquisitionPipeline _pipeline;
+    private readonly Channel<List<SensorPoint>> _publishQ =
+        Channel.CreateBounded<List<SensorPoint>>(100);   // 有界,防 OOM
 
 public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
 {

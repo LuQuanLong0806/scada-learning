@@ -42,6 +42,13 @@
 | 不同品牌 = 不同客户端实例 | 不同 baseURL 的 request 实例 |
 
 ### 分点精讲
+
+> 🔧 **必装 NuGet**(在 `src/DaqMonitor.Core/` 目录执行):
+> ```bash
+> dotnet add package HslCommunication
+> ```
+> 💡 HslCommunication 是国产全能工业通信库,**一个 NuGet 包覆盖西门子/三菱/欧姆龙/Modbus** 等,中文文档完善。
+
 **① 读西门子**（🟧，替代 M3 的 S7.Net）
 ```csharp
 using HslCommunication.Profinet.Siemens;
@@ -146,15 +153,29 @@ var v = om.ReadInt16("D100");
 - **M9**：配置驱动切换品牌 = M9 DI 注册切换，工程素养落地。
 
 ## 🧩 完整代码组装（多品牌 PlcDevice 骨架，可直接抄进工程）
+
+> 📂 两个文件: `DaqMonitor.Core/Models/Brand.cs`(枚举) + `DaqMonitor.Core/Devices/PlcDevice.cs`(实现) · namespace `DaqMonitor.Core.Devices`
+> 🔧 `dotnet add package HslCommunication`(在 `src/DaqMonitor.Core/`)
+> 💡 继承 `DeviceBase`(前置类型定义) + 用 Hsl 的 `IReadWriteNet` 统一接口
+
 ```csharp
-// DaqMonitor.Core/Devices/PlcDevice.cs（多品牌版，用 Hsl）
-using HslCommunication; using HslCommunication.Profinet;
+// ① DaqMonitor.Core/Models/Brand.cs —— 品牌枚举,先建这个文件
+namespace DaqMonitor.Core.Models;
+
+public enum Brand { Siemens, Melsec, Omron }
+```
+
+```csharp
+// ② DaqMonitor.Core/Devices/PlcDevice.cs —— 多品牌 PLC 设备
+using System;
+using HslCommunication;
+using HslCommunication.Profinet.Melsec;
+using HslCommunication.Profinet.Omron;
+using HslCommunication.Profinet.Siemens;
 using DaqMonitor.Core.Models;
 
-// ① 品牌枚举(必须先定义,放在 DaqMonitor.Core/Models/Brand.cs)
-public enum Brand { Siemens, Melsec, Omron }
+namespace DaqMonitor.Core.Devices;
 
-// ② 多品牌 PLC 设备
 public class PlcDevice : DeviceBase
 {
     private readonly IReadWriteNet _client;   // Hsl 的统一读写接口

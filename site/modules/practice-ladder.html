@@ -51,6 +51,8 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-13">✏️ 通用小练习（每天打卡前做）</a><ul>
 </ul></li>
+<li class="l2"><a href="#sec-2-14">✅ 自测脚本（每个模块做完都跑一遍）</a><ul>
+</ul></li>
 </ul></aside>
   <main class="content">
 <h1 id="sec-1-1">练习阶梯 · 从"简单操作"到"能跑的企业级项目"</h1>
@@ -168,6 +170,21 @@ dotnet run --project src/DaqMonitor.UI
 <p>🏗️ <strong>终极项目任务</strong>：学完 M0–M9，你的 <code>DAQMonitor</code> 应当同时具备——
 多设备接入（串口/Modbus/PLC 至少两种）· 并发采集无卡顿 · 实时曲线 · 历史库+导出 · 报警+日志 · 上云 · 分层+DI+MVVM+测试+能打包。
 <strong>这就是简历上那个"13K~15K 企业级上位机项目"，而且是真能跑的。</strong></p>
+<hr />
+<h2 id="sec-2-14">✅ 自测脚本（每个模块做完都跑一遍）</h2>
+<pre><code class="language-bash"># 1. 编译:期望 0 错误 0 警告(有警告不算达标 — 警告就是没爆的 bug)
+dotnet build
+
+# 2. 测试:期望全绿(项目做完应该 28+ 测试)
+dotnet test
+
+# 3. 运行:期望窗口能开、点&quot;启动采集&quot;数据跳、报警进日志
+dotnet run --project src/DaqMonitor.UI
+</code></pre>
+<blockquote>
+<p><strong>三条全绿 = 这一模块达标</strong>;有任意一条红,先把红消了再进下一模块,<strong>不要带病推进</strong>。
+<strong>L3 项目任务的额外自测</strong>:打开 <code>Bootstrapper.cs</code>,确认你新加的设备/服务真的在 <code>ConfigureServices</code> 里注册了 — 没注册 = 等于没写。</p>
+</blockquote>
 <div class="pager">
   <a class="prev" href="getting-started.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">实操入门 · 从零搭建企业级工程</div></a>
   <a class="next" href="hardware.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">附录 · 硬件替代方案与讲解</div></a>
