@@ -174,9 +174,9 @@ var model = new
 
 **③ 接入统一接口**（呼应 M0 Day 5）
 ```csharp
-IDevice dev = new PlcDevice("192.168.0.1");
-dev.DataReceived += (s, e) => Console.WriteLine($"点{e.PointId}={e.Value}");
-dev.Connect();
+IDevice dev = new PlcDevice(1, "PLC-01", "192.168.0.1");
+dev.DataReceived += (s, e) => Console.WriteLine($"点{e.Id}={e.Value}");
+await dev.ConnectAsync();
 ```
 
 ### ⚠️ 重点 & 易踩坑
@@ -256,6 +256,11 @@ public sealed class DeviceHost : IDisposable
 - **前瞻 M9**：多设备统一调度最终由 `AcquisitionPipeline` 收口，别各自写轮询循环；心跳重连见 M9 Day4 + M15。
 
 ## 🧩 完整代码组装（PlcDevice 可直接抄进工程）
+
+> 📂 `DaqMonitor.Core/Devices/PlcDevice.cs` · namespace `DaqMonitor.Core.Devices`
+> 🔧 **必装 NuGet**(在 `src/DaqMonitor.Core/` 执行):`dotnet add package S7.Net`
+> 💡 继承 [`DeviceBase`](前置类型定义_学员粘贴版.md#devicebase) 实现 [`IDevice`](前置类型定义_学员粘贴版.md#idevice) · `SensorPoint` 来自 `DaqMonitor.Core.Models` · `RaiseData(...)` 是 DeviceBase 的 protected 助手,内部触发 `DataReceived` 事件
+
 ```csharp
 // DaqMonitor.Core/Devices/PlcDevice.cs
 using S7.Net;
@@ -267,41 +272,52 @@ public class PlcDevice : DeviceBase
 {
     private readonly string _ip;
     private Plc? _plc;
+    private CancellationTokenSource? _cts;
+    private int _addr;     // 主轮询点位(约定:DB号*10000 + 偏移,DB1.4 => 10004)
 
     public PlcDevice(int id, string name, string ip) : base(id, name) => _ip = ip;
 
-    public override async Task ConnectAsync()
+    public override async Task ConnectAsync(CancellationToken ct = default)
     {
         _plc = new Plc(CpuType.S71200, _ip, 0, 1);
         await _plc.OpenAsync();
-        State = _plc.IsConnected ? DeviceState.Online : DeviceState.Offline;
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _ = PollLoop(_cts.Token);   // 后台轮询,数据走事件推送(reactive 模型)
     }
 
-    public override void Disconnect()
+    public override Task DisconnectAsync(CancellationToken ct = default)
     {
+        _cts?.Cancel();
         _plc?.Close();
         _plc = null;
-        State = DeviceState.Offline;
+        return Task.CompletedTask;
     }
 
-    // 约定：addr = DB号*10000 + 偏移，例如 DB1.0 => 10000；DB1.4 => 10004
-    public override async Task<double> ReadAsync(int addr)
+    // 后台轮询:周期读 PLC → 走 RaiseData 触发事件(对应 IDevice 没有 ReadAsync 的设计)
+    private async Task PollLoop(CancellationToken ct)
     {
-        if (_plc is null) return double.NaN;
-        int db = addr / 10000;
-        int off = addr % 10000;
-        var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
-        if (_plc.LastErrorCode != 0) return double.NaN;   // 不抛，交给心跳重连
-        float v = S7.GetRealAt(buf, 0);
-        RaiseData(addr, v);
-        return v;
+        while (!ct.IsCancellationRequested && _plc is not null)
+        {
+            try
+            {
+                int db = _addr / 10000, off = _addr % 10000;
+                var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
+                if (_plc.LastErrorCode == 0)
+                {
+                    double v = S7.GetRealAt(buf, 0);
+                    RaiseData(new SensorPoint(Id, v));   // ⚠️ 走构造函数,Timestamp 才不会是 default
+                }
+            }
+            catch { /* 通信错交给 M9 心跳重连,这里不抛 */ }
+            await Task.Delay(500, ct);
+        }
     }
 
-    public override async Task WriteAsync(int addr, double v)
+    // 独立写入方法(教学版;M9 工程版会抽到 IWriteableDevice 接口)
+    public async Task WriteAsync(int addr, double v)
     {
         if (_plc is null) return;
-        int db = addr / 10000;
-        int off = addr % 10000;
+        int db = addr / 10000, off = addr % 10000;
         await _plc.WriteAsync(DataType.DataBlock, db, off, (float)v);
     }
 }

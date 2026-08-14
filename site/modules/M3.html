@@ -292,9 +292,9 @@ var model = new
 };
 </code></pre>
 <p><strong>③ 接入统一接口</strong>（呼应 M0 Day 5）</p>
-<pre><code class="language-csharp">IDevice dev = new PlcDevice(&quot;192.168.0.1&quot;);
-dev.DataReceived += (s, e) =&gt; Console.WriteLine($&quot;点{e.PointId}={e.Value}&quot;);
-dev.Connect();
+<pre><code class="language-csharp">IDevice dev = new PlcDevice(1, &quot;PLC-01&quot;, &quot;192.168.0.1&quot;);
+dev.DataReceived += (s, e) =&gt; Console.WriteLine($&quot;点{e.Id}={e.Value}&quot;);
+await dev.ConnectAsync();
 </code></pre>
 <h3 id="sec-3-12">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
@@ -400,6 +400,11 @@ foreach (var d in devices) { d.Connect(); d.DataReceived += OnData; }
 <li><strong>前瞻 M9</strong>：多设备统一调度最终由 <code>AcquisitionPipeline</code> 收口，别各自写轮询循环；心跳重连见 M9 Day4 + M15。</li>
 </ul>
 <h2 id="sec-2-5">🧩 完整代码组装（PlcDevice 可直接抄进工程）</h2>
+<blockquote>
+<p>📂 <code>DaqMonitor.Core/Devices/PlcDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>
+🔧 <strong>必装 NuGet</strong>(在 <code>src/DaqMonitor.Core/</code> 执行):<code>dotnet add package S7.Net</code>
+💡 继承 <a href="前置类型定义_学员粘贴版.html#devicebase"><code>DeviceBase</code></a> 实现 <a href="前置类型定义_学员粘贴版.html#idevice"><code>IDevice</code></a> · <code>SensorPoint</code> 来自 <code>DaqMonitor.Core.Models</code> · <code>RaiseData(...)</code> 是 DeviceBase 的 protected 助手,内部触发 <code>DataReceived</code> 事件</p>
+</blockquote>
 <pre><code class="language-csharp">// DaqMonitor.Core/Devices/PlcDevice.cs
 using S7.Net;
 using DaqMonitor.Core.Models;
@@ -410,41 +415,52 @@ public class PlcDevice : DeviceBase
 {
     private readonly string _ip;
     private Plc? _plc;
+    private CancellationTokenSource? _cts;
+    private int _addr;     // 主轮询点位(约定:DB号*10000 + 偏移,DB1.4 =&gt; 10004)
 
     public PlcDevice(int id, string name, string ip) : base(id, name) =&gt; _ip = ip;
 
-    public override async Task ConnectAsync()
+    public override async Task ConnectAsync(CancellationToken ct = default)
     {
         _plc = new Plc(CpuType.S71200, _ip, 0, 1);
         await _plc.OpenAsync();
-        State = _plc.IsConnected ? DeviceState.Online : DeviceState.Offline;
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _ = PollLoop(_cts.Token);   // 后台轮询,数据走事件推送(reactive 模型)
     }
 
-    public override void Disconnect()
+    public override Task DisconnectAsync(CancellationToken ct = default)
     {
+        _cts?.Cancel();
         _plc?.Close();
         _plc = null;
-        State = DeviceState.Offline;
+        return Task.CompletedTask;
     }
 
-    // 约定：addr = DB号*10000 + 偏移，例如 DB1.0 =&gt; 10000；DB1.4 =&gt; 10004
-    public override async Task&lt;double&gt; ReadAsync(int addr)
+    // 后台轮询:周期读 PLC → 走 RaiseData 触发事件(对应 IDevice 没有 ReadAsync 的设计)
+    private async Task PollLoop(CancellationToken ct)
     {
-        if (_plc is null) return double.NaN;
-        int db = addr / 10000;
-        int off = addr % 10000;
-        var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
-        if (_plc.LastErrorCode != 0) return double.NaN;   // 不抛，交给心跳重连
-        float v = S7.GetRealAt(buf, 0);
-        RaiseData(addr, v);
-        return v;
+        while (!ct.IsCancellationRequested &amp;&amp; _plc is not null)
+        {
+            try
+            {
+                int db = _addr / 10000, off = _addr % 10000;
+                var buf = await _plc.ReadBytesAsync(DataType.DataBlock, db, off, 4);
+                if (_plc.LastErrorCode == 0)
+                {
+                    double v = S7.GetRealAt(buf, 0);
+                    RaiseData(new SensorPoint(Id, v));   // ⚠️ 走构造函数,Timestamp 才不会是 default
+                }
+            }
+            catch { /* 通信错交给 M9 心跳重连,这里不抛 */ }
+            await Task.Delay(500, ct);
+        }
     }
 
-    public override async Task WriteAsync(int addr, double v)
+    // 独立写入方法(教学版;M9 工程版会抽到 IWriteableDevice 接口)
+    public async Task WriteAsync(int addr, double v)
     {
         if (_plc is null) return;
-        int db = addr / 10000;
-        int off = addr % 10000;
+        int db = addr / 10000, off = addr % 10000;
         await _plc.WriteAsync(DataType.DataBlock, db, off, (float)v);
     }
 }

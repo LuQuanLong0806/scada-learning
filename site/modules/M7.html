@@ -164,8 +164,8 @@ public class MqttPublisher
 {
     private readonly IMqttClient _client;
     private readonly AcquisitionPipeline _pipeline;
-    private readonly Channel&lt;List&lt;SensorPoint&gt;&gt; _publishQ =
-        Channel.CreateBounded&lt;List&lt;SensorPoint&gt;&gt;(100);   // 有界,防 OOM
+    private readonly Channel&lt;IReadOnlyList&lt;SensorPoint&gt;&gt; _publishQ =
+        Channel.CreateBounded&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;(100);   // 有界,防 OOM
 
 public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
 {
@@ -174,7 +174,7 @@ public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline)
     _pipeline.BatchReady += OnBatchReady;   // 同步方法
 }
 
-private void OnBatchReady(object? sender, List&lt;SensorPoint&gt; batch)
+private void OnBatchReady(object? sender, IReadOnlyList&lt;SensorPoint&gt; batch)
 {
     // 仅入队,不 await。满了就丢弃本批(报警但不停采集)
     if (!_publishQ.Writer.TryWrite(batch))
@@ -275,10 +275,11 @@ private async Task ConsumeLoopAsync(CancellationToken ct)
                     _log?.LogInformation(&quot;云端下发设定值: PointId={Id} Value={V}&quot;, cmd.PointId, cmd.Value);
                     break;
                 case &quot;start&quot;:
-                    _pipeline.Start();
+                    _pipelineRunCts = new CancellationTokenSource();
+                    _ = _pipeline.RunAsync(_pipelineRunCts.Token);   // 后台启动采集(参考 AcquisitionPipeline.RunAsync)
                     break;
                 case &quot;stop&quot;:
-                    await _pipeline.StopAsync();
+                    _pipelineRunCts?.Cancel();                      // 取消 token = 停止采集
                     break;
             }
         }
@@ -450,8 +451,10 @@ public class MqttPublisher
     private readonly ILogger&lt;MqttPublisher&gt;? _log;
 
     // 有界 Channel:防 OOM + 串行消费(解决 async void 反模式)
-    private readonly Channel&lt;List&lt;SensorPoint&gt;&gt; _publishQ =
-        Channel.CreateBounded&lt;List&lt;SensorPoint&gt;&gt;(100);
+    private readonly Channel&lt;IReadOnlyList&lt;SensorPoint&gt;&gt; _publishQ =
+        Channel.CreateBounded&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;(100);
+
+    private CancellationTokenSource? _pipelineRunCts;   // 控制 pipeline 启停(参考 AcquisitionPipeline.RunAsync)
 
     public MqttPublisher(IMqttClient client, AcquisitionPipeline pipeline,
         IPlcDevice plcDevice, ILogger&lt;MqttPublisher&gt;? log = null)
@@ -535,10 +538,11 @@ public class MqttPublisher
                             cmd.PointId, cmd.Value);
                         break;
                     case &quot;start&quot;:
-                        _pipeline.Start();
+                        _pipelineRunCts = new CancellationTokenSource();
+                        _ = _pipeline.RunAsync(_pipelineRunCts.Token);   // 后台启动采集
                         break;
                     case &quot;stop&quot;:
-                        await _pipeline.StopAsync();
+                        _pipelineRunCts?.Cancel();                      // 取消即停
                         break;
                 }
             }

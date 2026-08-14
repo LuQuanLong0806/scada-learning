@@ -252,7 +252,7 @@ public void Remove(int id) { _byId.Remove(id); _points.RemoveAll(x =&gt; x.Id ==
 // PointStoreTests.cs
 [Fact] public void Remove_ExistingId_ThenGetNull()
 {
-    var s = new PointStore(); s.AddOrUpdate(new SensorPoint { Id = 5, Value = 1 });
+    var s = new PointStore(); s.AddOrUpdate(new SensorPoint(5, 1));   // ⚠️ 走构造函数,Timestamp 才不会是 default(DateTime)
     s.Remove(5); Assert.Null(s.Get(5));
 }
 [Fact] public void Remove_MissingId_NoThrow()
@@ -414,7 +414,7 @@ var provider = services.BuildServiceProvider();
 
     public void Register(IDevice device)
         =&gt; device.DataReceived += (s, e) =&gt;
-            _channel.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp });
+            _channel.Writer.TryWrite(e);   // e 已经是 SensorPoint,直接入队
 
     private void Flush()
     {
@@ -432,8 +432,14 @@ _pipeline.BatchReady += (s, batch) =&gt; Application.Current.Dispatcher.Invoke((
 });
 // 报警（M6）：批量送进 AlarmEngine 评估
 _pipeline.BatchReady += (s, batch) =&gt; { foreach (var p in batch) _alarm.Evaluate(p); };
-// 上云（M7）：批量发布（不再逐点 PublishAsync）
-_pipeline.BatchReady += async (s, batch) =&gt; { foreach (var p in batch) await _mqtt.PublishAsync(p); };
+// 上云（M7）：批量发布 — 走有界 Channel + 后台消费循环,**绝不**用 `async (s,batch) =&gt; await ...`(那是 async void,异常会吞,见 [C# 陷阱](C#_陷阱_前端转上位机必看_深度版.md))
+var cloudQ = Channel.CreateBounded&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;(100);
+_pipeline.BatchReady += (s, batch) =&gt; cloudQ.Writer.TryWrite(batch);   // 同步入队,瞬间返回
+_ = Task.Run(async () =&gt;                                       // 后台消费,异常能被 try/catch 抓住
+{
+    await foreach (var batch in cloudQ.Reader.ReadAllAsync())
+        foreach (var p in batch) await _mqtt.PublishAsync(p);
+});
 </code></pre>
 <p><strong>③ 限流（maxBatch）</strong>：<code>_pending</code> 攒满 <code>maxBatch</code>（如 500）也立刻出队，防突发洪峰堆爆内存。</p>
 <h3 id="sec-3-18">⚠️ 重点 &amp; 易踩坑</h3>

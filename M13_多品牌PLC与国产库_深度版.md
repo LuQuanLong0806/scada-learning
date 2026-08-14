@@ -179,8 +179,12 @@ namespace DaqMonitor.Core.Devices;
 public class PlcDevice : DeviceBase
 {
     private readonly IReadWriteNet _client;   // Hsl 的统一读写接口
-    public PlcDevice(int id, string name, Brand brand, string ip) : base(id, name)
+    private readonly string _addr;            // 主轮询点位地址(如 "D100")
+    private CancellationTokenSource? _cts;
+
+    public PlcDevice(int id, string name, Brand brand, string ip, string addr = "D100") : base(id, name)
     {
+        _addr = addr;
         _client = brand switch
         {
             Brand.Siemens => new SiemensS7Net(SiemensPLCS.S1200, ip),
@@ -189,15 +193,42 @@ public class PlcDevice : DeviceBase
             _ => throw new ArgumentOutOfRangeException(nameof(brand))
         };
     }
-    public override void Connect() { /* Hsl 多数随读即连 */ State = DeviceState.Online; }
-    public override void Disconnect() => State = DeviceState.Offline;
-    public override double Read(int addr)   // 内部按品牌映射地址
+
+    public override Task ConnectAsync(CancellationToken ct = default)
     {
-        var r = _client.ReadFloat("D100");    // 真实按配置映射
-        if (r.IsSuccess) { RaiseData(addr, r.Content); return r.Content; }
-        return double.NaN;                    // 失败不抛，交心跳重连
+        // Hsl 多数"随读即连",这里启动后台轮询,数据走事件推送(reactive)
+        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _ = PollLoop(_cts.Token);
+        State = DeviceState.Online;
+        return Task.CompletedTask;
     }
-    public override void Write(int addr, double value) { _client.Write("D100", (float)value); }
+
+    public override Task DisconnectAsync(CancellationToken ct = default)
+    {
+        _cts?.Cancel();
+        State = DeviceState.Offline;
+        return Task.CompletedTask;
+    }
+
+    private async Task PollLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                var r = _client.ReadFloat(_addr);   // 真实项目按点位配置表映射多地址
+                if (r.IsSuccess)
+                    RaiseData(new SensorPoint(Id, r.Content));   // ⚠️ 走构造函数
+                else
+                    State = DeviceState.Offline;   // 失败不抛,交心跳重连
+            }
+            catch { /* 通信错交给 M9 心跳重连 */ }
+            await Task.Delay(500, ct);
+        }
+    }
+
+    // 独立写入方法(教学版;M9 工程版会抽到 IWriteableDevice 接口)
+    public void Write(string addr, double value) { _client.Write(addr, (float)value); }
 }
 ```
 > 接进工程：`services.AddSingleton<IDevice>(_ => new PlcDevice(2, "PLC-多品牌", Brand.Melsec, "192.168.0.2"));`，UI 零改。

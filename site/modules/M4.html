@@ -147,7 +147,7 @@ namespace DaqMonitor.Core.Persistence;
 
 public class SensorRecord
 {
-    public int Id { get; set; }              // 自增主键(EF Core 必须有)
+    public long Id { get; set; }             // 自增主键(EF Core 必须有)
     public int PointId { get; set; }
     public double Value { get; set; }
     public DateTime Timestamp { get; set; }  // 与 SensorPoint.Timestamp 对齐
@@ -301,7 +301,7 @@ services.AddDbContextFactory&lt;AppDb&gt;(o =&gt; o.UseSqlite("Data Source=daq.d
 <p><strong>① <code>AsNoTracking()</code> — 只读查询关掉变更追踪,性能 2-3 倍</strong></p>
 <pre><code class="language-csharp">// 查历史曲线(只读,不修改) → 关掉追踪,跳过状态字典维护
 var list = await db.Records.AsNoTracking()
-    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; from)
+    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Timestamp &gt; from)
     .ToListAsync();
 </code></pre>
 <p><strong>前端类比</strong>:像 React 的 <code>PureComponent</code> / <code>useMemo</code>,跳过不必要的 diff。读几万条历史时不开 <code>AsNoTracking</code>,DbContext 的追踪字典会一直膨胀,GC 压力炸裂。</p>
@@ -350,8 +350,8 @@ dotnet ef migrations remove                  # 删掉最近一次迁移文件(�
 <h3 id="sec-3-14">分点精讲</h3>
 <p><strong>① LINQ 查询</strong>（🟧🟦，呼应 M0 Day 3）</p>
 <pre><code class="language-csharp">var today = db.Records
-    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Time &gt; DateTime.Now.AddHours(-1))
-    .OrderBy(r =&gt; r.Time)
+    .Where(r =&gt; r.PointId == 1 &amp;&amp; r.Timestamp &gt; DateTime.Now.AddHours(-1))
+    .OrderBy(r =&gt; r.Timestamp)
     .ToList();
 
 double avg = db.Records.Where(r =&gt; r.PointId == 1).Average(r =&gt; r.Value);
@@ -360,7 +360,7 @@ double avg = db.Records.Where(r =&gt; r.PointId == 1).Average(r =&gt; r.Value);
 <pre><code class="language-csharp">var sb = new StringBuilder();
 sb.AppendLine(&quot;PointId,Value,Time&quot;);
 foreach (var r in today)
-    sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Time:yyyy-MM-dd HH:mm:ss}&quot;);
+    sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Timestamp:yyyy-MM-dd HH:mm:ss}&quot;);
 File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
 </code></pre>
 <p><strong>③ 仓储模式（解耦数据访问）</strong>（🟦）</p>
@@ -375,7 +375,7 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
         await db.SaveChangesAsync();
     }
     public async Task&lt;List&lt;SensorRecord&gt;&gt; QueryAsync(int pointId, DateTime from, DateTime to)
-        =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToListAsync();
+        =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Timestamp &gt;= from &amp;&amp; r.Timestamp &lt;= to).ToListAsync();
 }
 </code></pre>
 <h3 id="sec-3-15">⚠️ 重点 &amp; 易踩坑</h3>
@@ -410,11 +410,11 @@ File.WriteAllText(&quot;export.csv&quot;, sb.ToString());
 <h3 id="sec-3-17">🟡 进阶题</h3>
 <p>加 <code>ExportCsv(path)</code> 方法，把查询结果写成 CSV。</p>
 <h3 id="sec-3-18">🔴 挑战题</h3>
-<p>写一个 <code>GetHourlyAverage(pointId, date)</code>：用 LINQ <code>GroupBy(r =&gt; r.Time.Hour)</code> 算出当天每小时的平均温度（M10 报表的预演）。</p>
+<p>写一个 <code>GetHourlyAverage(pointId, date)</code>：用 LINQ <code>GroupBy(r =&gt; r.Timestamp.Hour)</code> 算出当天每小时的平均温度（M10 报表的预演）。</p>
 <p><strong>✅ 答案（挑战题核心）</strong></p>
 <pre><code class="language-csharp">var hourly = db.Records
-    .Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time.Date == date)
-    .GroupBy(r =&gt; r.Time.Hour)
+    .Where(r =&gt; r.PointId == pointId &amp;&amp; r.Timestamp.Date == date)
+    .GroupBy(r =&gt; r.Timestamp.Hour)
     .Select(g =&gt; new { Hour = g.Key, Avg = g.Average(r =&gt; r.Value) })
     .OrderBy(x =&gt; x.Hour).ToList();
 </code></pre>
@@ -477,12 +477,12 @@ public class HistoryRepository
         await db.SaveChangesAsync();
     }
     public async Task&lt;List&lt;SensorRecord&gt;&gt; QueryAsync(int pointId, DateTime from, DateTime to)
-        =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to).ToListAsync();
+        =&gt; await db.Records.Where(r =&gt; r.PointId == pointId &amp;&amp; r.Timestamp &gt;= from &amp;&amp; r.Timestamp &lt;= to).ToListAsync();
     public void ExportCsv(string path, List&lt;SensorRecord&gt; rows)
     {
         var sb = new StringBuilder();
         sb.AppendLine(&quot;PointId,Value,Time&quot;);
-        foreach (var r in rows) sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Time:yyyy-MM-dd HH:mm:ss}&quot;);
+        foreach (var r in rows) sb.AppendLine($&quot;{r.PointId},{r.Value},{r.Timestamp:yyyy-MM-dd HH:mm:ss}&quot;);
         File.WriteAllText(path, sb.ToString());
     }
 }

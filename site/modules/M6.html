@@ -120,8 +120,10 @@ M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>Alarm
 🔧 无 NuGet(纯 C# 逻辑)
 💡 用到 <code>SensorPoint</code> / <code>AlarmLevel</code> / <code>AlarmEvent</code>(都在 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)
 ⚠️ <strong>教学版 vs 项目版</strong>:本节 <code>AlarmRule</code> 字段是 <code>Threshold + IsHigh</code>,<strong>项目实际生产版</strong>是 <code>ThresholdRule</code>(参前置类型定义,字段 <code>HighThreshold + LowThreshold</code> 实现回滞)。本节先学简版,Day 1 末「掰开揉碎」会升级到回滞版。</p>
+<p>⚠️ <strong>教学版 vs 项目版</strong>:<strong>项目真实代码用 <code>ThresholdRule</code> 实现了 <a href="前置类型定义_学员粘贴版.html#ialarmrule"><code>IAlarmRule</code></a> 接口</strong>(参考版 <code>DaqMonitor.Core/Alarms/ThresholdRule.cs</code>),
+字段更全(<code>HighThreshold</code> / <code>LowThreshold</code> / <code>Hysteresis</code> 等),下面是<strong>教学版</strong>(只读这节就够理解概念)。</p>
 </blockquote>
-<pre><code class="language-csharp">// DaqMonitor.Core/Alarms/AlarmRule.cs
+<pre><code class="language-csharp">// 教学版 AlarmRule(项目里实际叫 ThresholdRule,字段更多,见前置类型定义)
 namespace DaqMonitor.Core.Alarms;
 
 using DaqMonitor.Core.Models;
@@ -130,6 +132,7 @@ public class AlarmRule
 {
     public int PointId { get; set; }
     public double Threshold { get; set; }
+    public double Hysteresis { get; set; }      // 回滞带(下面&quot;回滞&quot;小节详解),生产必填
     public AlarmLevel Level { get; set; }      // M0 Day2 的 enum
     public bool IsHigh { get; set; } = true;   // true: 超上限报警；false: 低于下限
 }
@@ -162,16 +165,14 @@ public class AlarmEngine
 </code></pre>
 <p><strong>② 接到数据流</strong>（呼应 M0 Day 6）</p>
 <blockquote>
-<p>⚠️ <strong>修一个真实 bug</strong>:旧版写 <code>new SensorPoint { Id = e.PointId, Value = e.Value }</code> 用对象初始化器,
-但 <code>SensorPoint</code> 是带自定义构造函数的 struct,对象初始化器会先调默认构造(全字段归零)再 set,
-结果 <code>Timestamp</code> 是 <code>default(DateTime)</code> = <code>0001-01-01</code>,<strong>不是</strong> <code>DateTime.Now</code>!
-<strong>正确写法</strong>:走构造函数 <code>new SensorPoint(id, value)</code>,Timestamp 走构造函数默认参数。</p>
+<p>💡 <code>SensorPoint</code> 已经是完整数据(Id/Value/Timestamp),事件参数 <code>e</code> 就是 <code>SensorPoint</code>,
+<strong>直接传给 <code>Evaluate(e)</code> 即可</strong>,不需要再 new 一个 — 早期版本写 <code>new SensorPoint(e.PointId, ...)</code> 还有个
+双重 bug:<code>SensorPoint</code> 根本没有 <code>PointId</code> 字段(只有 <code>Id</code>),且对象初始化器会绕过自定义构造函数,
+让 <code>Timestamp</code> 落到 <code>default(DateTime)</code> = <code>0001-01-01</code>。</p>
 </blockquote>
 <pre><code class="language-csharp">device.DataReceived += (s, e) =&gt;
 {
-    // ✅ 走构造函数,Timestamp 自动取 DateTime.Now
-    var p = new SensorPoint(e.PointId, e.Value);
-    engine.Evaluate(p);          // 自动判警
+    engine.Evaluate(e);          // e 已是完整 SensorPoint,直接送判警
 };
 engine.AlarmTriggered += (s, a) =&gt; Console.WriteLine($&quot;⚠ 点位{a.PointId} 报警{a.Level} 值={a.Value}&quot;);
 </code></pre>
