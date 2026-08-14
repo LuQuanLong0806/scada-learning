@@ -423,7 +423,7 @@ public class AlarmEventArgs
 {
     public int PointId { get; init; }
     public double Value { get; init; }
-    public DateTime Time { get; init; }
+    public DateTime Timestamp { get; init; }   // 项目约定:时间字段统一叫 Timestamp
 }
 
 // 2. AlarmViewModel 发布

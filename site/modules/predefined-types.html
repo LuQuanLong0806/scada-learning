@@ -74,15 +74,15 @@ public enum AlarmLevel
 // struct:值类型,小而频繁传递,GC 压力小(Day 2 学过)
 public readonly struct SensorPoint
 {
-    public int Id { get; init; }            // 点位编号
-    public double Value { get; init; }      // 实时数值
-    public DateTime Time { get; init; }     // 采集时刻
+    public int Id { get; init; }                // 点位编号
+    public double Value { get; init; }          // 实时数值
+    public DateTime Timestamp { get; init; }    // 采集时刻(注意:全仓库统一用 Timestamp,不用 Time)
 
-    public SensorPoint(int id, double value, DateTime? time = null)
+    public SensorPoint(int id, double value, DateTime? timestamp = null)
     {
         Id = id;
         Value = value;
-        Time = time ?? DateTime.Now;
+        Timestamp = timestamp ?? DateTime.Now;
     }
 }
 
@@ -92,7 +92,7 @@ public class SensorRecord
     public long Id { get; set; }            // 自增主键
     public int PointId { get; set; }        // 点位编号
     public double Value { get; set; }       // 数值
-    public DateTime Time { get; set; }      // 时刻
+    public DateTime Timestamp { get; set; } // 时刻(与 SensorPoint 对齐)
 }
 
 // 报警事件
@@ -101,7 +101,7 @@ public class AlarmEvent
     public int PointId { get; init; }
     public double Value { get; init; }
     public AlarmLevel Level { get; init; }
-    public DateTime Time { get; init; } = DateTime.Now;
+    public DateTime Timestamp { get; init; } = DateTime.Now;
     public string Message { get; init; } = &quot;&quot;;
 }
 </code></pre>
@@ -246,15 +246,15 @@ public class AcquisitionPipeline
 <pre><code class="language-csharp">namespace DaqMonitor.Core.Reporting;
 
 // 报表聚合结果(M10 报表模块核心类型)
+// 注意:字段名/顺序与 M10 Day 1 ReportService 的调用一致
 public record PointStat(
     int PointId,
+    int Count,
     double Min,
     double Max,
-    double Average,
-    double Sum,
-    int Count,
-    DateTime FirstTime,
-    DateTime LastTime
+    double Avg,
+    DateTime First,
+    DateTime Last
 );
 
 // 报表时间范围

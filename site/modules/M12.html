@@ -124,12 +124,18 @@ double EngValue(double raw) =&gt; a * raw + b;
 - 0mA 无法区分"值是 0"还是"线断了"。
 <strong>③ 两点标定自动求系数</strong>（🟦）
 - 现场用标准信号源打两个点（如 4mA→0℃、20mA→100℃），代入公式求 a,b，存配置。
-<strong>④ 在 SensorPoint 落地</strong></p>
-<pre><code class="language-csharp">public class SensorPoint {
-    public double Raw { get; set; }
-    public double EngValue { get; set; }   // 标定后
+<strong>④ 在标定数据载体落地</strong></p>
+<pre><code class="language-csharp">// 注意:这里改名 EngineeringSample,避免和项目里 SensorPoint(struct)冲突
+// SensorPoint 本身只放 Id/Value/Timestamp(参前置类型定义),工程量是&quot;标定后&quot;的视图
+public class EngineeringSample
+{
+    public double Raw { get; set; }        // 原始读数(ADC / 4-20mA 等)
+    public double EngValue { get; set; }   // 标定后的工程量
     public string Unit { get; set; } = &quot;℃&quot;;
 }
+// 工程实践:在 AcquisitionPipeline 里,标定器把 SensorPoint.Value(raw)
+//          → EngineeringConverter.ToEng(raw) → 重新 new SensorPoint(id, eng, ts)
+//          落库时 Raw/EngValue 都存,SensorRecord 加两列即可。
 </code></pre>
 <h3 id="sec-3-4">🔬 掰开揉碎：标定为啥用两点法</h3>
 <ul>

@@ -432,7 +432,9 @@ public sealed class WebBroadcastService : IHostedService, IDisposable
     // 但严禁在此阻塞或做重活,BatchReady 在采集线程上触发。
     private void OnBatchReady(object? sender, IReadOnlyList&lt;SensorPoint&gt; batch)
     {
-        // 协议格式:{&quot;type&quot;:&quot;batch&quot;,&quot;points&quot;:[{&quot;id&quot;:1,&quot;value&quot;:42.5,&quot;state&quot;:2,&quot;timestamp&quot;:&quot;...&quot;}]}
+        // 协议格式:{&quot;type&quot;:&quot;batch&quot;,&quot;points&quot;:[{&quot;id&quot;:1,&quot;value&quot;:42.5,&quot;timestamp&quot;:&quot;...&quot;}]}
+        // 注意:SensorPoint 只含 Id/Value/Timestamp(参前置类型定义),state 不在里面;
+        //      如果要带状态,要么单独发&quot;设备状态&quot;消息,要么扩展 SensorPoint 加 State 字段
         var payload = new
         {
             type = &quot;batch&quot;,
@@ -440,7 +442,6 @@ public sealed class WebBroadcastService : IHostedService, IDisposable
             {
                 p.Id,
                 p.Value,
-                state = (int)p.State,
                 timestamp = p.Timestamp.ToString(&quot;O&quot;)   // ISO 8601,前端 new Date() 直接用
             })
         };

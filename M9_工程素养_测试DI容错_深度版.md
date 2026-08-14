@@ -84,7 +84,7 @@ public async Task Pipeline_ReceivesData_FromMockedDevice()   // 真实存在于�
 
     pipeline.Register(device.Object);
     device.Raise(d => d.DataReceived += null,    // Moq 模拟"设备来了一帧"
-        new DataEventArgs { PointId = 7, Value = 42, Timestamp = DateTime.Now });
+        new SensorPoint(7, 42, DateTime.Now));   // SensorPoint 在 DaqMonitor.Core.Models 定义
 
     await Task.WhenAny(done.Task, Task.Delay(2000));
     Assert.Single(received);

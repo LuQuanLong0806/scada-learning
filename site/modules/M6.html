@@ -74,8 +74,8 @@
 <p>📚 <strong>前置语法</strong>(M6 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
 - <code>enum AlarmLevel { Info, Warning, Critical }</code> — 枚举,速查 §12
 - <code>event Action&lt;AlarmEvent&gt;?</code> — 委托事件,速查 §7
-- <code>record AlarmEvent(string Tag, double Value, AlarmLevel Level, DateTime Time)</code> — 不可变值对象,速查 §12
-- <code>interface IAlarmRule { bool Check(double value); }</code> — 接口,速查 §12
+- <code>class AlarmEvent { ... }</code> — 报警事件类型(参 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>,字段 PointId/Value/Level/Timestamp/Message),速查 §4 init 属性
+- <code>interface IAlarmRule { AlarmLevel Evaluate(double value); }</code> — 接口,速查 §12
 - <code>class ThresholdRule : IAlarmRule</code> — 实现接口
 - <code>DateTime.UtcNow</code> — 时间,速查 §10(<code>$"{now:yyyy-MM-dd HH:mm:ss}"</code>)</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)

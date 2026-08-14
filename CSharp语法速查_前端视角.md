@@ -857,14 +857,15 @@ var userRepo = new Repository<User>();
 ### record(C# 9.0+,不可变值对象)
 
 ```csharp
-public record SensorPoint(int Id, double Value);
+// 注意:本节用 PointRecord 演示,避免和 SensorPoint(class,见本文档顶部)重名冲突
+public record PointRecord(int Id, double Value);
 
-var p1 = new SensorPoint(1, 10.0);
-var p2 = new SensorPoint(1, 10.0);
+var p1 = new PointRecord(1, 10.0);
+var p2 = new PointRecord(1, 10.0);
 Console.WriteLine(p1 == p2);     // True!record 重写了 == 基于值相等
 
 // with 表达式(基于现有创建新副本,改某字段)
-var p3 = p1 with { Value = 20 };  // p3 = SensorPoint(1, 20)
+var p3 = p1 with { Value = 20 };  // p3 = PointRecord(1, 20)
 ```
 
 ⭐ **何时用 record**:

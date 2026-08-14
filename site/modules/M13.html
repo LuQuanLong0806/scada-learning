@@ -210,6 +210,10 @@ var v = om.ReadInt16(&quot;D100&quot;);
 using HslCommunication; using HslCommunication.Profinet;
 using DaqMonitor.Core.Models;
 
+// ① 品牌枚举(必须先定义,放在 DaqMonitor.Core/Models/Brand.cs)
+public enum Brand { Siemens, Melsec, Omron }
+
+// ② 多品牌 PLC 设备
 public class PlcDevice : DeviceBase
 {
     private readonly IReadWriteNet _client;   // Hsl 的统一读写接口
@@ -220,7 +224,7 @@ public class PlcDevice : DeviceBase
             Brand.Siemens =&gt; new SiemensS7Net(SiemensPLCS.S1200, ip),
             Brand.Melsec   =&gt; new MelsecMcNet(ip, 5000),
             Brand.Omron    =&gt; new OmronFinsNet(ip, 9600),
-            _ =&gt; throw new ArgumentOutOfRangeException()
+            _ =&gt; throw new ArgumentOutOfRangeException(nameof(brand))
         };
     }
     public override void Connect() { /* Hsl 多数随读即连 */ State = DeviceState.Online; }

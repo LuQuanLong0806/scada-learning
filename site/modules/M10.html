@@ -71,7 +71,7 @@
 - 🎯 <strong>面试高频</strong>:报表维度设计(班次/小时/天)/ <strong>ClosedXML vs EPPlus 选型(License)</strong> / 聚合 SQL vs 内存计算
 - 🔁 <strong>配套复习</strong>:<a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
 <p>📚 <strong>前置语法</strong>(M10 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
-- <code>_points.Where(p =&gt; p.Time &gt;= t0 &amp;&amp; p.Time &lt; t1).GroupBy(p =&gt; p.Tag).Select(g =&gt; new { Tag = g.Key, Max = g.Max(p =&gt; p.Value) })</code> — LINQ 多级聚合,速查 §15
+- <code>_points.Where(p =&gt; p.Timestamp &gt;= t0 &amp;&amp; p.Timestamp &lt; t1).GroupBy(p =&gt; p.Id).Select(g =&gt; new { Id = g.Key, Max = g.Max(p =&gt; p.Value) })</code> — LINQ 多级聚合,速查 §15
 - <code>var report = new { Date = today, Lines = new List&lt;ReportLine&gt;() }</code> — 匿名对象
 - <code>class ReportLine { public string Tag { get; init; } public double Max { get; init; } public double Avg { get; init; } }</code> — init-only 属性,速查 §4
 - <code>using var wb = new XLWorkbook()</code> — ClosedXML 资源释放,速查 §13
@@ -113,14 +113,14 @@ public sealed class ReportService
         return points
             .Where(p =&gt; p.Timestamp &gt;= from &amp;&amp; p.Timestamp &lt;= to)  // 时间窗过滤
             .GroupBy(p =&gt; p.Id)                                    // 按点位分组
-            .Select(g =&gt; new PointStat(
-                PointId: g.Key,
-                Count: g.Count(),
-                Min:   g.Min(p =&gt; p.Value),
-                Max:   g.Max(p =&gt; p.Value),
-                Avg:   g.Average(p =&gt; p.Value),
-                First: g.Min(p =&gt; p.Timestamp),
-                Last:  g.Max(p =&gt; p.Timestamp)))
+            .Select(g =&gt; new PointStat(                            // 注意:PointStat record 的字段顺序
+                PointId: g.Key,                                    // 参 [前置类型定义](前置类型定义_学员粘贴版.md)
+                Count:  g.Count(),
+                Min:    g.Min(p =&gt; p.Value),
+                Max:    g.Max(p =&gt; p.Value),
+                Avg:    g.Average(p =&gt; p.Value),
+                First:  g.Min(p =&gt; p.Timestamp),
+                Last:   g.Max(p =&gt; p.Timestamp)))
             .OrderBy(s =&gt; s.PointId)
             .ToList();
     }
@@ -164,7 +164,7 @@ public sealed class ReportService
 <h3 id="sec-3-3">✅ 答案</h3>
 <pre><code class="language-csharp">// 1) 按小时
 .GroupBy(p =&gt; p.Timestamp.Date.AddHours(p.Timestamp.Hour))
-// 2) 报警次数
+// 2) 报警次数(AlarmEvent 在前置类型定义里)
 alarms.GroupBy(a =&gt; a.PointId)
       .Select(g =&gt; new { PointId = g.Key, Triggers = g.Count() });
 </code></pre>

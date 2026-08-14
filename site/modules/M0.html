@@ -564,13 +564,23 @@ int real = age2 ?? 0;   // ?? 是空合并（JS 也有）：null 就取 0
 Console.WriteLine(age2?.ToString());  // ?. 空条件调用（JS 也有）
 </code></pre>
 <p><strong>③ struct —— 上位机点位的天然载体</strong>：🟦 轻量值类型，适合"坐标/点位/寄存器"这类小数据：</p>
-<pre><code class="language-csharp">public struct SensorPoint
+<pre><code class="language-csharp">public readonly struct SensorPoint
 {
-    public int Id;          // 点位编号
-    public double Value;    // 数值
-    public DateTime Time;   // 采集时刻
+    public int Id { get; init; }              // 点位编号
+    public double Value { get; init; }        // 数值
+    public DateTime Timestamp { get; init; }  // 采集时刻
+
+    public SensorPoint(int id, double value, DateTime? timestamp = null)
+    {
+        Id = id;
+        Value = value;
+        Timestamp = timestamp ?? DateTime.Now;
+    }
 }
 </code></pre>
+<blockquote>
+<p>💡 这里就是 DAQ Monitor 项目的<strong>正式 SensorPoint 定义</strong>(也是 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a> 里的版本),后面所有 Day/模块都用这个。struct 用 <code>readonly</code> + <code>init</code> 属性保证不可变(线程安全),构造函数给 <code>Timestamp</code> 一个默认值,所以下面 Day 3 写 <code>new SensorPoint(1, 10.5)</code> 也能跑。</p>
+</blockquote>
 <p><strong>④ enum —— 状态/功能码用它</strong>：🟦 命名常量，比 magic number 可读：</p>
 <pre><code class="language-csharp">public enum DeviceState { Offline, Connecting, Online }
 public enum AlarmLevel  { Normal, Warning, Critical }
@@ -1000,15 +1010,22 @@ Console.WriteLine($&quot;点位{alarm.PointId} 报警 {alarm.Level} 值={alarm.V
 <p><strong>📌 技术来源</strong>：🟦 集合语法 + 🟩 BCL（<code>List&lt;T&gt;</code>/<code>Dictionary&lt;K,V&gt;</code>/<code>LINQ</code>）</p>
 <h3 id="sec-3-17">📦 前置代码:本 Day 示例用到的类型</h3>
 <blockquote>
-<p>本 Day 所有示例代码都基于下面的 <code>SensorPoint</code> 类型(Day 2 已定义,这里复述,如果还没建到项目里,<strong>先复制这段到 <code>DaqMonitor.Core/Models/SensorPoint.cs</code></strong>):</p>
+<p>本 Day 所有示例代码都基于 <a href="#day-2--类型基础-值引用enumstruct">Day 2 已定义的 SensorPoint</a>。<strong>完整可编译版本</strong>在 <a href="前置类型定义_学员粘贴版.html">前置类型定义 · 学员粘贴版</a>,如果你还没建好,<strong>复制这份到 <code>DaqMonitor.Core/Models/SensorPoint.cs</code></strong>:</p>
 </blockquote>
 <pre><code class="language-csharp">namespace DaqMonitor.Core.Models;
 
-public struct SensorPoint        // struct:值类型,适合&quot;小而不可变&quot;的点位
+public readonly struct SensorPoint
 {
-    public int Id { get; init; }          // 点位编号,init 表示只能在构造时赋值
-    public double Value { get; set; }     // 实时数值
-    public DateTime Time { get; set; }    // 采集时刻
+    public int Id { get; init; }              // init 表示只能在构造时赋值
+    public double Value { get; init; }
+    public DateTime Timestamp { get; init; }
+
+    public SensorPoint(int id, double value, DateTime? timestamp = null)
+    {
+        Id = id;
+        Value = value;
+        Timestamp = timestamp ?? DateTime.Now;
+    }
 }
 
 // 后半段 LINQ 进阶示例还会用到这个类(便于演示 GroupBy):
@@ -1073,25 +1090,28 @@ public class Device
 <h3 id="sec-3-20">分点精讲</h3>
 <p><strong>① 两大集合</strong>：</p>
 <pre><code class="language-csharp">List&lt;SensorPoint&gt; points = new();     // new() 是简写
-points.Add(new SensorPoint { Id = 1, Value = 10 });
+points.Add(new SensorPoint(1, 10));   // 构造函数写法(Timestamp 取默认 DateTime.Now)
 
 Dictionary&lt;int, SensorPoint&gt; byId = new();
-byId[1] = new SensorPoint { Id = 1, Value = 10 };
+byId[1] = new SensorPoint(1, 10);
 var p = byId[1];               // 按 Id 取
 bool ok = byId.TryGetValue(2, out var p2);  // 安全取（不存在不报错）
 </code></pre>
 <p><strong>② LINQ 实战</strong>（上位机日常）：</p>
 <pre><code class="language-csharp">var points = new List&lt;SensorPoint&gt;
 {
-    new() { Id = 1, Value = 10 },  new() { Id = 2, Value = 50 },
-    new() { Id = 3, Value = 120 }, new() { Id = 4, Value = 200 },
-    new() { Id = 5, Value = 30 },
+    new(1, 10),   new(2, 50),
+    new(3, 120),  new(4, 200),
+    new(5, 30),
 };
 var hotIds = points.Where(p =&gt; p.Value &gt; 100).Select(p =&gt; p.Id).ToList(); // [3, 4]
 var top3 = points.OrderByDescending(p =&gt; p.Value).Take(3).ToList();
 double avg = points.Average(p =&gt; p.Value);
 bool hasAlarm = points.Any(p =&gt; p.Value &gt; 150);
 </code></pre>
+<blockquote>
+<p>💡 <code>new(1, 10)</code> 是 target-typed new(目标类型 new),编译器看左边是 <code>SensorPoint</code> 就自动知道是 <code>new SensorPoint(1, 10)</code>。<code>Timestamp</code> 走构造函数默认值 <code>DateTime.Now</code>。</p>
+</blockquote>
 <h3 id="sec-3-21">🔧 常用方法速查(集合 + LINQ,天天用)</h3>
 <blockquote>
 <p>上位机数据处理 90% 是"对集合做查询/聚合/转换"。下面 3 张表把最高频方法列全,<strong>背不下来时回这里查</strong>。前端类比都用 JS 数组方法。</p>
@@ -1639,25 +1659,27 @@ string label = dev switch
 </tbody>
 </table>
 <pre><code class="language-csharp">// 值类型语义的类(必须同时重写三个)
-public class SensorPoint
+// 注意:这里改名 PointValue,避免和项目里 SensorPoint(struct)冲突
+public class PointValue
 {
     public int Id { get; }
-    public SensorPoint(int id) =&gt; Id = id;
-    public override bool Equals(object? obj) =&gt; obj is SensorPoint p &amp;&amp; p.Id == Id;
+    public PointValue(int id) =&gt; Id = id;
+    public override bool Equals(object? obj) =&gt; obj is PointValue p &amp;&amp; p.Id == Id;
     public override int GetHashCode() =&gt; Id;
     public override string ToString() =&gt; $&quot;Point#{Id}&quot;;
 }
-// 不重写:两个 Point(1) 用 Equals 返回 false(默认比引用地址)
+// 不重写:两个 new PointValue(1) 用 Equals 返回 false(默认比引用地址)
 </code></pre>
 <p><strong>③ record 记录类型(C# 9+,值语义+不可变,前端无对应)</strong>:</p>
-<pre><code class="language-csharp">public record SensorPoint(int Id, double Value);    // 一行定义
-var p1 = new SensorPoint(1, 10.5);
-var p2 = new SensorPoint(1, 10.5);
+<pre><code class="language-csharp">// 注意:这里改名 PointRecord,避免和项目里 SensorPoint(struct)冲突
+public record PointRecord(int Id, double Value);    // 一行定义
+var p1 = new PointRecord(1, 10.5);
+var p2 = new PointRecord(1, 10.5);
 p1.Equals(p2);   // ✅ true(record 自带值相等)
 var p3 = p1 with { Value = 20.0 };   // 拷贝并改一个字段(不可变修改)
 </code></pre>
 <blockquote>
-<p>💡 用途:DTO/消息/事件参数 — 不变量传递,代码极简。DAQMonitor 的 <code>SensorPoint</code> 用 record 最舒服。</p>
+<p>💡 用途:DTO/消息/事件参数 — 不变量传递,代码极简。这是给"轻量值对象"用的语法糖;项目里真正的 <code>SensorPoint</code> 是 struct(参 Day 2 / <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>),二者各司其职。</p>
 </blockquote>
 <p><strong>④ using / IDisposable(资源释放,Day 7 多线程+并发也用)</strong>:</p>
 <pre><code class="language-csharp">using var stream = new FileStream(&quot;log.txt&quot;, FileMode.Append);   // 离开作用域自动 Dispose
@@ -2082,15 +2104,18 @@ public class Repository&lt;T&gt; where T : class, IHasId, new()
 </tr>
 </tbody>
 </table>
-<pre><code class="language-csharp">// 让 SensorPoint 可比(按 Value 排序)
-public class SensorPoint : IComparable&lt;SensorPoint&gt;
+<pre><code class="language-csharp">// 让点可排序(按 Value 排序)
+// 注意:这里改名 ComparablePoint,避免和项目里 SensorPoint(struct)冲突
+public class ComparablePoint : IComparable&lt;ComparablePoint&gt;
 {
     public double Value { get; }
-    public int CompareTo(SensorPoint? other) =&gt;
+    public ComparablePoint(double value) =&gt; Value = value;
+    public int CompareTo(ComparablePoint? other) =&gt;
         other is null ? 1 : Value.CompareTo(other.Value);
 }
 // 用法
-points.Sort();   // 自动用 CompareTo 排序
+var pts = new List&lt;ComparablePoint&gt; { new(10), new(5), new(20) };
+pts.Sort();   // 自动用 CompareTo 排序 → [5, 10, 20]
 </code></pre>
 <p><strong>③ 协变(out)和逆变(in)</strong>(高级,面试加分):</p>
 <table>
@@ -2336,7 +2361,12 @@ Func&lt;int, int, int&gt; add = (a, b) =&gt; a + b;
 sayHi(); log(&quot;采集启动&quot;); int s = add(1, 2);   // s=3
 </code></pre>
 <p><strong>② 事件 —— 设备层→UI 层单向通知</strong>：🟦🟩</p>
-<pre><code class="language-csharp">public class DataEventArgs : EventArgs
+<pre><code class="language-csharp">// 这里用自定义 DataEventArgs 演示&quot;标准 EventArgs 模式&quot;(教学版)
+// 注意:实际项目 DaqMonitor.sln 里 IDevice.DataReceived 直接用 SensorPoint 做事件载荷
+// (参 [前置类型定义](前置类型定义_学员粘贴版.md) 的 IDevice 定义:
+//    event EventHandler&lt;SensorPoint&gt;? DataReceived;)
+// 二者都正确,自定义 DataEventArgs 适合&quot;事件需要带多个上下文字段&quot;的复杂场景
+public class DataEventArgs : EventArgs
 {
     public int PointId { get; init; }
     public double Value { get; init; }
