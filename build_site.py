@@ -5,11 +5,13 @@ DAQ Monitor 学习站点生成器
 把本目录下的各模块/附录 Markdown 转成一套多页 HTML 站点：
 
   site/
-    index.html              # 首页：模块卡片网格 + 使用说明 + 进度
+    index.html              # 首页：六大分区入口卡 + 使用说明
+    sections/<id>.html      # 分类页：start/modules/projects/practice/career/reference
     assets/site.css         # 共享样式
     assets/site.js          # 打卡(localStorage，按页独立)
     modules/M0.html ...     # 每个模块/附录一个独立页面
     README.md               # 站点说明
+  文档内写 [📖 标题](kp:<id>) 可生成知识点弹窗（KPOINTS 字典定义内容）
 
 用法：
   python build_site.py
@@ -176,7 +178,146 @@ PAGES = [
     dict(slug="interview", kind="support", file="面试高频知识点_速记卡.md",
          title="面试高频知识点 · 速记卡", sub="手机刷 · 23 题",
          what="13–15K 高频题 Q&A：架构/MVVM/并发/串口/Modbus/粘包/工程量/DB/报警/OPC UA/控件/DI/单测/容错/排查/简历讲法", src="🟦 速记"),
+    # ---- 项目实践（projects）----
+    dict(slug="proj-daq", kind="module", file="项目实践_DaqMonitor_00_索引.md",
+         title="DAQMonitor · 项目实践总入口", sub="像入职一样边工作边学习",
+         what="学完基础直接开工:需求单→自己开发→卡了看参考实现→知识点弹窗回讲义。R0-R8 从零长出完整采集监控系统",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
 ]
+
+# ---------------------------------------------------------------------------
+# 分区：首页只做导航枢纽，具体内容进各分区页 site/sections/<id>.html
+# ---------------------------------------------------------------------------
+SECTION_OF = {
+    "start":     ["prep", "getting-started", "roadmap30", "roadmap-dev"],
+    "modules":   ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8",
+                  "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
+                  "M15", "M16", "M17", "M18", "M19"],
+    "projects":  ["proj-daq", "proj2"],
+    "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
+    "career":    ["jd-research", "resume", "interview30", "job", "jobmap",
+                  "interview", "webview2-vue-dashboard"],
+    "reference": ["traps", "csharp-syntax", "predefined-types", "wpf", "hardware",
+                  "links", "docs", "license", "audit", "audit-v2", "audit-v3"],
+}
+_slug_to_section = {}
+for _sec, _slugs in SECTION_OF.items():
+    for _s in _slugs:
+        _slug_to_section[_s] = _sec
+for p in PAGES:
+    p["section"] = _slug_to_section[p["slug"]]   # 未登记的 slug 会 KeyError，防止漏分
+
+# 模块讲义分区内再分两组（分区页内两个 h2）
+for p in PAGES:
+    if p["section"] == "modules":
+        p["group"] = "核心必学（M0 → M8）" if p["slug"] in (
+            "M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8") else "进阶扩展（M8.5 → M19）"
+
+SECTIONS = [
+    dict(id="start", emoji="🚀", title="入口 · 路线",
+         desc="第一次来从这里进：零基础带练 → 实操入门 → 30 天作战路线 → 项目开发全景。"),
+    dict(id="modules", emoji="📚", title="模块讲义",
+         desc="M0 → M19 共 22 个深度讲义：核心必学 9 个（基础/串口/Modbus/PLC/落库/可视化/报警/上云/收尾）+ 进阶扩展 13 个。"),
+    dict(id="projects", emoji="🏗️", title="项目实践",
+         desc="学完基础直接做项目：拿需求单像入职一样开发，卡了看参考实现，知识点点开弹窗回讲义重学。"),
+    dict(id="practice", emoji="🔁", title="练习 · 复习",
+         desc="练习阶梯 + 代码肌肉每日 1h + 间隔重复复习表。"),
+    dict(id="career", emoji="💼", title="求职冲刺",
+         desc="JD 调研 → 简历 → 面试逐字稿/速记卡 → 薪资路线图。"),
+    dict(id="reference", emoji="📖", title="速查 · 参考",
+         desc="C# 语法速查 / WPF 速查 / 前置类型定义 / 陷阱清单 / 硬件替代 / 外链索引 / 质量审计。"),
+]
+
+# ---------------------------------------------------------------------------
+# 知识点弹窗库：项目实践文档里写 [📖 标题](kp:<id>) → 页内弹窗 + 跳转对应讲义
+# t=标题  d=摘要(html)  m=跳转模块 slug（可空）
+# ---------------------------------------------------------------------------
+KPOINTS = {
+    "struct-vs-class": dict(t="struct vs class（值类型 vs 引用类型）",
+        d="SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。",
+        m="M0"),
+    "event-delegate": dict(t="event / EventHandler 事件机制",
+        d="设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。",
+        m="M0"),
+    "idevice": dict(t="IDevice 设备统一抽象",
+        d="所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。",
+        m="M0"),
+    "sync-facade": dict(t="为什么 IDevice 是同步门面（不是 async）",
+        d="接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。",
+        m="M0"),
+    "taskrun": dict(t="Task.Run / async-await",
+        d="Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。",
+        m="M0"),
+    "dispatcher": dict(t="Dispatcher —— 后台线程回 UI 线程",
+        d="WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。",
+        m="M0"),
+    "channel": dict(t="Channel<T> 生产者-消费者",
+        d="设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。",
+        m="M9"),
+    "batching": dict(t="定时/定量批量刷盘",
+        d="AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。",
+        m="M9"),
+    "di": dict(t="DI 依赖注入",
+        d="Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。",
+        m="M9"),
+    "unit-test": dict(t="xUnit 单元测试",
+        d="[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。",
+        m="M9"),
+    "moq": dict(t="Moq 模拟对象",
+        d="Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。",
+        m="M9"),
+    "retry-backoff": dict(t="重试 + 指数退避",
+        d="通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。",
+        m="M9"),
+    "hysteresis": dict(t="回滞 Hysteresis —— 防报警风暴",
+        d="阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。",
+        m="M6"),
+    "alarm-edge": dict(t="边沿触发 —— 只报一次",
+        d="持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。",
+        m="M6"),
+    "crc": dict(t="CRC 校验",
+        d="工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。",
+        m="M2"),
+    "byte-order": dict(t="字节序 ABCD/CDAB",
+        d="两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。",
+        m="M2"),
+    "modbus": dict(t="Modbus RTU 协议",
+        d="工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。",
+        m="M2"),
+    "serial-frame": dict(t="串口帧协议 AA55",
+        d="自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。",
+        m="M1"),
+    "plc-s7": dict(t="S7 协议与 DB 块",
+        d="西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。",
+        m="M3"),
+    "tcp-sticky": dict(t="TCP 粘包/拆包",
+        d="TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。",
+        m="M11"),
+    "efcore": dict(t="EF Core + SQLite 持久化",
+        d="DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。",
+        m="M4"),
+    "dbfactory": dict(t="IDbContextFactory —— DbContext 线程安全",
+        d="DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。",
+        m="M4"),
+    "dual-write": dict(t="内存索引 + 异步落库双写",
+        d="PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。",
+        m="M4"),
+    "mvvm": dict(t="MVVM 模式",
+        d="Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。",
+        m="wpf"),
+    "binding": dict(t="WPF 数据绑定",
+        d="{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。",
+        m="wpf"),
+    "relaycommand": dict(t="ICommand / RelayCommand",
+        d="把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。",
+        m="wpf"),
+    "livecharts": dict(t="LiveCharts2 实时曲线",
+        d="ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。",
+        m="M5"),
+    "eng-scale": dict(t="工程量转换（量程标定）",
+        d="AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。",
+        m="M12"),
+}
 
 # ---------------------------------------------------------------------------
 # 共享资源
@@ -336,6 +477,36 @@ ul li,ol li{margin:4px 0;}
   body.toc-open .toc-mask{display:block;}
   .pager{flex-direction:column;}
 }
+
+/* ===== 首页分区入口卡 ===== */
+.entries{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-top:6px;}
+.entrycard{display:block;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--blue);
+  border-radius:14px;padding:20px 20px 16px;color:var(--ink);transition:.15s;}
+.entrycard:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(47,111,237,.14);text-decoration:none;border-color:#cfe;}
+.entrycard .ico{font-size:30px;line-height:1;}
+.entrycard h3{margin:8px 0 4px;font-size:20px;}
+.entrycard .desc{font-size:13.5px;color:#33405c;margin:0 0 10px;}
+.entrycard .cnt{font-size:12px;color:var(--muted);font-weight:700;}
+
+/* ===== 分类页 ===== */
+.sechero{background:linear-gradient(120deg,#eef3ff,#eafaf0);padding:30px 24px 20px;border-bottom:1px solid var(--line);}
+.sechero h1{margin:0 0 8px;font-size:24px;}
+.sechero p{margin:4px 0;color:#33405c;max-width:920px;}
+
+/* ===== 知识点弹窗 ===== */
+.kplink{border-bottom:1px dashed var(--blue);font-weight:600;cursor:pointer;}
+.kpmask{display:none;position:fixed;inset:0;background:rgba(15,20,40,.45);z-index:200;}
+.kpmodal{display:none;position:fixed;z-index:201;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(540px,92vw);max-height:78vh;overflow:auto;background:#fff;border-radius:14px;padding:22px 24px;
+  box-shadow:0 18px 50px rgba(0,0,0,.25);}
+.kpmodal .kptitle{font-size:19px;font-weight:800;margin:0 0 10px;color:var(--blue);}
+.kpmodal .kpbody{font-size:14.5px;color:#28304a;}
+.kpmodal .kpbody code{font-size:13px;}
+.kplinkmore{margin:12px 0 0;}
+.kpclose{position:absolute;top:8px;right:12px;border:none;background:none;font-size:24px;color:var(--muted);cursor:pointer;line-height:1;}
+@media(max-width:820px){
+  .entries{grid-template-columns:1fr;}
+}
 """
 
 JS = """
@@ -393,6 +564,12 @@ def convert(md_text, slug):
     # 不重写跨网络/外链(http://, https://, #anchor, mailto:, 等)
     html = re.sub(r'href="(?!https?://|mailto:|#|/)([^"#]+)\.md(?:#([^"]*))?"',
                   lambda m: 'href="%s.html%s"' % (m.group(1), '#' + m.group(2) if m.group(2) else ''),
+                  html)
+
+    # 知识点弹窗链接：md 里写 [📖 标题](kp:<id>) → 点击弹窗（内容见 KPOINTS）
+    html = re.sub(r'href="kp:([A-Za-z0-9_-]+)"',
+                  lambda m: ('href="#" class="kplink" data-kp="%s" '
+                             'onclick="openKp(\'%s\');return false;"') % (m.group(1), m.group(1)),
                   html)
 
     nav = []
@@ -457,6 +634,7 @@ MODULE_TPL = """<!DOCTYPE html>
   <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
   <span class="spacer"></span>
   <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/%(section)s.html">← 分类</a>
   <a class="navlink" href="../index.html">← 返回首页</a>
 </div>
 %(legend)s
@@ -474,58 +652,11 @@ MODULE_TPL = """<!DOCTYPE html>
   </main>
 </div>
 <script src="%(js)s"></script>
+%(kpblock)s
 </body>
 </html>"""
 
-INDEX_TPL = """<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DAQ Monitor · 上位机学习站（首页）</title>
-<link rel="stylesheet" href="%(css)s">
-</head>
-<body>
-<div class="topbar">
-  <span class="brand"><span class="em">DAQ Monitor</span> · 上位机学习站</span>
-  <span class="spacer"></span>
-  <a class="navlink" href="README.md">站点 README</a>
-  <a class="navlink" href="../README_学习总纲.md">学习总纲</a>
-</div>
-
-<div class="hero">
-  <h1>📘 DAQ Monitor · 上位机学习站</h1>
-  <p><b>北极星目标</b>：学完 = 上位机 <b>13~15K</b> 水平 + 简历上能放得出手的企业级项目「DAQ Monitor 工业数据采集监控系统」。</p>
-  <p><b>路线</b>：项目驱动 —— 先有项目骨架，每个模块 = 给简历项目加一种企业级能力，学完即落地。下面每张卡片点开就是一个独立学习页。</p>
-</div>
-%(legend)s
-
-<div class="wrap">
-
-  <h2 class="section-title">👀 零基础先读（看不懂文档？从这里开始）</h2>
-  <div class="cards">
-%(prep_card)s
-  </div>
-
-  <h2 class="section-title">🎯 主线模块（按顺序学，M0 → M16：基础 → 进阶 → 工程协作 → 工业总线）</h2>
-  <div class="cards">
-%(module_cards)s
-  </div>
-
-  <h2 class="section-title">🧰 工具箱（随时查阅）</h2>
-  <div class="cards">
-%(support_cards)s
-  </div>
-
-  <h2 class="section-title">🚀 怎么用</h2>
-  <div class="steps">
-    <div class="step"><span class="n">1</span><b>从入门起步</b>先点「实操入门」，学会文件夹命名、用 dotnet CLI 建工程、跑 build/run/test。</div>
-    <div class="step"><span class="n">2</span><b>按序学模块</b>从 M0 卡片点进去，左侧是目录，顶部是技术来源图例。</div>
-    <div class="step"><span class="n">3</span><b>做练习+打卡</b>每天看讲解→按「练习阶梯」L1→L2→L3 做→勾右上「打卡」，进度自动存本地。</div>
-    <div class="step"><span class="n">4</span><b>卡住就说</b>对我说「讲 Day N 的 XX」或「Day N 练习答案」，我展开讲。</div>
-    <div class="step"><span class="n">5</span><b>落项目</b>每完成一个模块，把 DAQMonitor 对应代码提交 Git，作品集逐步成形。</div>
-  </div>
-
+CAREER_EXTRA = """
   <h2 class="section-title">🗺️ 面试就绪路线图 · 学到哪能拿多少</h2>
   <p style="color:#33405c;max-width:920px;margin:0 0 4px;">你的 DAQMonitor 工程已经端到端跑通（采集·并发·曲线·历史·报警），这是转行最大的筹码。下面按「学到哪个阶段 → 对应岗位级别 → 预估薪资 → 还差什么」对照 —— 目标是<b>边学边投、面中补漏</b>，不用等"全学完"。</p>
   <table class="roadmap">
@@ -585,8 +716,74 @@ INDEX_TPL = """<!DOCTYPE html>
     <div class="card support"><div class="kicker">达标项</div><h3>工程素养</h3><div class="what">分层/接口/MVVM/配置/异常/单测/DI/容错/打包（M0,M8,M9）</div></div>
     <div class="card support"><div class="kicker">加分</div><h3>上云</h3><div class="what">OPC UA / MQTT 对接 SCADA（M7）</div></div>
   </div>
+"""
+
+INDEX_TPL = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAQ Monitor · 上位机学习站（首页）</title>
+<link rel="stylesheet" href="%(css)s">
+</head>
+<body>
+<div class="topbar">
+  <span class="brand"><span class="em">DAQ Monitor</span> · 上位机学习站</span>
+  <span class="spacer"></span>
+  <a class="navlink" href="README.md">站点 README</a>
+  <a class="navlink" href="../README_学习总纲.md">学习总纲</a>
+</div>
+
+<div class="hero">
+  <h1>📘 DAQ Monitor · 上位机学习站</h1>
+  <p><b>北极星目标</b>：学完 = 上位机 <b>13~15K</b> 水平 + 简历上能放得出手的企业级项目「DAQ Monitor 工业数据采集监控系统」。</p>
+  <p><b>路线</b>：先在「模块讲义」按序学基础 → 到「项目实践」像入职一样拿需求单开发项目；讲义与项目共用同一套类型，知识点可互相跳转。</p>
+</div>
+%(legend)s
+
+<div class="wrap">
+
+  <h2 class="section-title">🧭 内容入口（按需进，别在首页迷路）</h2>
+  <div class="entries">
+%(section_cards)s
+  </div>
+
+  <h2 class="section-title">🚀 怎么用</h2>
+  <div class="steps">
+    <div class="step"><span class="n">1</span><b>零基础起步</b>「入口·路线」里先看教练带练和实操入门，学会 dotnet CLI 建工程、跑 build/run/test。</div>
+    <div class="step"><span class="n">2</span><b>按序学讲义</b>「模块讲义」M0 → M8 核心必学；学完想直接做项目，跳到「项目实践」。</div>
+    <div class="step"><span class="n">3</span><b>入职式开发</b>「项目实践」拿需求单自己写 → 卡了看参考实现 → 点知识点亮牌回讲义重学。</div>
+    <div class="step"><span class="n">4</span><b>练习+打卡</b>配合「练习·复习」每天 1h 代码肌肉 + 间隔重复，每节勾「打卡」自动存进度。</div>
+    <div class="step"><span class="n">5</span><b>边做边投</b>「求职冲刺」对照 JD 路线图，过完 M11+M12 就能投，面中补漏。</div>
+  </div>
 
   <div class="foot">本站由 <code>build_site.py</code> 从各 Markdown 源文件生成；Markdown 是单一事实来源，改完重跑脚本即重建。</div>
+</div>
+</body>
+</html>"""
+
+SECTION_TPL = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>%(title)s · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+<div class="sechero">
+  <h1>%(emoji)s %(title)s</h1>
+  <p>%(desc)s</p>
+</div>
+<div class="wrap">
+%(extra)s
+%(groups)s
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
 </div>
 </body>
 </html>"""
@@ -598,6 +795,7 @@ def card_html(p, prefix):
         cls, kicker = "module", "主线模块"
     else:
         cls, kicker = "support", "工具箱"
+    kicker = p.get("kicker", kicker)   # 页面可自定义卡片角标
     href = "%s%s.html" % (prefix, p["slug"])
     return ('<a class="card %s" href="%s">'
             '<div class="kicker">%s</div>'
@@ -607,6 +805,47 @@ def card_html(p, prefix):
             '<div class="src">%s</div>'
             '<div class="arrow">→</div>'
             '</a>') % (cls, href, kicker, p["title"], p["sub"], p["what"], p["src"])
+
+# ---------------------------------------------------------------------------
+# 知识点弹窗块（只注入含 kp 链接的页面）
+# ---------------------------------------------------------------------------
+import json as _json
+
+def build_kp_block():
+    title_of = {p["slug"]: p["title"] for p in PAGES}
+    data = {}
+    for kid, k in KPOINTS.items():
+        entry = dict(t=k["t"], d=k["d"])
+        if k.get("m") and k["m"] in title_of:
+            entry["m"] = k["m"]
+            entry["lt"] = title_of[k["m"]]
+        data[kid] = entry
+    return """
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = %(kpjson)s;
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+""" % dict(kpjson=_json.dumps(data, ensure_ascii=False))
+
+KP_BLOCK = build_kp_block()
 
 # ---------------------------------------------------------------------------
 # 1) 生成各模块/附录页面
@@ -635,6 +874,8 @@ for i, p in enumerate(PAGES):
         title=p["title"], slug=p["slug"], css="../assets/site.css", js="../assets/site.js",
         legend=LEGEND, localbar=local_bar(total), toc=toc, content=html,
         prev=pager_link(prev_p, "prev"), next=pager_link(next_p, "next"),
+        section=p["section"],
+        kpblock=KP_BLOCK if 'class="kplink"' in html else "",
     )
     out = os.path.join(MODDIR, p["slug"] + ".html")
     with io.open(out, "w", encoding="utf-8") as f:
@@ -642,13 +883,47 @@ for i, p in enumerate(PAGES):
     print("page ->", os.path.relpath(out, BASE), "(days=%d)" % total)
 
 # ---------------------------------------------------------------------------
-# 2) 生成首页
+# 2) 生成分类页 site/sections/<id>.html + 首页
 # ---------------------------------------------------------------------------
-prep_card = "\n".join(card_html(p, "modules/") for p in PAGES if p["kind"] == "prep")
-module_cards = "\n".join(card_html(p, "modules/") for p in PAGES if p["kind"] == "module")
-support_cards = "\n".join(card_html(p, "modules/") for p in PAGES if p["kind"] == "support")
-index = INDEX_TPL % dict(css="assets/site.css", legend=LEGEND, prep_card=prep_card,
-                         module_cards=module_cards, support_cards=support_cards)
+SEC_DIR = os.path.join(SITE, "sections")
+os.makedirs(SEC_DIR, exist_ok=True)
+
+for sec in SECTIONS:
+    pages = [p for p in PAGES if p["section"] == sec["id"]]
+    # 分组渲染（无 group 的页面归为一组、不显示组标题）
+    groups_html, cur_group, cards = [], None, []
+    for p in pages:
+        g = p.get("group")
+        if g != cur_group:
+            if cards:
+                groups_html.append('<div class="cards">%s</div>' % "\n".join(cards))
+                cards = []
+            if g:
+                groups_html.append('<h2 class="section-title">%s</h2>' % g)
+            cur_group = g
+        cards.append(card_html(p, "../modules/"))
+    if cards:
+        groups_html.append('<div class="cards">%s</div>' % "\n".join(cards))
+
+    extra = CAREER_EXTRA if sec["id"] == "career" else ""
+    page = SECTION_TPL % dict(emoji=sec["emoji"], title=sec["title"], desc=sec["desc"],
+                              extra=extra, groups="\n".join(groups_html))
+    out = os.path.join(SEC_DIR, sec["id"] + ".html")
+    with io.open(out, "w", encoding="utf-8") as f:
+        f.write(page)
+    print("section ->", os.path.relpath(out, BASE), "(%d pages)" % len(pages))
+
+def entry_card_html(sec):
+    n = len([p for p in PAGES if p["section"] == sec["id"]])
+    return ('<a class="entrycard" href="sections/%s.html">'
+            '<div class="ico">%s</div>'
+            '<h3>%s</h3>'
+            '<div class="desc">%s</div>'
+            '<div class="cnt">%d 个页面 →</div>'
+            '</a>') % (sec["id"], sec["emoji"], sec["title"], sec["desc"], n)
+
+section_cards = "\n".join(entry_card_html(s) for s in SECTIONS)
+index = INDEX_TPL % dict(css="assets/site.css", legend=LEGEND, section_cards=section_cards)
 with io.open(os.path.join(SITE, "index.html"), "w", encoding="utf-8") as f:
     f.write(index)
 print("index ->", os.path.relpath(os.path.join(SITE, "index.html"), BASE))
@@ -672,22 +947,23 @@ readme = """# DAQ Monitor 学习站（site/）
 > **👀 零基础先看**：打开 `site/index.html` 后，首页最上方有一张蓝色高亮卡片「零基础前置 · 教练带练（先看这篇）」，点它进入 `modules/prep.html`。看不懂其他模块文档时，从这里补最基础的常识（上位机是啥、C# 为什么、串口/Modbus 黑话、字节换算、第一个程序）。
 
 ## 入口
-- 打开 `site/index.html` 即首页：展示所有模块卡片。
-- 点任意卡片 → 进入该模块的独立学习页（`site/modules/Mx.html`）。
-- 模块页：左侧本页目录、顶部技术来源图例、每节「打卡」勾选（进度自动存浏览器本地，按页独立）、底部「上一篇 / 下一篇」可顺序学、右上「← 返回首页」。
+- 打开 `site/index.html` 即首页：只有 **6 张分区入口卡**，不再堆全部内容。
+- 分区页（`site/sections/<id>.html`）：入口·路线 / 模块讲义 / 项目实践 / 练习·复习 / 求职冲刺 / 速查·参考。
+- 内容页（`site/modules/Mx.html`）：左侧本页目录、顶部技术来源图例、每节「打卡」勾选（进度自动存浏览器本地，按页独立）、底部「上一篇 / 下一篇」顺序学、右上「← 分类 / ← 返回首页」。
+- **知识点弹窗**：项目实践等文档里带下划线亮色的知识点链接，点击弹窗看摘要 + 一键跳转对应讲义（内容在 `build_site.py` 的 `KPOINTS` 定义，md 里写 `[📖 标题](kp:<id>)`）。
 
 ## 目录结构
 ```
 site/
-├─ index.html              # 首页：模块卡片 + 使用说明 + 达标清单
+├─ index.html              # 首页：六大分区入口
+├─ sections/               # 6 个分类页
+│  ├─ start.html  modules.html  projects.html
+│  └─ practice.html  career.html  reference.html
 ├─ README.md               # 本说明
 ├─ assets/
 │  ├─ site.css             # 共享样式
 │  └─ site.js              # 打卡(localStorage)
-└─ modules/
-   ├─ M0.html  ... M10.html   # 11 个主线模块页
-   └─ getting-started / practice-ladder / hardware /
-       links / job / audit .html   # 6 个工具箱页
+└─ modules/                # 全部内容页（M0~M19 / 项目实践 R0-R8 / 工具箱）
 ```
 
 ## 模块一览（M0 → M10）
@@ -723,4 +999,4 @@ python build_site.py
 with io.open(os.path.join(SITE, "README.md"), "w", encoding="utf-8") as f:
     f.write(readme)
 print("site README ->", os.path.relpath(os.path.join(SITE, "README.md"), BASE))
-print("DONE: total pages =", len(PAGES) + 1)
+print("DONE: total pages =", len(PAGES) + 1 + len(SECTIONS))

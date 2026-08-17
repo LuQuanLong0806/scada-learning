@@ -17,7 +17,7 @@
 <div class="hero">
   <h1>📘 DAQ Monitor · 上位机学习站</h1>
   <p><b>北极星目标</b>：学完 = 上位机 <b>13~15K</b> 水平 + 简历上能放得出手的企业级项目「DAQ Monitor 工业数据采集监控系统」。</p>
-  <p><b>路线</b>：项目驱动 —— 先有项目骨架，每个模块 = 给简历项目加一种企业级能力，学完即落地。下面每张卡片点开就是一个独立学习页。</p>
+  <p><b>路线</b>：先在「模块讲义」按序学基础 → 到「项目实践」像入职一样拿需求单开发项目；讲义与项目共用同一套类型，知识点可互相跳转。</p>
 </div>
 
 <div class="legend">
@@ -30,133 +30,23 @@
 
 <div class="wrap">
 
-  <h2 class="section-title">👀 零基础先读（看不懂文档？从这里开始）</h2>
-  <div class="cards">
-<a class="card prep" href="modules/prep.html"><div class="kicker">⭐ 必读先看</div><h3>零基础前置 · 教练带练（先看这篇）</h3><div class="sub">看不懂文档？从这里开始</div><div class="what">上位机是啥/C#为什么/串口Modbus黑话破冰/字节换算/第一个程序/设备数据怎么变数字</div><div class="src">🟦 带练入门</div><div class="arrow">→</div></a>
-  </div>
-
-  <h2 class="section-title">🎯 主线模块（按顺序学，M0 → M16：基础 → 进阶 → 工程协作 → 工业总线）</h2>
-  <div class="cards">
-<a class="card module" href="modules/M0.html"><div class="kicker">主线模块</div><h3>M0 · C#/.NET 热身 + 工程骨架</h3><div class="sub">C# 核心 + WPF + 并发</div><div class="what">工程骨架 + 后台采集闭环</div><div class="src">🟦 C# 语法 · 🟩 .NET 类库</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M1.html"><div class="kicker">主线模块</div><h3>M1 · 串口通信</h3><div class="sub">SerialPort 真实/虚拟串口</div><div class="what">真实/虚拟串口设备接入</div><div class="src">🟩 System.IO.Ports</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M2.html"><div class="kicker">主线模块</div><h3>M2 · Modbus RTU/TCP</h3><div class="sub">工业标准协议</div><div class="what">读写保持寄存器/线圈</div><div class="src">🟧 NModbus4</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M3.html"><div class="kicker">主线模块</div><h3>M3 · PLC 通信(西门子 S7)</h3><div class="sub">直连 PLC</div><div class="what">直连 PLC（13K 硬通货）</div><div class="src">🟧 S7.Net</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M4.html"><div class="kicker">主线模块</div><h3>M4 · 数据持久化</h3><div class="sub">EF Core + SQLite</div><div class="what">历史库 + 查询/导出</div><div class="src">🟧 EF Core + SQLite</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M5.html"><div class="kicker">主线模块</div><h3>M5 · 实时可视化</h3><div class="sub">LiveCharts2</div><div class="what">动态曲线/仪表盘</div><div class="src">🟧 LiveCharts2</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M6.html"><div class="kicker">主线模块</div><h3>M6 · 报警引擎 + 日志</h3><div class="sub">阈值规则 + Serilog</div><div class="what">报警 + 通知 + 日志</div><div class="src">🟦 语法 · 🟧 Serilog</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M7.html"><div class="kicker">主线模块</div><h3>M7 · OPC UA / MQTT 上云</h3><div class="sub">对接 SCADA（15K 加分）</div><div class="what">上云 / 对接 SCADA</div><div class="src">🟧 OPC UA / MQTT</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M8.html"><div class="kicker">主线模块</div><h3>M8 · 工程化收尾</h3><div class="sub">MVVM + 安装包 + 简历</div><div class="what">MVVM 重构 + 安装包</div><div class="src">🟧 + 🟦 MVVM/安装包</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M9.html"><div class="kicker">主线模块</div><h3>M9 · 工程素养</h3><div class="sub">测试 / DI / 统一采集 / 容错</div><div class="what">单测+DI+统一采集+容错（13K→15K 分水岭）</div><div class="src">🟧 + 🟦 测试/DI/容错</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M10.html"><div class="kicker">主线模块</div><h3>M10 · 报表</h3><div class="sub">聚合 + 可视化 + 导出</div><div class="what">聚合+可视化+Excel/PDF 导出</div><div class="src">🟦 + 🟧 报表/ClosedXML</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M11.html"><div class="kicker">主线模块</div><h3>M11 · TCP Socket 自定义协议</h3><div class="sub">粘包/拆包 + 私有帧</div><div class="what">对接非 Modbus 的私有 TCP 设备（JD 必会）</div><div class="src">🟩 System.Net.Sockets</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M12.html"><div class="kicker">主线模块</div><h3>M12 · 工程量转换 + 企业数据库</h3><div class="sub">量程标定 + SQL Server/MySQL</div><div class="what">原始值→工程量 + 企业级数据库持久化</div><div class="src">🟦 标定 · 🟧 EF/Dapper</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M13.html"><div class="kicker">主线模块</div><h3>M13 · 多品牌 PLC + 国产库</h3><div class="sub">HslCommunication 一把梭</div><div class="what">三菱/欧姆龙 + Hsl 通吃多品牌设备</div><div class="src">🟧 HslCommunication</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M14.html"><div class="kicker">主线模块</div><h3>M14 · WinForm + 自定义控件</h3><div class="sub">双修 + 自绘仪表</div><div class="what">维护老 WinForm + 自绘工业控件（JD 点名）</div><div class="src">🟩 WinForms · 🟦 自绘</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M15.html"><div class="kicker">主线模块</div><h3>M15 · 工程协作与联调</h3><div class="sub">Git + 敏捷 + 调试工具</div><div class="what">Git/敏捷/示波器逻辑分析仪/联调定位（初级岗硬要求，之前0覆盖）</div><div class="src">⚫ 工程协作</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M16.html"><div class="kicker">主线模块</div><h3>M16 · 工业总线 CAN + USB-HID</h3><div class="sub">JD 点名的另两类通信</div><div class="what">CAN 广播总线 + USB-HID 仪器通信（实现 IDevice 接项目）</div><div class="src">🟡 工业总线</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M17.html"><div class="kicker">主线模块</div><h3>M17 · 工业安全 + MES 对接</h3><div class="sub">HttpClient + IT/OT 分层</div><div class="what">MES REST API + Polly + JWT + 白名单 + 审计 + IEC 62443 思想</div><div class="src">🟧 HttpClient/Polly</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M18.html"><div class="kicker">主线模块</div><h3>M18 · 配方管理</h3><div class="sub">工艺参数版本化（制药/食品必点）</div><div class="what">Recipe + 版本化 + 审计 + 回滚 + ISA-88 思想</div><div class="src">🟦 配方</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M19.html"><div class="kicker">主线模块</div><h3>M19 · 问题排查与调试</h3><div class="sub">VS 调试器 + dotnet dump + Wireshark</div><div class="what">条件断点/数据断点/内存泄漏/性能/物理工具/Serilog TraceId（13→15K 硬要求）</div><div class="src">🟧 调试工具链</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M8.5.html"><div class="kicker">主线模块</div><h3>M8.5 · Prism 企业级 MVVM</h3><div class="sub">模块化 / Region / EventAggregator</div><div class="what">PrismBootstrapper + RegionManager + EventAggregator + DialogService（JD 高频）</div><div class="src">🟧 Prism</div><div class="arrow">→</div></a>
-<a class="card module" href="modules/M9.5.html"><div class="kicker">主线模块</div><h3>M9.5 · 性能压测 + 长跑稳定性</h3><div class="sub">BenchmarkDotNet + dotnet counters</div><div class="what">BenchmarkDotNet + dotMemory + 4 类内存泄漏 + CircuitBreaker（15K 亮点）</div><div class="src">🟧 性能工具链</div><div class="arrow">→</div></a>
-  </div>
-
-  <h2 class="section-title">🧰 工具箱（随时查阅）</h2>
-  <div class="cards">
-<a class="card support" href="modules/traps.html"><div class="kicker">工具箱</div><h3>⚠️ C# 陷阱 · 前端转上位机必看</h3><div class="sub">8 大坑 + 前端类比</div><div class="what">struct 值拷贝 / 多线程 / 字节序 / async void / IDisposable / event / P-Invoke（前端必踩）</div><div class="src">🔴 Day 1 必读</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/csharp-syntax.html"><div class="kicker">工具箱</div><h3>📚 C# 语法速查 · 前端视角</h3><div class="sub">15 大主题 + JS/TS 对照 + 速查地图</div><div class="what">var/new()/List/Dictionary/out/event/async/LINQ 全覆盖,5 年前端转 C# 的字典,遇到陌生语法随时查</div><div class="src">📚 随身字典</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/predefined-types.html"><div class="kicker">工具箱</div><h3>📦 前置类型定义 · 学员粘贴版</h3><div class="sub">遇到编译报错找不到类型 → 来这里</div><div class="what">SensorPoint/DeviceBase/IDevice/AlarmRule/AcquisitionPipeline/PointStat 等核心类型集中定义,粘贴即可编译</div><div class="src">📦 代码不报错</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/roadmap30.html"><div class="kicker">工具箱</div><h3>📅 30 天作战路线 · 转行冲刺版</h3><div class="sub">代码练习融入日常</div><div class="what">Day 1-30 每日学习+项目+代码肌肉打卡（W1 主干/W2 落库可视化/W3 TCP上云/W4 简历面试）</div><div class="src">⭐ 主轴</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/muscle.html"><div class="kicker">工具箱</div><h3>💪 代码肌肉训练手册 · 30 天刷题版</h3><div class="sub">白板手写题库</div><div class="what">20 翻译 + 30 手写 + 10 Debug 题，每天 1h 白板，形成肌肉记忆</div><div class="src">🔴 每天 1h</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/audit-v2.html"><div class="kicker">工具箱</div><h3>🔍 整体串联审计 v2 · 由粗到细</h3><div class="sub">阶段→模块→知识点</div><div class="what">4 周作战路线 + 22 模块 + 抽样知识点审计，Top 10 必修问题清单</div><div class="src">🟦 审计</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/audit-v3.html"><div class="kicker">工具箱</div><h3>🔍 30 天路线第二轮审计 v3 · 连贯性/正确性/深度</h3><div class="sub">4 维并行审计报告</div><div class="what">P0 闭环断裂修复(4 处) + P1 路径修正 + MQTT/EF Core 概念补强 + P2 讲义缺口清单(M2/M3/M4 多线程)</div><div class="src">🟦 审计</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/jd-research.html"><div class="kicker">工具箱</div><h3>📊 JD 调研 · 13-15K 上位机岗位对照</h3><div class="sub">必会/高频/加分/罕见 4 档</div><div class="what">薪资地图 + 4 档技能矩阵 + 3 个典型 JD 样本 + 缺口 Top 10 + 投递策略</div><div class="src">🟦 调研</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/resume.html"><div class="kicker">工具箱</div><h3>📄 简历模板 · 上位机 13-15K</h3><div class="sub">3 版本 + STAR + 投递策略</div><div class="what">13K/14-15K/15K+ 三档简历模板 + 项目讲法 STAR + 关键词镜像 + 反问 3 问</div><div class="src">🟦 简历</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/interview30.html"><div class="kicker">工具箱</div><h3>🎤 面试问答 · 逐字稿 30 题</h3><div class="sub">10 大主题 × 3 题</div><div class="what">C#/并发/Modbus/PLC/EF/Prism/TCP/报警/性能/调试 各 3 题，标准答+逐字稿</div><div class="src">🟦 面试</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/spaced-repetition.html"><div class="kicker">工具箱</div><h3>🔁 记忆与复习机制 · 间隔重复版</h3><div class="sub">1d/3d/7d/15d 表 + 每周自测 120 题</div><div class="what">艾宾浩斯曲线应用 + 30 天排程 + 每周闭卷自测 + Anki 卡片建议 + 错题本规范</div><div class="src">🟦 复习机制</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/webview2-vue-dashboard.html"><div class="kicker">工具箱</div><h3>⚡ 前端 × 上位机差异化冲刺</h3><div class="sub">WebView2 + Vue3 大屏 5-7 天方案</div><div class="what">5 结合方向对比 + Day 26-27 落地代码 + 简历话术 + 面试 10 题 + 踩坑警告</div><div class="src">🟦 差异化王牌</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/getting-started.html"><div class="kicker">工具箱</div><h3>实操入门 · 从零搭建企业级工程</h3><div class="sub">从最简单的做起</div><div class="what">文件夹命名 + dotnet CLI 建工程 + git + build/run/test</div><div class="src">🟦 基础操作</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/practice-ladder.html"><div class="kicker">工具箱</div><h3>练习阶梯 · 从简单到企业级</h3><div class="sub">L1 操作 / L2 代码 / L3 集成</div><div class="what">每个模块拆成三级练习，终点=能跑的企业项目</div><div class="src">🟦 训练法</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/hardware.html"><div class="kicker">工具箱</div><h3>附录 · 硬件替代方案与讲解</h3><div class="sub">没硬件怎么练 + 硬件科普</div><div class="what">RS232/485、4-20mA、PLC/DB块、抗干扰 + 四层替代方案</div><div class="src">🟧 硬件</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/links.html"><div class="kicker">工具箱</div><h3>附录 · 外部链接索引</h3><div class="sub">难点官方文档汇总</div><div class="what">每模块「📚 延伸阅读」指向的权威链接，卡点直接点开</div><div class="src">🟦 外链</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/job.html"><div class="kicker">工具箱</div><h3>真实岗位调研 · 13-15K 技能对照</h3><div class="sub">对标 BOSS 等招聘要求</div><div class="what">真实企业 13-15K 技能要求与本路线的对应关系</div><div class="src">🟦 调研</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/audit.html"><div class="kicker">工具箱</div><h3>质量复核 · 15K 完整性复核</h3><div class="sub">5 维审计结论</div><div class="what">对全部讲义的完整性/连贯性/易懂性/难点/外链复核</div><div class="src">🟦 复核</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/jobmap.html"><div class="kicker">工具箱</div><h3>岗位驱动 · 知识点全景图谱与缺口审计</h3><div class="sub">对照真实 JD 查遗漏</div><div class="what">初级→资深中级知识点分级 + 逐项覆盖审计 + 新发现遗漏(CAN/USB/Git/调试工具/Prism)</div><div class="src">🟦 审计</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/docs.html"><div class="kicker">工具箱</div><h3>文档能力 · 设计/协议/操作/测试文档</h3><div class="sub">交付硬要求</div><div class="what">4 类交付文档模板 + DAQ Monitor 范例 + 练习</div><div class="src">🟦 交付物</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/license.html"><div class="kicker">工具箱</div><h3>依赖与授权 · 免费开源清单</h3><div class="sub">付费框架 + 免费替代</div><div class="what">本项目依赖全免费；行业付费框架(DevExpress/Halcon/NI等)的免费替代与自研边界</div><div class="src">🟦 清单</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/wpf.html"><div class="kicker">工具箱</div><h3>WPF / XAML 入门速查（前端类比版）</h3><div class="sub">前端转上位机必看</div><div class="what">XAML≈JSX、Binding≈v-model、Template≈render、DependencyProperty≈响应式状态</div><div class="src">🟩 WPF 生态</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/roadmap-dev.html"><div class="kicker">工具箱</div><h3>项目开发全景 · 每一步是什么/为什么</h3><div class="sub">现成 vs 自研 一眼懂</div><div class="what">按真实成长顺序拆解 20 步：做什么/为什么/直接用 vs 自己开发 + 阅读顺序</div><div class="src">🟦 全景</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/proj2.html"><div class="kicker">工具箱</div><h3>项目二 · CommLab 协议调试助手（规划）</h3><div class="sub">第 2 份简历作品</div><div class="what">与 DAQMonitor 互补的调试工具：复用 IDevice/帧解析，新增报文编辑/从站模拟/抓包回放</div><div class="src">🟦 规划</div><div class="arrow">→</div></a>
-<a class="card support" href="modules/interview.html"><div class="kicker">工具箱</div><h3>面试高频知识点 · 速记卡</h3><div class="sub">手机刷 · 23 题</div><div class="what">13–15K 高频题 Q&A：架构/MVVM/并发/串口/Modbus/粘包/工程量/DB/报警/OPC UA/控件/DI/单测/容错/排查/简历讲法</div><div class="src">🟦 速记</div><div class="arrow">→</div></a>
+  <h2 class="section-title">🧭 内容入口（按需进，别在首页迷路）</h2>
+  <div class="entries">
+<a class="entrycard" href="sections/start.html"><div class="ico">🚀</div><h3>入口 · 路线</h3><div class="desc">第一次来从这里进：零基础带练 → 实操入门 → 30 天作战路线 → 项目开发全景。</div><div class="cnt">4 个页面 →</div></a>
+<a class="entrycard" href="sections/modules.html"><div class="ico">📚</div><h3>模块讲义</h3><div class="desc">M0 → M19 共 22 个深度讲义：核心必学 9 个（基础/串口/Modbus/PLC/落库/可视化/报警/上云/收尾）+ 进阶扩展 13 个。</div><div class="cnt">22 个页面 →</div></a>
+<a class="entrycard" href="sections/projects.html"><div class="ico">🏗️</div><h3>项目实践</h3><div class="desc">学完基础直接做项目：拿需求单像入职一样开发，卡了看参考实现，知识点点开弹窗回讲义重学。</div><div class="cnt">2 个页面 →</div></a>
+<a class="entrycard" href="sections/practice.html"><div class="ico">🔁</div><h3>练习 · 复习</h3><div class="desc">练习阶梯 + 代码肌肉每日 1h + 间隔重复复习表。</div><div class="cnt">3 个页面 →</div></a>
+<a class="entrycard" href="sections/career.html"><div class="ico">💼</div><h3>求职冲刺</h3><div class="desc">JD 调研 → 简历 → 面试逐字稿/速记卡 → 薪资路线图。</div><div class="cnt">7 个页面 →</div></a>
+<a class="entrycard" href="sections/reference.html"><div class="ico">📖</div><h3>速查 · 参考</h3><div class="desc">C# 语法速查 / WPF 速查 / 前置类型定义 / 陷阱清单 / 硬件替代 / 外链索引 / 质量审计。</div><div class="cnt">11 个页面 →</div></a>
   </div>
 
   <h2 class="section-title">🚀 怎么用</h2>
   <div class="steps">
-    <div class="step"><span class="n">1</span><b>从入门起步</b>先点「实操入门」，学会文件夹命名、用 dotnet CLI 建工程、跑 build/run/test。</div>
-    <div class="step"><span class="n">2</span><b>按序学模块</b>从 M0 卡片点进去，左侧是目录，顶部是技术来源图例。</div>
-    <div class="step"><span class="n">3</span><b>做练习+打卡</b>每天看讲解→按「练习阶梯」L1→L2→L3 做→勾右上「打卡」，进度自动存本地。</div>
-    <div class="step"><span class="n">4</span><b>卡住就说</b>对我说「讲 Day N 的 XX」或「Day N 练习答案」，我展开讲。</div>
-    <div class="step"><span class="n">5</span><b>落项目</b>每完成一个模块，把 DAQMonitor 对应代码提交 Git，作品集逐步成形。</div>
-  </div>
-
-  <h2 class="section-title">🗺️ 面试就绪路线图 · 学到哪能拿多少</h2>
-  <p style="color:#33405c;max-width:920px;margin:0 0 4px;">你的 DAQMonitor 工程已经端到端跑通（采集·并发·曲线·历史·报警），这是转行最大的筹码。下面按「学到哪个阶段 → 对应岗位级别 → 预估薪资 → 还差什么」对照 —— 目标是<b>边学边投、面中补漏</b>，不用等"全学完"。</p>
-  <table class="roadmap">
-    <thead><tr><th>阶段</th><th>对应级别</th><th>预估薪资</th><th>还需掌握（对应模块）</th></tr></thead>
-    <tbody>
-      <tr class="r-now"><td><b>当前</b><br>工程已跑通</td><td>—（暂不直接面）</td><td>—</td><td>项目已能演示；缺 JD「必会」知识点</td></tr>
-      <tr class="r-min"><td><b>最低可投线</b><br>保底起步</td><td>初级 / 助理上位机</td><td><b>10–13K</b></td><td>M11 TCP/Socket + M12 工程量转换 + 企业数据库</td></tr>
-      <tr class="r-stable"><td><b>稳妥线</b><br>推荐目标</td><td>中级上位机</td><td><b>13–15K</b></td><td>+ M8 配置/更新/HandyControl + M10 报表</td></tr>
-      <tr class="r-ideal"><td><b>理想线</b><br>加分拉满</td><td>中级偏上</td><td>13–15K 稳 / 冲 15K+</td><td>+ M13 多品牌PLC + M14 WinForm/控件 + 文档能力</td></tr>
-    </tbody>
-  </table>
-  <p class="r-tip">💡 策略：<b>最快投简历 = 过完 M11 + M12</b>（JD 标"必会"的两块硬伤）。走到"稳妥线"就能冲你定的 13–15K。边投边学、面中补漏，比等全学完更省时间。</p>
-
-  <h2 class="section-title">💰 薪资 ↔ 阶段 ↔ 知识点 · 一眼速查</h2>
-  <p style="color:#33405c;max-width:920px;margin:0 0 4px;">同一张图看明白「拿多少工资 = 学到哪个阶段 = 要会哪些知识点」，按需对照补强。</p>
-  <div class="salcards">
-    <div class="salcard s-min">
-      <div class="sal">10–13K</div>
-      <div class="stage">阶段：最低可投线（保底起步）</div>
-      <div class="klabel">需掌握知识点</div>
-      <div class="chips">
-        <span class="chip">M11 · TCP/Socket 自定义协议</span>
-        <span class="chip">M12 · 工程量转换 / 量程标定</span>
-        <span class="chip">M12 · 企业数据库 SQL Server / MySQL</span>
-      </div>
-    </div>
-    <div class="salcard s-stable">
-      <div class="sal">13–15K</div>
-      <div class="stage">阶段：稳妥线（推荐目标）</div>
-      <div class="klabel">在 10–13K 基础上再加</div>
-      <div class="chips">
-        <span class="chip">M8 · 配置实操（Ini/XML/JSON）</span>
-        <span class="chip">M8 · 自动更新 / 部署</span>
-        <span class="chip">M8 · HandyControl</span>
-        <span class="chip">M10 · 报表聚合 + 导出</span>
-      </div>
-    </div>
-    <div class="salcard s-ideal">
-      <div class="sal">15K+</div>
-      <div class="stage">阶段：理想线（加分拉满）</div>
-      <div class="klabel">在 13–15K 基础上再加</div>
-      <div class="chips">
-        <span class="chip">M13 · 多品牌 PLC + 国产库</span>
-        <span class="chip">M14 · WinForm + 自定义控件</span>
-        <span class="chip">文档能力 · 设计/协议/操作/测试</span>
-      </div>
-    </div>
-  </div>
-
-  <h2 class="section-title">✅ 13~15K 简历项目「达标清单」</h2>
-  <div class="cards">
-    <div class="card support"><div class="kicker">达标项</div><h3>多设备接入</h3><div class="what">串口 / Modbus / PLC 至少两种（M1–M3）</div></div>
-    <div class="card support"><div class="kicker">达标项</div><h3>并发采集</h3><div class="what">后台线程 + 队列缓冲 + UI 刷新，无卡顿无泄漏（M0 Day7）</div></div>
-    <div class="card support"><div class="kicker">达标项</div><h3>实时可视化</h3><div class="what">动态曲线 / 仪表盘（M5）</div></div>
-    <div class="card support"><div class="kicker">达标项</div><h3>数据持久化</h3><div class="what">历史库 + 查询/导出（M4 + M10）</div></div>
-    <div class="card support"><div class="kicker">达标项</div><h3>报警</h3><div class="what">阈值规则 + 通知 + 日志（M6）</div></div>
-    <div class="card support"><div class="kicker">达标项</div><h3>工程素养</h3><div class="what">分层/接口/MVVM/配置/异常/单测/DI/容错/打包（M0,M8,M9）</div></div>
-    <div class="card support"><div class="kicker">加分</div><h3>上云</h3><div class="what">OPC UA / MQTT 对接 SCADA（M7）</div></div>
+    <div class="step"><span class="n">1</span><b>零基础起步</b>「入口·路线」里先看教练带练和实操入门，学会 dotnet CLI 建工程、跑 build/run/test。</div>
+    <div class="step"><span class="n">2</span><b>按序学讲义</b>「模块讲义」M0 → M8 核心必学；学完想直接做项目，跳到「项目实践」。</div>
+    <div class="step"><span class="n">3</span><b>入职式开发</b>「项目实践」拿需求单自己写 → 卡了看参考实现 → 点知识点亮牌回讲义重学。</div>
+    <div class="step"><span class="n">4</span><b>练习+打卡</b>配合「练习·复习」每天 1h 代码肌肉 + 间隔重复，每节勾「打卡」自动存进度。</div>
+    <div class="step"><span class="n">5</span><b>边做边投</b>「求职冲刺」对照 JD 路线图，过完 M11+M12 就能投，面中补漏。</div>
   </div>
 
   <div class="foot">本站由 <code>build_site.py</code> 从各 Markdown 源文件生成；Markdown 是单一事实来源，改完重跑脚本即重建。</div>

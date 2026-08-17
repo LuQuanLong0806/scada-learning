@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAQMonitor · 项目实践总入口 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-daq">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">📇 里程碑导航</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">🧭 三种打开方式(按你的状态选)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📌 项目实践 vs 模块讲义,什么关系?</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">✅ 总验收(全部做完)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">🏗️ DaqMonitor 项目实践 · 总入口</h1>
+<blockquote>
+<p><strong>给谁用</strong>:学完 M0-M8 基础、想直接做项目的人。
+<strong>怎么玩</strong>:<strong>像入职第一天</strong>——每个 R 篇就是一沓需求单,先自己设计、自己敲;卡住了或写完了,再看「参考实现」对答案;知识点(带亮色下划线)点开就是弹窗,不懂再回讲义。
+<strong>产出</strong>:一份你亲手从零敲出来的、85+ 测试全绿的企业级项目——简历第一作品。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">📇 里程碑导航</h2>
+<table>
+<thead>
+<tr>
+<th>篇</th>
+<th>主题</th>
+<th>你将长出的能力</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="项目实践_DaqMonitor_R0_需求总纲.html">R0 · 需求总纲</a></td>
+<td>需求/架构/拆分</td>
+<td>看懂全局,知道每一步为什么</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R1 · 工程骨架 + 领域模型</td>
+<td>sln 三项目 + Models</td>
+<td>企业工程的地基</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R2 · 设备抽象 + 模拟设备</td>
+<td><a href="#" class="kplink" data-kp="idevice" onclick="openKp('idevice');return false;">IDevice</a> 全家</td>
+<td>面向接口,零硬件开发</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R3 · 协议解析层</td>
+<td><a href="#" class="kplink" data-kp="crc" onclick="openKp('crc');return false;">CRC</a>/<a href="#" class="kplink" data-kp="serial-frame" onclick="openKp('serial-frame');return false;">帧解析</a></td>
+<td>工业协议的纯逻辑内核</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R4 · 真实设备接入</td>
+<td>串口/<a href="#" class="kplink" data-kp="modbus" onclick="openKp('modbus');return false;">Modbus</a>/TCP</td>
+<td>多设备可插拔</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R5 · 采集管道 + 报警</td>
+<td><a href="#" class="kplink" data-kp="channel" onclick="openKp('channel');return false;">Channel</a> + <a href="#" class="kplink" data-kp="hysteresis" onclick="openKp('hysteresis');return false;">回滞</a></td>
+<td>高并发采集 + 报警引擎</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R6 · 持久化</td>
+<td><a href="#" class="kplink" data-kp="efcore" onclick="openKp('efcore');return false;">EF Core</a> + 双写</td>
+<td>历史库,数据不丢</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R7 · 组装与诊断</td>
+<td><a href="#" class="kplink" data-kp="di" onclick="openKp('di');return false;">DI</a> 容器 + 诊断</td>
+<td>服务一处注册全站可用</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R8 · WPF 主界面</td>
+<td><a href="#" class="kplink" data-kp="mvvm" onclick="openKp('mvvm');return false;">MVVM</a> + <a href="#" class="kplink" data-kp="livecharts" onclick="openKp('livecharts');return false;">实时曲线</a></td>
+<td>能演示的完整产品</td>
+<td>待开工</td>
+</tr>
+<tr>
+<td>R9+ · 高级篇(规划)</td>
+<td>登录权限/配方/运控/MQTT/报表</td>
+<td>15K+ 差异化亮点</td>
+<td>未开始</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>R1-R8 全部文档<strong>经过沙盒从零逐行执行验证</strong>:命令能跑、代码能编译、测试全绿,放心跟着敲。</p>
+</blockquote>
+<h2 id="sec-2-2">🧭 三种打开方式(按你的状态选)</h2>
+<ol>
+<li><strong>在职模式(推荐)</strong>:每篇先只看「📋 需求单」,自己想、自己写、自己测;实在卡住 30 分钟以上,再看「🛠️ 参考实现」对应小节——对答案,不是抄答案。</li>
+<li><strong>教程模式</strong>:基础不牢就顺着 R 篇序号,边看参考实现边敲,知识点弹窗随点随学。</li>
+<li><strong>复习模式</strong>:面前来 R0 看架构全景图,对着每篇「🎤 面试怎么讲」自说自话一遍。</li>
+</ol>
+<h2 id="sec-2-3">📌 项目实践 vs 模块讲义,什么关系?</h2>
+<ul>
+<li><strong>讲义(M0-M19)</strong> = 上课,讲"为什么/是什么";<strong>项目实践(R0-R8)</strong> = 实习,练"怎么做"。</li>
+<li>两边<strong>共用同一套类型体系</strong>(<a href="#" class="kplink" data-kp="idevice" onclick="openKp('idevice');return false;">IDevice</a>/SensorPoint/AcquisitionPipeline…),项目里点知识点直接弹窗回讲义,零割裂。</li>
+<li>顺序建议:M0-M8 学完 → R0-R8 实践;或学完 M4 就开始 R1-R6 边学边做。</li>
+</ul>
+<h2 id="sec-2-4">✅ 总验收(全部做完)</h2>
+<pre><code class="language-bash">dotnet build   # 0 错误 0 警告
+dotnet test    # 全绿(测试数见 R8)
+dotnet run --project src/DaqMonitor.UI   # 主界面跑起来:数据滚动/曲线动/报警亮
+</code></pre>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-daq',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="interview.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">面试高频知识点 · 速记卡</div></a>
+  <a style="visibility:hidden"></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

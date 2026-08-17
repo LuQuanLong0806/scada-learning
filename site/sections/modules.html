@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>模块讲义 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+<div class="sechero">
+  <h1>📚 模块讲义</h1>
+  <p>M0 → M19 共 22 个深度讲义：核心必学 9 个（基础/串口/Modbus/PLC/落库/可视化/报警/上云/收尾）+ 进阶扩展 13 个。</p>
+</div>
+<div class="wrap">
+
+<h2 class="section-title">核心必学（M0 → M8）</h2>
+<div class="cards"><a class="card module" href="../modules/M0.html"><div class="kicker">主线模块</div><h3>M0 · C#/.NET 热身 + 工程骨架</h3><div class="sub">C# 核心 + WPF + 并发</div><div class="what">工程骨架 + 后台采集闭环</div><div class="src">🟦 C# 语法 · 🟩 .NET 类库</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M1.html"><div class="kicker">主线模块</div><h3>M1 · 串口通信</h3><div class="sub">SerialPort 真实/虚拟串口</div><div class="what">真实/虚拟串口设备接入</div><div class="src">🟩 System.IO.Ports</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M2.html"><div class="kicker">主线模块</div><h3>M2 · Modbus RTU/TCP</h3><div class="sub">工业标准协议</div><div class="what">读写保持寄存器/线圈</div><div class="src">🟧 NModbus4</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M3.html"><div class="kicker">主线模块</div><h3>M3 · PLC 通信(西门子 S7)</h3><div class="sub">直连 PLC</div><div class="what">直连 PLC（13K 硬通货）</div><div class="src">🟧 S7.Net</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M4.html"><div class="kicker">主线模块</div><h3>M4 · 数据持久化</h3><div class="sub">EF Core + SQLite</div><div class="what">历史库 + 查询/导出</div><div class="src">🟧 EF Core + SQLite</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M5.html"><div class="kicker">主线模块</div><h3>M5 · 实时可视化</h3><div class="sub">LiveCharts2</div><div class="what">动态曲线/仪表盘</div><div class="src">🟧 LiveCharts2</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M6.html"><div class="kicker">主线模块</div><h3>M6 · 报警引擎 + 日志</h3><div class="sub">阈值规则 + Serilog</div><div class="what">报警 + 通知 + 日志</div><div class="src">🟦 语法 · 🟧 Serilog</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M7.html"><div class="kicker">主线模块</div><h3>M7 · OPC UA / MQTT 上云</h3><div class="sub">对接 SCADA（15K 加分）</div><div class="what">上云 / 对接 SCADA</div><div class="src">🟧 OPC UA / MQTT</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M8.html"><div class="kicker">主线模块</div><h3>M8 · 工程化收尾</h3><div class="sub">MVVM + 安装包 + 简历</div><div class="what">MVVM 重构 + 安装包</div><div class="src">🟧 + 🟦 MVVM/安装包</div><div class="arrow">→</div></a></div>
+<h2 class="section-title">进阶扩展（M8.5 → M19）</h2>
+<div class="cards"><a class="card module" href="../modules/M9.html"><div class="kicker">主线模块</div><h3>M9 · 工程素养</h3><div class="sub">测试 / DI / 统一采集 / 容错</div><div class="what">单测+DI+统一采集+容错（13K→15K 分水岭）</div><div class="src">🟧 + 🟦 测试/DI/容错</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M10.html"><div class="kicker">主线模块</div><h3>M10 · 报表</h3><div class="sub">聚合 + 可视化 + 导出</div><div class="what">聚合+可视化+Excel/PDF 导出</div><div class="src">🟦 + 🟧 报表/ClosedXML</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M11.html"><div class="kicker">主线模块</div><h3>M11 · TCP Socket 自定义协议</h3><div class="sub">粘包/拆包 + 私有帧</div><div class="what">对接非 Modbus 的私有 TCP 设备（JD 必会）</div><div class="src">🟩 System.Net.Sockets</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M12.html"><div class="kicker">主线模块</div><h3>M12 · 工程量转换 + 企业数据库</h3><div class="sub">量程标定 + SQL Server/MySQL</div><div class="what">原始值→工程量 + 企业级数据库持久化</div><div class="src">🟦 标定 · 🟧 EF/Dapper</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M13.html"><div class="kicker">主线模块</div><h3>M13 · 多品牌 PLC + 国产库</h3><div class="sub">HslCommunication 一把梭</div><div class="what">三菱/欧姆龙 + Hsl 通吃多品牌设备</div><div class="src">🟧 HslCommunication</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M14.html"><div class="kicker">主线模块</div><h3>M14 · WinForm + 自定义控件</h3><div class="sub">双修 + 自绘仪表</div><div class="what">维护老 WinForm + 自绘工业控件（JD 点名）</div><div class="src">🟩 WinForms · 🟦 自绘</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M15.html"><div class="kicker">主线模块</div><h3>M15 · 工程协作与联调</h3><div class="sub">Git + 敏捷 + 调试工具</div><div class="what">Git/敏捷/示波器逻辑分析仪/联调定位（初级岗硬要求，之前0覆盖）</div><div class="src">⚫ 工程协作</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M16.html"><div class="kicker">主线模块</div><h3>M16 · 工业总线 CAN + USB-HID</h3><div class="sub">JD 点名的另两类通信</div><div class="what">CAN 广播总线 + USB-HID 仪器通信（实现 IDevice 接项目）</div><div class="src">🟡 工业总线</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M17.html"><div class="kicker">主线模块</div><h3>M17 · 工业安全 + MES 对接</h3><div class="sub">HttpClient + IT/OT 分层</div><div class="what">MES REST API + Polly + JWT + 白名单 + 审计 + IEC 62443 思想</div><div class="src">🟧 HttpClient/Polly</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M18.html"><div class="kicker">主线模块</div><h3>M18 · 配方管理</h3><div class="sub">工艺参数版本化（制药/食品必点）</div><div class="what">Recipe + 版本化 + 审计 + 回滚 + ISA-88 思想</div><div class="src">🟦 配方</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M19.html"><div class="kicker">主线模块</div><h3>M19 · 问题排查与调试</h3><div class="sub">VS 调试器 + dotnet dump + Wireshark</div><div class="what">条件断点/数据断点/内存泄漏/性能/物理工具/Serilog TraceId（13→15K 硬要求）</div><div class="src">🟧 调试工具链</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M8.5.html"><div class="kicker">主线模块</div><h3>M8.5 · Prism 企业级 MVVM</h3><div class="sub">模块化 / Region / EventAggregator</div><div class="what">PrismBootstrapper + RegionManager + EventAggregator + DialogService（JD 高频）</div><div class="src">🟧 Prism</div><div class="arrow">→</div></a>
+<a class="card module" href="../modules/M9.5.html"><div class="kicker">主线模块</div><h3>M9.5 · 性能压测 + 长跑稳定性</h3><div class="sub">BenchmarkDotNet + dotnet counters</div><div class="what">BenchmarkDotNet + dotMemory + 4 类内存泄漏 + CircuitBreaker（15K 亮点）</div><div class="src">🟧 性能工具链</div><div class="arrow">→</div></a></div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+</div>
+</body>
+</html>

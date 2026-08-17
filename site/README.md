@@ -5,22 +5,23 @@
 > **👀 零基础先看**：打开 `site/index.html` 后，首页最上方有一张蓝色高亮卡片「零基础前置 · 教练带练（先看这篇）」，点它进入 `modules/prep.html`。看不懂其他模块文档时，从这里补最基础的常识（上位机是啥、C# 为什么、串口/Modbus 黑话、字节换算、第一个程序）。
 
 ## 入口
-- 打开 `site/index.html` 即首页：展示所有模块卡片。
-- 点任意卡片 → 进入该模块的独立学习页（`site/modules/Mx.html`）。
-- 模块页：左侧本页目录、顶部技术来源图例、每节「打卡」勾选（进度自动存浏览器本地，按页独立）、底部「上一篇 / 下一篇」可顺序学、右上「← 返回首页」。
+- 打开 `site/index.html` 即首页：只有 **6 张分区入口卡**，不再堆全部内容。
+- 分区页（`site/sections/<id>.html`）：入口·路线 / 模块讲义 / 项目实践 / 练习·复习 / 求职冲刺 / 速查·参考。
+- 内容页（`site/modules/Mx.html`）：左侧本页目录、顶部技术来源图例、每节「打卡」勾选（进度自动存浏览器本地，按页独立）、底部「上一篇 / 下一篇」顺序学、右上「← 分类 / ← 返回首页」。
+- **知识点弹窗**：项目实践等文档里带下划线亮色的知识点链接，点击弹窗看摘要 + 一键跳转对应讲义（内容在 `build_site.py` 的 `KPOINTS` 定义，md 里写 `[📖 标题](kp:<id>)`）。
 
 ## 目录结构
 ```
 site/
-├─ index.html              # 首页：模块卡片 + 使用说明 + 达标清单
+├─ index.html              # 首页：六大分区入口
+├─ sections/               # 6 个分类页
+│  ├─ start.html  modules.html  projects.html
+│  └─ practice.html  career.html  reference.html
 ├─ README.md               # 本说明
 ├─ assets/
 │  ├─ site.css             # 共享样式
 │  └─ site.js              # 打卡(localStorage)
-└─ modules/
-   ├─ M0.html  ... M10.html   # 11 个主线模块页
-   └─ getting-started / practice-ladder / hardware /
-       links / job / audit .html   # 6 个工具箱页
+└─ modules/                # 全部内容页（M0~M19 / 项目实践 R0-R8 / 工具箱）
 ```
 
 ## 模块一览（M0 → M10）

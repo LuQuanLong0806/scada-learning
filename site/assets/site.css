@@ -153,3 +153,33 @@ ul li,ol li{margin:4px 0;}
   body.toc-open .toc-mask{display:block;}
   .pager{flex-direction:column;}
 }
+
+/* ===== 首页分区入口卡 ===== */
+.entries{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-top:6px;}
+.entrycard{display:block;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--blue);
+  border-radius:14px;padding:20px 20px 16px;color:var(--ink);transition:.15s;}
+.entrycard:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(47,111,237,.14);text-decoration:none;border-color:#cfe;}
+.entrycard .ico{font-size:30px;line-height:1;}
+.entrycard h3{margin:8px 0 4px;font-size:20px;}
+.entrycard .desc{font-size:13.5px;color:#33405c;margin:0 0 10px;}
+.entrycard .cnt{font-size:12px;color:var(--muted);font-weight:700;}
+
+/* ===== 分类页 ===== */
+.sechero{background:linear-gradient(120deg,#eef3ff,#eafaf0);padding:30px 24px 20px;border-bottom:1px solid var(--line);}
+.sechero h1{margin:0 0 8px;font-size:24px;}
+.sechero p{margin:4px 0;color:#33405c;max-width:920px;}
+
+/* ===== 知识点弹窗 ===== */
+.kplink{border-bottom:1px dashed var(--blue);font-weight:600;cursor:pointer;}
+.kpmask{display:none;position:fixed;inset:0;background:rgba(15,20,40,.45);z-index:200;}
+.kpmodal{display:none;position:fixed;z-index:201;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(540px,92vw);max-height:78vh;overflow:auto;background:#fff;border-radius:14px;padding:22px 24px;
+  box-shadow:0 18px 50px rgba(0,0,0,.25);}
+.kpmodal .kptitle{font-size:19px;font-weight:800;margin:0 0 10px;color:var(--blue);}
+.kpmodal .kpbody{font-size:14.5px;color:#28304a;}
+.kpmodal .kpbody code{font-size:13px;}
+.kplinkmore{margin:12px 0 0;}
+.kpclose{position:absolute;top:8px;right:12px;border:none;background:none;font-size:24px;color:var(--muted);cursor:pointer;line-height:1;}
+@media(max-width:820px){
+  .entries{grid-template-columns:1fr;}
+}

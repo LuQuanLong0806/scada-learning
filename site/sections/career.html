@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>求职冲刺 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+<div class="sechero">
+  <h1>💼 求职冲刺</h1>
+  <p>JD 调研 → 简历 → 面试逐字稿/速记卡 → 薪资路线图。</p>
+</div>
+<div class="wrap">
+
+  <h2 class="section-title">🗺️ 面试就绪路线图 · 学到哪能拿多少</h2>
+  <p style="color:#33405c;max-width:920px;margin:0 0 4px;">你的 DAQMonitor 工程已经端到端跑通（采集·并发·曲线·历史·报警），这是转行最大的筹码。下面按「学到哪个阶段 → 对应岗位级别 → 预估薪资 → 还差什么」对照 —— 目标是<b>边学边投、面中补漏</b>，不用等"全学完"。</p>
+  <table class="roadmap">
+    <thead><tr><th>阶段</th><th>对应级别</th><th>预估薪资</th><th>还需掌握（对应模块）</th></tr></thead>
+    <tbody>
+      <tr class="r-now"><td><b>当前</b><br>工程已跑通</td><td>—（暂不直接面）</td><td>—</td><td>项目已能演示；缺 JD「必会」知识点</td></tr>
+      <tr class="r-min"><td><b>最低可投线</b><br>保底起步</td><td>初级 / 助理上位机</td><td><b>10–13K</b></td><td>M11 TCP/Socket + M12 工程量转换 + 企业数据库</td></tr>
+      <tr class="r-stable"><td><b>稳妥线</b><br>推荐目标</td><td>中级上位机</td><td><b>13–15K</b></td><td>+ M8 配置/更新/HandyControl + M10 报表</td></tr>
+      <tr class="r-ideal"><td><b>理想线</b><br>加分拉满</td><td>中级偏上</td><td>13–15K 稳 / 冲 15K+</td><td>+ M13 多品牌PLC + M14 WinForm/控件 + 文档能力</td></tr>
+    </tbody>
+  </table>
+  <p class="r-tip">💡 策略：<b>最快投简历 = 过完 M11 + M12</b>（JD 标"必会"的两块硬伤）。走到"稳妥线"就能冲你定的 13–15K。边投边学、面中补漏，比等全学完更省时间。</p>
+
+  <h2 class="section-title">💰 薪资 ↔ 阶段 ↔ 知识点 · 一眼速查</h2>
+  <p style="color:#33405c;max-width:920px;margin:0 0 4px;">同一张图看明白「拿多少工资 = 学到哪个阶段 = 要会哪些知识点」，按需对照补强。</p>
+  <div class="salcards">
+    <div class="salcard s-min">
+      <div class="sal">10–13K</div>
+      <div class="stage">阶段：最低可投线（保底起步）</div>
+      <div class="klabel">需掌握知识点</div>
+      <div class="chips">
+        <span class="chip">M11 · TCP/Socket 自定义协议</span>
+        <span class="chip">M12 · 工程量转换 / 量程标定</span>
+        <span class="chip">M12 · 企业数据库 SQL Server / MySQL</span>
+      </div>
+    </div>
+    <div class="salcard s-stable">
+      <div class="sal">13–15K</div>
+      <div class="stage">阶段：稳妥线（推荐目标）</div>
+      <div class="klabel">在 10–13K 基础上再加</div>
+      <div class="chips">
+        <span class="chip">M8 · 配置实操（Ini/XML/JSON）</span>
+        <span class="chip">M8 · 自动更新 / 部署</span>
+        <span class="chip">M8 · HandyControl</span>
+        <span class="chip">M10 · 报表聚合 + 导出</span>
+      </div>
+    </div>
+    <div class="salcard s-ideal">
+      <div class="sal">15K+</div>
+      <div class="stage">阶段：理想线（加分拉满）</div>
+      <div class="klabel">在 13–15K 基础上再加</div>
+      <div class="chips">
+        <span class="chip">M13 · 多品牌 PLC + 国产库</span>
+        <span class="chip">M14 · WinForm + 自定义控件</span>
+        <span class="chip">文档能力 · 设计/协议/操作/测试</span>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title">✅ 13~15K 简历项目「达标清单」</h2>
+  <div class="cards">
+    <div class="card support"><div class="kicker">达标项</div><h3>多设备接入</h3><div class="what">串口 / Modbus / PLC 至少两种（M1–M3）</div></div>
+    <div class="card support"><div class="kicker">达标项</div><h3>并发采集</h3><div class="what">后台线程 + 队列缓冲 + UI 刷新，无卡顿无泄漏（M0 Day7）</div></div>
+    <div class="card support"><div class="kicker">达标项</div><h3>实时可视化</h3><div class="what">动态曲线 / 仪表盘（M5）</div></div>
+    <div class="card support"><div class="kicker">达标项</div><h3>数据持久化</h3><div class="what">历史库 + 查询/导出（M4 + M10）</div></div>
+    <div class="card support"><div class="kicker">达标项</div><h3>报警</h3><div class="what">阈值规则 + 通知 + 日志（M6）</div></div>
+    <div class="card support"><div class="kicker">达标项</div><h3>工程素养</h3><div class="what">分层/接口/MVVM/配置/异常/单测/DI/容错/打包（M0,M8,M9）</div></div>
+    <div class="card support"><div class="kicker">加分</div><h3>上云</h3><div class="what">OPC UA / MQTT 对接 SCADA（M7）</div></div>
+  </div>
+
+<div class="cards"><a class="card support" href="../modules/jd-research.html"><div class="kicker">工具箱</div><h3>📊 JD 调研 · 13-15K 上位机岗位对照</h3><div class="sub">必会/高频/加分/罕见 4 档</div><div class="what">薪资地图 + 4 档技能矩阵 + 3 个典型 JD 样本 + 缺口 Top 10 + 投递策略</div><div class="src">🟦 调研</div><div class="arrow">→</div></a>
+<a class="card support" href="../modules/resume.html"><div class="kicker">工具箱</div><h3>📄 简历模板 · 上位机 13-15K</h3><div class="sub">3 版本 + STAR + 投递策略</div><div class="what">13K/14-15K/15K+ 三档简历模板 + 项目讲法 STAR + 关键词镜像 + 反问 3 问</div><div class="src">🟦 简历</div><div class="arrow">→</div></a>
+<a class="card support" href="../modules/interview30.html"><div class="kicker">工具箱</div><h3>🎤 面试问答 · 逐字稿 30 题</h3><div class="sub">10 大主题 × 3 题</div><div class="what">C#/并发/Modbus/PLC/EF/Prism/TCP/报警/性能/调试 各 3 题，标准答+逐字稿</div><div class="src">🟦 面试</div><div class="arrow">→</div></a>
+<a class="card support" href="../modules/webview2-vue-dashboard.html"><div class="kicker">工具箱</div><h3>⚡ 前端 × 上位机差异化冲刺</h3><div class="sub">WebView2 + Vue3 大屏 5-7 天方案</div><div class="what">5 结合方向对比 + Day 26-27 落地代码 + 简历话术 + 面试 10 题 + 踩坑警告</div><div class="src">🟦 差异化王牌</div><div class="arrow">→</div></a>
+<a class="card support" href="../modules/job.html"><div class="kicker">工具箱</div><h3>真实岗位调研 · 13-15K 技能对照</h3><div class="sub">对标 BOSS 等招聘要求</div><div class="what">真实企业 13-15K 技能要求与本路线的对应关系</div><div class="src">🟦 调研</div><div class="arrow">→</div></a>
+<a class="card support" href="../modules/jobmap.html"><div class="kicker">工具箱</div><h3>岗位驱动 · 知识点全景图谱与缺口审计</h3><div class="sub">对照真实 JD 查遗漏</div><div class="what">初级→资深中级知识点分级 + 逐项覆盖审计 + 新发现遗漏(CAN/USB/Git/调试工具/Prism)</div><div class="src">🟦 审计</div><div class="arrow">→</div></a>
+<a class="card support" href="../modules/interview.html"><div class="kicker">工具箱</div><h3>面试高频知识点 · 速记卡</h3><div class="sub">手机刷 · 23 题</div><div class="what">13–15K 高频题 Q&A：架构/MVVM/并发/串口/Modbus/粘包/工程量/DB/报警/OPC UA/控件/DI/单测/容错/排查/简历讲法</div><div class="src">🟦 速记</div><div class="arrow">→</div></a></div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+</div>
+</body>
+</html>
