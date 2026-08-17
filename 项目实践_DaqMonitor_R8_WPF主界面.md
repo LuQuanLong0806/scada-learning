@@ -190,6 +190,7 @@ public class RelayCommand : ICommand
 > 📂 `src/DaqMonitor.UI/ViewModels/MainViewModel.cs`
 > 💡 删了什么:当前用户/角色区、权限判断的 Can* 表达式、配方/运控两个子 VM、报表导出、登出——全部依赖 R9+ 服务。保留主干:BatchReady → 表格/存储/报警,报警事件 → 日志/表盘变色,Start/Stop
 > 💡 看三处精髓:**PointView 为什么是 class**(struct 拷贝+无通知,绑不了 UI)、**Dispatcher.Invoke 包住整个批量更新**(一次跨线程,整批处理)、**_levels 字典把报警级别带回下次批量刷新**(报警恢复后表盘能变回蓝)
+> 🗺️ **新手读码地图**(顺着"一批数据的旅程"看,VM 只是接线员):1. 构造函数干的全是**接线**:从 DI 容器领服务 → 造两个 ICommand → 订阅 3 个事件(管道 BatchReady、报警触发/恢复)。VM 自己不采集、不存库、不判报警,全是 R5-R7 的活 2. `OnBatchReady` 是主数据流:一批点进来 → **一次** `Dispatcher.Invoke` 切到 UI 线程(后台事件线程不能直接改 ObservableCollection)→ 循环里每条点走三步:写库 `_store.AddOrUpdate`、喂报警 `_alarms.Evaluate`、刷表格(找不到行就 Add 新 PointView,找到就改属性——属性 setter 触发 PropertyChanged,DataGrid 自动重画) 3. `_levels` 字典解决一个时序问题:报警事件可能在两批数据之间到,而表盘颜色跟着批量刷——所以报警先记进 `_levels`,每次批量刷新时 `TryGetValue` 同步给行(331 行),颜色就不丢 4. `OnAlarmTriggered/Cleared` 是旁路:插一条日志到 AlarmLog 头部(最新的在最上面)+ 立刻改该行 Level 让表盘变红 5. `Start/Stop` 只是拨开关:`SimulatedDevice.Start(100ms)`,IsRunning 一翻,四个绑定属性(按钮可用性)跟着变。**前端类比**:VM ≈ React 容器组件——`Dispatcher.Invoke` ≈ setState 必须在 React 上下文里;`OnChanged(nameof(X))` ≈ 手动触发一次针对性 re-render;`_levels` ≈ 用 ref 存一份"跨 render 也要活着"的中间状态。
 
 ```csharp
 using System.Collections.ObjectModel;

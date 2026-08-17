@@ -251,7 +251,8 @@ public class AppDb : DbContext
 <h3 id="sec-3-4">③ PointStore —— 双写存储(本篇主角)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Store/PointStore.cs</code>
-💡 三层人格:<strong>旧 API 纯内存(实时永不阻塞)</strong> + <strong>Channel 串行写泵(满足 SQLite 单写者)</strong> + <strong>历史查询走库</strong></p>
+💡 三层人格:<strong>旧 API 纯内存(实时永不阻塞)</strong> + <strong>Channel 串行写泵(满足 SQLite 单写者)</strong> + <strong>历史查询走库</strong>
+🗺️ <strong>新手读码地图</strong>(顺着 AddOrUpdate 一条数据的去向看):1. <strong>第一层·内存</strong>:<code>AddOrUpdate</code> 在 <code>lock</code> 里同步更新字典+列表——UI 实时表/报警判断只走这层,<strong>永远不碰磁盘</strong>,所以再高频也不会卡采集 2. <strong>第二层·落盘</strong>:同一方法里紧接着 <code>TryWrite</code> 把记录塞进 <code>_writeQueue</code>(Channel),塞完立刻返回,<strong>不等写库</strong>——这就是"fire-and-forget" 3. 谁来写库?构造时 <code>Task.Run(PumpWritesAsync)</code> 起的<strong>单消费者写泵</strong>,后台一条条取、一条条 SaveChanges。为什么必须串行:SQLite 同一时刻只允许一个写者,并发写会锁冲突——Channel 天然 FIFO + 单读者,比手工加锁稳 4. <strong>第三层·历史查询</strong>:<code>QueryHistoryAsync</code> 拿 EF 出一个新 DbContext 按"点位+时间窗"查库,和内存层互不干扰 5. <code>FlushAsync</code> 是关机前的好习惯:让队列收尾、等写泵把尾巴写完,防止最后几条丢在队列里。<strong>前端类比</strong>:内存层 ≈ 组件 state(毫秒级读写),写泵 ≈ 埋点上报的批处理队列(sentry/redux 持久化中间件都是"先入队、后台慢慢写"的双写套路)。</p>
 </blockquote>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -637,8 +638,7 @@ public class PointStorePersistenceTests
 }
 </code></pre>
 <blockquote>
-<p>📂 <code>SerialDeviceTests.cs</code> — <strong>文件末尾追加</strong> R4 埋的穿管道测试(文件头补 <code>using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Models; using DaqMonitor.Core.Store;</code>)
-📂 <code>ModbusDeviceTests.cs</code> — <strong>同样追加</strong>(using 同步补)</p>
+<p>📂 <code>SerialDeviceTests.cs</code> — <strong>贴进 SerialDeviceTests 类里</strong>(最后一个 <code>}</code> 之前)追加 R4 埋的穿管道测试;文件头同步补 <code>using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Models; using DaqMonitor.Core.Store;</code></p>
 </blockquote>
 <pre><code class="language-csharp">    [Fact]
     public async Task SerialDevice_ThroughPipeline_ProducesPoints_InStore()
@@ -667,6 +667,9 @@ public class PointStorePersistenceTests
             &quot;SerialDevice 经管道写入存储失败——'换设备 UI 零改动'未成立&quot;);
     }
 </code></pre>
+<blockquote>
+<p>📂 <code>ModbusDeviceTests.cs</code> — <strong>同样贴进 ModbusDeviceTests 类里</strong>(最后一个 <code>}</code> 之前)追加穿管道测试;using 同步补 <code>using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Store;</code></p>
+</blockquote>
 <pre><code class="language-csharp">    [Fact]
     public async Task ModbusDevice_ThroughPipeline_ProducesPoints_InStore()
     {

@@ -57,6 +57,7 @@ dotnet add src/DaqMonitor.Tests package Microsoft.Extensions.DependencyInjection
 > 📂 `src/DaqMonitor.Core/Resilience/Retry.cs` · namespace `DaqMonitor.Core.Resilience`
 > 🔧 无 NuGet
 > 💡 面试常问"通信断了怎么办"——答案:重试+退避+超时+重连,不是裸 try-catch
+> 🗺️ **新手读码地图**(10 行代码两个亮点):1. `catch ... when (attempt < maxRetries ...)`:异常过滤器——次数没用完才吞掉异常进重试,用完了让异常正常抛出去给调用方。这比 try-catch 里 if-else 干净得多 2. 延迟公式 `base * 2^(n-1) + 随机抖动`:第 1/2/3 次重试分别约 200/400/800ms——翻倍是**指数退避**(别猛敲刚出故障的设备),再加 0~200ms 随机数是**抖动**(100 个客户端同时失败,不会变成 200ms 后又同时涌回来)。**前端类比**:请求失败自动重连的 axios-retry / react-query retry,默认策略一模一样(指数+抖动),这是业界通用套路不是本项目发明。
 
 ```csharp
 namespace DaqMonitor.Core.Resilience;
@@ -327,6 +328,7 @@ public class DiagnosticsService
 
 > 📂 `src/DaqMonitor.Core/AppServices/Bootstrapper.cs`
 > 💡 参考工程同名文件还注册认证/配方/运控/MQTT(R9+ 内容)并种子账号配方——**R7 版先删掉这些,R9+ 做到那篇时按参考工程加回**;注释里的"换一行接真设备"示例全保留,这是可插拔的证据
+> 🗺️ **新手读码地图**(这就是全项目的"总装配车间"):1. 前面 R2-R6 造的都是零件(设备/管道/存储/报警/诊断),这个类只干一件事——**把零件按依赖关系拧在一起**:建容器 → 注册每个服务 → Build 出 ServiceProvider,谁要什么自己 `GetRequiredService` 领 2. 三种注册姿势看仔细:`AddDbContextFactory`(工厂,EF 短生命周期专用)、`AddSingleton`(全局一份:存储/报警/诊断/管道——管道注册时顺手 `new AcquisitionPipeline(200ms)`,这就是 R5"构造即启动"的落点)、`AddSingleton<IDevice>(_ => ...)`(**注册的是接口,给的是实现**——最底下那行注释就是"换真设备只改这一行"的实物证据) 3. `EnsureCreated` 启动时建库建表(首次运行生成 daq.db);随后预置两条报警规则——配置也集中在组合根,不散落在代码里 4. 为什么放 Core 不放 UI:测试、未来的无界面服务,都能 `Bootstrapper.Build()` 复用同一套装配。**前端类比**:组合根 ≈ 应用入口的 Provider 装配(store/router/i18n 一次配好)+ NestJS 的 AppModule——依赖注入框架哪个语言都长这样,会一个就都通了。
 
 ```csharp
 using DaqMonitor.Core.Acquisition;

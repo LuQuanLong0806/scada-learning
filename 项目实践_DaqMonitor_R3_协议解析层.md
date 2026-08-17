@@ -48,6 +48,7 @@ src/DaqMonitor.Tests/
 > 📂 `src/DaqMonitor.Core/Protocol/Crc16.cs` · namespace `DaqMonitor.Core.Protocol`
 > 🔧 无 NuGet
 > 💡 逐位异或移位的教科书实现;Modbus 约定 CRC **低字节在前**放进帧尾
+> 🗺️ **新手读码地图**:`Check(字节[])` 对每个字节做两件事——先和当前值低 8 位异或,再循环 8 次"右移 1 位,移出去的是 1 就再异或多项式 0xA001"。本质是给整段字节**算指纹**:任何一个字节被干扰,指纹就变,收方重算比对就知道帧坏了。面试常追问的查表法 = 预先算好 256 种结果换速度,原理一模一样。
 
 ```csharp
 namespace DaqMonitor.Core.Protocol;
@@ -86,6 +87,7 @@ public static class Crc16
 > 📂 `src/DaqMonitor.Core/Protocol/FrameParser.cs`
 > 🔧 无 NuGet
 > 💡 帧格式 `AA 55 | Len | Payload... | CRC_L CRC_H`;**有状态**(内部缓冲),所以是 class 不是 static
+> 🗺️ **新手读码地图**(4 步看懂):1. `Feed(chunk)` 是进货口:网络/串口来的字节**一段一段**到(可能是半帧,也可能几帧粘在一起),先全倒进 `_buffer` 这个蓄水池 2. `TryTakeFrame` 是取货口:循环从缓冲头尝试拆出**一条**完整帧,拆得出就收走,拆不出(字节不够=半包)就停手等下一批 3. 找帧头 `0xAA`:找不到→**清空整个缓冲**(防垃圾无限堆积);`0xAA` 后面不是 `0x55`→假帧头,删掉这 1 字节继续找 4. 拆走一条 = 头 3 字节 + Len 载荷 + 2 字节 CRC,只把载荷切出来返回,并从缓冲删掉已消费部分。**前端类比**:和 WebSocket onmessage 里攒字节流切消息一模一样(先 concat 再 while 切完整包);因为 `_buffer` 是跨调用记忆的状态,所以它是 class,而 Crc16/ModbusFrameParser 是 static——**有没有状态决定 class 还是 static**。
 
 ```csharp
 using System.Collections.Generic;
@@ -170,6 +172,7 @@ public class FrameParser
 > 📂 `src/DaqMonitor.Core/Protocol/ModbusFrameParser.cs`
 > 🔧 无 NuGet
 > 💡 现场三坑全在这:**地址 ±1 偏移**(异常码 0x02)、**字节序 CDAB**(浮点读出天文数字)、**线圈按位不按字节**
+> 🗺️ **新手读码地图**:整个类是**纯函数翻译器**——不存状态、不碰 I/O,每个方法都是"字节进→数据出",所以能甩开硬件直接单测。看懂三个方法就够:1. `ParseReadRegisters`:数据区每 2 字节 = 1 个寄存器,高字节在前(大端),`hi<<8|lo` 拼回 ushort 2. `ParseCoils`:开关量 1 个字节装 8 个,`i/8` 定位在第几个字节、`i%8` 定位第几位——和寄存器的"高字节在前"是两套规则,别混 3. `ToFloatModbus`:两个寄存器拼 32 位浮点;本机是小端,所以代码先把 4 字节按大端排好再 Reverse 交给 BitConverter——手册写 CDAB 你就传 CDAB,**抓帧确认,别猜**。**前端类比**:一个纯的 protocol decoder(输入 Uint8Array 输出对象),零副作用所以好测。
 
 ```csharp
 using System;
@@ -293,6 +296,7 @@ public static class ModbusFrameParser
 > 📂 `src/DaqMonitor.Core/Protocol/TcpFrameParser.cs`
 > 🔧 无 NuGet
 > 💡 与 FrameParser 的区别:TCP 帧头后带 **2 字节小端长度域**,且"解析"与"缓冲"解耦——本类无状态,缓冲区调用方维护,失败时给 needResync 信号
+> 🗺️ **新手读码地图**:拆的还是"字节流切帧"这同一个问题,和 ② 的差别就两点:1. 帧头后是 **2 字节小端长度域**(`AA 55 LEN_LO LEN_HI payload CRC`),用小端是因为 C# 的 BitConverter 本机就是小端,拼长度不用翻转 2. 本类**无状态**:自己不攒缓冲,只提供 TryParse"给一段字节、试拆一帧",拆不出/拆坏返回 false 并告诉调用方要不要重同步,缓冲由调用方维护。**前端类比**:FrameParser 像"自己管 state 的组件"(内部攒 buffer),TcpFrameParser 像"受控/纯函数组件"(state 提升给调用方)——两种设计都对,看你想把复杂度放哪边。
 
 ```csharp
 namespace DaqMonitor.Core.Protocol;

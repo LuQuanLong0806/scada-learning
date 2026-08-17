@@ -66,6 +66,7 @@ dotnet add src/DaqMonitor.Core package System.IO.Ports --version 8.0.0
 > 📂 `src/DaqMonitor.Core/Devices/ISerialChannel.cs` · namespace `DaqMonitor.Core.Devices`
 > 🔧 无 NuGet
 > 💡 "链路"与"协议"解耦:SerialDevice 只认这个接口——生产换真串口、测试换内存回环,各是一个实现类
+> 🗺️ **新手读码地图**(三个类一起看):`ISerialChannel` 只回答一个问题——"字节从哪来、到哪去"(Open/Write/Close + 一个 BytesReceived 事件)。`RealSerialChannel` 包一层 .NET 官方 SerialPort,把硬件收到的字节转成事件;`LoopbackSerialChannel` 是测试替身——Write 进去的字节原样"当成线上收到的"弹回来,零硬件跑通全链路。**前端类比**:把 axios 抽成 `IHttp` 接口——组件只认接口,测试换 msw mock、生产换真 axios;这里的 SerialDevice 就是业务层,对链路具体实现无感。
 
 ```csharp
 namespace DaqMonitor.Core.Devices;
@@ -162,6 +163,7 @@ public sealed class RealSerialChannel : ISerialChannel
 
 > 📂 `src/DaqMonitor.Core/Devices/SerialDevice.cs`
 > 💡 R3 FrameParser 的第一个真实消费者:字节流进、SensorPoint 语义的事件出
+> 🗺️ **新手读码地图**(3 步看懂):1. `Connect()` 只做两件事:订阅通道的 BytesReceived + Open 链路——从此字节是"推"过来的,不用轮询 2. 灵魂在 `OnBytes` 的 10 行:收到一坨字节 → `RawLog` 先留痕(联调时看清线上到底来了什么)→ 喂 `_parser.Feed`,半包/粘包它内部搞定,吐出 N 条完整载荷 → 每条按"1 字节 pointId + 8 字节 double"解码,`RaiseData` 发事件(DeviceBase 继承来的,自动盖时间戳) 3. `Read(addr)` 返回 `_last` 缓存的新值——不是真去问设备;串口设备没有"随叫随到"的读法,值全靠事件推。**前端类比**:`OnBytes` ≈ WebSocket onmessage 的 handler:先 log → 切包 → emit 给上层。整类 = 链路 + 协议解析 + 事件发射的三合一。
 
 ```csharp
 using DaqMonitor.Core.Models;
@@ -234,6 +236,7 @@ public sealed class SerialDevice : DeviceBase
 
 > 📂 `src/DaqMonitor.Core/Devices/ModbusDevice.cs`
 > 💡 双模式套路:**simulate=true 零硬件跑链路;真实模式手搓请求帧**。TCP 模式只需把 SerialPort 换 TcpClient + MBAP 头,解析逻辑复用
+> 🗺️ **新手读码地图**(4 步看懂):1. `RegisterMap` 是一张"翻译对照表":哪个点位对应哪个寄存器地址、什么类型(float 跨 2 寄存器/word 1 个)、什么字节序——现场调试改的是这张表,不是代码 2. 双模式在 `Start()` 的后台循环里分叉:每 500ms 一次 `SimulateTick()`(发随机值,零硬件)或 `RealTick()`(手搓"读保持寄存器"请求帧 → 写串口 → 收响应 → Crc16 验 → ModbusFrameParser 拆 → 按字节序拼回浮点) 3. 真实模式的"手搓帧"就是 R3 `BuildReadHoldingRequest` + `ParseReadRegisters` + `ToFloatModbus` 三件套串起来——R3 的纯函数在这落地成真设备 4. 对外仍然只暴露 IDevice:管道/UI 完全不知道底下是 Modbus。**前端类比**:`RegisterMap` ≈ 后端字段映射表(接口返回 snake_case 映射到组件的 camelCase),双模式 ≈ dev 环境 mock/生产环境真接口同一开关切换。
 
 ```csharp
 using DaqMonitor.Core.Models;
@@ -389,6 +392,7 @@ public sealed class ModbusDevice : DeviceBase
 
 > 📂 `src/DaqMonitor.Core/Devices/TcpDevice.cs`
 > 💡 本篇最重的类:把 R3 的 TcpFrameParser 塞进真实 socket 循环;[指数退避](kp:retry-backoff)在这里先见第一面(R7 会抽成通用 Retry)
+> 🗺️ **新手读码地图**(按"一条命"的周期看):1. 外层 `MaintainConnectionLoop` 是一条永动的命:连上 → 干活 → 断了 → 睡一会儿再连,直到 Dispose。睡多久不是固定值,是 `BackoffMs = {1s,2s,4s,8s,16s}` 一级级往上爬——网络刚抖完马上重连只会雪上加霜,这就是**指数退避** 2. 连上后兵分两路:`HeartbeatLoop` 每 10s 发一帧 `[0x02]` 心跳保活,30s 收不到对端消息判离线;`ReceiveLoop` 是主收线——socket 只管把字节堆进滚动缓冲,切帧全交给 `TcpFrameParser.TryParse`(R3 的无状态设计在这兑现:缓冲归调用方管) 3. 切出的帧按载荷解码成点位 → `RaiseData` 上报,和串口设备殊途同归 4. `OfflineTimeout` = 心跳超时兜底:TCP 半开连接(对端拔网线)不会自动报错,必须自己掐表。**前端类比**:`MaintainConnectionLoop` ≈ socket.io 内置的重连机制(它默认也是指数退避),心跳 ≈ ping/pong 帧——你写前端长连接时框架替你干的事,这里全部手写一遍。
 
 ```csharp
 using DaqMonitor.Core.Models;
@@ -1270,7 +1274,7 @@ public class UsbHidDeviceTests
 }
 ```
 
-> 📂 `src/DaqMonitor.Tests/TcpFrameParserTests.cs` — **在 R3 文件末尾追加** 1 个测试(文件头补 `using DaqMonitor.Core.Devices;`)
+> 📂 `src/DaqMonitor.Tests/TcpFrameParserTests.cs` — **贴进 TcpFrameParserTests 类里**(最后一个 `}` 之前)追加 1 个测试;文件头同步补 `using DaqMonitor.Core.Devices;`
 
 ```csharp
     [Fact]

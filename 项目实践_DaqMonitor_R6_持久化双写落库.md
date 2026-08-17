@@ -173,6 +173,7 @@ public class AppDb : DbContext
 
 > 📂 `src/DaqMonitor.Core/Store/PointStore.cs`
 > 💡 三层人格:**旧 API 纯内存(实时永不阻塞)** + **Channel 串行写泵(满足 SQLite 单写者)** + **历史查询走库**
+> 🗺️ **新手读码地图**(顺着 AddOrUpdate 一条数据的去向看):1. **第一层·内存**:`AddOrUpdate` 在 `lock` 里同步更新字典+列表——UI 实时表/报警判断只走这层,**永远不碰磁盘**,所以再高频也不会卡采集 2. **第二层·落盘**:同一方法里紧接着 `TryWrite` 把记录塞进 `_writeQueue`(Channel),塞完立刻返回,**不等写库**——这就是"fire-and-forget" 3. 谁来写库?构造时 `Task.Run(PumpWritesAsync)` 起的**单消费者写泵**,后台一条条取、一条条 SaveChanges。为什么必须串行:SQLite 同一时刻只允许一个写者,并发写会锁冲突——Channel 天然 FIFO + 单读者,比手工加锁稳 4. **第三层·历史查询**:`QueryHistoryAsync` 拿 EF 出一个新 DbContext 按"点位+时间窗"查库,和内存层互不干扰 5. `FlushAsync` 是关机前的好习惯:让队列收尾、等写泵把尾巴写完,防止最后几条丢在队列里。**前端类比**:内存层 ≈ 组件 state(毫秒级读写),写泵 ≈ 埋点上报的批处理队列(sentry/redux 持久化中间件都是"先入队、后台慢慢写"的双写套路)。
 
 ```csharp
 using DaqMonitor.Core.Models;
@@ -564,8 +565,7 @@ public class PointStorePersistenceTests
 }
 ```
 
-> 📂 `SerialDeviceTests.cs` — **文件末尾追加** R4 埋的穿管道测试(文件头补 `using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Models; using DaqMonitor.Core.Store;`)
-> 📂 `ModbusDeviceTests.cs` — **同样追加**(using 同步补)
+> 📂 `SerialDeviceTests.cs` — **贴进 SerialDeviceTests 类里**(最后一个 `}` 之前)追加 R4 埋的穿管道测试;文件头同步补 `using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Models; using DaqMonitor.Core.Store;`
 
 ```csharp
     [Fact]
@@ -595,6 +595,8 @@ public class PointStorePersistenceTests
             "SerialDevice 经管道写入存储失败——'换设备 UI 零改动'未成立");
     }
 ```
+
+> 📂 `ModbusDeviceTests.cs` — **同样贴进 ModbusDeviceTests 类里**(最后一个 `}` 之前)追加穿管道测试;using 同步补 `using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Store;`
 
 ```csharp
     [Fact]

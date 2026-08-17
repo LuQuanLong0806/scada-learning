@@ -51,6 +51,7 @@ src/DaqMonitor.Tests/
 > 📂 `src/DaqMonitor.Core/Acquisition/AcquisitionPipeline.cs` · namespace `DaqMonitor.Core.Acquisition`
 > 🔧 无 NuGet(System.Threading.Channels 在 BCL 里)
 > 💡 **构造即启动**:new 的时候定时器和消费循环就位,没有 Start/Stop——这是本工程的既定契约,后面 R7 的 DI 组装、R8 的 UI 都按这个语义用
+> 🗺️ **新手读码地图**(5 步看懂,这是全项目最核心的 40 行):1. 它解决的问题:100Hz × 多设备 = 每秒几百次事件,如果每次都直接刷 UI,界面必卡死——所以要"攒一批、一次刷" 2. `Register(dev)` 把管道挂到设备事件上;`OnPoint` 是事件入口,只干一件极轻的事:把 DataEventArgs 转成 SensorPoint **塞进 Channel**(注意抄了 e.Timestamp)就返回 3. `Channel<T>` 是线程安全的传送带:任意线程往里塞,`ConsumeAsync` 用 `await foreach` 在后台一条条取,取出来先攒进 `_pending` 4. 什么时候"一批就绪"?两个出口任一满足:`_pending` 攒满 maxBatch(量大不等定时器)或 `_flushTimer` 到点 Flush(量少也别憋太久)——两处都在 `lock (_gate)` 里把 `_pending` 整包换新再在锁外触发 BatchReady,**锁外触发**是避免订阅方在锁里干慢活把别人卡住 5. UI 订阅 BatchReady 拿到一批,一次 Dispatcher.Invoke 刷 N 个点。**前端类比**:Channel ≈ 无限长的事件队列,整个模式 ≈ 前端性能优化里的"rAF 节流批量 setState"——高频事件先入队,定时批量消化。
 
 ```csharp
 using DaqMonitor.Core.Devices;
@@ -176,6 +177,7 @@ public class AlarmEvent : EventArgs
 
 > 📂 `src/DaqMonitor.Core/Alarms/AlarmEngine.cs`
 > 💡 三个生产级特性:线程安全(规则运行时增删)、边沿触发(不刷屏)、回滞(防抖)
+> 🗺️ **新手读码地图**(按 Evaluate 一条数据的旅程看):1. 先给规则列表拍快照(`_rules.ToList()`),因为规则可能被别的线程运行时增删,遍历快照不怕中途被改 2. 找到管这个点位的规则,算两个布尔值:`breach` = 越限了吗(IsHigh 决定是"超上限"还是"低于下限");`inBand` = 是不是落在阈值 ± 回滞带宽里 3. **边沿触发**靠 `_active` 这个 HashSet:它记着"哪些点当前正在报警"。`_active.Add` 返回 false 说明本来就在集合里(早报过了)→ 不重复报;只有"从没报→报"这个**上升沿**才触发 AlarmTriggered——不然 100Hz 的越限数据每条都弹通知,界面直接刷屏 4. **回滞**防的是另一种抖:值在阈值附近 99↔101 来回横跳。有了带宽,101 触发后跌回 99(还在带宽内)不算恢复,必须跌出 [Threshold−带宽] 才发 AlarmCleared——温度控制器的"不灵敏区"就是这个思想 5. 触发/恢复是成对的两个事件,UI 各挂一个:变红 + 复位。**前端类比**:_active ≈ 组件里的 state,边沿触发 ≈ 只在 state 翻转时才 useEffect,回滞 ≈ 防抖 debounce 的硬件版。
 
 ```csharp
 using DaqMonitor.Core.Models;

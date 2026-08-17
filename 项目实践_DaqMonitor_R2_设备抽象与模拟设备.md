@@ -39,6 +39,7 @@ src/DaqMonitor.Tests/
 > 📂 `src/DaqMonitor.Core/Devices/IDevice.cs` · namespace `DaqMonitor.Core.Devices`(一个文件三个类型,与参考工程一字不差)
 > 🔧 无 NuGet
 > 💡 用到 R1 的 `DeviceState`(`DaqMonitor.Core.Models`)
+> 🗺️ **新手读码地图**:一个文件三个类型——`DataEventArgs`(一次采样的快递盒:点号+值+时间戳)→ `IDevice`(所有设备的合同:Connect/Disconnect/Read/Write + 一个 DataReceived 事件)→ `DeviceBase`(把合同里重复的部分先写好:状态机 + RaiseData 发射器,子类只写差异)。**前端类比**:IDevice ≈ interface,DeviceBase ≈ 抽象基类组件,DataReceived ≈ 事件的 on/emit。
 
 ```csharp
 using DaqMonitor.Core.Models;
@@ -100,6 +101,12 @@ public abstract class DeviceBase : IDevice
 > 📂 `src/DaqMonitor.Core/Devices/SimulatedDevice.cs` · namespace `DaqMonitor.Core.Devices`
 > 🔧 无 NuGet
 > 💡 "同步门面 + 内部异步"的样板:Connect() 立即返回,采集在 [Task.Run](kp:taskrun) 的后台循环里
+> 🗺️ **新手读码地图**(5 步看懂):
+> 1. `Connect()` 只改状态:Connecting(睡 50ms 假装握手)→ Online,**不做采集**,所以立即返回、不卡调用方
+> 2. `Start(interval)` 才真正干活:Task.Run 起后台循环,每 interval 毫秒遍历所有点位发一个随机值——类比前端 setInterval 定时 emit
+> 3. `RaiseData(pid, v)` 是从 DeviceBase 继承的发射器:值打包成 DataEventArgs(**自动盖 DateTime.Now 时间戳**)再触发 DataReceived,谁订阅谁收到
+> 4. 10% 概率发 95~120 越限值——故意让 R5 的报警引擎有事干,界面能看到报警变色
+> 5. `Stop()` 用 CancellationTokenSource 取消循环;catch OperationCanceledException 是**正常退出**,不是 bug
 
 ```csharp
 using DaqMonitor.Core.Models;
