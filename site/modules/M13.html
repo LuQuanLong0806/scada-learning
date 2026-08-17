@@ -73,15 +73,15 @@
 - <strong>30 分钟</strong>:加看 Day 1 三菱/欧姆龙/西门子统一调用姿势
 - <strong>3 小时</strong>:全文精读 + Day 2 Hsl 试用期机制 + 选型对比
 - 🎯 <strong>面试高频</strong>:Hsl vs S7.Net + NModbus(一个全能 vs 多个专精)/ Hsl 试用期授权 / 国产库选型理由
-- 🔁 <strong>配套复习</strong>:<a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M13 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M13 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>class MitsubishiPlcDevice : IDevice</code> / <code>class OmronPlcDevice : IDevice</code> — 多实现,速查 §12
 - <code>abstract class PlcDeviceBase : IDevice</code> — 抽象基类(模板方法)
 - <code>OperateResult result = plc.Read("D100")</code> — Hsl 库返回类型(成功/失败合一)
 - <code>switch (brand) { case "Mitsubishi": ... case "Omron": ... }</code> — 多品牌分支
 - <code>event EventHandler&lt;DataReceivedEventArgs&gt;? DataReceived</code> — 统一事件契约</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M13 示例引用 <code>IDevice</code> / <code>SensorPoint</code> / <code>PlcDeviceBase</code>(本模块新建抽象基类)等 — 其中 <code>IDevice</code> / <code>SensorPoint</code> 在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>PlcDeviceBase</code> 抽象类 + <code>MitsubishiPlcDevice</code> / <code>OmronPlcDevice</code> 子类。</p>
+M13 示例引用 <code>IDevice</code> / <code>SensorPoint</code> / <code>PlcDeviceBase</code>(本模块新建抽象基类)等 — 其中 <code>IDevice</code> / <code>SensorPoint</code> 在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>PlcDeviceBase</code> 抽象类 + <code>MitsubishiPlcDevice</code> / <code>OmronPlcDevice</code> 子类。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>用 <code>HslCommunication</code> 封装一个 <code>PlcDevice : IDevice</code>，支持西门子/三菱/欧姆龙统一读点；理解"为什么国内爱 Hsl"，并能讲清多品牌地址差异这一最大坑。</p>

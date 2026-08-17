@@ -71,8 +71,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 装包 + 一根实时曲线跑起来
 - <strong>3 小时</strong>:全文精读 + Day 2 仪表盘 + Day 3 性能优化(高频滚动 60s 窗口)
 - 🎯 <strong>面试高频</strong>:ObservableCollection 跨线程异常 / 实时曲线 60s 窗口怎么不卡 / 数据降采样
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B10 INotifyPropertyChanged 手写</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M5 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="muscle.html">代码肌肉 B10 INotifyPropertyChanged 手写</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M5 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>ObservableCollection&lt;T&gt;</code> — 可观察集合(像 MobX 的 observable 数组)
 - <code>public double Current { get =&gt; _current; set =&gt; SetProperty(ref _current, value) }</code> — 完整属性,速查 §4
 - <code>event PropertyChangedEventHandler? PropertyChanged</code> — INotifyPropertyChanged 接口实现
@@ -80,7 +80,7 @@
 - <code>lock (_points)</code> — 多线程保护集合,速查 §14
 - <code>Application.Current.Dispatcher.Invoke(...)</code> — 跨线程改 UI,速查 §14</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M5 示例引用 <code>SensorPoint</code> / <code>IDevice</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块不再新建类型,主要用 LiveCharts2 + WPF 数据绑定。</p>
+M5 示例引用 <code>SensorPoint</code> / <code>IDevice</code> 等类型 — 这些在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块不再新建类型,主要用 LiveCharts2 + WPF 数据绑定。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>用 LiveCharts2 在 WPF 里画实时曲线（温度随时间）和仪表盘（当前值），数据来自 <code>DataReceived</code> 事件。</p>
@@ -123,7 +123,7 @@ cd src/DaqMonitor.UI
 dotnet add package LiveChartsCore.SkiaSharpView.WPF</code>
 💡 LiveCharts2 是开源 WPF/WinForms 图表库。装完会自动带 SkiaSharp 依赖,体积约 30MB。</p>
 <p>📂 <code>DaqMonitor.UI/ViewModels/ChartVm.cs</code> · namespace <code>DaqMonitor.UI.ViewModels</code>(可改,要跟项目根命名空间对齐)
-💡 用到 <code>SensorPoint</code>(<a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)</p>
+💡 用到 <code>SensorPoint</code>(<a href="predefined-types.html">前置类型定义</a>)</p>
 </blockquote>
 <pre><code class="language-csharp">using System.Collections.ObjectModel;
 using System.ComponentModel;

@@ -71,15 +71,15 @@
 - <strong>30 分钟</strong>:加看 Day 1 阈值规则 + Day 2 回滞机制(为什么需要)
 - <strong>3 小时</strong>:全文精读 + Day 3 Serilog 结构化日志 + Day 4 报警事件总线
 - 🎯 <strong>面试高频</strong>:<strong>回滞机制(为什么不能直接阈值判断)</strong> / Serilog 结构化日志 / 报警级别(Info/Warning/Critical)
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B5 AlarmRule 回滞手写</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M6 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="muscle.html">代码肌肉 B5 AlarmRule 回滞手写</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M6 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>enum AlarmLevel { Normal, Warning, Critical }</code> — 枚举,速查 §12
 - <code>event EventHandler&lt;AlarmEvent&gt;?</code> — 事件,速查 §7
-- <code>class AlarmEvent { ... }</code> — 报警事件类型(参 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a> §四,字段 PointId/Level/Value),速查 §4 init 属性
+- <code>class AlarmEvent { ... }</code> — 报警事件类型(参 <a href="predefined-types.html">前置类型定义</a> §四,字段 PointId/Level/Value),速查 §4 init 属性
 - <code>class AlarmRule { ... }</code> — 报警规则类(前置类型定义 §四,字段 PointId/Threshold/Hysteresis/Level/IsHigh)
 - <code>DateTime.UtcNow</code> — 时间,速查 §10(<code>$"{now:yyyy-MM-dd HH:mm:ss}"</code>)</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>AlarmLevel</code> / <code>AlarmRule</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AlarmLevel</code> 在"一、核心数据类型",<code>AlarmRule</code>/<code>AlarmEvent</code> 在"四、报警引擎")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>AlarmEngine</code> 引擎类(教学简版),跟着 Day 1-4 敲。</p>
+M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>AlarmLevel</code> / <code>AlarmRule</code> 等类型 — 这些在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AlarmLevel</code> 在"一、核心数据类型",<code>AlarmRule</code>/<code>AlarmEvent</code> 在"四、报警引擎")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>AlarmEngine</code> 引擎类(教学简版),跟着 Day 1-4 敲。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写一套报警引擎：配置"点位 + 阈值 + 级别"，数据进来自动判警并通知；用 Serilog 把运行/错误写进日志文件。</p>
@@ -118,7 +118,7 @@ M6 示例引用 <code>SensorPoint</code> / <code>AlarmEvent</code> / <code>Alarm
 <blockquote>
 <p>📂 两个文件:<code>DaqMonitor.Core/Alarms/AlarmRule.cs</code> + <code>AlarmEngine.cs</code> · namespace <code>DaqMonitor.Core.Alarms</code>
 🔧 无 NuGet(纯 C# 逻辑)
-💡 用到 <code>SensorPoint</code> / <code>AlarmLevel</code> / <code>AlarmEvent</code>(都在 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>);<code>AlarmRule</code> 与参考工程一字不差,<code>AlarmEngine</code> 是教学简版(工程完整版含回滞+边沿触发,见下「掰开揉碎」和前置类型定义 §四)</p>
+💡 用到 <code>SensorPoint</code> / <code>AlarmLevel</code> / <code>AlarmEvent</code>(都在 <a href="predefined-types.html">前置类型定义</a>);<code>AlarmRule</code> 与参考工程一字不差,<code>AlarmEngine</code> 是教学简版(工程完整版含回滞+边沿触发,见下「掰开揉碎」和前置类型定义 §四)</p>
 </blockquote>
 <pre><code class="language-csharp">// DaqMonitor.Core/Alarms/AlarmRule.cs
 namespace DaqMonitor.Core.Alarms;

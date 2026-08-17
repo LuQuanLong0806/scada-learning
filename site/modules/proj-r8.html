@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R8 · WPF 主界面 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-r8">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(先自己设计,再对照)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
+<li class="l3"><a href="#sec-3-1">⓪ 装包 + 清理模板(有坑)</a></li>
+<li class="l3"><a href="#sec-3-2">① App.xaml.cs —— 启动接线(R8 版:无登录)</a></li>
+<li class="l3"><a href="#sec-3-3">② RelayCommand —— 可绑定命令(原文)</a></li>
+<li class="l3"><a href="#sec-3-4">③ MainViewModel —— 主屏 VM(R8 删减版)</a></li>
+<li class="l3"><a href="#sec-3-5">④ 自定义控件三件套 + 默认模板(原文 ×4)</a></li>
+<li class="l3"><a href="#sec-3-6">⑤ ChartView —— LiveCharts2 实时曲线(原文 ×2)</a></li>
+<li class="l3"><a href="#sec-3-7">⑥ DiagnosticsPanel —— 诊断面板 UserControl(原文 ×2)</a></li>
+<li class="l3"><a href="#sec-3-8">⑦ MainWindow —— 主窗口组装(R8 删减版 ×2)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">R8 · WPF 主界面(给系统装上"脸")</h1>
+<blockquote>
+<p><strong>定位</strong>:R1-R7 的所有能力都活在控制台和测试里。这一篇把整条链路接到 WPF 主界面:点位表(仪表盘+状态灯)、报警日志、实时曲线、诊断面板——一个能写进简历、面试能现场演示的完整上位机。
+<strong>前置</strong>:R7 全绿。<strong>预计敲码</strong>:150 分钟(本篇代码量最大,含 3 个 XAML + 2 个自定义控件模板)。
+<strong>产出</strong>:DaqMonitor.UI 主屏可运行。<strong>主屏先行策略</strong>:参考工程主界面还含登录窗/配方管理/运动控制/报表导出,依赖 R9+ 的服务,本篇先删掉这些、留好"加回"的锚点,R9+ 各篇逐个装回。
+<strong>测试</strong>:本篇不加新测试(UI 交互测试成本高,主线用 56 个既有测试守住 Core 层),验收靠 build + 手动清单。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<pre><code>src/DaqMonitor.UI/
+├─ App.xaml / App.xaml.cs            # 启动接线:Build→Register→Connect→MainWindow(R8 无登录)
+├─ ViewModels/
+│  ├─ RelayCommand.cs                # 可绑定命令(原文)
+│  └─ MainViewModel.cs               # 主屏 VM(R8 删权限/配方/运控/导出)
+├─ Controls/
+│  ├─ GaugeControl.cs                # 自定义控件①:量程指针表(原文)
+│  ├─ StatusDot.cs                   # 自定义控件②:设备状态灯(原文)
+│  └─ ThemeInfo.cs                   # 让 Generic.xaml 生效的程序集特性(原文)
+├─ Themes/Generic.xaml               # 两控件的默认样式/模板(原文)
+├─ Views/ChartView.xaml / .xaml.cs   # LiveCharts2 实时曲线(原文)
+├─ Diagnostics/DiagnosticsPanel.xaml / .xaml.cs  # 诊断面板 UserControl(原文)
+└─ MainWindow.xaml / .xaml.cs        # 主窗口组装(R8 删 2 个 Tab + 导出条)
+(删除:AssemblyInfo.cs —— 见 ⓪ 的坑)
+</code></pre>
+<h2 id="sec-2-2">📋 需求单(先自己设计,再对照)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>需求</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR8-1</td>
+<td>启动接线:App.OnStartup → <code>Bootstrapper.Build()</code> → <code>pipeline.Register(device)</code> + <code>device.Connect()</code> → <code>new MainWindow{DataContext=new MainViewModel(Services)}</code>;窗口关闭 <code>Services.Dispose()</code></td>
+<td>启动直接进主窗,无登录</td>
+</tr>
+<tr>
+<td>FR8-2</td>
+<td><a href="#" class="kplink" data-kp="relaycommand" onclick="openKp('relaycommand');return false;">RelayCommand</a>:ICommand 极简实现,CanExecuteChanged 挂 <code>CommandManager.RequerySuggested</code></td>
+<td>按钮绑命令;IsRunning 翻转后启停按钮自动灰亮互换</td>
+</tr>
+<tr>
+<td>FR8-3</td>
+<td>MainViewModel:PointView 展示模型(<a href="#" class="kplink" data-kp="binding" onclick="openKp('binding');return false;">INotifyPropertyChanged</a>);<code>BatchReady</code> 里用 <a href="#" class="kplink" data-kp="dispatcher" onclick="openKp('dispatcher');return false;">Dispatcher</a>.Invoke 更新存储+报警+点位表;报警事件插入日志并同步 Level 给表盘</td>
+<td>启动采集后点位表出现 3 行,数值/时间持续跳动</td>
+</tr>
+<tr>
+<td>FR8-4</td>
+<td>自定义控件 <a href="#" class="kplink" data-kp="mvvm" onclick="openKp('mvvm');return false;">GaugeControl/StatusDot</a>:继承 Control + DependencyProperty + Generic.xaml 默认模板;ThemeInfo 特性指到本程序集</td>
+<td>表盘指针随值转;报警时环变橙/红;状态灯绿点</td>
+</tr>
+<tr>
+<td>FR8-5</td>
+<td><a href="#" class="kplink" data-kp="livecharts" onclick="openKp('livecharts');return false;">ChartView</a> 实时曲线:LiveCharts2 两条 LineSeries,ObservableCollection 滚动缓冲 600 点(60 秒)</td>
+<td>曲线页两条线滚动推进</td>
+</tr>
+<tr>
+<td>FR8-6</td>
+<td>DiagnosticsPanel(UserControl):绑 <code>DiagnosticsSummary</code> 一行式统计 + <code>DiagnosticsLog</code> 环形日志</td>
+<td>诊断页统计数字实时增长</td>
+</tr>
+<tr>
+<td>FR8-7</td>
+<td>主窗口组装:顶部标题+启停+状态文字,左点位表(DataGrid:点位/仪表/状态/时间),右 TabControl(报警日志/实时曲线/诊断),底部架构说明</td>
+<td>全布局可用,启动/停止切换状态文字</td>
+</tr>
+</tbody>
+</table>
+<p><strong>自己先想 10 分钟</strong>:
+1. <code>SensorPoint</code> 是 struct,为什么不直接把 <code>List&lt;SensorPoint&gt;</code> 绑给 DataGrid,而要转一层 PointView?(<a href="#" class="kplink" data-kp="struct-vs-class" onclick="openKp('struct-vs-class');return false;">struct-vs-class</a>:struct 赋值即拷贝、没有属性通知,UI 要的是"活的、会自己报信的"行对象)
+2. <code>BatchReady</code> 在后台线程触发,直接在里面改 <code>ObservableCollection</code> 会怎样?怎么破?(<a href="#" class="kplink" data-kp="dispatcher" onclick="openKp('dispatcher');return false;">Dispatcher</a>:WPF UI 元素只许 UI 线程碰,后台先 <code>Dispatcher.Invoke</code> 切线程)
+3. RelayCommand 的 <code>CanExecuteChanged</code> 为什么直接挂 <code>CommandManager.RequerySuggested</code>,而不是自己搞个事件?(借 WPF 全局重查机制:任何输入/焦点变化时所有命令自动重问 CanExecute,不用手动 Notify)
+4. GaugeControl 为什么继承 <code>Control</code> 而不是 <code>UserControl</code>?(外观全部交给 Generic.xaml 模板,可换肤、可当基础件跨项目复用——正是 JD 里的"熟练自绘控件")
+5. 为什么 ChartView 的接线放在 <code>MainWindow</code> 的 <code>DataContextChanged</code> 里,而不是构造函数?(<code>new MainWindow{DataContext=vm}</code> 先构造窗口、后赋 DataContext,构造时 VM 还不存在)</p>
+<h2 id="sec-2-3">📚 本篇知识点</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="mvvm" onclick="openKp('mvvm');return false;">MVVM 模式</a> · <a href="#" class="kplink" data-kp="binding" onclick="openKp('binding');return false;">数据绑定/INotifyPropertyChanged</a> · <a href="#" class="kplink" data-kp="relaycommand" onclick="openKp('relaycommand');return false;">RelayCommand</a> · <a href="#" class="kplink" data-kp="dispatcher" onclick="openKp('dispatcher');return false;">Dispatcher 跨线程</a> · <a href="#" class="kplink" data-kp="livecharts" onclick="openKp('livecharts');return false;">LiveCharts2 实时曲线</a> · <a href="#" class="kplink" data-kp="struct-vs-class" onclick="openKp('struct-vs-class');return false;">struct vs class</a> · <a href="#" class="kplink" data-kp="di" onclick="openKp('di');return false;">DI 组合根</a></li>
+</ul>
+<h2 id="sec-2-4">🛠️ 参考实现</h2>
+<h3 id="sec-3-1">⓪ 装包 + 清理模板(有坑)</h3>
+<pre><code class="language-bash">dotnet add src/DaqMonitor.UI package LiveChartsCore.SkiaSharpView.WPF --version 2.0.0-rc4.5
+</code></pre>
+<p><strong>坑 ① —— AssemblyInfo.cs 必须删</strong>:R1 的 <code>dotnet new wpf</code> 模板生成了 <code>AssemblyInfo.cs</code>,里面自带一条 <code>[assembly: ThemeInfo(...)]</code>;本篇又要加 <code>Controls/ThemeInfo.cs</code>(参考工程如此),两条程序集特性重复 → 编译错 <strong>CS0579 Duplicate 'ThemeInfo' attribute</strong>。参考工程的做法是删掉 AssemblyInfo.cs(它只有这一段内容):</p>
+<pre><code class="language-bash">rm src/DaqMonitor.UI/AssemblyInfo.cs
+</code></pre>
+<p><strong>坑 ② —— App.xaml 删掉 StartupUri</strong>:模板的 App.xaml 带着 <code>StartupUri="MainWindow.xaml"</code>,不删的话 WPF 会自动再开一个<strong>没有 DataContext 的空 MainWindow</strong>(加上 OnStartup 里手工开的那个 = 两个窗口)。改成下面这样(对照参考工程,xmlns:local 留着无害):</p>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/App.xaml</code></p>
+</blockquote>
+<pre><code class="language-xml">&lt;Application x:Class=&quot;DaqMonitor.UI.App&quot;
+             xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+             xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+             xmlns:local=&quot;clr-namespace:DaqMonitor.UI&quot;&gt;
+    &lt;Application.Resources&gt;
+    &lt;/Application.Resources&gt;
+&lt;/Application&gt;
+</code></pre>
+<p>csproj 最终状态(模板属性不变,只多 LiveCharts 一个包;参考工程另有 ClosedXML,是 R9+ 报表篇的):</p>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/DaqMonitor.UI.csproj</code></p>
+</blockquote>
+<pre><code class="language-xml">&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;ProjectReference Include=&quot;..\DaqMonitor.Core\DaqMonitor.Core.csproj&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;WinExe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net8.0-windows&lt;/TargetFramework&gt;
+    &lt;RollForward&gt;Major&lt;/RollForward&gt;
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;UseWPF&gt;true&lt;/UseWPF&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;!-- LiveCharts2 实时曲线(M5 落地):Core 2.x 跨平台,WPF 用 SkiaSharpView --&gt;
+    &lt;PackageReference Include=&quot;LiveChartsCore.SkiaSharpView.WPF&quot; Version=&quot;2.0.0-rc4.5&quot; /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;
+</code></pre>
+<h3 id="sec-3-2">① App.xaml.cs —— 启动接线(R8 版:无登录)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/App.xaml.cs</code>
+💡 参考工程这里先弹 <code>LoginWindow</code>、登录成功才进主窗,并写审计日志——依赖 R9+ 的 AuthService/AuditService。R8 先直进主窗,R9+ 认证篇把 2)~4) 步装回来。</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Windows;
+using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.AppServices;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.UI.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace DaqMonitor.UI;
+
+public partial class App : Application
+{
+    /// &lt;summary&gt;全局 DI 容器,供各处取服务。真实工程常用 ServiceProvider 做组合根。&lt;/summary&gt;
+    public static ServiceProvider Services { get; private set; } = null!;
+
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        // 1) 组合根:一次性把 Core 全部服务装配好(含 SimulatedDevice + 报警规则)
+        Services = Bootstrapper.Build();
+
+        // 2) 启动采集链路(Start 由 UI 按钮触发,这里只 Connect)
+        var device = Services.GetRequiredService&lt;IDevice&gt;();
+        var pipeline = Services.GetRequiredService&lt;AcquisitionPipeline&gt;();
+        pipeline.Register(device);
+        device.Connect();
+
+        // 3) 用 DI 解析出的服务构造 ViewModel,再交给 MainWindow 作为 DataContext
+        //    (R9+ 认证篇:这里先弹 LoginWindow,登录成功才进主窗)
+        var vm = new MainViewModel(Services);
+        var window = new MainWindow { DataContext = vm };
+        window.Closed += (_, _) =&gt; Services.Dispose();
+        window.Show();
+    }
+}
+</code></pre>
+<h3 id="sec-3-3">② RelayCommand —— 可绑定命令(原文)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/ViewModels/RelayCommand.cs</code>
+🔧 无 NuGet · 💡 把"点击该干嘛"变成 VM 上的属性,XAML <code>Command="{Binding StartCommand}"</code> 直接绑</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Windows.Input;
+
+namespace DaqMonitor.UI.ViewModels;
+
+/// &lt;summary&gt;
+/// 极简 ICommand 实现：把按钮点击映射到 ViewModel 里的一个方法。
+/// （M8 会讲更完整的 MVVM；这里先用它能跑、能演示就够了。）
+/// &lt;/summary&gt;
+public class RelayCommand : ICommand
+{
+    private readonly Action&lt;object?&gt; _execute;
+    private readonly Func&lt;object?, bool&gt;? _canExecute;
+
+    public RelayCommand(Action&lt;object?&gt; execute, Func&lt;object?, bool&gt;? canExecute = null)
+    {
+        _execute = execute;
+        _canExecute = canExecute;
+    }
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add { CommandManager.RequerySuggested += value; }
+        remove { CommandManager.RequerySuggested -= value; }
+    }
+
+    public bool CanExecute(object? parameter) =&gt; _canExecute?.Invoke(parameter) ?? true;
+
+    public void Execute(object? parameter) =&gt; _execute(parameter);
+}
+</code></pre>
+<h3 id="sec-3-4">③ MainViewModel —— 主屏 VM(R8 删减版)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/ViewModels/MainViewModel.cs</code>
+💡 删了什么:当前用户/角色区、权限判断的 Can<em> 表达式、配方/运控两个子 VM、报表导出、登出——全部依赖 R9+ 服务。保留主干:BatchReady → 表格/存储/报警,报警事件 → 日志/表盘变色,Start/Stop
+💡 看三处精髓:</em><em>PointView 为什么是 class</em><em>(struct 拷贝+无通知,绑不了 UI)、</em><em>Dispatcher.Invoke 包住整个批量更新</em><em>(一次跨线程,整批处理)、</em><em>_levels 字典把报警级别带回下次批量刷新</em>*(报警恢复后表盘能变回蓝)</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Input;
+using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.Alarms;
+using DaqMonitor.Core.AppServices;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Diagnostics;
+using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Store;
+using DaqMonitor.UI.Views;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace DaqMonitor.UI.ViewModels;
+
+/// &lt;summary&gt;点位在界面上的展示模型（值类型 SensorPoint 不适合直接绑 UI，转成带通知的属性）。&lt;/summary&gt;
+public class PointView : INotifyPropertyChanged
+{
+    private int _id;
+    private double _value;
+    private DateTime _timestamp;
+    private DeviceState _state;
+    private AlarmLevel _level = AlarmLevel.Normal;
+
+    public int Id { get =&gt; _id; set { _id = value; OnChanged(); } }
+    public double Value { get =&gt; _value; set { _value = value; OnChanged(); } }
+    public DateTime Timestamp { get =&gt; _timestamp; set { _timestamp = value; OnChanged(); } }
+    public DeviceState State { get =&gt; _state; set { _state = value; OnChanged(); } }
+    /// &lt;summary&gt;当前报警级别，驱动 GaugeControl 表盘变色（M6 报警 → M14 控件的跨模块复用演示）。&lt;/summary&gt;
+    public AlarmLevel Level { get =&gt; _level; set { _level = value; OnChanged(); } }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnChanged([CallerMemberName] string? n = null)
+        =&gt; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+}
+
+/// &lt;summary&gt;
+/// 主窗口 ViewModel：从 DI 容器取出真实服务（管道 / 存储 / 报警引擎 / 设备 / 诊断服务），
+/// 把后台采集事件接入 UI。
+/// R8 版:不含登录/权限/配方/运控/报表(R9+ 各篇加回),专注“采集数据 → 界面”主线。
+/// &lt;/summary&gt;
+public class MainViewModel : INotifyPropertyChanged
+{
+    private readonly PointStore _store;
+    private readonly AcquisitionPipeline _pipeline;
+    private readonly AlarmEngine _alarms;
+    private readonly IDevice _device;
+    private readonly DiagnosticsService _diag;
+    private readonly Dictionary&lt;int, AlarmLevel&gt; _levels = new();
+    private bool _running;
+    private ChartView? _chart;
+
+    public ObservableCollection&lt;PointView&gt; Points { get; } = new();
+    public ObservableCollection&lt;string&gt; AlarmLog { get; } = new();
+
+    public ICommand StartCommand { get; }
+    public ICommand StopCommand { get; }
+
+    /// &lt;summary&gt;诊断面板绑定的“一行式”统计摘要（每次批量后刷新）。&lt;/summary&gt;
+    public string DiagnosticsSummary
+        =&gt; $&quot;采样 {_diag.TotalSamples} 点 | 报警 {_diag.AlarmCount} 次 | 批次 {_diag.BatchCount} | 末批 {_diag.LastBatchMs}ms | 运行 {_diag.Uptime:hh\\:mm\\:ss}&quot;;
+
+    /// &lt;summary&gt;诊断面板绑定的日志视图（环形缓冲，最多 200 条）。&lt;/summary&gt;
+    public ReadOnlyObservableCollection&lt;string&gt; DiagnosticsLog =&gt; _diag.Log;
+
+    public bool IsRunning
+    {
+        get =&gt; _running;
+        private set
+        {
+            _running = value;
+            OnChanged();
+            // 运行状态翻转 → 启停按钮的可用性也跟着变
+            OnChanged(nameof(CanStartAcquisition));
+            OnChanged(nameof(CanStopAcquisition));
+        }
+    }
+
+    /// &lt;summary&gt;启动采集按钮 IsEnabled:当前未在跑。(R9+ 认证篇:前面再 &amp;&amp; 上权限判断)&lt;/summary&gt;
+    public bool CanStartAcquisition =&gt; !IsRunning;
+
+    /// &lt;summary&gt;停止采集按钮 IsEnabled:当前正在跑。&lt;/summary&gt;
+    public bool CanStopAcquisition =&gt; IsRunning;
+
+    public MainViewModel(ServiceProvider services)
+    {
+        _store = services.GetRequiredService&lt;PointStore&gt;();
+        _pipeline = services.GetRequiredService&lt;AcquisitionPipeline&gt;();
+        _alarms = services.GetRequiredService&lt;AlarmEngine&gt;();
+        _device = services.GetRequiredService&lt;IDevice&gt;();
+        _diag = services.GetRequiredService&lt;DiagnosticsService&gt;();
+
+        StartCommand = new RelayCommand(_ =&gt; Start());
+        StopCommand = new RelayCommand(_ =&gt; Stop());
+
+        _pipeline.BatchReady += OnBatchReady;
+        _alarms.AlarmTriggered += OnAlarmTriggered;
+        _alarms.AlarmCleared += OnAlarmCleared;
+
+        _diag.RecordInfo(&quot;应用启动，DI 容器已装配（设备/管道/存储/报警/诊断）。&quot;);
+    }
+
+    /// &lt;summary&gt;由 MainWindow 注入：把实时曲线页接到 BatchReady。&lt;/summary&gt;
+    public void AttachChart(ChartView chart)
+    {
+        _chart = chart;
+        chart.StartDemo();   // 演示模式：无外部数据源时自动生成曲线
+    }
+
+    private void OnBatchReady(object? _, IReadOnlyList&lt;SensorPoint&gt; batch)
+    {
+        // 用 Stopwatch 给“批量处理耗时”计时 —— 工业排查“卡顿/丢点”的第一指标
+        var sw = Stopwatch.StartNew();
+        Application.Current.Dispatcher.Invoke(() =&gt;
+        {
+            foreach (var p in batch)
+            {
+                _store.AddOrUpdate(p);
+                _alarms.Evaluate(p);   // 跑报警规则（命中只在上上升沿通知）
+
+                PointView? row = Points.FirstOrDefault(x =&gt; x.Id == p.Id);
+                if (row is null)
+                {
+                    row = new PointView { Id = p.Id, Value = p.Value, Timestamp = p.Timestamp, State = p.State };
+                    Points.Add(row);
+                }
+                else
+                {
+                    row.Value = p.Value;
+                    row.Timestamp = p.Timestamp;
+                    row.State = p.State;
+                }
+                // 把“当前报警级别”同步给控件（没有报警就保持 Normal → 蓝环）
+                if (_levels.TryGetValue(p.Id, out var lv)) row.Level = lv;
+            }
+            OnChanged(nameof(DiagnosticsSummary));
+        });
+        sw.Stop();
+        _diag.RecordBatch(batch.Count, sw.ElapsedMilliseconds);
+    }
+
+    private void OnAlarmTriggered(object? _, AlarmEvent e)
+    {
+        Application.Current.Dispatcher.Invoke(() =&gt;
+        {
+            AlarmLog.Insert(0, $&quot;[{DateTime.Now:HH:mm:ss}] 点位 {e.PointId} → {e.Level} 报警，值 = {e.Value}&quot;);
+            _levels[e.PointId] = e.Level;                 // 记住级别，下次批量刷新时同步给控件
+            var row = Points.FirstOrDefault(x =&gt; x.Id == e.PointId);
+            if (row is not null) row.Level = e.Level;     // 表盘立即变橙/红（GaugeControl.Level 驱动）
+        });
+        _diag.RecordAlarm(e.PointId, e.Level.ToString(), e.Value);
+    }
+
+    private void OnAlarmCleared(object? _, AlarmEvent e)
+    {
+        Application.Current.Dispatcher.Invoke(() =&gt;
+        {
+            _levels[e.PointId] = AlarmLevel.Normal;       // 复位
+            var row = Points.FirstOrDefault(x =&gt; x.Id == e.PointId);
+            if (row is not null) row.Level = AlarmLevel.Normal;   // 表盘恢复蓝环
+        });
+        _diag.RecordInfo($&quot;点位 {e.PointId} 报警恢复（值回到正常区间）。&quot;);
+    }
+
+    private void Start()
+    {
+        if (IsRunning) return;
+        if (_device is SimulatedDevice sd) sd.Start(TimeSpan.FromMilliseconds(100));
+        _diag.RecordInfo($&quot;启动采集：{_device.Name}（模拟设备）。&quot;);
+        IsRunning = true;
+    }
+
+    private void Stop()
+    {
+        if (!IsRunning) return;
+        if (_device is SimulatedDevice sd) sd.Stop();
+        _diag.RecordInfo(&quot;停止采集。&quot;);
+        IsRunning = false;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnChanged([CallerMemberName] string? n = null)
+        =&gt; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+}
+</code></pre>
+<h3 id="sec-3-5">④ 自定义控件三件套 + 默认模板(原文 ×4)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Controls/GaugeControl.cs</code>
+💡 "自绘控件"最正宗写法:继承 Control、无 xaml.cs、外观全在 Generic.xaml、对外只有 DependencyProperty。指针角度 = -135° + 量程比例 × 270°</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Windows;
+using System.Windows.Controls;
+using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.UI.Controls;
+
+/// &lt;summary&gt;
+/// 自定义控件①：量程指针表（Gauge）。
+/// 这是 WPF 里最&quot;正宗&quot;的自定义控件写法 —— 继承自 &lt;see cref=&quot;Control&quot;/&gt;，
+/// 外观全部交给 &lt;c&gt;Themes/Generic.xaml&lt;/c&gt; 里的默认 &lt;see cref=&quot;Style&quot;/&gt;（没有 xaml.cs 后台代码），
+/// 对外只暴露一组 DependencyProperty 供 XAML 绁定。
+///
+/// 为什么不用 UserControl？UserControl 是把现有控件&quot;拼&quot;起来（适合页面级复用）；
+/// 而&quot;自定义控件&quot;强调一套可换肤、可继承、可在不同项目里当基础件用的控件 —— 正是 JD 点名的&quot;熟练自绘控件&quot;。
+///
+/// 在 DAQMonitor 里它直接绑 &lt;c&gt;PointView.Value&lt;/c&gt;，让每个点位一眼看出当前读数；
+/// M12 工程量转换后，绑定的 Value 会变成&quot;工程量&quot;（如 ℃、MPa），控件零改动。
+/// &lt;/summary&gt;
+public class GaugeControl : Control
+{
+    /// &lt;summary&gt;告诉 WPF：本控件的默认样式去 Generic.xaml 里找 TargetType=GaugeControl 的那条。&lt;/summary&gt;
+    static GaugeControl()
+    {
+        DefaultStyleKeyProperty.OverrideMetadata(
+            typeof(GaugeControl),
+            new FrameworkPropertyMetadata(typeof(GaugeControl)));
+    }
+
+    // ---- 依赖属性：控件对外暴露的全部&quot;可绑定点&quot; ----
+    public static readonly DependencyProperty ValueProperty =
+        DependencyProperty.Register(nameof(Value), typeof(double), typeof(GaugeControl),
+            new PropertyMetadata(0d, (d, _) =&gt; RecalcAngle(d)));
+
+    public static readonly DependencyProperty MinProperty =
+        DependencyProperty.Register(nameof(Min), typeof(double), typeof(GaugeControl),
+            new PropertyMetadata(0d, (d, _) =&gt; RecalcAngle(d)));
+
+    public static readonly DependencyProperty MaxProperty =
+        DependencyProperty.Register(nameof(Max), typeof(double), typeof(GaugeControl),
+            new PropertyMetadata(150d, (d, _) =&gt; RecalcAngle(d)));
+
+    public static readonly DependencyProperty UnitProperty =
+        DependencyProperty.Register(nameof(Unit), typeof(string), typeof(GaugeControl),
+            new PropertyMetadata(string.Empty));
+
+    public static readonly DependencyProperty LabelProperty =
+        DependencyProperty.Register(nameof(Label), typeof(string), typeof(GaugeControl),
+            new PropertyMetadata(string.Empty));
+
+    /// &lt;summary&gt;报警级别：Normal 蓝环 / Warning 橙环 / Critical 红环（M6 报警引擎会驱动它）。&lt;/summary&gt;
+    public static readonly DependencyProperty LevelProperty =
+        DependencyProperty.Register(nameof(Level), typeof(AlarmLevel), typeof(GaugeControl),
+            new PropertyMetadata(AlarmLevel.Normal));
+
+    /// &lt;summary&gt;指针角度（度）。由 Value/Min/Max 算出，XAML 模板里绑给指针的 RotateTransform。&lt;/summary&gt;
+    public static readonly DependencyProperty NeedleAngleProperty =
+        DependencyProperty.Register(nameof(NeedleAngle), typeof(double), typeof(GaugeControl),
+            new PropertyMetadata(-135d));
+
+    public double Value { get =&gt; (double)GetValue(ValueProperty); set =&gt; SetValue(ValueProperty, value); }
+    public double Min { get =&gt; (double)GetValue(MinProperty); set =&gt; SetValue(MinProperty, value); }
+    public double Max { get =&gt; (double)GetValue(MaxProperty); set =&gt; SetValue(MaxProperty, value); }
+    public string Unit { get =&gt; (string)GetValue(UnitProperty); set =&gt; SetValue(UnitProperty, value); }
+    public string Label { get =&gt; (string)GetValue(LabelProperty); set =&gt; SetValue(LabelProperty, value); }
+    public AlarmLevel Level { get =&gt; (AlarmLevel)GetValue(LevelProperty); set =&gt; SetValue(LevelProperty, value); }
+    public double NeedleAngle { get =&gt; (double)GetValue(NeedleAngleProperty); set =&gt; SetValue(NeedleAngleProperty, value); }
+
+    /// &lt;summary&gt;把当前 Value 映射到 -135°~+135°（270° 量程，缺口在底部），即表针角度。&lt;/summary&gt;
+    private static void RecalcAngle(DependencyObject d)
+    {
+        var g = (GaugeControl)d;
+        var max = g.Max;
+        if (max &lt;= g.Min) max = g.Min + 1;
+        var ratio = (g.Value - g.Min) / (max - g.Min);
+        ratio = Math.Max(0, Math.Min(1, ratio));
+        g.NeedleAngle = -135 + ratio * 270;
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Controls/StatusDot.cs</code>
+💡 同套路再来一个;Connecting 状态的脉冲动画写在模板 Storyboard 里,代码零动画</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Windows;
+using System.Windows.Controls;
+using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.UI.Controls;
+
+/// &lt;summary&gt;
+/// 自定义控件②：设备状态灯（StatusDot）。
+/// 同样的&quot;自定义控件&quot;套路：继承 &lt;see cref=&quot;Control&quot;/&gt; + Generic.xaml 默认样式 + DependencyProperty。
+///
+/// 这里特意演示了&quot;用动画表达状态&quot;：Connecting 时小圆点做透明度脉冲（Storyboard 写在 Generic.xaml 里），
+/// 比单纯改颜色更接近工业 HMI 的&quot;正在连接/通讯中&quot;观感。
+///
+/// 在 DAQMonitor 里它直接绑 &lt;c&gt;PointView.State&lt;/c&gt;（Offline/Connecting/Online）；
+/// M1 接入真实串口、M3 接入真实 PLC 后，连接握手过程就会出现 Connecting 脉冲，控件原样复用。
+/// &lt;/summary&gt;
+public class StatusDot : Control
+{
+    static StatusDot()
+    {
+        DefaultStyleKeyProperty.OverrideMetadata(
+            typeof(StatusDot),
+            new FrameworkPropertyMetadata(typeof(StatusDot)));
+    }
+
+    public static readonly DependencyProperty StateProperty =
+        DependencyProperty.Register(nameof(State), typeof(DeviceState), typeof(StatusDot),
+            new PropertyMetadata(DeviceState.Offline));
+
+    public static readonly DependencyProperty TextProperty =
+        DependencyProperty.Register(nameof(Text), typeof(string), typeof(StatusDot),
+            new PropertyMetadata(string.Empty));
+
+    public DeviceState State { get =&gt; (DeviceState)GetValue(StateProperty); set =&gt; SetValue(StateProperty, value); }
+    public string Text { get =&gt; (string)GetValue(TextProperty); set =&gt; SetValue(TextProperty, value); }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Controls/ThemeInfo.cs</code>
+💡 没有这一行(或 AssemblyInfo.cs 里那条),Generic.xaml 找不到 → 控件<strong>不报错但画不出来</strong>(空白)。这就是 ⓪ 坑①要删 AssemblyInfo.cs 的原因:两条 ThemeInfo 重复编译错 CS0579,留哪条?留这条(参考工程的选择,两个参数都是 SourceAssembly)</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Windows;
+
+// 关键：告诉 WPF &quot;本程序集里自定义控件的默认主题字典在程序集内部（Themes/Generic.xaml）&quot;。
+// 没有这一行，GaugeControl / StatusDot 会因为找不到默认 Style 而&quot;画不出来&quot;（不报错但空白）。
+// 这正是自定义控件 vs UserControl 最容易踩的坑，M14 会专门讲。
+[assembly: ThemeInfo(
+    ResourceDictionaryLocation.SourceAssembly,
+    ResourceDictionaryLocation.SourceAssembly)]
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Themes/Generic.xaml</code>
+💡 两个控件的默认 ControlTemplate:表盘 = 双椭圆环 + 旋转矩形指针 + DataTrigger 按 Level 换色;状态灯 = 圆点 + Connecting 脉冲 Storyboard。<strong>文件必须在 <code>Themes/</code> 目录、名字必须叫 <code>Generic.xaml</code></strong>(WPF 约定)</p>
+</blockquote>
+<pre><code class="language-xml">&lt;ResourceDictionary xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+                    xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+                    xmlns:local=&quot;clr-namespace:DaqMonitor.UI.Controls&quot;&gt;
+
+  &lt;!-- ============ GaugeControl 默认样式 ============ --&gt;
+  &lt;Style TargetType=&quot;{x:Type local:GaugeControl}&quot;&gt;
+    &lt;Setter Property=&quot;Width&quot; Value=&quot;120&quot;/&gt;
+    &lt;Setter Property=&quot;Height&quot; Value=&quot;120&quot;/&gt;
+    &lt;Setter Property=&quot;Template&quot;&gt;
+      &lt;Setter.Value&gt;
+        &lt;ControlTemplate TargetType=&quot;{x:Type local:GaugeControl}&quot;&gt;
+          &lt;Grid&gt;
+            &lt;!-- 表盘底环（轨道） --&gt;
+            &lt;Ellipse Width=&quot;108&quot; Height=&quot;108&quot; Stroke=&quot;#dde3ee&quot; StrokeThickness=&quot;10&quot; Fill=&quot;#fbfcfe&quot;/&gt;
+            &lt;!-- 报警级别环：默认蓝；Warning 橙虚线；Critical 红加粗（见下方 Trigger） --&gt;
+            &lt;Ellipse x:Name=&quot;ring&quot; Width=&quot;108&quot; Height=&quot;108&quot; Stroke=&quot;#2f6fed&quot; StrokeThickness=&quot;10&quot;/&gt;
+            &lt;!-- 指针：一个从表盘中心向上的细矩形，绕中心(0.5,1)旋转 --&gt;
+            &lt;Border Width=&quot;0&quot; Height=&quot;0&quot; HorizontalAlignment=&quot;Center&quot; VerticalAlignment=&quot;Center&quot;&gt;
+              &lt;Rectangle Width=&quot;4&quot; Height=&quot;44&quot; Fill=&quot;#2f6fed&quot; RadiusX=&quot;2&quot; RadiusY=&quot;2&quot;
+                         VerticalAlignment=&quot;Bottom&quot; HorizontalAlignment=&quot;Center&quot;
+                         RenderTransformOrigin=&quot;0.5,1&quot;&gt;
+                &lt;Rectangle.RenderTransform&gt;
+                  &lt;RotateTransform Angle=&quot;{Binding NeedleAngle, RelativeSource={RelativeSource TemplatedParent}}&quot;/&gt;
+                &lt;/Rectangle.RenderTransform&gt;
+              &lt;/Rectangle&gt;
+            &lt;/Border&gt;
+            &lt;!-- 中心读数 --&gt;
+            &lt;StackPanel HorizontalAlignment=&quot;Center&quot; VerticalAlignment=&quot;Center&quot; Margin=&quot;0,16,0,0&quot;&gt;
+              &lt;TextBlock Text=&quot;{Binding Value, RelativeSource={RelativeSource TemplatedParent}, StringFormat=F1}&quot;
+                         FontSize=&quot;20&quot; FontWeight=&quot;Bold&quot; HorizontalAlignment=&quot;Center&quot;/&gt;
+              &lt;TextBlock Text=&quot;{Binding Unit, RelativeSource={RelativeSource TemplatedParent}}&quot;
+                         FontSize=&quot;11&quot; Foreground=&quot;Gray&quot; HorizontalAlignment=&quot;Center&quot;/&gt;
+            &lt;/StackPanel&gt;
+            &lt;!-- 标签（如 点位编号） --&gt;
+            &lt;TextBlock Text=&quot;{Binding Label, RelativeSource={RelativeSource TemplatedParent}}&quot;
+                       HorizontalAlignment=&quot;Center&quot; VerticalAlignment=&quot;Bottom&quot; Margin=&quot;0,0,0,8&quot;
+                       FontSize=&quot;11&quot; Foreground=&quot;#67708a&quot;/&gt;
+          &lt;/Grid&gt;
+          &lt;ControlTemplate.Triggers&gt;
+            &lt;DataTrigger Binding=&quot;{Binding Level, RelativeSource={RelativeSource TemplatedParent}}&quot; Value=&quot;Warning&quot;&gt;
+              &lt;Setter TargetName=&quot;ring&quot; Property=&quot;Stroke&quot; Value=&quot;#e0a800&quot;/&gt;
+              &lt;Setter TargetName=&quot;ring&quot; Property=&quot;StrokeDashArray&quot; Value=&quot;2 2&quot;/&gt;
+              &lt;Setter TargetName=&quot;ring&quot; Property=&quot;StrokeThickness&quot; Value=&quot;12&quot;/&gt;
+            &lt;/DataTrigger&gt;
+            &lt;DataTrigger Binding=&quot;{Binding Level, RelativeSource={RelativeSource TemplatedParent}}&quot; Value=&quot;Critical&quot;&gt;
+              &lt;Setter TargetName=&quot;ring&quot; Property=&quot;Stroke&quot; Value=&quot;#e24b4b&quot;/&gt;
+              &lt;Setter TargetName=&quot;ring&quot; Property=&quot;StrokeThickness&quot; Value=&quot;12&quot;/&gt;
+            &lt;/DataTrigger&gt;
+          &lt;/ControlTemplate.Triggers&gt;
+        &lt;/ControlTemplate&gt;
+      &lt;/Setter.Value&gt;
+    &lt;/Setter&gt;
+  &lt;/Style&gt;
+
+  &lt;!-- ============ StatusDot 默认样式 ============ --&gt;
+  &lt;Style TargetType=&quot;{x:Type local:StatusDot}&quot;&gt;
+    &lt;Setter Property=&quot;Template&quot;&gt;
+      &lt;Setter.Value&gt;
+        &lt;ControlTemplate TargetType=&quot;{x:Type local:StatusDot}&quot;&gt;
+          &lt;StackPanel Orientation=&quot;Horizontal&quot; VerticalAlignment=&quot;Center&quot;&gt;
+            &lt;Ellipse x:Name=&quot;dot&quot; Width=&quot;12&quot; Height=&quot;12&quot; Fill=&quot;#28a745&quot;/&gt;
+            &lt;TextBlock x:Name=&quot;txt&quot; Text=&quot;{TemplateBinding Text}&quot; Margin=&quot;6,0,0,0&quot;
+                       VerticalAlignment=&quot;Center&quot; FontSize=&quot;12&quot;/&gt;
+          &lt;/StackPanel&gt;
+          &lt;ControlTemplate.Triggers&gt;
+            &lt;!-- 正在连接：黄点 + 透明度脉冲动画，模拟&quot;通讯中&quot; --&gt;
+            &lt;DataTrigger Binding=&quot;{Binding State, RelativeSource={RelativeSource TemplatedParent}}&quot; Value=&quot;Connecting&quot;&gt;
+              &lt;Setter TargetName=&quot;dot&quot; Property=&quot;Fill&quot; Value=&quot;#e0a800&quot;/&gt;
+              &lt;DataTrigger.EnterActions&gt;
+                &lt;BeginStoryboard&gt;
+                  &lt;Storyboard RepeatBehavior=&quot;Forever&quot; AutoReverse=&quot;True&quot;&gt;
+                    &lt;DoubleAnimation Storyboard.TargetName=&quot;dot&quot;
+                                     Storyboard.TargetProperty=&quot;Opacity&quot;
+                                     From=&quot;1&quot; To=&quot;0.3&quot; Duration=&quot;0 0:0:0.6&quot;/&gt;
+                  &lt;/Storyboard&gt;
+                &lt;/BeginStoryboard&gt;
+              &lt;/DataTrigger.EnterActions&gt;
+            &lt;/DataTrigger&gt;
+            &lt;!-- 离线：红点 --&gt;
+            &lt;DataTrigger Binding=&quot;{Binding State, RelativeSource={RelativeSource TemplatedParent}}&quot; Value=&quot;Offline&quot;&gt;
+              &lt;Setter TargetName=&quot;dot&quot; Property=&quot;Fill&quot; Value=&quot;#e24b4b&quot;/&gt;
+            &lt;/DataTrigger&gt;
+          &lt;/ControlTemplate.Triggers&gt;
+        &lt;/ControlTemplate&gt;
+      &lt;/Setter.Value&gt;
+    &lt;/Setter&gt;
+  &lt;/Style&gt;
+
+&lt;/ResourceDictionary&gt;
+</code></pre>
+<h3 id="sec-3-6">⑤ ChartView —— LiveCharts2 实时曲线(原文 ×2)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Views/ChartView.xaml</code>
+💡 XAML 只放最简壳,Series 由后台代码注入——避免和 ViewModel 的可观察集合强耦合</p>
+</blockquote>
+<pre><code class="language-xml">&lt;UserControl x:Class=&quot;DaqMonitor.UI.Views.ChartView&quot;
+             xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+             xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+             xmlns:lvc=&quot;clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF&quot;&gt;
+    &lt;Grid Margin=&quot;6&quot;&gt;
+        &lt;Grid.RowDefinitions&gt;
+            &lt;RowDefinition Height=&quot;Auto&quot; /&gt;
+            &lt;RowDefinition Height=&quot;*&quot; /&gt;
+        &lt;/Grid.RowDefinitions&gt;
+
+        &lt;TextBlock Grid.Row=&quot;0&quot; Margin=&quot;2,0,0,4&quot; FontSize=&quot;13&quot; FontWeight=&quot;Bold&quot;
+                   Text=&quot;实时曲线 · 最近 60 秒（温度 / 压力，10Hz）&quot; /&gt;
+
+        &lt;!-- CartesianChart 由 ChartView.xaml.cs 在 DataContext 设置后用代码注入 Series；
+             XAML 里只用最简控件，避免和 ViewModel 上下文里的可观察集合强耦合 --&gt;
+        &lt;lvc:CartesianChart x:Name=&quot;Chart&quot; Grid.Row=&quot;1&quot; /&gt;
+    &lt;/Grid&gt;
+&lt;/UserControl&gt;
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Views/ChartView.xaml.cs</code>
+💡 两条 <code>ObservableCollection&lt;double&gt;</code> 当滚动缓冲(超 600 个就 RemoveAt(0));外部可 <code>Push(SensorPoint)</code> 喂真实点位,<code>StartDemo()</code> 是无数据源的演示模式</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Threading;
+using DaqMonitor.Core.Models;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+
+namespace DaqMonitor.UI.Views;
+
+/// &lt;summary&gt;
+/// M5 实时曲线：LiveCharts2 + ObservableCollection(double) 滚动缓冲。
+/// 每 100ms tick 一次（10Hz），最多保留 600 个点（60 秒）。
+///
+/// 用法：MainWindow 把它放进 TabItem，并绑定/传入两条点位序列；
+/// 实战里改成订阅 AcquisitionPipeline.BatchReady，把点位按 id 分流进两条线。
+/// &lt;/summary&gt;
+public partial class ChartView : IDisposable, INotifyPropertyChanged
+{
+    private const int MaxPoints = 600;
+    private const int TickMs = 100;
+
+    private readonly ObservableCollection&lt;double&gt; _temp = new();
+    private readonly ObservableCollection&lt;double&gt; _press = new();
+    private readonly DispatcherTimer _timer;
+    private readonly Random _demo = new();
+
+    /// &lt;summary&gt;PointId → 序列映射：1=温度，2=压力。可外部配置。&lt;/summary&gt;
+    public int TemperaturePointId { get; set; } = 1;
+    public int PressurePointId { get; set; } = 2;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnChanged([System.Runtime.CompilerServices.CallerMemberName] string? n = null)
+        =&gt; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+
+    public ChartView()
+    {
+        InitializeComponent();
+
+        Chart.Series = new ISeries[]
+        {
+            new LineSeries&lt;double&gt;
+            {
+                Values = _temp,
+                Name = &quot;温度 (℃)&quot;,
+                Fill = null,
+                GeometrySize = 0,
+                LineSmoothness = 0.3
+            },
+            new LineSeries&lt;double&gt;
+            {
+                Values = _press,
+                Name = &quot;压力 (kPa)&quot;,
+                GeometrySize = 0,
+                LineSmoothness = 0.3
+            }
+        };
+
+        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(TickMs) };
+        _timer.Tick += OnTick;
+    }
+
+    /// &lt;summary&gt;外部喂入真实点位（典型由 MainViewModel 在 BatchReady 中调用）。&lt;/summary&gt;
+    public void Push(SensorPoint p)
+    {
+        if (p.Id == TemperaturePointId) PushOne(_temp, p.Value);
+        else if (p.Id == PressurePointId) PushOne(_press, p.Value);
+    }
+
+    private static void PushOne(ObservableCollection&lt;double&gt; col, double v)
+    {
+        col.Add(v);
+        while (col.Count &gt; MaxPoints) col.RemoveAt(0);
+    }
+
+    /// &lt;summary&gt;演示模式：无外部数据源时启用，自动生成温度/压力曲线。&lt;/summary&gt;
+    public void StartDemo()
+    {
+        if (!_timer.IsEnabled) _timer.Start();
+    }
+
+    public void StopDemo()
+    {
+        _timer.Stop();
+    }
+
+    private void OnTick(object? s, EventArgs e)
+    {
+        // 演示数据：温度 25±5，压力 80±10
+        double t = 25 + _demo.NextDouble() * 10 - 5;
+        double p = 80 + _demo.NextDouble() * 20 - 10;
+        PushOne(_temp, Math.Round(t, 2));
+        PushOne(_press, Math.Round(p, 2));
+    }
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        _timer.Tick -= OnTick;
+    }
+}
+</code></pre>
+<h3 id="sec-3-7">⑥ DiagnosticsPanel —— 诊断面板 UserControl(原文 ×2)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Diagnostics/DiagnosticsPanel.xaml</code>
+💡 UserControl vs 自定义控件的取舍现场:页面级组合复用用 UserControl(两个绑定就完事),基础件/换肤用 Control</p>
+</blockquote>
+<pre><code class="language-xml">&lt;UserControl x:Class=&quot;DaqMonitor.UI.Diagnostics.DiagnosticsPanel&quot;
+             xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+             xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+             xmlns:mc=&quot;http://schemas.openxmlformats.org/markup-compatibility/2006&quot;
+             xmlns:d=&quot;http://schemas.microsoft.com/expression/blend/2008&quot;
+             mc:Ignorable=&quot;d&quot; d:DesignHeight=&quot;320&quot; d:DesignWidth=&quot;420&quot;&gt;
+  &lt;!--
+    诊断面板：这是「边做边用自定义控件」的第二个例子 —— 用 UserControl 把“统计 + 日志”组合成一个可复用面板。
+    和 GaugeControl(继承 Control + 控件模板) 不同：UserControl 适合“页面级组合复用”，Control 适合“基础件/换肤复用”。
+    M14 会讲两者取舍。DataContext 继承自父窗口(MainViewModel)，所以直接绑它的属性即可。
+  --&gt;
+  &lt;StackPanel Margin=&quot;12&quot; Orientation=&quot;Vertical&quot;&gt;
+    &lt;TextBlock Text=&quot;🔧 诊断 / 调试面板&quot; FontSize=&quot;14&quot; FontWeight=&quot;Bold&quot; Margin=&quot;0,0,0,8&quot;/&gt;
+    &lt;Border Background=&quot;#f4f8ff&quot; BorderBrush=&quot;#d5e2ff&quot; BorderThickness=&quot;1&quot; CornerRadius=&quot;6&quot; Padding=&quot;10&quot; Margin=&quot;0,0,0,10&quot;&gt;
+      &lt;TextBlock Text=&quot;{Binding DiagnosticsSummary}&quot; FontFamily=&quot;Consolas&quot; FontSize=&quot;12&quot; TextWrapping=&quot;Wrap&quot;/&gt;
+    &lt;/Border&gt;
+    &lt;TextBlock Text=&quot;最近日志（环形缓冲，最多 200 条）&quot; FontSize=&quot;12&quot; Foreground=&quot;#67708a&quot; Margin=&quot;0,0,0,4&quot;/&gt;
+    &lt;ListBox ItemsSource=&quot;{Binding DiagnosticsLog}&quot; Height=&quot;200&quot;
+             FontFamily=&quot;Consolas&quot; FontSize=&quot;11&quot; BorderBrush=&quot;#d5e2ff&quot;&gt;
+      &lt;ListBox.ItemTemplate&gt;
+        &lt;DataTemplate&gt;
+          &lt;TextBlock Text=&quot;{Binding}&quot; TextWrapping=&quot;Wrap&quot;/&gt;
+        &lt;/DataTemplate&gt;
+      &lt;/ListBox.ItemTemplate&gt;
+    &lt;/ListBox&gt;
+  &lt;/StackPanel&gt;
+&lt;/UserControl&gt;
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/Diagnostics/DiagnosticsPanel.xaml.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using System.Windows.Controls;
+
+namespace DaqMonitor.UI.Diagnostics;
+
+/// &lt;summary&gt;
+/// 诊断面板 UserControl 的后台代码。
+/// 注意：这里几乎没有逻辑 —— 数据全部来自 DataContext(MainViewModel) 暴露的属性。
+/// 这正是 MVVM + UserControl 的正确姿势：UI 只负责“长什么样”，数据和行为都在 ViewModel。
+/// &lt;/summary&gt;
+public partial class DiagnosticsPanel : UserControl
+{
+    public DiagnosticsPanel() =&gt; InitializeComponent();
+}
+</code></pre>
+<h3 id="sec-3-8">⑦ MainWindow —— 主窗口组装(R8 删减版 ×2)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/MainWindow.xaml</code>
+💡 删了什么:右侧「配方管理」「运动控制」两个 Tab(R9+ 各篇加回)、顶部导出报表的日期区间+按钮(报表篇)、右上角当前用户区+登出(认证篇)。布局骨架三行:顶部操作条 / 中部左表右 Tab / 底部架构说明
+⚠️ <strong>坑 ③ —— 状态文字的绑定必须写 <code>Mode=OneWay</code>(对参考工程的一处纠错)</strong>:<code>Run.Text</code> 和 <code>TextBox.Text</code> 一样<strong>默认 TwoWay</strong>,而 <code>IsRunning</code> 是 <code>private set</code> 只读属性——不带 OneWay 的话窗口一 Show 就抛 <code>InvalidOperationException: 无法对只读属性 IsRunning 执行 TwoWay 绑定</code>(我在沙盒实跑抓到的,参考工程原文漏了这半句,启动即崩)。这是 WPF 经典冷知识:默认 TwoWay 的常用属性只有 <code>TextBox.Text</code>、<code>Run.Text</code>、<code>Slider.Value</code>、<code>CheckBox.IsChecked</code> 等少数几个,其余默认 OneWay。</p>
+</blockquote>
+<pre><code class="language-xml">&lt;Window x:Class=&quot;DaqMonitor.UI.MainWindow&quot;
+        xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
+        xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;
+        xmlns:vm=&quot;clr-namespace:DaqMonitor.UI.ViewModels&quot;
+        xmlns:ctrl=&quot;clr-namespace:DaqMonitor.UI.Controls&quot;
+        xmlns:diag=&quot;clr-namespace:DaqMonitor.UI.Diagnostics&quot;
+        xmlns:views=&quot;clr-namespace:DaqMonitor.UI.Views&quot;
+        Title=&quot;DAQ Monitor · 工业数据采集监控&quot; Height=&quot;560&quot; Width=&quot;880&quot;&gt;
+    &lt;Grid Margin=&quot;12&quot;&gt;
+        &lt;Grid.RowDefinitions&gt;
+            &lt;RowDefinition Height=&quot;Auto&quot; /&gt;
+            &lt;RowDefinition Height=&quot;*&quot; /&gt;
+            &lt;RowDefinition Height=&quot;Auto&quot; /&gt;
+        &lt;/Grid.RowDefinitions&gt;
+
+        &lt;!-- 顶部：标题 + 启动/停止 + 状态(R9+ 报表篇加回时间窗+导出按钮;认证篇加回当前用户区) --&gt;
+        &lt;StackPanel Grid.Row=&quot;0&quot; Orientation=&quot;Horizontal&quot; Margin=&quot;0,0,0,8&quot;&gt;
+            &lt;TextBlock Text=&quot;📡 DAQ Monitor&quot; FontSize=&quot;18&quot; FontWeight=&quot;Bold&quot; VerticalAlignment=&quot;Center&quot; /&gt;
+            &lt;Button Content=&quot;启动采集&quot; Command=&quot;{Binding StartCommand}&quot; Width=&quot;90&quot; Height=&quot;30&quot; Margin=&quot;16,0,0,0&quot;
+                    IsEnabled=&quot;{Binding CanStartAcquisition}&quot; /&gt;
+            &lt;Button Content=&quot;停止采集&quot; Command=&quot;{Binding StopCommand}&quot; Width=&quot;90&quot; Height=&quot;30&quot; Margin=&quot;8,0,0,0&quot;
+                    IsEnabled=&quot;{Binding CanStopAcquisition}&quot; /&gt;
+            &lt;TextBlock VerticalAlignment=&quot;Center&quot; Margin=&quot;16,0,0,0&quot;&gt;
+                &lt;Run Text=&quot;状态：&quot; /&gt;
+                &lt;Run Text=&quot;{Binding IsRunning, Converter={StaticResource RunningText}, Mode=OneWay}&quot; FontWeight=&quot;Bold&quot; /&gt;
+            &lt;/TextBlock&gt;
+        &lt;/StackPanel&gt;
+
+        &lt;!-- 左：实时点位表（数值列用 GaugeControl 显示读数，并绑 Level 让报警驱动变色） --&gt;
+        &lt;GroupBox Grid.Row=&quot;1&quot; Header=&quot;实时点位&quot; Margin=&quot;0,0,8,0&quot;&gt;
+            &lt;DataGrid ItemsSource=&quot;{Binding Points}&quot; AutoGenerateColumns=&quot;False&quot; IsReadOnly=&quot;True&quot;
+                      CanUserAddRows=&quot;False&quot; FontSize=&quot;13&quot;&gt;
+                &lt;DataGrid.Columns&gt;
+                    &lt;DataGridTextColumn Header=&quot;点位&quot; Binding=&quot;{Binding Id}&quot; Width=&quot;55&quot; /&gt;
+                    &lt;!-- 数值列：自定义控件 GaugeControl，Level 绑定当前报警级别（M6→M14 跨模块复用） --&gt;
+                    &lt;DataGridTemplateColumn Header=&quot;数值(仪表)&quot; Width=&quot;130&quot;&gt;
+                        &lt;DataGridTemplateColumn.CellTemplate&gt;
+                            &lt;DataTemplate&gt;
+                                &lt;ctrl:GaugeControl Value=&quot;{Binding Value}&quot; Min=&quot;0&quot; Max=&quot;150&quot; Level=&quot;{Binding Level}&quot;
+                                                   Label=&quot;{Binding Id, StringFormat=P{0}}&quot;
+                                                   Height=&quot;84&quot; Margin=&quot;2&quot; /&gt;
+                            &lt;/DataTemplate&gt;
+                        &lt;/DataGridTemplateColumn.CellTemplate&gt;
+                    &lt;/DataGridTemplateColumn&gt;
+                    &lt;!-- 状态列：自定义控件 StatusDot，M1/M3 真设备会出现 Connecting 脉冲 --&gt;
+                    &lt;DataGridTemplateColumn Header=&quot;状态&quot; Width=&quot;110&quot;&gt;
+                        &lt;DataGridTemplateColumn.CellTemplate&gt;
+                            &lt;DataTemplate&gt;
+                                &lt;ctrl:StatusDot State=&quot;{Binding State}&quot; Text=&quot;{Binding State}&quot; /&gt;
+                            &lt;/DataTemplate&gt;
+                        &lt;/DataGridTemplateColumn.CellTemplate&gt;
+                    &lt;/DataGridTemplateColumn&gt;
+                    &lt;DataGridTextColumn Header=&quot;采样时间&quot; Binding=&quot;{Binding Timestamp, StringFormat=HH:mm:ss.fff}&quot; Width=&quot;*&quot; /&gt;
+                &lt;/DataGrid.Columns&gt;
+            &lt;/DataGrid&gt;
+        &lt;/GroupBox&gt;
+
+        &lt;!-- 右：Tab 页（报警日志 + 实时曲线 + 诊断/调试面板;R9+ 配方篇/运控篇各加回一个 Tab） --&gt;
+        &lt;TabControl Grid.Row=&quot;1&quot; Margin=&quot;8,0,0,0&quot; HorizontalAlignment=&quot;Stretch&quot;&gt;
+            &lt;TabItem Header=&quot;报警日志&quot;&gt;
+                &lt;ListBox ItemsSource=&quot;{Binding AlarmLog}&quot; FontSize=&quot;12&quot; /&gt;
+            &lt;/TabItem&gt;
+            &lt;TabItem Header=&quot;实时曲线&quot;&gt;
+                &lt;views:ChartView x:Name=&quot;ChartTab&quot; /&gt;
+            &lt;/TabItem&gt;
+            &lt;TabItem Header=&quot;诊断 / 调试&quot;&gt;
+                &lt;diag:DiagnosticsPanel /&gt;
+            &lt;/TabItem&gt;
+        &lt;/TabControl&gt;
+
+        &lt;!-- 底：架构说明 --&gt;
+        &lt;TextBlock Grid.Row=&quot;2&quot; Margin=&quot;0,8,0,0&quot; FontSize=&quot;11&quot; Foreground=&quot;Gray&quot; TextWrapping=&quot;Wrap&quot;&gt;
+            架构：SimulatedDevice → DataReceived → AcquisitionPipeline(Channel 缓冲 + 200ms 定时批量) → PointStore + AlarmEngine → UI。
+            当前用模拟设备演示；M1/M3 把 SimulatedDevice 换成真实串口/PLC 设备即可，UI 与采集层零改动。右侧「诊断/调试」页可实时看采集统计与日志，是现场排查的第一抓手。
+        &lt;/TextBlock&gt;
+    &lt;/Grid&gt;
+&lt;/Window&gt;
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.UI/MainWindow.xaml.cs</code>
+💡 两个 Converter 放进窗口资源(XAML 里 StaticResource 才找得到);<code>DataContextChanged</code> 时机接 ChartView——因为 <code>new MainWindow{DataContext=vm}</code> 构造时 VM 还没来</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Globalization;
+using System.Windows;
+using System.Windows.Data;
+using DaqMonitor.UI.ViewModels;
+using DaqMonitor.UI.Views;
+
+namespace DaqMonitor.UI;
+
+/// &lt;summary&gt;把 bool 取反，给按钮的 IsEnabled 用。&lt;/summary&gt;
+public class InverseBoolConverter : IValueConverter
+{
+    public object Convert(object value, System.Type _, object __, CultureInfo ___)
+        =&gt; value is bool b ? !b : true;
+    public object ConvertBack(object _, System.Type __, object ___, CultureInfo ____) =&gt; Binding.DoNothing;
+}
+
+/// &lt;summary&gt;把采集状态显示成文字。&lt;/summary&gt;
+public class RunningTextConverter : IValueConverter
+{
+    public object Convert(object value, System.Type _, object __, CultureInfo ___)
+        =&gt; value is bool b &amp;&amp; b ? &quot;采集中&quot; : &quot;已停止&quot;;
+    public object ConvertBack(object _, System.Type __, object ___, CultureInfo ____) =&gt; Binding.DoNothing;
+}
+
+public partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        // 在 XAML 里用到的两个 Converter 需要事先放进资源
+        Resources.Add(&quot;InverseBool&quot;, new InverseBoolConverter());
+        Resources.Add(&quot;RunningText&quot;, new RunningTextConverter());
+        InitializeComponent();
+        // 订阅 DataContext 变化:当 VM 注入后,把曲线页接到 VM
+        // (R9+ 配方篇/运控篇:在这里把对应 Tab 的 Content 换成各自 View)
+        DataContextChanged += MainWindow_DataContextChanged;
+    }
+
+    private void MainWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            if (ChartTab is not null) vm.AttachChart(ChartTab);
+        }
+    }
+}
+</code></pre>
+<h2 id="sec-2-5">✅ 验证(必做)</h2>
+<pre><code class="language-bash">dotnet build
+dotnet test
+dotnet run --project src/DaqMonitor.UI
+</code></pre>
+<p><strong>期望输出(关键行)</strong>:</p>
+<pre><code>0 个错误
+6 个警告   ← 全部 NU1701,不是代码问题(见下)
+已通过! - 失败: 0,通过: 56 ... DaqMonitor.Tests.dll
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>NU1701 警告是预期的</strong>:LiveCharts2(2.0.0-rc4.5)的传递依赖 <code>SkiaSharp.Views.WPF</code> / <code>OpenTK</code> 只发了 .NET Framework 版包,NuGet 用兼容模式还原时提示"可能不完全兼容"——参考工程同样如此,不影响编译与运行,<strong>代码本身 0 警告</strong>(R1-R7 的"0 错 0 警"标准从本篇起放宽为"0 错、0 代码警告")。
+(build 含 DaqMonitor.UI;test 仍是 56——本篇不动 Core,UI 靠下面的手动清单)
+<code>dotnet run</code> 弹出主窗口 <strong>「DAQ Monitor · 工业数据采集监控」</strong>。</p>
+</blockquote>
+<p><strong>手动验收清单(窗口交互,自己点一遍)</strong>:</p>
+<ul>
+<li>[ ] 弹出主窗口,无第二个空窗口(App.xaml 的 StartupUri 已删)</li>
+<li>[ ] 点「启动采集」→ 状态变 <strong>采集中</strong>;「启动采集」按钮变灰、「停止采集」亮起</li>
+<li>[ ] 左侧「实时点位」出现 <strong>P1/P2/P3 三行</strong>:每个一个仪表盘,读数/指针/采样时间持续跳动(100ms 一发)</li>
+<li>[ ] 状态列三个绿点 Online(模拟设备 Connect 后即 Online)</li>
+<li>[ ] 数值偶尔冲上 95~120(模拟设备 10% 概率越限):某行表盘<strong>环变红/橙</strong>,右侧「报警日志」插入一条 <code>[时间] 点位 1 → Critical 报警,值 = 1xx</code>;值回落后表盘恢复蓝环、日志加一条"报警恢复"——这就是 R5 的<strong>回滞+边沿</strong>在界面上的样子</li>
+<li>[ ] 「实时曲线」页两条线(温度/压力)滚动推进</li>
+<li>[ ] 「诊断 / 调试」页:统计行"采样 N 点|报警 N 次|批次 N|末批 Nms"持续增长,日志列表有启动/报警记录</li>
+<li>[ ] 点「停止采集」→ 状态变 <strong>已停止</strong>,仪表读数停住,曲线仍在滚(演示模式自走,正常)</li>
+<li>[ ] 关窗退出,<code>%LocalAppData%\DaqMonitor\daq.db</code> 存在(R6 的库在真实路径上)</li>
+</ul>
+<blockquote>
+<p>🧪 R8 的 UI 我在交付前用 <code>dotnet build</code> + 短暂启动做了冒烟(窗口能起来、无启动崩溃;冒烟还真抓到并修掉一个启动崩溃,见 ⑦ 坑③);<strong>交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验</strong>——每一行都能追溯到 R2~R7 某个已测过的模块。</p>
+</blockquote>
+<h2 id="sec-2-6">✅ 验收清单</h2>
+<ul>
+<li>[ ] build 0 错、代码 0 警告(仅 LiveCharts2 传递依赖的 NU1701),test 56/56 绿</li>
+<li>[ ] 手动验收清单 9 条全过</li>
+<li>[ ] 能回答:为什么 PointView 是 class 而 SensorPoint 是 struct?(<a href="#" class="kplink" data-kp="struct-vs-class" onclick="openKp('struct-vs-class');return false;">struct-vs-class</a>:高频小值传拷贝用 struct;UI 绑定要引用+通知用 class)</li>
+<li>[ ] 能回答:BatchReady 里不包 <code>Dispatcher.Invoke</code> 会怎样?(后台线程改 ObservableCollection → InvalidOperationException,这就是 <a href="#" class="kplink" data-kp="dispatcher" onclick="openKp('dispatcher');return false;">Dispatcher</a> 存在的意义)</li>
+<li>[ ] 能回答:自定义控件和 UserControl 什么时候选哪个?(基础件/换肤/跨项目复用 → Control+Generic.xaml;页面级组合 → UserControl)</li>
+<li>[ ] 能回答:Generic.xaml 为什么必须在 Themes/ 目录、ThemeInfo 特性干什么?(WPF 按约定找主题字典;ThemeInfo 告诉它"字典在本程序集内")</li>
+<li>[ ] 能回答:状态文字 <code>&lt;Run Text="{Binding IsRunning,...}"/&gt;</code> 为什么必须写 <code>Mode=OneWay</code>?(Run.Text 默认 TwoWay,IsRunning 只读 → 不写启动即崩)</li>
+<li>[ ] git commit -m "R8: WPF主界面(点位表+仪表+状态灯+报警日志+曲线+诊断,主屏先行)"</li>
+</ul>
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p>"界面用 MVVM:MainWindow 的 XAML 只做布局,数据全部绑 MainViewModel——点位表绑 ObservableCollection,启停按钮绑 RelayCommand,IsRunning 翻转时通知 CanStart/CanStop 按钮自动灰亮。采集回调在后台线程,更新 UI 前统一 Dispatcher.Invoke 切回 UI 线程。展示模型上我把领域层的 SensorPoint(struct)转成 PointView(class + INotifyPropertyChanged),因为 struct 是值拷贝、没有属性通知,绑不上 UI——领域模型和视图模型各管各的。控件层我写了两个自定义控件:量程仪表盘和设备状态灯,继承 Control、依赖属性对外、外观全部在 Generic.xaml 的 ControlTemplate 里,报警级别用 DataTrigger 驱动换色——换肤、复用都不用动 C# 代码。曲线用 LiveCharts2 双线滚动缓冲六百点。整窗从 DI 组合根装配,换真设备只改 Bootstrapper 一行注册,UI 和采集层零耦合。"</p>
+</blockquote>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r8',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="proj-r7.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R7 · 组装诊断与容错</div></a>
+  <a style="visibility:hidden"></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

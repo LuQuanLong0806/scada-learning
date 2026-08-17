@@ -70,15 +70,15 @@
 - <strong>30 分钟</strong>:加看 Day 1 LINQ GroupBy 聚合(按时间/点位维度)
 - <strong>3 小时</strong>:全文精读 + Day 2 ClosedXML 导 Excel + Day 3 报表模板
 - 🎯 <strong>面试高频</strong>:报表维度设计(班次/小时/天)/ <strong>ClosedXML vs EPPlus 选型(License)</strong> / 聚合 SQL vs 内存计算
-- 🔁 <strong>配套复习</strong>:<a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M10 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M10 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>_points.Where(p =&gt; p.Timestamp &gt;= t0 &amp;&amp; p.Timestamp &lt; t1).GroupBy(p =&gt; p.Id).Select(g =&gt; new { Id = g.Key, Max = g.Max(p =&gt; p.Value) })</code> — LINQ 多级聚合,速查 §15
 - <code>var report = new { Date = today, Lines = new List&lt;ReportLine&gt;() }</code> — 匿名对象
 - <code>class ReportLine { public string Tag { get; init; } public double Max { get; init; } public double Avg { get; init; } }</code> — init-only 属性,速查 §4
 - <code>using var wb = new XLWorkbook()</code> — ClosedXML 资源释放,速查 §13
 - <code>await db.SensorPoints.Where(...).GroupBy(...).Select(...).ToListAsync()</code> — EF Core 异步聚合,速查 §8/§15</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M10 示例引用 <code>SensorPoint</code> / <code>SensorRecord</code> / <strong><code>PointStat</code></strong>(本模块核心聚合结果)等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>PointStat</code> 在"五、报表统计类型")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>ReportService</code> 和 <code>ReportExporter</code>(ClosedXML 导出)。</p>
+M10 示例引用 <code>SensorPoint</code> / <code>SensorRecord</code> / <strong><code>PointStat</code></strong>(本模块核心聚合结果)等类型 — 这些在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>PointStat</code> 在"五、报表统计类型")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>ReportService</code> 和 <code>ReportExporter</code>(ClosedXML 导出)。</p>
 </blockquote>
 <h2 id="sec-2-1">Day 1 — 历史聚合查询（LINQ GroupBy）</h2>
 <h2 id="sec-2-2">Day 1 — 历史聚合查询（LINQ GroupBy）</h2>
@@ -259,7 +259,7 @@ dotnet add package ClosedXML</code>
 💡 ClosedXML 是开源 Excel 操作库,<strong>不需要装 Office</strong>,纯托管代码生成 .xlsx。
 (QuestPDF 同理:<code>dotnet add package QuestPDF</code>,社区许可证免费)</p>
 <p>📂 <code>DaqMonitor.UI/Reporting/ReportExporter.cs</code> · namespace <code>DaqMonitor.UI.Reporting</code>
-💡 用到 <code>PointStat</code>(M10 Day 1 / <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>)</p>
+💡 用到 <code>PointStat</code>(M10 Day 1 / <a href="predefined-types.html">前置类型定义</a>)</p>
 </blockquote>
 <pre><code class="language-csharp">// DaqMonitor.UI/Reporting/ReportExporter.cs
 using System.Collections.Generic;

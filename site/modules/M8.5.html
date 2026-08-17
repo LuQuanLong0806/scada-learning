@@ -79,8 +79,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 PrismBootstrapper 替代手写 Bootstrapper
 - <strong>3 小时</strong>:全文精读 + Day 2 <strong>RegionManager 模块化</strong> + Day 3 <strong>EventAggregator 跨 VM 通信</strong> + Day 4 DialogService
 - 🎯 <strong>面试高频</strong>:<strong>RegionManager(动态注入 View)</strong> / <strong>EventAggregator(pub/sub 解耦)</strong> / ViewModelLocator 命名约定 / Prism vs CommunityToolkit.Mvvm 选型
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B17 EventAggregator 简化版 / B18 ViewModelLocator</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M8.5 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="muscle.html">代码肌肉 B17 EventAggregator 简化版 / B18 ViewModelLocator</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M8.5 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>abstract class PrismBootstrapper</code> — 抽象类继承,速查 §12
 - <code>RegisterTypes(IContainerRegistry c)</code> — 方法重写(<code>override</code>)
 - <code>interface IEventAggregator</code> — DI 注入的发布订阅总线,速查 §7/§12
@@ -478,7 +478,7 @@ public class ChartViewModel
 </code></pre>
 <p><strong>关键参数</strong>:
 - <code>ThreadOption.UIThread</code> —— 自动切到 UI 线程(不用 Dispatcher.Invoke)
-- <code>keepReferenceAlive: false</code> —— 弱引用,VM 销毁时不泄漏(默认 true 容易内存泄漏,见 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 1</a>)
+- <code>keepReferenceAlive: false</code> —— 弱引用,VM 销毁时不泄漏(默认 true 容易内存泄漏,见 <a href="traps.html">C# 陷阱讲义 陷阱 1</a>)
 - <code>filter: e =&gt; e.PointId == _currentPoint</code> —— 过滤订阅(只关心当前点)</p>
 <h3 id="sec-3-14">⚠️ 常见坑点预警</h3>
 <table>
@@ -644,14 +644,14 @@ _dialogService.ShowDialog(&quot;ConfirmDialog&quot;,
 <li><strong>M0/M8 手写 MVVM → Prism 重构</strong>:RelayCommand 升级 DelegateCommand,MainViewModel 拆成多个 VM,UI 单窗口 + Region。</li>
 <li><strong>M9 DI 容器 → Prism 容器</strong>:Microsoft.Extensions.DependencyInjection 切到 DryIoc(Prism 默认),Bootstrapper 改 PrismBootstrapper。</li>
 <li><strong>M3/M4 event 满天飞 → IEventAggregator</strong>:跨 VM 通信用 PubSubEvent,解耦。</li>
-<li><strong><a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 7 event</a></strong>:退订模式在 Prism EventAggregator 同样适用(<code>keepReferenceAlive:false</code>)。</li>
+<li><strong><a href="traps.html">C# 陷阱讲义 陷阱 7 event</a></strong>:退订模式在 Prism EventAggregator 同样适用(<code>keepReferenceAlive:false</code>)。</li>
 </ul>
 <h2 id="sec-2-7">📚 延伸阅读</h2>
 <ul>
 <li>Prism 官方文档:https://prismlibrary.com/docs/</li>
 <li>Prism GitHub(含完整示例):https://github.com/PrismLibrary/Prism</li>
 <li>DryIoc vs Microsoft.Extensions.DependencyInjection 性能对比:https://github.com/danielpalme/IocPerformance</li>
-<li>全部外链见 <a href="外部链接索引.html">外部链接索引.md</a></li>
+<li>全部外链见 <a href="links.html">外部链接索引.md</a></li>
 </ul>
 <h2 id="sec-2-8">🏗️ 项目任务(落到 DAQMonitor)</h2>
 <ol>

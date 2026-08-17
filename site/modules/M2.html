@@ -97,8 +97,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 前端类比表 + <strong>手算 1 帧 CRC16(必过关)</strong>
 - <strong>3 小时</strong>:全文精读 + NModbus4 跑通虚拟从站 + 异常码 0x01-0x04 排查
 - 🎯 <strong>面试高频</strong>:4 种寄存器(线圈/离散/输入/保持)/ 功能码 03-06-10 / <strong>手算 CRC16(5min 白板必过)</strong> / 地址偏移 40001→0
-- 🔁 <strong>配套复习</strong>:<a href="面试高频知识点_速记卡.html">速记卡 Q9-Q11</a> · <a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B1 CRC16 手写</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M2 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="interview.html">速记卡 Q9-Q11</a> · <a href="muscle.html">代码肌肉 B1 CRC16 手写</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M2 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>byte[]</code> / <code>ushort</code> / <code>0x1A</code> — 字节、双字节、十六进制字面量
 - <code>&lt;&lt;</code> / <code>&gt;&gt;</code> / <code>&amp;</code> / <code>|</code> / <code>^</code> — 位运算(CRC 算法必备)
 - <code>0x8005 &amp; 0xFFFF</code> — 位掩码
@@ -106,7 +106,7 @@
 - <code>for (int i = 0; i &lt; buf.Length; i++)</code> — 经典 for 循环(位移运算用)
 - <code>event EventHandler&lt;byte[]&gt;?</code> — 事件,速查 §7</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M2 示例引用 <code>DeviceBase</code> / <code>IDevice</code> / <code>SensorPoint</code> / <code>ByteOrder</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>ModbusDevice : DeviceBase</code>,跟着 Day 1-3 敲。</p>
+M2 示例引用 <code>DeviceBase</code> / <code>IDevice</code> / <code>SensorPoint</code> / <code>ByteOrder</code> 等类型 — 这些在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块还会<strong>新建</strong> <code>ModbusDevice : DeviceBase</code>,跟着 Day 1-3 敲。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>用 NModbus 连接一个 Modbus 从站（RTU 走串口 / TCP 走网口），循环读取保持寄存器，把值写入 DAQ Monitor 的 <code>PointStore</code>。并且——<strong>你能从零手搓一帧 Modbus RTU 请求、手算它的 CRC、再解析响应</strong>，因为现场排错和面试都靠这个。</p>

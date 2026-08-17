@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>质量审计 · 讲义质量评估 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="audit-quality">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、总体结论（诚实版）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、六维打分总表</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、逐模块细评</a><ul>
+<li class="l3"><a href="#sec-3-1">M0（8天，地基）</a></li>
+<li class="l3"><a href="#sec-3-2">M1 串口</a></li>
+<li class="l3"><a href="#sec-3-3">M2 Modbus</a></li>
+<li class="l3"><a href="#sec-3-4">M3 PLC</a></li>
+<li class="l3"><a href="#sec-3-5">M4 EF Core</a></li>
+<li class="l3"><a href="#sec-3-6">M5 可视化</a></li>
+<li class="l3"><a href="#sec-3-7">M6 报警/日志</a></li>
+<li class="l3"><a href="#sec-3-8">M7 MQTT/OPC</a></li>
+<li class="l3"><a href="#sec-3-9">M8 工程化</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、优点要肯定（不只挑刺）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、建议补充的拓展（按性价比排序）</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、诚实提醒</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">DAQ Monitor 讲义质量审计（M0–M8）</h1>
+<p>评估日期：2026-07-23
+评估方法：逐模块通读 <code>M0_每日讲义_深度版.md</code> 与 <code>M1~M8_*_深度版.md</code> 全文，对照 6 项要求 + 13~15K 上位机岗位真实要求。</p>
+<h2 id="sec-2-1">一、总体结论（诚实版）</h2>
+<p><strong>教学法形式已达标</strong>：5 段式（一句话→前端类比→分点代码→坑表→练习/答案/项目任务）、🟦🟩🟧 全程标注、⭐/🔥 重点标记、每模块都有前端类比表——你要求的"深度+类比+重点+练习"都做到了，代码可运行、项目链路连贯。</p>
+<p><strong>但「学完能否达到 15K 真实能力」——目前只能打到 10~13K（中级偏上），离稳拿 15K 还有 3 类硬缺口：</strong>
+1. <strong>生产级健壮性不足</strong>：讲义偏"跑通 API"，缺"高压/异常/重试/并发洪水"的真实工程处理；
+2. <strong>工程素养主题缺失</strong>：零单元测试、零 DI 容器、MVVM 只到"属性通知"皮毛、性能/负载只点了一句没实战；
+3. <strong>温故知新/串联最弱</strong>：只有 M0 Day8 有复盘，M1–M8 没有"复习日"也没有"跨模块组合大练习"。</p>
+<p><strong>大实话</strong>：讲义是"对的路线图"，不是"能力本身"。15K = 这份图 + 你<strong>真把每个项目任务写到能跑、能演示、能讲清为什么</strong> + 下面列的拓展。按现在内容走完，你能做出一个<strong>像样的简历项目</strong>、面试能讲技术点；但要稳过 15K 面试官的"生产深挖"，必须把短板补上。</p>
+<h2 id="sec-2-2">二、六维打分总表</h2>
+<p>图例：✓ 到位　△ 部分/偏浅　✗ 明显缺失</p>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>全面性</th>
+<th>重点突出</th>
+<th>类比举例</th>
+<th>温故/交叉</th>
+<th>15K生产深度</th>
+<th>关键缺失</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M0 C#/WPF/并发</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>△(仅Day8)</td>
+<td>△</td>
+<td>地基扎实，并发有实战题</td>
+</tr>
+<tr>
+<td>M1 串口</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>✗</td>
+<td>缺 SerialPort 已知坑/ReadAsync/流控</td>
+</tr>
+<tr>
+<td>M2 Modbus</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>✗</td>
+<td>缺异常码/功能码全集/批量性能</td>
+</tr>
+<tr>
+<td>M3 PLC(S7)</td>
+<td>△</td>
+<td>✓</td>
+<td>△(类比偏松)</td>
+<td>△</td>
+<td>✗</td>
+<td>缺 ErrorCode 检查/多区域/读写类</td>
+</tr>
+<tr>
+<td>M4 EF Core</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>✗</td>
+<td>缺迁移/索引/高频写策略/DI 生命周期</td>
+</tr>
+<tr>
+<td>M5 可视化</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>△</td>
+<td>缺 Channel<T> 实战 + 自相矛盾</td>
+</tr>
+<tr>
+<td>M6 报警/日志</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>✗</td>
+<td>缺回滞实战/报警确认/报警入库</td>
+</tr>
+<tr>
+<td>M7 MQTT/OPC</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>✗</td>
+<td>缺订阅(云端下发)/OPC UA 异步写法</td>
+</tr>
+<tr>
+<td>M8 工程化</td>
+<td>△</td>
+<td>✓</td>
+<td>✓</td>
+<td>△</td>
+<td>✗</td>
+<td>缺 DI 容器/单测/MVVM 实战/打包实操</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-3">三、逐模块细评</h2>
+<h3 id="sec-3-1">M0（8天，地基）</h3>
+<ul>
+<li>全面：C# 语法→WPF→并发全覆盖，深度合适。✓</li>
+<li>重点：⭐值引用/接口vs抽象类/事件-=/锁 都点到。✓</li>
+<li>类比：TS/JS 对标贯穿，Day7 多线程类比表是亮点。✓</li>
+<li>交叉：Day8 有"复习地图+自测7题"，但 Day1–7 线性推进，无每日回顾。△</li>
+<li>15K：综合大题（采集模拟器）质量高，是真并发闭环；CancellationToken 只在 Day7 答案里出现，基础讲 Thread/Task 时未提前铺垫。△</li>
+</ul>
+<h3 id="sec-3-2">M1 串口</h3>
+<ul>
+<li>全面：收发/帧解析/CRC/虚拟串口都有。但<strong>缺 SerialPort 经典坑</strong>：跨线程 Close 崩溃、DataReceived 在部分机器不触发、ReceivedBytesThreshold、DTR/RTS 硬件流控、现代 <code>BaseStream.ReadAsync</code> 写法。△</li>
+<li>重点：波特率一致/后台线程/半包粘包/GBK 乱码都标了。✓</li>
+<li>类比：WebSocket/Node serialport 对标，好懂。✓</li>
+<li>交叉：②呼应 M0 Day7（后台线程），项目任务接 RaiseData。△</li>
+<li>15K：代码能跑但偏 demo；真实上位机串口要处理的鲁棒性没讲。✗</li>
+</ul>
+<h3 id="sec-3-3">M2 Modbus</h3>
+<ul>
+<li>全面：4 类寄存器/RTU/TCP/读/写/浮点拼/轮询架构。缺：Modbus <strong>异常码</strong>（0x01 非法功能等，<code>try-catch ModbusSlaveException</code>）、功能码全集、批量读性能对比。△</li>
+<li>重点：地址偏移/大小端/轮询阻塞/超时重试。✓</li>
+<li>类比：REST API 对标，直观。✓</li>
+<li>交叉：③轮询架构呼应 M0 Day7；项目任务接 PointStore。△</li>
+<li>15K：缺生产级错误处理与重试策略（只说"要 try-catch+重连"没给模式）。✗</li>
+</ul>
+<h3 id="sec-3-4">M3 PLC</h3>
+<ul>
+<li>全面：连接/读DB/写DB/结构体映射/多设备统一。缺：S7 <strong>错误模型</strong>（<code>plc.LastErrorCode</code>/<code>IsConnected</code> 检查，不能假设一定抛异常）、多区域(M/I/Q)、<code>ReadClass/WriteClass</code> 结构体映射实战。△</li>
+<li>重点：DB偏移一致/优化访问/写生产PLC要授权/统一接口价值。✓</li>
+<li>类比："DB块号+偏移=表名+字段偏移"偏松，易误解。△</li>
+<li>交叉：②呼应 M0 Day5 的 IDevice 统一调度，项目任务串 M0–M3——<strong>这是全课程最好的交叉范例</strong>。△</li>
+<li>15K：真实 S7 通信的错误处理是面试高频，目前薄。✗</li>
+</ul>
+<h3 id="sec-3-5">M4 EF Core</h3>
+<ul>
+<li>全面：建模/写入/查询/CSV/仓储。缺：<strong>迁移</strong>（<code>dotnet ef migrations add</code>，只在类比里提）、时间字段<strong>索引</strong>（历史查询性能）、<strong>WAL/高频写入</strong>策略、DI 中 DbContext 生命周期（<code>using</code> 不够，高频场景错）。△</li>
+<li>重点：DbContext 短生命周期/异步API/批量写/时区。✓</li>
+<li>类比：Prisma 对标，准。✓</li>
+<li>交叉：LINQ 呼应 M0 Day3。△</li>
+<li>15K：仓储模式有，但"每秒几千条怎么存不锁库"没实战。✗</li>
+</ul>
+<h3 id="sec-3-6">M5 可视化</h3>
+<ul>
+<li>全面：曲线/仪表盘/跨线程/性能要点。缺：<code>Channel&lt;T&gt;</code> 实战（只提名字）、多 Series、大数据量降级。△</li>
+<li>重点：Dispatcher/限长/批量刷新。✓</li>
+<li>类比：ECharts/响应式对标，好。✓</li>
+<li>交叉：③呼应 M0 Day7。△</li>
+<li>15K：<strong>自相矛盾点</strong>——M5② 说"别逐点刷、攒 100ms 一批"，但 M5③ 与 M7② 代码仍是 <code>DataReceived</code> 里<strong>逐事件</strong> <code>Dispatcher.Invoke</code>/<code>PublishAsync</code>。100Hz×多设备下会冲垮 UI/网络。真实 15K 必须统一成"事件入队→Timer 批量出队"。需修正。△</li>
+</ul>
+<h3 id="sec-3-7">M6 报警/日志</h3>
+<ul>
+<li>全面：规则模型/引擎/事件总线/Serilog。缺：<strong>回滞(hysteresis)</strong> 只标"可选进阶"但生产必做（阈值附近抖动狂报）、报警<strong>确认/历史入库</strong>（应接 M4）、规则运行时增删的线程安全。△</li>
+<li>重点：规则与数据分离/防抖/报警风暴/结构化参数。✓</li>
+<li>类比：校验规则/EventEmitter 对标。✓</li>
+<li>交叉：②呼应 M0 Day6 事件，项目任务接 DataReceived。△</li>
+<li>15K：概念对，但缺"生产级报警"实战（回滞+确认+持久化）。✗</li>
+</ul>
+<h3 id="sec-3-8">M7 MQTT/OPC</h3>
+<ul>
+<li>全面：MQTT 发布/OPC UA 客户端读/订阅。缺：<strong>MQTT 订阅</strong>（云端下发设定值——上位机常要接收命令）、OPC UA <strong>异步正确写法</strong>（示例用 <code>.Result</code> 同步阻塞，有死锁风险）。△</li>
+<li>重点：JSON载荷/QoS/断线重连/节点路径/证书。✓</li>
+<li>类比：微信群/Broker 对标，生动。✓</li>
+<li>交叉：②呼应 M0 Day7。△</li>
+<li>15K：OPC UA 自称"了解即可"合理；但 MQTT 只发不收，真实上云是双向的。✗（部分）</li>
+</ul>
+<h3 id="sec-3-9">M8 工程化</h3>
+<ul>
+<li>全面：MVVM/配置化/全局异常/打包/README/简历。缺：<strong>DI 容器</strong>（MS DI）、<strong>单元测试</strong>（xUnit/Moq，15K 必备，零覆盖）、MVVM 实战（ICommand/WeakReferenceMessenger/验证）、<strong>打包实操步骤</strong>。△</li>
+<li>重点：MVVM加分/配置不写死/简历写架构决策/能演示。✓</li>
+<li>类比：store/.env 对标。✓</li>
+<li>交叉：①呼应 M6 日志。△</li>
+<li>15K：架构描述强，但"会写单测+会用 DI"是 15K 硬指标，目前空白。✗</li>
+</ul>
+<h2 id="sec-2-4">四、优点要肯定（不只挑刺）</h2>
+<ul>
+<li>5 段式深度标准<strong>全程一致执行</strong>，比多数市面教程更系统。</li>
+<li>🟦🟩🟧 三色标注是<strong>真价值</strong>：前端转行者最易混淆"语法/类库/第三方"，这份做得清楚。</li>
+<li>前端类比<strong>每个模块都有</strong>，且大多是"秒懂级"（WebSocket/REST/Promise/EventEmitter/Prisma）。</li>
+<li>项目任务<strong>真的串成一条线</strong>（IDevice 贯穿 M1–M3，事件贯穿 M0–M8），不是孤立知识点。</li>
+<li>坑表（🔥）真实有用，覆盖大量新手雷区。</li>
+</ul>
+<h2 id="sec-2-5">五、建议补充的拓展（按性价比排序）</h2>
+<p><strong>A 类·必补（不上这些到不了 15K）</strong>
+1. 单元测试入门（xUnit + Moq 测 AlarmEngine/PointStore/帧解析）——每模块加 1 个测试练习或新增"测试日"。
+2. DI 容器（Microsoft.Extensions.DependencyInjection）把 Device/Engine/Db 串起来——M8 补。
+3. 统一"采集→缓冲→定时批量出队"架构，修正 M5③/M7② 的逐事件写法矛盾。
+4. 生产级错误处理范式：重试+退避（手撸 ExponentialBackoff，无需 Polly）+ 各协议 ErrorCode 检查（尤其 S7、Modbus 异常码）。</p>
+<p><strong>B 类·加深（让讲解更"生产"）</strong>
+5. M1：SerialPort 已知坑 + <code>BaseStream.ReadAsync</code> 现代写法 + 硬件流控。
+6. M3：S7 错误模型 + 多区域 + ReadClass/WriteClass 实战。
+7. M4：迁移 + 索引 + WAL + 高频批量写。
+8. M6：回滞实战 + 报警确认 + 报警入库（接 M4）。</p>
+<p><strong>C 类·温故知新（你专门问的）</strong>
+9. 每个模块末尾加「复盘日」：3 道跨模块组合题（如 M5 复盘=用 M0 并发+M3 PLC 数据+M4 存储+M6 报警 拼一块监控页）+ 自测。
+10. 加 1 个「M9 综合作战」模块：全部能力集成成可演示系统 + 模拟数据压测（100Hz 验证不卡）。</p>
+<p><strong>D 类·了解即可（拓展阅读）</strong>
+11. 其他工业协议扫盲（OPC DA / Profinet / IEC104 / 645 电表），作为"广度"一页。
+12. OPC UA 服务端 / 证书体系（仅了解）。</p>
+<h2 id="sec-2-6">六、诚实提醒</h2>
+<ul>
+<li>讲义再好，也<strong>不等于能力</strong>。15K 的判定标准是：面试官能让你<strong>现场改一段并发 bug</strong>、<strong>讲清为什么用接口而不是 switch</strong>、<strong>说出一个你踩过的真实坑</strong>。这些只能靠你把每个 🏗️ 项目任务真写出来、跑起来、故意搞崩再修好。</li>
+<li>建议再加 1 个<strong>第二作品</strong>（协议调试助手/Modbus 测试工具），证明广度。</li>
+<li>不要为"看起来 15K"在简历写没做过的。本项目是<strong>真写的</strong>，描述里每句话你都要能现场演示——这也是项目任务必须落地的根本原因。</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="audit.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">质量复核 · 15K 完整性复核</div></a>
+  <a class="next" href="jobmap.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">岗位驱动 · 知识点全景图谱与缺口审计</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>

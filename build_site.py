@@ -157,6 +157,9 @@ PAGES = [
     dict(slug="audit", kind="support", file="审计_15K完整性复核.md",
          title="质量复核 · 15K 完整性复核", sub="5 维审计结论",
          what="对全部讲义的完整性/连贯性/易懂性/难点/外链复核", src="🟦 复核"),
+    dict(slug="audit-quality", kind="support", file="审计_讲义质量评估.md",
+         title="质量审计 · 讲义质量评估", sub="自评与改进项",
+         what="讲义整体质量的自评结论与待改进清单", src="🟦 审计"),
     dict(slug="jobmap", kind="support", file="岗位驱动_知识点全景图谱与缺口审计.md",
          title="岗位驱动 · 知识点全景图谱与缺口审计", sub="对照真实 JD 查遗漏",
          what="初级→资深中级知识点分级 + 逐项覆盖审计 + 新发现遗漏(CAN/USB/Git/调试工具/Prism)", src="🟦 审计"),
@@ -183,6 +186,42 @@ PAGES = [
          title="DAQMonitor · 项目实践总入口", sub="像入职一样边工作边学习",
          what="学完基础直接开工:需求单→自己开发→卡了看参考实现→知识点弹窗回讲义。R0-R8 从零长出完整采集监控系统",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r0", kind="module", file="项目实践_DaqMonitor_R0_需求总纲.md",
+         title="R0 · 需求总纲", sub="背景/用户故事/架构全景",
+         what="项目背景、用户故事、功能架构图、19 子系统全景表(哪些进 R1-R8、哪些 R9+)、里程碑计划与环境前置检查",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r1", kind="module", file="项目实践_DaqMonitor_R1_工程骨架与领域模型.md",
+         title="R1 · 工程骨架 + 领域模型", sub="sln 三项目 + Models",
+         what="slnx 三项目结构(Core/UI/Tests)、RollForward 防坑、领域模型四件套(SensorPoint/DeviceState/AlarmLevel/Alarm)",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r2", kind="module", file="项目实践_DaqMonitor_R2_设备抽象与模拟设备.md",
+         title="R2 · 设备抽象 + 模拟设备", sub="IDevice 全家 + 首批测试",
+         what="IDevice 同步门面/DataEventArgs/DeviceBase/SimulatedDevice(10% 越限触发报警),流程测试起步 2 个",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r3", kind="module", file="项目实践_DaqMonitor_R3_协议解析层.md",
+         title="R3 · 协议解析层", sub="CRC/帧解析/Modbus",
+         what="Crc16 查表、AA55 帧解析状态机、ModbusFrameParser(字节序 ABCD/CDAB)、TcpFrameParser 粘包处理,纯逻辑 13 测试",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r4", kind="module", file="项目实践_DaqMonitor_R4_真实设备接入.md",
+         title="R4 · 真实设备接入", sub="串口/Modbus/TCP/CAN/USB",
+         what="ISerialChannel 抽象 + Loopback/Serial 通道,SerialDevice/ModbusDevice/TcpDevice/PlcDevice/CanDevice/UsbHidDevice 全家",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r5", kind="module", file="项目实践_DaqMonitor_R5_采集管道与报警引擎.md",
+         title="R5 · 采集管道 + 报警引擎", sub="Channel 批量 + 回滞报警",
+         what="AcquisitionPipeline(Channel 缓冲+200ms 批量+构造即启动)、AlarmEngine(回滞+边沿触发)、EngineeringConverter 量程标定",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r6", kind="module", file="项目实践_DaqMonitor_R6_持久化双写落库.md",
+         title="R6 · 持久化双写落库", sub="EF Core + SQLite",
+         what="SensorRecord 实体、AppDb(R6 版)、PointStore 内存索引+Channel 串行落库双写、TestDb 临时文件工厂,50 测试",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r7", kind="module", file="项目实践_DaqMonitor_R7_组装诊断与容错.md",
+         title="R7 · 组装诊断与容错", sub="DI 组合根 + 重试 + 健康监测",
+         what="Bootstrapper 一处注册全站注入、Retry 指数退避+抖动、DeviceHealthMonitor 探活重连、DiagnosticsService 环形日志,56 测试",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-r8", kind="module", file="项目实践_DaqMonitor_R8_WPF主界面.md",
+         title="R8 · WPF 主界面", sub="MVVM 主屏(主屏先行)",
+         what="App DI 启动、MainViewModel+RelayCommand、GaugeControl/StatusDot 自定义控件、LiveCharts2 曲线、诊断面板+手动验收清单",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -193,12 +232,13 @@ SECTION_OF = {
     "modules":   ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8",
                   "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
                   "M15", "M16", "M17", "M18", "M19"],
-    "projects":  ["proj-daq", "proj2"],
+    "projects":  ["proj-daq", "proj-r0", "proj-r1", "proj-r2", "proj-r3", "proj-r4",
+                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj2"],
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
     "reference": ["traps", "csharp-syntax", "predefined-types", "wpf", "hardware",
-                  "links", "docs", "license", "audit", "audit-v2", "audit-v3"],
+                  "links", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3"],
 }
 _slug_to_section = {}
 for _sec, _slugs in SECTION_OF.items():
@@ -206,6 +246,9 @@ for _sec, _slugs in SECTION_OF.items():
         _slug_to_section[_s] = _sec
 for p in PAGES:
     p["section"] = _slug_to_section[p["slug"]]   # 未登记的 slug 会 KeyError，防止漏分
+
+# md 互链按“文件名(去 .md) → 页面 slug”重写(页面文件按 slug 命名,与源 md 文件名不一定相同)
+_FILE_TO_SLUG = {p["file"][:-len(".md")]: p["slug"] for p in PAGES}
 
 # 模块讲义分区内再分两组（分区页内两个 h2）
 for p in PAGES:
@@ -560,10 +603,12 @@ def convert(md_text, slug):
     # 规范首行 h1（若以 # 开头）为该页标题保持原样即可
     html = md_engine.convert(md_text)
 
-    # 链接重写:站点内的 [X](Y.md) → 生成 HTML 后应指向同目录 Y.html
+    # 链接重写:站点内的 [X](Y.md) → 指向目标页的 slug.html(页面按 slug 命名,不一定等于文件名)
     # 不重写跨网络/外链(http://, https://, #anchor, mailto:, 等)
-    html = re.sub(r'href="(?!https?://|mailto:|#|/)([^"#]+)\.md(?:#([^"]*))?"',
-                  lambda m: 'href="%s.html%s"' % (m.group(1), '#' + m.group(2) if m.group(2) else ''),
+    html = re.sub(r'href="(?!https?://|mailto:|/)([^"]+?)\.md(#([^"]*))?"',
+                  lambda m: 'href="%s.html%s"' % (
+                      _FILE_TO_SLUG.get(m.group(1), m.group(1)),
+                      '#' + m.group(3) if m.group(3) else ''),
                   html)
 
     # 知识点弹窗链接：md 里写 [📖 标题](kp:<id>) → 点击弹窗（内容见 KPOINTS）

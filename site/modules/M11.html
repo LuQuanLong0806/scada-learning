@@ -81,8 +81,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 帧格式设计(AA55+长度+payload+CRC)
 - <strong>3 小时</strong>:全文精读 + Day 2 <strong>粘包/拆包状态机</strong> + Day 3 心跳+重连
 - 🎯 <strong>面试高频</strong>:<strong>粘包/拆包(状态机拼帧)</strong> / 帧头为什么 AA55 / 长度前缀 vs 分隔符 / 心跳保活 + 静默超时
-- 🔁 <strong>配套复习</strong>:<a href="面试高频知识点_速记卡.html">速记卡 Q11 粘包半包</a> · <a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B16 TcpDevice 粘包状态机 15min 白板</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M11 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="interview.html">速记卡 Q11 粘包半包</a> · <a href="muscle.html">代码肌肉 B16 TcpDevice 粘包状态机 15min 白板</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M11 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>byte[] buf = new byte[1024]</code> / <code>ArraySegment&lt;byte&gt;</code> — 字节缓冲,速查 §2
 - <code>Memory&lt;byte&gt;</code> / <code>ReadOnlySpan&lt;byte&gt;</code> — 高性能零拷贝
 - <code>async Task&lt;int&gt; ReceiveAsync(byte[] buf, int offset, int count, ct)</code> — 异步 IO,速查 §8
@@ -90,7 +90,7 @@
 - <code>enum ParseState { WaitHeader, ReadLength, ReadBody, CheckCrc }</code> — 状态机枚举,速查 §12
 - <code>class FrameParser</code> 内部 <code>private int _state;</code> 字段 + 方法 — 完整 class 设计</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M11 示例引用 <code>DeviceBase</code> / <code>IDevice</code> / <code>SensorPoint</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>TcpDevice : DeviceBase</code> 和 <code>TcpFrameParser</code>(状态机),跟着 Day 1-3 敲。</p>
+M11 示例引用 <code>DeviceBase</code> / <code>IDevice</code> / <code>SensorPoint</code> 等类型 — 这些在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>TcpDevice : DeviceBase</code> 和 <code>TcpFrameParser</code>(状态机),跟着 Day 1-3 敲。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>写出一个 <code>TcpDevice</code> 实现 <code>IDevice</code>：连接 TCP → 收字节流 → 按自定义帧解析（处理<strong>粘包/拆包</strong>）→ 通过 <code>DataReceived</code> 事件抛业务数据 → 进 DAQ Monitor。证明"换通信介质不改采集层"。</p>

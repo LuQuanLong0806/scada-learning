@@ -73,8 +73,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 BenchmarkDotNet + dotnet counters 监控 GC/线程
 - <strong>3 小时</strong>:全文精读 + Day 2 <strong>dotMemory 抓内存泄漏(事件订阅泄漏)</strong> + Day 3 Channel 限流 + Day 4 长跑策略
 - 🎯 <strong>面试高频</strong>:<strong>BenchmarkDotNet 报告怎么读</strong> / <strong>dotnet counters vs dotnet dump</strong> / <strong>4 种内存泄漏(event/Cached delegate/Static/Timer)</strong> / Channel 限流背压 DropOldest
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B25 PerformanceCounter / B26 IDisposable 完整模式</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M9.5 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="muscle.html">代码肌肉 B25 PerformanceCounter / B26 IDisposable 完整模式</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M9.5 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>[MemoryDiagnoser]</code> / <code>[Benchmark]</code> / <code>[Params(100, 1000)]</code> — BenchmarkDotNet 特性
 - <code>Span&lt;byte&gt;</code> / <code>ReadOnlySpan&lt;T&gt;</code> — 零拷贝切片(性能核心,速查官方文档)
 - <code>GC.Collect()</code> / <code>GC.GetTotalMemory(forceFullCollection: true)</code> — 强制 GC
@@ -811,7 +811,7 @@ public int DroppedCount =&gt; _droppedCount;   // 通过 PipelineMetrics 上报
 <li><strong>← M4（持久化）</strong>：DB 写入的"降级走内存兜底"呼应 M4 的失败重放——DB 不是永远可用，兜底必须做。</li>
 <li><strong>← M5（实时可视化）</strong>：Day 1 的"struct vs class"bench 证明了 M5 用 <code>readonly struct SensorPoint</code> 的选择正确——每秒少 24KB 垃圾。</li>
 <li><strong>← M9（统一管道 + Retry + 心跳）</strong>：本模块是 M9 的"性能体检 + 长跑保险"——M9 解决"工程化结构"，本模块解决"性能数据 + 跑死怎么办"。</li>
-<li><strong>↔ M19（问题排查与调试）</strong>：M19 调试讲义的 4 种内存泄漏排查(<code>dotnet counters</code> / <code>dotnet gcdump</code> / <code>dotnet dump</code>)正是本模块 Day 2-3 的工具链。<strong>M9.5 偏"压测找瓶颈",M19 偏"调试找根因",两者工具栈重叠 70%,建议合并学习</strong>(参考 <a href="30天作战路线_转行冲刺版.html">30 天作战路线 Day 11 + Day 18</a> 把两块串起来)。</li>
+<li><strong>↔ M19（问题排查与调试）</strong>：M19 调试讲义的 4 种内存泄漏排查(<code>dotnet counters</code> / <code>dotnet gcdump</code> / <code>dotnet dump</code>)正是本模块 Day 2-3 的工具链。<strong>M9.5 偏"压测找瓶颈",M19 偏"调试找根因",两者工具栈重叠 70%,建议合并学习</strong>(参考 <a href="roadmap30.html">30 天作战路线 Day 11 + Day 18</a> 把两块串起来)。</li>
 <li><strong>→ 简历一句话</strong>：「用 BenchmarkDotNet 量化采集路径性能 &lt; 1ms；用 dotnet counters 监控 GC + 自定义业务 EventCounter；用 dotMemory 排查并修复事件订阅泄漏；长跑策略 Channel 限流 + 熔断 + 心跳自愈」——四句对齐 15K 加分项。</li>
 </ul>
 <h2 id="sec-2-7">🧩 完整代码组装（M9.5 落地的关键代码，可直接抄 / 添加到工程）</h2>

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R3 · 协议解析层 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-r3">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(先自己设计,再对照)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
+<li class="l3"><a href="#sec-3-1">① Crc16 —— 一切帧的防伪码</a></li>
+<li class="l3"><a href="#sec-3-2">② FrameParser —— AA55 自定义帧(串口半包/粘包)</a></li>
+<li class="l3"><a href="#sec-3-3">③ ModbusFrameParser —— 工业标准协议的拆包</a></li>
+<li class="l3"><a href="#sec-3-4">④ TcpFrameParser —— TCP 长度前缀帧</a></li>
+<li class="l3"><a href="#sec-3-5">⑤ 三个测试文件(13 个测试)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">R3 · 协议解析层(CRC / AA55 帧 / Modbus / TCP 帧,纯逻辑零 IO)</h1>
+<blockquote>
+<p><strong>定位</strong>:设备说"方言"(字节流),上层要说"普通话"(帧/值)。这一篇把三种方言的翻译官写出来——<strong>不碰任何硬件</strong>,所以测试最稳、面试最常问。
+<strong>前置</strong>:R2 全绿。<strong>预计敲码</strong>:90 分钟。
+<strong>产出</strong>:Protocol 四类 + 13 个测试,<code>dotnet test</code> 全绿(累计 15)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<pre><code>src/DaqMonitor.Core/Protocol/
+├─ Crc16.cs             # CRC16/Modbus 校验:所有帧的&quot;防伪码&quot;
+├─ FrameParser.cs       # AA55 自定义帧:流式拆包(半包/粘包/坏帧)
+├─ ModbusFrameParser.cs # Modbus RTU:寄存器/线圈/浮点字节序/异常码
+└─ TcpFrameParser.cs    # TCP 长度前缀帧:粘包重同步
+src/DaqMonitor.Tests/
+├─ FrameParserTests.cs        # 4 测试
+├─ ModbusFrameParserTests.cs  # 5 测试
+└─ TcpFrameParserTests.cs     # 4 测试(TcpDevice 回环测试在 R4)
+</code></pre>
+<h2 id="sec-2-2">📋 需求单(先自己设计,再对照)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>需求</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR3-1</td>
+<td><a href="#" class="kplink" data-kp="crc" onclick="openKp('crc');return false;">CRC16</a> 工具:Modbus 多项式 0xA001,算载荷 CRC;整帧校验(CRC 低字节在前)</td>
+<td>经典向量 <code>01 03 00 00 00 01</code> → <code>0x0A84</code></td>
+</tr>
+<tr>
+<td>FR3-2</td>
+<td>AA55 帧解析:字节流持续 <code>Feed</code>,循环拆完整帧;<strong>半包</strong>等待、<strong>粘包</strong>多帧齐拆、垃圾头清缓冲;<code>verifyCrc=true</code> 时坏帧静默丢弃</td>
+<td>半包喂 2 次拆出 1 帧;粘包一次拆 2 帧</td>
+</tr>
+<tr>
+<td>FR3-3</td>
+<td>AA55 帧构造 <code>Build(pointId, value)</code>:payload = 1 字节点号 + 8 字节 double,自带 CRC</td>
+<td>Build 出的帧能被 verifyCrc=true 的解析器吃回</td>
+</tr>
+<tr>
+<td>FR3-4</td>
+<td><a href="#" class="kplink" data-kp="modbus" onclick="openKp('modbus');return false;">Modbus</a> 帧解析:读寄存器响应(每寄存器 2 字节<strong>大端</strong>)、线圈按<strong>位</strong>打包、32 位浮点 4 种<a href="#" class="kplink" data-kp="byte-order" onclick="openKp('byte-order');return false;">字节序</a>、异常响应识别(功能码|0x80)、组读保持寄存器请求帧</td>
+<td>5 个测试全绿,含 ABCD=100.0 / CDAB≠100.0</td>
+</tr>
+<tr>
+<td>FR3-5</td>
+<td><a href="#" class="kplink" data-kp="tcp-sticky" onclick="openKp('tcp-sticky');return false;">TCP 帧解析</a>:<code>AA 55 + 小端长度 + payload + CRC</code>;半包 false 不重同步;坏头/坏 CRC 置 needResync;payload 上限 8KB 防乱码巨分配</td>
+<td>Build→TryParse 往返一致;破坏 CRC 被拒</td>
+</tr>
+</tbody>
+</table>
+<p><strong>自己先想 10 分钟</strong>:
+1. <code>FrameParser.Feed</code> 的缓冲区什么时候该清空?不清会怎样?(内存无限涨)
+2. 线圈响应"每字节装 8 个 bit"和寄存器"高字节在前",为什么 Modbus 要定两套相反的规则?
+3. CDAB 字交换:0x42C8 0x0000 按 ABCD 是 100.0,按 CDAB 会解析成什么量级?现场怎么排查?</p>
+<h2 id="sec-2-3">📚 本篇知识点</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="crc" onclick="openKp('crc');return false;">CRC16 循环冗余校验</a> · <a href="#" class="kplink" data-kp="byte-order" onclick="openKp('byte-order');return false;">字节序/大小端</a> · <a href="#" class="kplink" data-kp="modbus" onclick="openKp('modbus');return false;">Modbus 协议</a> · <a href="#" class="kplink" data-kp="serial-frame" onclick="openKp('serial-frame');return false;">AA55 串口帧</a> · <a href="#" class="kplink" data-kp="tcp-sticky" onclick="openKp('tcp-sticky');return false;">TCP 粘包/半包</a> · <a href="#" class="kplink" data-kp="unit-test" onclick="openKp('unit-test');return false;">xUnit 单元测试</a></li>
+</ul>
+<h2 id="sec-2-4">🛠️ 参考实现</h2>
+<blockquote>
+<p>全部是<strong>纯逻辑</strong>:吃 byte[] 吐 byte[]/数值,零 IO 依赖——这是"协议层可单测"的架构前提(前端类比:把 axios 换成纯函数处理响应体,Storybook 就能测)。</p>
+</blockquote>
+<h3 id="sec-3-1">① Crc16 —— 一切帧的防伪码</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Protocol/Crc16.cs</code> · namespace <code>DaqMonitor.Core.Protocol</code>
+🔧 无 NuGet
+💡 逐位异或移位的教科书实现;Modbus 约定 CRC <strong>低字节在前</strong>放进帧尾</p>
+</blockquote>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Protocol;
+
+/// &lt;summary&gt;CRC16 工具(Modbus 多项式 0xA001)。校验与业务无关,纯算法。&lt;/summary&gt;
+public static class Crc16
+{
+    public static ushort Modbus(ReadOnlySpan&lt;byte&gt; data)
+    {
+        ushort crc = 0xFFFF;
+        foreach (byte b in data)
+        {
+            crc ^= b;
+            for (int i = 0; i &lt; 8; i++)
+                crc = (crc &amp; 1) != 0 ? (ushort)((crc &gt;&gt; 1) ^ 0xA001) : (ushort)(crc &gt;&gt; 1);
+        }
+        return crc;
+    }
+
+    public static ushort Modbus(byte[] data) =&gt; Modbus(data.AsSpan());
+
+    /// &lt;summary&gt;校验整帧(载荷 + 2 字节 CRC,低字节在前)。&lt;/summary&gt;
+    public static bool Check(ReadOnlySpan&lt;byte&gt; frameWithCrc)
+    {
+        if (frameWithCrc.Length &lt; 2) return false;
+        int payloadLen = frameWithCrc.Length - 2;
+        ushort calc = Modbus(frameWithCrc[..payloadLen]);
+        ushort got = (ushort)(frameWithCrc[^2] | (frameWithCrc[^1] &lt;&lt; 8));
+        return calc == got;
+    }
+}
+</code></pre>
+<h3 id="sec-3-2">② FrameParser —— AA55 自定义帧(串口半包/粘包)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Protocol/FrameParser.cs</code>
+🔧 无 NuGet
+💡 帧格式 <code>AA 55 | Len | Payload... | CRC_L CRC_H</code>;<strong>有状态</strong>(内部缓冲),所以是 class 不是 static</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.Generic;
+
+namespace DaqMonitor.Core.Protocol;
+
+/// &lt;summary&gt;
+/// 自定义二进制帧解析:帧格式 AA 55 | Len | Payload... | CRC_L CRC_H。
+/// 解决串口&quot;半包 / 粘包&quot;:字节流持续喂入,循环拆出完整帧。缓冲永远拆不出完整帧时要清空,防内存泄漏。
+///
+/// - 构造参数 verifyCrc 为 true 时,拆出的帧会先用 Crc16.Check 校验,坏帧直接丢弃(防止坏数据进入业务)。
+/// - Build 是写方向:把 (pointId, value) 编码成带 CRC 的完整帧,发送端用。
+/// &lt;/summary&gt;
+public class FrameParser
+{
+    private readonly List&lt;byte&gt; _buffer = new();
+    private readonly bool _verifyCrc;
+
+    public FrameParser(bool verifyCrc = false) =&gt; _verifyCrc = verifyCrc;
+
+    /// &lt;summary&gt;喂入一段字节,返回本次拆出的所有完整帧(仅载荷部分,不含头/长/CRC)。&lt;/summary&gt;
+    public IReadOnlyList&lt;byte[]&gt; Feed(ReadOnlySpan&lt;byte&gt; chunk)
+    {
+        _buffer.AddRange(chunk.ToArray());
+        var frames = new List&lt;byte[]&gt;();
+        while (TryTakeFrame(out var frame))
+            frames.Add(frame);
+        return frames;
+    }
+
+    private bool TryTakeFrame(out byte[] frame)
+    {
+        frame = [];
+        int idx = _buffer.IndexOf((byte)0xAA);
+        if (idx &lt; 0) { _buffer.Clear(); return false; }              // 找不到帧头:清空防无限增长
+        if (_buffer.Count &lt; idx + 3) return false;                   // 头后不足 3 字节
+        if (_buffer[idx + 1] != (byte)0x55) { _buffer.RemoveAt(idx); return false; }
+        int len = _buffer[idx + 2];
+        int total = 3 + len + 2;                                     // 头 + 长 + 载荷 + CRC
+        if (_buffer.Count &lt; idx + total) return false;               // 半包:等更多数据
+
+        if (_verifyCrc)
+        {
+            var full = _buffer.GetRange(idx, total).ToArray();
+            if (!Crc16.Check(full))                                 // CRC 不过:丢弃该帧
+            {
+                _buffer.RemoveRange(0, idx + total);
+                return false;
+            }
+        }
+
+        frame = _buffer.GetRange(idx + 3, len).ToArray();
+        _buffer.RemoveRange(0, idx + total);
+        return true;
+    }
+
+    public void Reset() =&gt; _buffer.Clear();
+
+    /// &lt;summary&gt;
+    /// 构造一帧(写方向):AA 55 | Len | Payload | CRC_L CRC_H。
+    /// Payload = pointId(1 字节) + value(8 字节 double)。CRC 对&quot;头+长+载荷&quot;整体计算,与 Check 的校验范围一致。
+    /// &lt;/summary&gt;
+    public static byte[] Build(int pointId, double value)
+    {
+        var payload = new List&lt;byte&gt; { (byte)pointId };
+        payload.AddRange(BitConverter.GetBytes(value));
+
+        // CRC 必须对&quot;头 + 长 + 载荷&quot;整体计算,才能和 Crc16.Check(整帧) 的校验范围一致
+        var headAndPayload = new List&lt;byte&gt; { 0xAA, 0x55, (byte)payload.Count };
+        headAndPayload.AddRange(payload);
+
+        ushort crc = Crc16.Modbus(headAndPayload.ToArray());
+        headAndPayload.Add((byte)(crc &amp; 0xFF));
+        headAndPayload.Add((byte)(crc &gt;&gt; 8));
+        return headAndPayload.ToArray();
+    }
+}
+</code></pre>
+<h3 id="sec-3-3">③ ModbusFrameParser —— 工业标准协议的拆包</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Protocol/ModbusFrameParser.cs</code>
+🔧 无 NuGet
+💡 现场三坑全在这:<strong>地址 ±1 偏移</strong>(异常码 0x02)、<strong>字节序 CDAB</strong>(浮点读出天文数字)、<strong>线圈按位不按字节</strong></p>
+</blockquote>
+<pre><code class="language-csharp">using System;
+using System.Collections.Generic;
+
+namespace DaqMonitor.Core.Protocol;
+
+/// &lt;summary&gt;
+/// Modbus 帧解析(纯协议层、不依赖串口,可单测)。
+/// 对应知识点:响应帧逐字节拆解 / 线圈位打包 / 32 位浮点 4 种字节序 / 异常码。
+/// CRC 校验复用 Crc16(Modbus 多项式 0xA001)。
+/// &lt;/summary&gt;
+public static class ModbusFrameParser
+{
+    /// &lt;summary&gt;32 位浮点跨 2 个寄存器时的字节序排列(现场 90% 问题是 CDAB 字交换)。&lt;/summary&gt;
+    public enum ByteOrder { ABCD, CDAB, BADC, DCBA }
+
+    /// &lt;summary&gt;Modbus 异常码(异常响应里功能码 | 0x80 后的下一字节)。&lt;/summary&gt;
+    public static IReadOnlyDictionary&lt;byte, string&gt; ExceptionMessages { get; } = new Dictionary&lt;byte, string&gt;
+    {
+        [0x01] = &quot;非法功能(设备不支持该功能码)&quot;,
+        [0x02] = &quot;非法地址(地址超出设备范围,常是 ±1 偏移)&quot;,
+        [0x03] = &quot;非法数据值(写的值/数量不合法)&quot;,
+        [0x04] = &quot;从站设备故障(设备内部出错)&quot;,
+        [0x06] = &quot;从站忙(稍后重试)&quot;,
+        [0x0B] = &quot;网关路径失效(经转发器时目标不可达)&quot;,
+    };
+
+    /// &lt;summary&gt;判断是否为异常响应;是则返回异常码(功能码最高位被置 1,如 0x03→0x83)。&lt;/summary&gt;
+    public static bool IsExceptionResponse(ReadOnlySpan&lt;byte&gt; resp, out byte exceptionCode)
+    {
+        exceptionCode = 0;
+        if (resp.Length &lt; 3) return false;
+        if ((resp[1] &amp; 0x80) == 0) return false;
+        exceptionCode = resp[2];
+        return true;
+    }
+
+    /// &lt;summary&gt;
+    /// 解析「读保持/输入寄存器」响应帧(功能码 0x03 / 0x04):
+    /// [从站][0x03][字节数 N*2][数据 N*2 字节,每寄存器 2 字节大端][CRC]。
+    /// 返回每个寄存器的值(大端拼回 ushort)。不在此做 CRC 校验(调用方用 Crc16.Check 自查)。
+    /// &lt;/summary&gt;
+    /// &lt;exception cref=&quot;InvalidOperationException&quot;&gt;功能码不是 0x03/0x04,或字节数不匹配。&lt;/exception&gt;
+    public static ushort[] ParseReadRegisters(ReadOnlySpan&lt;byte&gt; resp)
+    {
+        if (resp.Length &lt; 5) throw new InvalidOperationException(&quot;响应帧太短&quot;);
+        if (resp[1] != 0x03 &amp;&amp; resp[1] != 0x04)
+            throw new InvalidOperationException($&quot;不是读寄存器响应,功能码=0x{resp[1]:X2}&quot;);
+        int byteCount = resp[2];
+        if (resp.Length &lt; 3 + byteCount + 2)
+            throw new InvalidOperationException(&quot;响应帧长度与声明的字节数不符(可能半包)&quot;);
+        int regCount = byteCount / 2;
+        var regs = new ushort[regCount];
+        for (int i = 0; i &lt; regCount; i++)
+        {
+            byte hi = resp[3 + i * 2];      // 高字节在前(大端)
+            byte lo = resp[4 + i * 2];
+            regs[i] = (ushort)(hi &lt;&lt; 8 | lo);
+        }
+        return regs;
+    }
+
+    /// &lt;summary&gt;
+    /// 解析「读线圈/离散输入」响应(功能码 0x01 / 0x02):数据区每字节装 8 个线圈,按位排。
+    /// bit0 = 最先返回的线圈(与寄存器「高字节在前」是两套完全不同的规则)。
+    /// &lt;/summary&gt;
+    public static bool[] ParseCoils(ReadOnlySpan&lt;byte&gt; data, int coilCount)
+    {
+        var bits = new bool[coilCount];
+        for (int i = 0; i &lt; coilCount; i++)
+            bits[i] = (data[i / 8] &amp; (1 &lt;&lt; (i % 8))) != 0;
+        return bits;
+    }
+
+    /// &lt;summary&gt;
+    /// 把两个 16 位寄存器拼成 32 位 IEEE754 浮点。
+    /// 关键区分:字节交换(BADC) 是寄存器内 2 字节颠倒;字交换(CDAB) 是两寄存器顺序颠倒。
+    /// 现场默认常是 CDAB——抓帧确认,别猜。
+    ///
+    /// ⚠️ 实现要点:BitConverter 在本机(x86)是小端。设备回的是大端字节序的 4 字节,
+    /// 所以必须先把 4 个字节按&quot;大端顺序&quot;排好(b0 是最高位字节)再交给 ToSingle,
+    /// 否则会被当成小端解读成极小值——这正是&quot;大小端&quot;最隐蔽的坑。
+    /// &lt;/summary&gt;
+    public static float ToFloatModbus(ushort r0, ushort r1, ByteOrder order) =&gt; order switch
+    {
+        ByteOrder.ABCD =&gt; ToSingleBig((byte)(r0 &gt;&gt; 8), (byte)r0, (byte)(r1 &gt;&gt; 8), (byte)r1),
+        ByteOrder.CDAB =&gt; ToSingleBig((byte)(r1 &gt;&gt; 8), (byte)r1, (byte)(r0 &gt;&gt; 8), (byte)r0), // 字交换
+        ByteOrder.BADC =&gt; ToSingleBig((byte)r0, (byte)(r0 &gt;&gt; 8), (byte)r1, (byte)(r1 &gt;&gt; 8)), // 字节交换
+        ByteOrder.DCBA =&gt; ToSingleBig((byte)r1, (byte)(r1 &gt;&gt; 8), (byte)r0, (byte)(r0 &gt;&gt; 8)), // 全小端
+        _ =&gt; throw new ArgumentOutOfRangeException(nameof(order))
+    };
+
+    /// &lt;summary&gt;按大端解读 4 字节为 float(b0 = 最高位字节)。&lt;/summary&gt;
+    private static float ToSingleBig(byte b0, byte b1, byte b2, byte b3)
+    {
+        // 本机小端:把大端字节数组 Reverse 成小端顺序再 ToSingle,等价于&quot;按大端读这 4 字节&quot;
+        var le = new[] { b3, b2, b1, b0 };
+        return BitConverter.ToSingle(le, 0);
+    }
+
+    /// &lt;summary&gt;
+    /// 组「读保持寄存器」RTU 请求帧:[从站][0x03][地址2B大端][数量2B大端][CRC低前]。
+    /// 用于 ModbusDevice 真实 RTU 路径下发读取。
+    /// &lt;/summary&gt;
+    public static byte[] BuildReadHoldingRequest(byte slave, ushort addr, ushort count)
+    {
+        var payload = new List&lt;byte&gt; { slave, 0x03 };
+        payload.Add((byte)(addr &gt;&gt; 8)); payload.Add((byte)addr);
+        payload.Add((byte)(count &gt;&gt; 8)); payload.Add((byte)count);
+        ushort crc = Crc16.Modbus(payload.ToArray());
+        payload.Add((byte)(crc &amp; 0xFF));   // CRC 低字节在前
+        payload.Add((byte)(crc &gt;&gt; 8));
+        return payload.ToArray();
+    }
+}
+</code></pre>
+<h3 id="sec-3-4">④ TcpFrameParser —— TCP 长度前缀帧</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Protocol/TcpFrameParser.cs</code>
+🔧 无 NuGet
+💡 与 FrameParser 的区别:TCP 帧头后带 <strong>2 字节小端长度域</strong>,且"解析"与"缓冲"解耦——本类无状态,缓冲区调用方维护,失败时给 needResync 信号</p>
+</blockquote>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Protocol;
+
+/// &lt;summary&gt;
+/// TCP 长度前缀帧解析。
+///
+/// 帧格式(小端长度,便于 C# 直接 BitConverter 拼装):
+///   [0xAA][0x55][LEN_LO][LEN_HI][PAYLOAD(LEN 字节)][CRC_LO][CRC_HI]
+///
+/// 设计要点:
+///   - 协议层零 I/O 依赖:只吃字节缓冲、吐字节缓冲,便于单测(参考 ModbusFrameParser 风格)。
+///   - CRC 复用 Crc16(Modbus 多项式 0xA001,工业现场通用)。
+///   - 粘包/半包由调用方维护滚动缓冲区,本类提供「尝试解析一帧」语义:
+///     TryParse 返回 true=已凑齐一帧(并给出帧总长);false=数据不够或帧坏,继续收/重同步。
+/// &lt;/summary&gt;
+public static class TcpFrameParser
+{
+    /// &lt;summary&gt;帧头固定 2 字节:0xAA 0x55。&lt;/summary&gt;
+    public const byte Head0 = 0xAA;
+    public const byte Head1 = 0x55;
+
+    /// &lt;summary&gt;帧头 + 长度域共 4 字节;帧尾 CRC 2 字节。&lt;/summary&gt;
+    public const int HeaderSize = 4;
+    public const int CrcSize = 2;
+    /// &lt;summary&gt;payload 最大 8KB,防御乱码长度域导致的巨型分配。&lt;/summary&gt;
+    public const int MaxPayload = 8 * 1024;
+
+    /// &lt;summary&gt;
+    /// 组装一帧:[AA 55][LEN_LO][LEN_HI][payload][CRC_LO][CRC_HI]。
+    /// &lt;/summary&gt;
+    /// &lt;exception cref=&quot;ArgumentOutOfRangeException&quot;&gt;payload 超过 MaxPayload。&lt;/exception&gt;
+    public static byte[] BuildFrame(ReadOnlySpan&lt;byte&gt; payload)
+    {
+        if (payload.Length &gt; MaxPayload)
+            throw new ArgumentOutOfRangeException(nameof(payload), $&quot;payload 超过 {MaxPayload} 字节上限&quot;);
+
+        var frame = new byte[HeaderSize + payload.Length + CrcSize];
+        frame[0] = Head0;
+        frame[1] = Head1;
+        frame[2] = (byte)(payload.Length &amp; 0xFF);          // 小端长度
+        frame[3] = (byte)((payload.Length &gt;&gt; 8) &amp; 0xFF);
+        payload.CopyTo(frame.AsSpan(HeaderSize));
+        ushort crc = Crc16.Modbus(payload);                // 仅对 payload 计算 CRC
+        frame[^2] = (byte)(crc &amp; 0xFF);
+        frame[^1] = (byte)((crc &gt;&gt; 8) &amp; 0xFF);
+        return frame;
+    }
+
+    /// &lt;summary&gt;
+    /// 校验完整帧(含头/长度/payload/CRC)。返回 false 表示帧损坏,调用方应整帧丢弃。
+    /// &lt;/summary&gt;
+    public static bool ValidateFrame(ReadOnlySpan&lt;byte&gt; frame)
+    {
+        if (frame.Length &lt; HeaderSize + CrcSize) return false;
+        if (frame[0] != Head0 || frame[1] != Head1) return false;
+        int len = frame[2] | (frame[3] &lt;&lt; 8);
+        if (len != frame.Length - HeaderSize - CrcSize) return false;
+        // CRC 区 = payload + 2B CRC,复用 Crc16.Check(低字节在前)
+        return Crc16.Check(frame.Slice(HeaderSize));
+    }
+
+    /// &lt;summary&gt;
+    /// 从缓冲区头部尝试解析一帧。
+    /// 成功:写入 payload、返回该帧总长度(调用方据此 Skip 缓冲区)。
+    /// 失败(数据不足 / 头不对 / 长度非法 / CRC 坏):返回 0,调用方继续 Append。
+    ///   - 头不对齐:返回 0 并设置 needResync=true,提示调用方可以丢弃 1 字节重同步;
+    ///     本方法自身不丢弃,保持缓冲区语义纯粹。
+    /// &lt;/summary&gt;
+    public static bool TryParse(ReadOnlySpan&lt;byte&gt; buffer, out byte[] payload, out int frameLength, out bool needResync)
+    {
+        payload = Array.Empty&lt;byte&gt;();
+        frameLength = 0;
+        needResync = false;
+
+        if (buffer.Length &lt; HeaderSize) return false;
+        if (buffer[0] != Head0 || buffer[1] != Head1) { needResync = true; return false; }
+
+        int len = buffer[2] | (buffer[3] &lt;&lt; 8);
+        if (len &gt; MaxPayload) { needResync = true; return false; }   // 长度域乱码:重同步
+        int total = HeaderSize + len + CrcSize;
+        if (buffer.Length &lt; total) return false;                     // 半包:等更多数据
+
+        var frame = buffer[..total];
+        if (!Crc16.Check(frame.Slice(HeaderSize))) { needResync = true; return false; } // CRC 坏:重同步
+
+        payload = frame.Slice(HeaderSize, len).ToArray();
+        frameLength = total;
+        return true;
+    }
+}
+</code></pre>
+<h3 id="sec-3-5">⑤ 三个测试文件(13 个测试)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/FrameParserTests.cs</code> · namespace <code>DaqMonitor.Tests</code>
+🔧 无 NuGet
+💡 协议测试的灵魂:<strong>已知向量</strong>(CRC 标准测试值)+ <strong>构造-解析往返</strong>(Build 出的帧必须能原样解回)</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Protocol;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class FrameParserTests
+{
+    [Fact]
+    public void Crc16_Modbus_KnownVector()
+    {
+        // 经典测试向量:CRC16/MODBUS of {0x01,0x03,0x00,0x00,0x00,0x01}
+        // 算法寄存器结果 = 0x0A84;按 Modbus 约定「低字节在前」发送,故线上字节为 84 0A(常被记作 0x840A 的大端读法)。
+        var data = new byte[] { 0x01, 0x03, 0x00, 0x00, 0x00, 0x01 };
+        Assert.Equal((ushort)0x0A84, Crc16.Modbus(data));
+    }
+
+    [Fact]
+    public void Feed_Splits粘包_AndHandles半包()
+    {
+        var p = new FrameParser();
+        var payload = new byte[] { 0xAA, 0x55, 0x02, 0x11, 0x22 };
+        ushort crc = Crc16.Modbus(payload);
+        var frame = payload.Concat(new[] { (byte)(crc &amp; 0xFF), (byte)(crc &gt;&gt; 8) }).ToArray();
+
+        // 半包:先喂前 3 字节
+        Assert.Empty(p.Feed(frame.AsSpan(0, 3).ToArray()));
+        // 再喂剩下的:应拆出 1 帧,载荷为 {0x11,0x22}
+        var second = p.Feed(frame.AsSpan(3).ToArray());
+        Assert.Single(second);
+        Assert.Equal(new byte[] { 0x11, 0x22 }, second[0]);
+    }
+
+    [Fact]
+    public void Feed_ignoresBadHeader()
+    {
+        var p = new FrameParser();
+        var bad = new byte[] { 0x00, 0x55, 0x02, 0x11, 0x22, 0x00, 0x00 };
+        Assert.Empty(p.Feed(bad));
+    }
+
+    [Fact]
+    public void Crc16_Check_ValidatesFrame()
+    {
+        var payload = new byte[] { 0xAA, 0x55, 0x02, 0x11, 0x22 };
+        ushort crc = Crc16.Modbus(payload);
+        var frame = payload.Concat(new[] { (byte)(crc &amp; 0xFF), (byte)(crc &gt;&gt; 8) }).ToArray();
+        Assert.True(Crc16.Check(frame));
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/ModbusFrameParserTests.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Protocol;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 验证 Modbus 报文解析知识点真落地:响应帧拆解 / 线圈位解包 / 浮点 4 种字节序 / 异常码 / 组帧。
+/// 纯协议层,不碰串口,CI 可跑绿。
+/// &lt;/summary&gt;
+public class ModbusFrameParserTests
+{
+    [Fact]
+    public void ParseReadRegisters_DecodesTwoRegisters()
+    {
+        // 响应:01 03 04 | 00 0A 00 14 | C4 0B
+        var resp = new byte[] { 0x01, 0x03, 0x04, 0x00, 0x0A, 0x00, 0x14, 0xC4, 0x0B };
+        var regs = ModbusFrameParser.ParseReadRegisters(resp);
+        Assert.Equal(new ushort[] { 10, 20 }, regs);
+    }
+
+    [Fact]
+    public void ParseCoils_UnpacksBits()
+    {
+        // 字节 FF 03 → 线圈 0–7 全在线;8、9 在线;10–15 离线
+        var bits = ModbusFrameParser.ParseCoils(new byte[] { 0xFF, 0x03 }, 12);
+        Assert.True(bits[0] &amp;&amp; bits[7] &amp;&amp; bits[8] &amp;&amp; bits[9]);
+        Assert.False(bits[10] &amp;&amp; bits[11]);
+    }
+
+    [Fact]
+    public void ToFloatModbus_ABCD_IsCorrect_But_CDAB_IsNot()
+    {
+        // 干净样例:0x42C80000 = 100.0f(r0=0x42C8, r1=0x0000)。
+        // 注意:本机 x86 是小端,解析器内部已按&quot;大端字节序&quot;正确还原,ABCD 才得 100.0。
+        float abcd = ModbusFrameParser.ToFloatModbus(0x42C8, 0x0000, ModbusFrameParser.ByteOrder.ABCD);
+        float cdab = ModbusFrameParser.ToFloatModbus(0x42C8, 0x0000, ModbusFrameParser.ByteOrder.CDAB);
+        Assert.Equal(100.0f, abcd);                      // ABCD 正确还原:100.0
+        Assert.True(System.Math.Abs(cdab - 100.0f) &gt; 1); // 字交换得到错值,现场翻车根因
+    }
+
+    [Fact]
+    public void IsExceptionResponse_DetectsIllegalAddress()
+    {
+        // 设备拒了:功能码 0x83,异常码 0x02(非法地址)
+        var resp = new byte[] { 0x01, 0x83, 0x02 };
+        Assert.True(ModbusFrameParser.IsExceptionResponse(resp, out var code));
+        Assert.Equal((byte)0x02, code);
+        Assert.Equal(&quot;非法地址(地址超出设备范围,常是 ±1 偏移)&quot;, ModbusFrameParser.ExceptionMessages[code]);
+    }
+
+    [Fact]
+    public void BuildReadHoldingRequest_ProducesFrameWithValidCrc()
+    {
+        var frame = ModbusFrameParser.BuildReadHoldingRequest(0x01, 0, 2);
+        // 期望:01 03 00 00 00 02 [CRC低][CRC高]
+        Assert.Equal(new byte[] { 0x01, 0x03, 0x00, 0x00, 0x00, 0x02 }, frame[..6]);
+        Assert.True(Crc16.Check(frame));             // CRC 校验通过
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/TcpFrameParserTests.cs</code>(R3 版只含纯解析 4 测试;<code>TcpDevice_Simulate</code> 回环测试 R4 再加)</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Protocol;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class TcpFrameParserTests
+{
+    [Fact]
+    public void BuildFrame_RoundTrips_ThroughTryParse()
+    {
+        var payload = new byte[] { 0x01, 0x02, 0x03 };
+        var frame = TcpFrameParser.BuildFrame(payload);
+
+        Assert.True(TcpFrameParser.TryParse(frame, out var got, out int len, out _));
+        Assert.Equal(payload, got);
+        Assert.Equal(frame.Length, len);
+    }
+
+    [Fact]
+    public void TryParse_HalfPacket_ReturnsFalse_NoResync()
+    {
+        var payload = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+        var frame = TcpFrameParser.BuildFrame(payload);
+        // 只给前 5 字节(半包)
+        Assert.False(TcpFrameParser.TryParse(frame.AsSpan(0, 5).ToArray(), out _, out _, out bool resync));
+        Assert.False(resync);
+    }
+
+    [Fact]
+    public void TryParse_BadHeader_SignalsResync()
+    {
+        var junk = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        Assert.False(TcpFrameParser.TryParse(junk, out _, out _, out bool resync));
+        Assert.True(resync);
+    }
+
+    [Fact]
+    public void ValidateFrame_RejectsCorruptCRC()
+    {
+        var payload = new byte[] { 0xAA, 0x55, 0x01, 0x02 };
+        var frame = TcpFrameParser.BuildFrame(payload);
+        frame[^1] ^= 0xFF;   // 破坏最后一个 CRC 字节
+        Assert.False(TcpFrameParser.ValidateFrame(frame));
+    }
+}
+</code></pre>
+<h2 id="sec-2-5">✅ 验证(必做)</h2>
+<pre><code class="language-bash">dotnet build
+dotnet test
+</code></pre>
+<p><strong>期望输出(关键行)</strong>:</p>
+<pre><code>已成功生成。 → 0 个警告 0 个错误
+已通过! - 失败: 0,通过: 15 ... DaqMonitor.Tests.dll
+</code></pre>
+<p>(15 = R2 的 2 + 本篇 13)</p>
+<h2 id="sec-2-6">✅ 验收清单</h2>
+<ul>
+<li>[ ] build 0 错 0 警,test 15/15 绿</li>
+<li>[ ] 能回答:半包/粘包分别是什么?FrameParser 靠什么策略两者通吃?(长度域 + 循环拆帧 + 缓冲保留)</li>
+<li>[ ] 能回答:为什么 FrameParser 是 class(有状态缓冲),ModbusFrameParser/TcpFrameParser 是 static(纯函数)?</li>
+<li>[ ] 能回答:CDAB 字交换现场怎么排查?(抓帧看原始字节,拿标准浮点位模式对照)</li>
+<li>[ ] 把 <code>FrameParser.Build(1, 42.5)</code> 的输出逐字节写出来——头/长/载荷/CRC 各是几字节</li>
+<li>[ ] git commit -m "R3: 协议解析层 CRC+三种帧解析+13测试"</li>
+</ul>
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p>"协议层我做成纯函数集合:CRC16/Modbus、AA55 自定义帧、Modbus RTU、TCP 长度前缀帧,零 IO 依赖,全部可单测——13 个测试覆盖已知向量、半包粘包、坏帧丢弃、字节序往返。设计上 FrameParser 有内部缓冲所以是实例类,Modbus/TCP 解析是无状态纯函数所以是静态类。现场最常翻车的三个点我都写了针对性测试:Modbus 地址 ±1 偏移看异常码、浮点 CDAB 字交换、TCP 乱码长度域要重同步并设 8KB 上限防巨型分配。"</p>
+</blockquote>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r3',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="proj-r2.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R2 · 设备抽象 + 模拟设备</div></a>
+  <a class="next" href="proj-r4.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">R4 · 真实设备接入</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

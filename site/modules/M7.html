@@ -72,8 +72,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 MQTT Publish + mosquitto_sub 接数据
 - <strong>3 小时</strong>:全文精读 + Day 2 MQTT 双向 Subscribe(下行命令)+ Day 3 OPC UA 客户端
 - 🎯 <strong>面试高频</strong>:<strong>全程 async 不能 .Result(UI 死锁)</strong> / MQTT QoS 0/1/2 / 持久会话 CleanSession=false / MQTTnet 4.x v4 API
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B13 MQTT Publish+Subscribe 双向</a> · <a href="代码肌肉训练手册_30天刷题版.html">Debug C1 async void 吞异常</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M7 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="muscle.html">代码肌肉 B13 MQTT Publish+Subscribe 双向</a> · <a href="muscle.html">Debug C1 async void 吞异常</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M7 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>async Task</code> — 全程异步(MQTT/OPC UA 都是 IO 密集),速查 §8
 - <code>event Func&lt;Task&gt;?</code> — 异步事件(罕见但 M7 用),速查 §7/§8
 - <code>CancellationToken ct</code> — 取消令牌,速查 §8
@@ -81,7 +81,7 @@
 - <code>class MqttClient : IDisposable</code> / <code>using var client = ...</code> — 必须 Dispose,速查 §13
 - <code>Interlocked.Exchange(ref _retryCount, 0)</code> — 原子重试计数,速查 §14</p>
 <p>📦 <strong>前置类型</strong>(本模块示例代码用到的核心自定义类型)
-M7 示例引用 <code>SensorPoint</code> / <code>AcquisitionPipeline</code> 等类型 — 这些在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AcquisitionPipeline</code> 简化版在"四、采集管道简化版")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>MqttPublisher</code> / <code>CloudCommand</code>(下行命令 record)。</p>
+M7 示例引用 <code>SensorPoint</code> / <code>AcquisitionPipeline</code> 等类型 — 这些在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong>(<code>AcquisitionPipeline</code> 简化版在"四、采集管道简化版")。<strong>遇到"找不到类型 XXX"报错,先去那份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。本模块会<strong>新建</strong> <code>MqttPublisher</code> / <code>CloudCommand</code>(下行命令 record)。</p>
 </blockquote>
 <h2 id="sec-2-1">模块目标</h2>
 <p>把 DAQ Monitor 的实时数据通过 MQTT 发布到 Broker（如 EMQX / 本地 Mosquitto），可用手机/云端订阅查看；了解 OPC UA 客户端对接方式。</p>
@@ -218,7 +218,7 @@ private async Task ConsumeLoopAsync(CancellationToken ct)
 <p>早期讲义的写法 <code>_pipeline.BatchReady += async (s, batch) =&gt; { await ... }</code> 看似简洁，<strong>其实是 <code>async void</code></strong>——因为 <code>BatchReady</code> 是 <code>EventHandler</code> 签名（返回 <code>void</code>）。后果：
 - <strong>① 异常被吞 + 进程崩</strong>：<code>async void</code> 内部抛异常没有 <code>Task</code> 能 <code>await</code>/<code>catch</code>，会直接走 <code>AppDomain.UnhandledException</code> 把整个上位机进程拖崩，连采集都停了。
 - <strong>② 并发乱序</strong>：<code>BatchReady</code> 每秒触发多次，上一次 <code>await PublishAsync</code> 还没完，下一次又进来，多条批同时跑 → topic 时序错乱、Broker 端看到的消息顺序不可预测。</p>
-<p><strong>正确做法</strong>：事件处理器<strong>仅入队（同步 <code>TryWrite</code>，瞬时返回）</strong>，由<strong>后台 consumer 串行 <code>await</code></strong>消费——既不阻塞采集线程，又保证顺序。这是 .NET 高频场景的标准"生产者-消费者"模式。详 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a>。</p>
+<p><strong>正确做法</strong>：事件处理器<strong>仅入队（同步 <code>TryWrite</code>，瞬时返回）</strong>，由<strong>后台 consumer 串行 <code>await</code></strong>消费——既不阻塞采集线程，又保证顺序。这是 .NET 高频场景的标准"生产者-消费者"模式。详 <a href="traps.html">C# 陷阱讲义 陷阱 4</a>。</p>
 <h3 id="sec-3-5">⚠️ 重点 &amp; 易踩坑</h3>
 <table>
 <thead>
@@ -351,7 +351,7 @@ var value = await session.ReadValueAsync(&quot;ns=2;s=Line1.Temp&quot;);
 Console.WriteLine($&quot;温度 = {value.Value}&quot;);
 </code></pre>
 <h3 id="sec-3-12">🔬 掰开揉碎：为什么绝不能用 <code>.Result</code> / <code>.Wait()</code></h3>
-<p><strong>为什么危险</strong>：<code>.Result</code> 会「阻塞当前线程等结果」。如果在 UI 线程调，UI 卡死；更隐蔽的是<strong>死锁</strong>——当异步方法内部要 <code>await</code> 回 UI 线程（WPF 的 <code>SynchronizationContext</code>），而 UI 线程正被 <code>.Result</code> 卡着等它，<strong>两边互等 = 永久死锁</strong>。<strong>正确做法：全程 <code>async/await</code></strong>，不阻塞任何线程。M9 讲过 <code>async Task</code> 测试，这里同理。详 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a>。</p>
+<p><strong>为什么危险</strong>：<code>.Result</code> 会「阻塞当前线程等结果」。如果在 UI 线程调，UI 卡死；更隐蔽的是<strong>死锁</strong>——当异步方法内部要 <code>await</code> 回 UI 线程（WPF 的 <code>SynchronizationContext</code>），而 UI 线程正被 <code>.Result</code> 卡着等它，<strong>两边互等 = 永久死锁</strong>。<strong>正确做法：全程 <code>async/await</code></strong>，不阻塞任何线程。M9 讲过 <code>async Task</code> 测试，这里同理。详 <a href="traps.html">C# 陷阱讲义 陷阱 4</a>。</p>
 <p><strong>反面教材（绝不这么写）</strong>：</p>
 <pre><code class="language-csharp">// ❌ 死锁风险
 using var session = Session.Create(cfg, ep, false, &quot;DAQMonitor&quot;, 60000, null, null).Result;

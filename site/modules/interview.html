@@ -63,14 +63,14 @@
 <p><strong>Q4：后台采集怎么做到不卡界面？</strong>
 - UI 线程只负责渲染；采集放<strong>后台线程</strong>（Task/后台 Timer/Channel 消费者）。数据通过 <code>Channel&lt;T&gt;</code> 批量交给 UI 刷新，不在 UI 线程做重活。
 - 本项目：<code>AcquisitionPipeline</code> 用 <code>Channel&lt;T&gt;</code> + Timer 每 200ms 批量出队 → <code>BatchReady</code> 事件 → ViewModel 切回 UI 线程刷新。
-- 🎭 拟人段辅助记忆:见 <a href="M0_每日讲义_深度版.html">M0_每日讲义_深度版.md#day-7</a> §Dispatcher + .Result 死锁 + Channel 队列（"前台窗口 + 后厨传菜口"）</p>
+- 🎭 拟人段辅助记忆:见 <a href="M0.html">M0_每日讲义_深度版.md#day-7</a> §Dispatcher + .Result 死锁 + Channel 队列（"前台窗口 + 后厨传菜口"）</p>
 <p><strong>Q5：Task 和 Thread 区别？async/await 是什么？</strong>
 - <code>Thread</code> 是操作系统线程；<code>Task</code> 是"任务"，由线程池调度更轻量。<code>async/await</code> 让异步代码写起来像同步，不阻塞线程。
 - 坑：<code>async</code> 方法里别用 <code>.Result</code>/<code>.Wait()</code> 同步阻塞——UI 线程会<strong>死锁</strong>（本项目 M7 早期就踩过，已改 <code>await</code>）。</p>
 <p><strong>Q6：Channel<T> 是什么？为什么用它而不是 ObservableCollection 直接 Add？</strong>
 - <code>Channel&lt;T&gt;</code> 是<strong>高性能生产者-消费者队列</strong>，解耦"采样的线程"和"消费的线程"，天然线程安全、背压可控。
 - 直接往 <code>ObservableCollection</code> Add 会跨线程异常或卡 UI；Channel 把数据"攒一批"再给 UI，流畅且不崩。
-- 🎭 拟人段辅助记忆:见 <a href="C#_陷阱_前端转上位机必看_深度版.md">C#_陷阱_前端转上位机必看_深度版.md#陷阱-2async-void--会议室抢厕所死锁</a> §会议室抢厕所 + <a href="M0_每日讲义_深度版.html">M0 Day 7</a> §Channel 队列（"前台窗口 + 后厨传菜口"）</p>
+- 🎭 拟人段辅助记忆:见 <a href="traps.html">C#_陷阱_前端转上位机必看_深度版.md#陷阱-2async-void--会议室抢厕所死锁</a> §会议室抢厕所 + <a href="M0.html">M0 Day 7</a> §Channel 队列（"前台窗口 + 后厨传菜口"）</p>
 <hr />
 <h2 id="sec-2-3">三、串口 / 通信（必考）</h2>
 <p><strong>Q7：RS232 和 RS485 区别？</strong>

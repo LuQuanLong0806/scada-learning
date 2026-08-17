@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R5 · 采集管道 + 报警引擎 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-r5">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(先自己设计,再对照)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
+<li class="l3"><a href="#sec-3-1">① AcquisitionPipeline —— 系统心脏</a></li>
+<li class="l3"><a href="#sec-3-2">② 报警三件套(规则 / 事件 / 引擎)</a></li>
+<li class="l3"><a href="#sec-3-3">③ EngineeringConverter —— 工程量转换</a></li>
+<li class="l3"><a href="#sec-3-4">④ 三个测试文件(15 个测试)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">R5 · 采集管道 + 报警引擎 + 工程量转换(系统心脏)</h1>
+<blockquote>
+<p><strong>定位</strong>:R4 设备会吐数据了,但 100Hz × 10 台设备直接刷 UI 必卡死。这一篇造<strong>管道</strong>(Channel 缓冲 + 批量)——它是 15K 岗位架构题的标准答案,也是整个系统的心脏。顺带把报警引擎和工程量转换做了。
+<strong>前置</strong>:R4 全绿。<strong>预计敲码</strong>:90 分钟。
+<strong>产出</strong>:AcquisitionPipeline + 报警三件套 + EngineeringConverter,15 个新测试(累计 42)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<pre><code>src/DaqMonitor.Core/
+├─ Acquisition/AcquisitionPipeline.cs   # 心脏:事件→Channel→定时批量→BatchReady
+├─ Alarms/
+│  ├─ AlarmRule.cs                      # 规则:阈值+方向+级别+回滞
+│  ├─ AlarmEvent.cs                     # 报警事件参数
+│  └─ AlarmEngine.cs                    # 引擎:边沿触发+回滞+线程安全
+└─ Engineering/EngineeringConverter.cs  # 量程标定/查表插值/字节序
+src/DaqMonitor.Tests/
+├─ AcquisitionPipelineTests.cs          # 1 测试(FakeDevice 喂数)
+├─ AlarmEngineTests.cs                  # 2 测试(边沿/回滞)
+└─ EngineeringConverterTests.cs         # 12 测试(线性/查表/字节序)
+</code></pre>
+<h2 id="sec-2-2">📋 需求单(先自己设计,再对照)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>需求</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR5-1</td>
+<td>采集管道:设备 <code>DataReceived</code> 只做<strong>入队</strong>一件极轻的事;后台消费 + 定时(默认 200ms 级)<code>Flush</code> 批量出队,<code>BatchReady</code> 一次性给订阅方</td>
+<td>3 个点进,1 批 3 个点出</td>
+</tr>
+<tr>
+<td>FR5-2</td>
+<td>批量双触发:凑满 maxBatch(默认 500)<strong>或</strong>定时器到点,谁先谁触发</td>
+<td>高频时不等定时器</td>
+</tr>
+<tr>
+<td>FR5-3</td>
+<td><strong>构造即启动</strong>(new 完就开始消费,没有 Start/Stop 方法);Dispose 才停</td>
+<td>构造后无需任何调用即工作</td>
+</tr>
+<tr>
+<td>FR5-4</td>
+<td>报警规则与数据分离:AlarmRule = 点位+阈值+方向(IsHigh)+级别+<strong>回滞带宽</strong>;运行时可增删</td>
+<td>改配置即可加报警点</td>
+</tr>
+<tr>
+<td>FR5-5</td>
+<td>报警引擎<strong>边沿触发</strong>:只在"未报警→报警"上升沿发 <code>AlarmTriggered</code>,持续越界不重复报;回到正常发 <code>AlarmCleared</code></td>
+<td>同点连超 2 次只报 1 次</td>
+</tr>
+<tr>
+<td>FR5-6</td>
+<td><a href="#" class="kplink" data-kp="hysteresis" onclick="openKp('hysteresis');return false;">回滞</a>:值在 Threshold±Hysteresis 带内不触发/不恢复,防阈值附近抖动狂报</td>
+<td>120→102(带内)→90→120 只报 2 次</td>
+</tr>
+<tr>
+<td>FR5-7</td>
+<td>工程量转换:线性标定 raw→物理量(除零返回 engMin 不抛异常)、<a href="#" class="kplink" data-kp="eng-scale" onclick="openKp('eng-scale');return false;">查表插值</a>(PT100 分度表)、32 位浮点 4 种<a href="#" class="kplink" data-kp="byte-order" onclick="openKp('byte-order');return false;">字节序</a>重排</td>
+<td>4-20mA→0-100℃ 全对</td>
+</tr>
+</tbody>
+</table>
+<p><strong>自己先想 15 分钟</strong>(这一篇是架构核心,值得多想):
+1. 事件处理器里直接 <code>Dispatcher.Invoke</code> 刷 UI,10 台设备 100Hz 会发生什么?(每秒 1000 次 UI 线程争抢,界面冻结)
+2. 为什么用 <code>Channel&lt;T&gt;</code> 而不是 <code>ConcurrentQueue&lt;T&gt;</code>?(异步 ReadAllAsync 天然背压/完成语义;前端类比:rx buffer vs 裸回调)
+3. 报警为什么不"每条越界数据都报"?(100Hz 下 1 秒 100 条报警刷屏——所以边沿+回滞)
+4. 阈值 100、回滞 5:值 103 报不报?为什么带内的越界值要忽略?(刚触发过,带内视为"还没恢复",这是防抖的灵魂)</p>
+<h2 id="sec-2-3">📚 本篇知识点</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="channel" onclick="openKp('channel');return false;">Channel<T></a> · <a href="#" class="kplink" data-kp="batching" onclick="openKp('batching');return false;">批量处理/200ms 一批</a> · <a href="#" class="kplink" data-kp="hysteresis" onclick="openKp('hysteresis');return false;">回滞</a> · <a href="#" class="kplink" data-kp="alarm-edge" onclick="openKp('alarm-edge');return false;">报警边沿触发</a> · <a href="#" class="kplink" data-kp="eng-scale" onclick="openKp('eng-scale');return false;">量程标定</a> · <a href="#" class="kplink" data-kp="byte-order" onclick="openKp('byte-order');return false;">字节序</a></li>
+</ul>
+<h2 id="sec-2-4">🛠️ 参考实现</h2>
+<h3 id="sec-3-1">① AcquisitionPipeline —— 系统心脏</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Acquisition/AcquisitionPipeline.cs</code> · namespace <code>DaqMonitor.Core.Acquisition</code>
+🔧 无 NuGet(System.Threading.Channels 在 BCL 里)
+💡 <strong>构造即启动</strong>:new 的时候定时器和消费循环就位,没有 Start/Stop——这是本工程的既定契约,后面 R7 的 DI 组装、R8 的 UI 都按这个语义用</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using System.Threading.Channels;
+
+namespace DaqMonitor.Core.Acquisition;
+
+/// &lt;summary&gt;
+/// 统一采集管道:所有设备事件 → 入 Channel 缓冲 → 后台消费 + 定时批量出队 → 一次性推给 UI。
+/// 解决&quot;逐事件 Dispatcher.Invoke&quot;在 100Hz×多设备下冲垮 UI 的问题。
+/// 关键点:事件只做&quot;入队&quot;这一件极轻的事,重活(刷新/上云)由定时器批量处理。
+/// &lt;/summary&gt;
+public sealed class AcquisitionPipeline : IDisposable
+{
+    private readonly Channel&lt;SensorPoint&gt; _channel = Channel.CreateUnbounded&lt;SensorPoint&gt;();
+    private readonly List&lt;IDevice&gt; _devices = new();
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Timer _flushTimer;
+    private readonly object _gate = new();
+    private List&lt;SensorPoint&gt; _pending = new();
+    private readonly int _maxBatch;
+
+    /// &lt;summary&gt;批量就绪事件:在后台线程触发,UI 订阅方需自行 Dispatcher 回 UI 线程再改界面。&lt;/summary&gt;
+    public event EventHandler&lt;IReadOnlyList&lt;SensorPoint&gt;&gt;? BatchReady;
+    public event EventHandler&lt;Exception&gt;? Error;
+
+    public AcquisitionPipeline(TimeSpan flushInterval, int maxBatch = 500)
+    {
+        _maxBatch = maxBatch;
+        _flushTimer = new Timer(_ =&gt; Flush(), null, flushInterval, flushInterval);
+        _ = ConsumeAsync();
+    }
+
+    /// &lt;summary&gt;注册一个设备:自动订阅它的 DataReceived,把点塞进缓冲。&lt;/summary&gt;
+    public void Register(IDevice device)
+    {
+        device.DataReceived += OnPoint;
+        _devices.Add(device);
+    }
+
+    private void OnPoint(object? sender, DataEventArgs e)
+        =&gt; _channel.Writer.TryWrite(new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp });
+
+    private async Task ConsumeAsync()
+    {
+        try
+        {
+            await foreach (var p in _channel.Reader.ReadAllAsync(_cts.Token))
+            {
+                List&lt;SensorPoint&gt;? batch = null;
+                lock (_gate)
+                {
+                    _pending.Add(p);
+                    if (_pending.Count &gt;= _maxBatch) { batch = _pending; _pending = new(); }
+                }
+                if (batch is not null) BatchReady?.Invoke(this, batch);
+            }
+        }
+        catch (OperationCanceledException) { /* 正常退出 */ }
+        catch (Exception ex) { Error?.Invoke(this, ex); }
+    }
+
+    private void Flush()
+    {
+        List&lt;SensorPoint&gt;? batch = null;
+        lock (_gate)
+        {
+            if (_pending.Count &gt; 0) { batch = _pending; _pending = new(); }
+        }
+        if (batch is not null) BatchReady?.Invoke(this, batch);
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _flushTimer.Dispose();
+        _channel.Writer.TryComplete();
+        foreach (var d in _devices) d.DataReceived -= OnPoint;
+        _cts.Dispose();
+    }
+}
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>注意 OnPoint 里那行</strong>:转 SensorPoint 时<strong>抄了 e.Timestamp</strong>——R2 立的时间戳铁律,不抄就落 0001-01-01,后面曲线全歪。</p>
+</blockquote>
+<h3 id="sec-3-2">② 报警三件套(规则 / 事件 / 引擎)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Alarms/AlarmRule.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Alarms;
+
+/// &lt;summary&gt;报警规则:点位 + 阈值 + 级别 + 方向(超上限 / 低于下限)。规则与数据分离,改配置即可加报警点。&lt;/summary&gt;
+public class AlarmRule
+{
+    public int PointId { get; set; }
+    public double Threshold { get; set; }
+    public AlarmLevel Level { get; set; }
+    public bool IsHigh { get; set; } = true;     // true: 超过阈值报警;false: 低于阈值报警
+    /// &lt;summary&gt;回滞带宽:值在 [Threshold-带宽, Threshold+带宽] 内视为&quot;已恢复&quot;,不再反复触发(生产必做,防止阈值附近抖动狂报)。&lt;/summary&gt;
+    public double Hysteresis { get; set; }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Alarms/AlarmEvent.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Alarms;
+
+/// &lt;summary&gt;报警触发事件参数。&lt;/summary&gt;
+public class AlarmEvent : EventArgs
+{
+    public int PointId { get; init; }
+    public AlarmLevel Level { get; init; }
+    public double Value { get; init; }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Alarms/AlarmEngine.cs</code>
+💡 三个生产级特性:线程安全(规则运行时增删)、边沿触发(不刷屏)、回滞(防抖)</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System.Collections.Generic;
+
+namespace DaqMonitor.Core.Alarms;
+
+/// &lt;summary&gt;
+/// 报警引擎:规则与数据分离。数据流入逐条匹配,命中即发 AlarmTriggered。
+/// 生产级特性:
+/// ① 线程安全——规则可在运行时增删;
+/// ② 边沿触发——只在&quot;未报警→报警&quot;的上升沿通知,避免每条越界数据都刷屏;
+/// ③ 回滞(hysteresis)——值在阈值附近抖动时不反复触发/恢复。
+/// &lt;/summary&gt;
+public class AlarmEngine
+{
+    private readonly List&lt;AlarmRule&gt; _rules = new();
+    private readonly HashSet&lt;int&gt; _active = new();   // 当前已处于报警状态的点位
+    private readonly object _gate = new();
+
+    public event EventHandler&lt;AlarmEvent&gt;? AlarmTriggered;
+    /// &lt;summary&gt;报警恢复(下降沿):点位从报警区间回到正常区间时触发,UI 据此把表盘颜色复位。&lt;/summary&gt;
+    public event EventHandler&lt;AlarmEvent&gt;? AlarmCleared;
+
+    public void Add(AlarmRule r) { lock (_gate) _rules.Add(r); }
+    public void Clear() { lock (_gate) { _rules.Clear(); _active.Clear(); } }
+
+    public void Evaluate(SensorPoint p)
+    {
+        List&lt;AlarmRule&gt; snapshot;
+        lock (_gate) snapshot = _rules.ToList();
+
+        foreach (var r in snapshot)
+        {
+            if (r.PointId != p.Id) continue;
+            bool breach = r.IsHigh ? p.Value &gt; r.Threshold : p.Value &lt; r.Threshold;
+            bool inBand = r.Hysteresis &gt; 0 &amp;&amp; Math.Abs(p.Value - r.Threshold) &lt;= r.Hysteresis;
+
+            if (breach &amp;&amp; !inBand)
+            {
+                bool wasActive;
+                lock (_gate) wasActive = !_active.Add(p.Id);
+                if (!wasActive)   // 仅上升沿触发
+                    AlarmTriggered?.Invoke(this, new AlarmEvent { PointId = p.Id, Level = r.Level, Value = p.Value });
+            }
+            else if (!breach &amp;&amp; r.Hysteresis &gt; 0)
+            {
+                bool wasActive;
+                lock (_gate) wasActive = _active.Remove(p.Id);   // 回到正常区间,复位,下次越界再报
+                if (wasActive)   // 仅下降沿通知 UI 复位表盘
+                    AlarmCleared?.Invoke(this, new AlarmEvent { PointId = p.Id, Level = r.Level, Value = p.Value });
+            }
+        }
+    }
+}
+</code></pre>
+<h3 id="sec-3-3">③ EngineeringConverter —— 工程量转换</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Engineering/EngineeringConverter.cs</code> · 🔧 无 NuGet</p>
+</blockquote>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Engineering;
+
+/// &lt;summary&gt;
+/// 工程量转换:把 AD 原始码 / 模数比例还原成现场熟悉的物理量,
+/// 同时处理 32 位浮点的 4 种字节序排列(Modbus / OPC UA 现场常见坑)。
+/// 全部静态 + 扩展方法,零依赖,便于单测。
+/// &lt;/summary&gt;
+public static class EngineeringConverter
+{
+    /// &lt;summary&gt;
+    /// 线性标定:把 raw ∈ [rawMin, rawMax] 线性映射到 [engMin, engMax]。
+    /// 例:4-20mA → 0-100℃,AD 0-65535 → -50~150℃。
+    /// 注意 rawMax == rawMin 时不能除零,按现场惯例返回 engMin(也避免抛异常打断采集)。
+    /// &lt;/summary&gt;
+    public static double Linear(double raw, double rawMin, double rawMax, double engMin, double engMax)
+    {
+        double span = rawMax - rawMin;
+        if (Math.Abs(span) &lt; double.Epsilon) return engMin;
+        double ratio = (raw - rawMin) / span;
+        return engMin + ratio * (engMax - engMin);
+    }
+
+    /// &lt;summary&gt;
+    /// 非线性查表(PT100 / 热电偶分度表用):
+    /// 在 table(key=raw 升序,value=eng)中插值。
+    /// raw 低于最小 key 返回表首;高于最大 key 返回表尾;中间做线性插值。
+    /// &lt;/summary&gt;
+    /// &lt;exception cref=&quot;ArgumentException&quot;&gt;table 为 null 或空。&lt;/exception&gt;
+    public static double Lookup(double raw, SortedList&lt;double, double&gt; table)
+    {
+        if (table is null || table.Count == 0)
+            throw new ArgumentException(&quot;查表失败:分度表为空&quot;, nameof(table));
+        if (raw &lt;= table.Keys[0]) return table.Values[0];
+        if (raw &gt;= table.Keys[^1]) return table.Values[^1];
+
+        // 二分找到第一个 key &gt; raw 的位置,与前一档做线性插值
+        int idx = Bisect(table.Keys, raw);
+        double x0 = table.Keys[idx - 1];
+        double x1 = table.Keys[idx];
+        double y0 = table.Values[idx - 1];
+        double y1 = table.Values[idx];
+        double span = x1 - x0;
+        if (Math.Abs(span) &lt; double.Epsilon) return y0;
+        return y0 + (raw - x0) / span * (y1 - y0);
+    }
+
+    /// &lt;summary&gt;在升序只读 keys 中找到第一个 &gt; target 的索引(标准 bisect_right 语义)。&lt;/summary&gt;
+    private static int Bisect(IList&lt;double&gt; keys, double target)
+    {
+        int lo = 0, hi = keys.Count;
+        while (lo &lt; hi)
+        {
+            int mid = (lo + hi) &gt;&gt; 1;
+            if (keys[mid] &lt;= target) lo = mid + 1; else hi = mid;
+        }
+        return lo;
+    }
+
+    /// &lt;summary&gt;32 位浮点跨寄存器时的字节序排列(与 ModbusFrameParser.ByteOrder 同义,这里独立定义避免协议层耦合)。&lt;/summary&gt;
+    public enum ByteOrder { ABCD, CDAB, BADC, DCBA }
+
+    /// &lt;summary&gt;
+    /// 字节序交换:把 4 字节 [a,b,c,d] 按指定顺序重排。常用于 Modbus 浮点 / OPC UA / CAN 信号解析。
+    /// ABCD=不动;CDAB=字交换(现场最常见);BADC=字节交换;DCBA=全反序。
+    /// &lt;/summary&gt;
+    /// &lt;exception cref=&quot;ArgumentException&quot;&gt;输入长度不是 4。&lt;/exception&gt;
+    public static byte[] Swap(byte[] abcd, ByteOrder order)
+    {
+        if (abcd is null || abcd.Length != 4)
+            throw new ArgumentException(&quot;字节序交换需要恰好 4 字节&quot;, nameof(abcd));
+        return order switch
+        {
+            ByteOrder.ABCD =&gt; new[] { abcd[0], abcd[1], abcd[2], abcd[3] },
+            ByteOrder.CDAB =&gt; new[] { abcd[2], abcd[3], abcd[0], abcd[1] },
+            ByteOrder.BADC =&gt; new[] { abcd[1], abcd[0], abcd[3], abcd[2] },
+            ByteOrder.DCBA =&gt; new[] { abcd[3], abcd[2], abcd[1], abcd[0] },
+            _ =&gt; throw new ArgumentOutOfRangeException(nameof(order))
+        };
+    }
+
+    /// &lt;summary&gt;把按指定字节序排列的 4 字节解为 float(默认按大端 ABCD 还原)。&lt;/summary&gt;
+    public static float ToFloat(byte[] bytes, ByteOrder order = ByteOrder.ABCD)
+    {
+        var ordered = Swap(bytes, order);
+        // 本机小端,把 ABCD(大端)逆转一次再 ToSingle
+        if (BitConverter.IsLittleEndian) Array.Reverse(ordered);
+        return BitConverter.ToSingle(ordered, 0);
+    }
+}
+</code></pre>
+<h3 id="sec-3-4">④ 三个测试文件(15 个测试)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/AcquisitionPipelineTests.cs</code>
+💡 测试替身 FakeDevice 继承 DeviceBase——比 Moq 更轻,教学先手写替身,R7 再上 Moq</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class AcquisitionPipelineTests
+{
+    private sealed class FakeDevice : DeviceBase
+    {
+        public FakeDevice() : base(1, &quot;fake&quot;) { }
+        public override void Connect() { }
+        public override void Disconnect() { }
+        public override double Read(int addr) =&gt; 0;
+        public override void Write(int addr, double value) { }
+        public void Emit(int pointId, double value) =&gt; RaiseData(pointId, value);
+    }
+
+    [Fact]
+    public async Task Pipeline_BatchesPoints_IntoBatchReady()
+    {
+        using var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+        var received = new List&lt;SensorPoint&gt;();
+        var done = new TaskCompletionSource();
+
+        pipeline.BatchReady += (s, batch) =&gt;
+        {
+            received.AddRange(batch);
+            if (received.Count &gt;= 3) done.TrySetResult();
+        };
+
+        var dev = new FakeDevice();
+        pipeline.Register(dev);
+        dev.Emit(1, 10);
+        dev.Emit(2, 20);
+        dev.Emit(3, 30);
+
+        await Task.WhenAny(done.Task, Task.Delay(2000));
+        Assert.Equal(3, received.Count);
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/AlarmEngineTests.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Alarms;
+using DaqMonitor.Core.Models;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class AlarmEngineTests
+{
+    [Fact]
+    public void Evaluate_FiresOnlyOnRisingEdge()
+    {
+        var engine = new AlarmEngine();
+        engine.Add(new AlarmRule { PointId = 3, Threshold = 100, Level = AlarmLevel.Critical, IsHigh = true });
+        int count = 0;
+        engine.AlarmTriggered += (s, e) =&gt; count++;
+
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 200 });   // 同点仍超阈值:不应重复报
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void Evaluate_WithHysteresis_DoesNotChatter()
+    {
+        var engine = new AlarmEngine();
+        engine.Add(new AlarmRule { PointId = 3, Threshold = 100, Hysteresis = 5, Level = AlarmLevel.Warning, IsHigh = true });
+        int count = 0;
+        engine.AlarmTriggered += (s, e) =&gt; count++;
+
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 120 });   // 越界,触发
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 102 });   // 仍在回滞带(95~105)内:不报
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 90 });    // 回到正常区:复位
+        engine.Evaluate(new SensorPoint { Id = 3, Value = 120 });   // 再次越界:再报
+        Assert.Equal(2, count);
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/EngineeringConverterTests.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Engineering;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class EngineeringConverterTests
+{
+    [Fact]
+    public void Linear_Maps4to20mA_To0to100()
+    {
+        // 4mA → 0℃,20mA → 100℃,12mA → 50℃
+        Assert.Equal(0, EngineeringConverter.Linear(4, 4, 20, 0, 100));
+        Assert.Equal(100, EngineeringConverter.Linear(20, 4, 20, 0, 100));
+        Assert.Equal(50, EngineeringConverter.Linear(12, 4, 20, 0, 100));
+    }
+
+    [Fact]
+    public void Linear_OutsideRange_ClampsToExtrapolation()
+    {
+        // 不做硬限幅(工业现场常允许外推少量超量程),按线性公式延伸
+        // 0mA ∈ [4,20] 外推:(0-4)/16 * 100 = -25.0
+        Assert.Equal(-25.0, EngineeringConverter.Linear(0, 4, 20, 0, 100), 2);
+    }
+
+    [Fact]
+    public void Linear_DivZero_ReturnsEngMin()
+    {
+        // rawMax == rawMin 不能除零,按现场惯例返回 engMin
+        Assert.Equal(42.0, EngineeringConverter.Linear(123, 100, 100, 42.0, 99.0));
+    }
+
+    [Fact]
+    public void Lookup_InterpolatesBetweenTableEntries()
+    {
+        // PT100 简化分度表:0Ω→0℃,100Ω→100℃,200Ω→200℃ 线性区外
+        var table = new SortedList&lt;double, double&gt; { [0] = 0, [100] = 100, [200] = 200 };
+        Assert.Equal(50, EngineeringConverter.Lookup(50, table));
+        // 边界 clamp
+        Assert.Equal(0, EngineeringConverter.Lookup(-10, table));
+        Assert.Equal(200, EngineeringConverter.Lookup(999, table));
+    }
+
+    [Fact]
+    public void Lookup_ThrowsOnEmptyTable()
+    {
+        Assert.Throws&lt;ArgumentException&gt;(() =&gt; EngineeringConverter.Lookup(1, new SortedList&lt;double, double&gt;()));
+    }
+
+    [Theory]
+    [InlineData(EngineeringConverter.ByteOrder.ABCD, new byte[] { 0x42, 0x48, 0x00, 0x00 })]   // 50.0f 大端
+    [InlineData(EngineeringConverter.ByteOrder.CDAB, new byte[] { 0x00, 0x00, 0x42, 0x48 })]   // 字交换后还原
+    [InlineData(EngineeringConverter.ByteOrder.BADC, new byte[] { 0x48, 0x42, 0x00, 0x00 })]   // 字节交换后还原
+    [InlineData(EngineeringConverter.ByteOrder.DCBA, new byte[] { 0x00, 0x00, 0x48, 0x42 })]   // 全反序后还原
+    public void Swap_And_ToFloat_AllOrdersDecodeToSameValue(EngineeringConverter.ByteOrder order, byte[] bytes)
+    {
+        // 无论字节序如何,所有 4 种排列如果原始语义是 50.0f 大端 ABCD,解码后都应是 50.0f
+        float v = EngineeringConverter.ToFloat(bytes, order);
+        Assert.Equal(50.0f, v, 1);
+    }
+
+    [Fact]
+    public void Swap_ThrowsOnWrongLength()
+    {
+        Assert.Throws&lt;ArgumentException&gt;(() =&gt; EngineeringConverter.Swap(new byte[] { 1, 2, 3 }, EngineeringConverter.ByteOrder.ABCD));
+    }
+
+    [Fact]
+    public void Swap_IdempotentForABCD()
+    {
+        var src = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+        var dst = EngineeringConverter.Swap(src, EngineeringConverter.ByteOrder.ABCD);
+        Assert.Equal(src, dst);
+    }
+
+    [Fact]
+    public void Swap_WordSwap_RearrangesCorrectly()
+    {
+        var src = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+        var dst = EngineeringConverter.Swap(src, EngineeringConverter.ByteOrder.CDAB);
+        Assert.Equal(new byte[] { 0x33, 0x44, 0x11, 0x22 }, dst);
+    }
+}
+</code></pre>
+<h2 id="sec-2-5">✅ 验证(必做)</h2>
+<pre><code class="language-bash">dotnet build
+dotnet test
+</code></pre>
+<p><strong>期望输出(关键行)</strong>:</p>
+<pre><code>已成功生成。 → 0 个警告 0 个错误
+已通过! - 失败: 0,通过: 42 ... DaqMonitor.Tests.dll
+</code></pre>
+<p>(42 = 之前 27 + 本篇 15)</p>
+<h2 id="sec-2-6">✅ 验收清单</h2>
+<ul>
+<li>[ ] build 0 错 0 警,test 42/42 绿</li>
+<li>[ ] 能回答:为什么事件回调里只做 <code>TryWrite</code> 一件事?(1000 事件/秒时,回调越短,设备线程越不被拖住)</li>
+<li>[ ] 能回答:BatchReady 双触发(满 500 条 / 定时到)分别照顾什么场景?(高频吞吐 / 低频延迟)</li>
+<li>[ ] 能回答:回滞带宽 5、阈值 100:值 103 时处于什么状态?值 90 呢?(带内=维持现状;90=出带恢复)</li>
+<li>[ ] 亲手算:Linear(12, 4, 20, 0, 100) = ?(50.0——4-20mA 中点对应量程中点)</li>
+<li>[ ] git commit -m "R5: 采集管道+报警引擎+工程量转换+15测试"</li>
+</ul>
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p>"采集链路的核心是个管道:设备事件回调只做 Channel 入队,后台任务消费,200 毫秒定时或攒满 500 条就触发 BatchReady 批量事件——UI 一次刷一批,100Hz 乘 10 台设备也不卡界面。报警引擎三个生产特性:规则运行时增删要线程安全、只在上升沿触发避免越界期间每条数据都报警、回滞带宽防阈值附近抖动狂报——120 触发后掉到 102 还在带内不恢复,掉到 90 才恢复。工程量转换支持线性标定和分度表插值,除零退化返回量程下限而不是抛异常,因为采集链路上一个坏点不该打断整条流水线。这套东西全部纯内存可测,15 个测试不碰硬件。"</p>
+</blockquote>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r5',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="proj-r4.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R4 · 真实设备接入</div></a>
+  <a class="next" href="proj-r6.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">R6 · 持久化双写落库</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

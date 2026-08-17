@@ -80,8 +80,8 @@
 - <strong>30 分钟</strong>:加看 Day 1 配方 CRUD + JSON 序列化
 - <strong>3 小时</strong>:全文精读 + Day 2 <strong>版本化 + 回滚事务(写入+回读+失败回滚)</strong> + Day 3 Excel 导入导出
 - 🎯 <strong>面试高频</strong>:<strong>JSON 列 vs 关联表权衡</strong> / 配方切换事务思想 / 版本 diff 实现 / 审计谁改了啥
-- 🔁 <strong>配套复习</strong>:<a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B23 Recipe 配方管理</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M18 用到的,陌生请查 <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a>)
+- 🔁 <strong>配套复习</strong>:<a href="muscle.html">代码肌肉 B23 Recipe 配方管理</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M18 用到的,陌生请查 <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a>)
 - <code>class Recipe { public int Id { get; set; } public string Name { get; set; } = ""; public List&lt;RecipeParameter&gt; Parameters { get; set; } = new(); }</code> — class + 默认值
 - <code>string json = JsonSerializer.Serialize(recipe)</code> — System.Text.Json 序列化
 - <code>var recipe = JsonSerializer.Deserialize&lt;Recipe&gt;(json) ?? throw new JsonException()</code> — 反序列化 + null 检查,速查 §5

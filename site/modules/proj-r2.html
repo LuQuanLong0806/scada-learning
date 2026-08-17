@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R2 · 设备抽象 + 模拟设备 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-r2">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(先自己设计接口,再对照)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
+<li class="l3"><a href="#sec-3-1">① 契约:IDevice + DataEventArgs + DeviceBase</a></li>
+<li class="l3"><a href="#sec-3-2">② 模拟设备 SimulatedDevice</a></li>
+<li class="l3"><a href="#sec-3-3">③ 第一批测试(设备流程 + 时间戳铁律)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">R2 · 设备抽象 + 模拟设备(面向接口,零硬件开工)</h1>
+<blockquote>
+<p><strong>定位</strong>:定义全项目的设备契约 <a href="#" class="kplink" data-kp="idevice" onclick="openKp('idevice');return false;">IDevice</a>,再写一个"假设备"让你没硬件也能跑通全链路。
+<strong>前置</strong>:R1 全绿。<strong>预计敲码</strong>:60 分钟。
+<strong>产出</strong>:IDevice/DataEventArgs/DeviceBase/SimulatedDevice + 第一批测试,<code>dotnet test</code> 全绿。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<pre><code>src/DaqMonitor.Core/Devices/
+├─ IDevice.cs            # 契约:接口 + 事件参数 + 基类(一个文件三个类型)
+└─ SimulatedDevice.cs    # 模拟设备:后台线程周期产生随机值
+src/DaqMonitor.Tests/
+└─ DeviceFlowTests.cs    # 验证:订阅设备事件 → 收到带时间戳的数据
+</code></pre>
+<h2 id="sec-2-2">📋 需求单(先自己设计接口,再对照)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>需求</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR2-1</td>
+<td>统一设备契约:任何设备(串口/PLC/TCP/模拟)都能 <code>Connect/Disconnect/Read/Write</code>,并对外报 <code>Id/Name/State</code></td>
+<td>换设备实现类,上层代码零改动</td>
+</tr>
+<tr>
+<td>FR2-2</td>
+<td>数据到达走<strong>事件推送</strong>(<a href="#" class="kplink" data-kp="event-delegate" onclick="openKp('event-delegate');return false;">DataReceived</a>),采集层被动收,不轮询</td>
+<td>订阅方能收到 (PointId, Value, Timestamp)</td>
+</tr>
+<tr>
+<td>FR2-3</td>
+<td>时间戳由<strong>事件发送方统一打</strong>,默认 <code>DateTime.Now</code></td>
+<td>收到的 Timestamp ≠ 0001-01-01</td>
+</tr>
+<tr>
+<td>FR2-4</td>
+<td>模拟设备:Connect 走 离线→连接中→在线 状态机;Start(interval) 后台循环每 tick 给每个点位发随机值,约 10% 概率冲到 95~120(方便后面看报警)</td>
+<td>测试 3 秒内收到数据</td>
+</tr>
+<tr>
+<td>FR2-5</td>
+<td>基类复用:状态字段 + 触发事件的 <code>RaiseData</code> 收进抽象基类,子类不重复写</td>
+<td>SimulatedDevice 里没有一行事件订阅代码</td>
+</tr>
+</tbody>
+</table>
+<p><strong>自己先想 5 分钟</strong>:接口方法要不要做成 async(<a href="#" class="kplink" data-kp="sync-facade" onclick="openKp('sync-facade');return false;">提示</a>)?事件参数为什么不用 SensorPoint 而单独造 DataEventArgs?</p>
+<h2 id="sec-2-3">📚 本篇知识点</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="idevice" onclick="openKp('idevice');return false;">IDevice 统一抽象</a> · <a href="#" class="kplink" data-kp="sync-facade" onclick="openKp('sync-facade');return false;">为什么是同步门面</a> · <a href="#" class="kplink" data-kp="event-delegate" onclick="openKp('event-delegate');return false;">event 事件机制</a> · <a href="#" class="kplink" data-kp="struct-vs-class" onclick="openKp('struct-vs-class');return false;">struct vs class</a> · <a href="#" class="kplink" data-kp="unit-test" onclick="openKp('unit-test');return false;">xUnit 单元测试</a></li>
+</ul>
+<h2 id="sec-2-4">🛠️ 参考实现</h2>
+<h3 id="sec-3-1">① 契约:IDevice + DataEventArgs + DeviceBase</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Devices/IDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>(一个文件三个类型,与参考工程一字不差)
+🔧 无 NuGet
+💡 用到 R1 的 <code>DeviceState</code>(<code>DaqMonitor.Core.Models</code>)</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// 数据到达事件参数。注意:载荷不是 SensorPoint——
+/// 事件只报&quot;哪个点、什么值、何时&quot;,转成 SensorPoint 是采集管道的事(职责分离)。
+/// &lt;/summary&gt;
+public class DataEventArgs : EventArgs
+{
+    public int PointId { get; init; }
+    public double Value { get; init; }
+    public DateTime Timestamp { get; init; } = DateTime.Now;   // 发送方统一打时间戳
+}
+
+/// &lt;summary&gt;设备统一接口:UI/采集层只认它,不关心底层是串口/网口/PLC&lt;/summary&gt;
+public interface IDevice
+{
+    int Id { get; }
+    string Name { get; }
+    DeviceState State { get; }
+
+    void Connect();
+    void Disconnect();
+    double Read(int addr);
+    void Write(int addr, double value);
+
+    /// &lt;summary&gt;采集层拿到数据后单向通知订阅方(UI 刷新用)&lt;/summary&gt;
+    event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+}
+
+/// &lt;summary&gt;设备基类:复用通用状态与事件触发逻辑(FR2-5)&lt;/summary&gt;
+public abstract class DeviceBase : IDevice
+{
+    public int Id { get; }
+    public string Name { get; }
+    public DeviceState State { get; protected set; } = DeviceState.Offline;
+
+    public event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+
+    protected DeviceBase(int id, string name) { Id = id; Name = name; }
+
+    public abstract void Connect();
+    public abstract void Disconnect();
+    public abstract double Read(int addr);
+    public abstract void Write(int addr, double value);
+
+    /// &lt;summary&gt;子类采集到数据后调用:触发 DataReceived 事件(自动打时间戳)&lt;/summary&gt;
+    protected void RaiseData(int pointId, double value)
+        =&gt; DataReceived?.Invoke(this, new DataEventArgs { PointId = pointId, Value = value, Timestamp = DateTime.Now });
+}
+</code></pre>
+<h3 id="sec-3-2">② 模拟设备 SimulatedDevice</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Devices/SimulatedDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>
+🔧 无 NuGet
+💡 "同步门面 + 内部异步"的样板:Connect() 立即返回,采集在 <a href="#" class="kplink" data-kp="taskrun" onclick="openKp('taskrun');return false;">Task.Run</a> 的后台循环里</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System.Threading;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// 模拟设备:实现 IDevice,用后台线程周期性产生随机点位。
+/// 没有真实硬件也能跑通整个采集链路——本地演示 / 单元测试 / 面试 demo 都用它。
+/// 它和真实串口/PLC 设备暴露同一接口,上层(管道/UI/报警)完全无感——可插拔。
+/// &lt;/summary&gt;
+public class SimulatedDevice : DeviceBase
+{
+    private readonly int[] _pointIds;
+    private readonly Random _rnd = new();
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+
+    public SimulatedDevice(int id, string name, params int[] pointIds)
+        : base(id, name)
+        =&gt; _pointIds = pointIds.Length &gt; 0 ? pointIds : new[] { 1 };
+
+    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        Thread.Sleep(50); // 模拟握手耗时
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        State = DeviceState.Offline;
+    }
+
+    public override double Read(int addr) =&gt; Math.Round(_rnd.NextDouble() * 100, 2);
+
+    public override void Write(int addr, double value) { /* 模拟设备只读,忽略写 */ }
+
+    /// &lt;summary&gt;
+    /// 开始模拟采集:每隔 interval 给每个点位发一个随机值。
+    /// 约 10% 概率冲到 95~120 区间,从而越过 100 的报警阈值,方便看到报警效果。
+    /// &lt;/summary&gt;
+    public void Start(TimeSpan interval)
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    foreach (var pid in _pointIds)
+                    {
+                        var v = _rnd.NextDouble() &lt; 0.1
+                            ? 95 + _rnd.NextDouble() * 25   // 可能越界,触发报警
+                            : 20 + _rnd.NextDouble() * 70;  // 正常区间
+                        RaiseData(pid, Math.Round(v, 2));
+                    }
+                    await Task.Delay(interval, token);
+                }
+            }
+            catch (OperationCanceledException) { /* 正常退出 */ }
+        }, token);
+    }
+
+    /// &lt;summary&gt;停止模拟采集并释放后台任务。&lt;/summary&gt;
+    public void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { /* 忽略 */ }
+        _cts?.Dispose();
+        _cts = null;
+        _loop = null;
+    }
+}
+</code></pre>
+<h3 id="sec-3-3">③ 第一批测试(设备流程 + 时间戳铁律)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/DeviceFlowTests.cs</code> · namespace <code>DaqMonitor.Tests</code>
+🔧 无需装包(R1 的 xunit 模板自带)
+💡 这是本项目的"测试样板":事件异步到达,用 <code>ManualResetEventSlim</code>/超时等待断言</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+// 设备抽象的教学测试:接口可用 + 事件推送 + 时间戳铁律
+public class DeviceFlowTests
+{
+    [Fact]
+    public void SimulatedDevice_RaisesData_WithTimestamp()
+    {
+        IDevice dev = new SimulatedDevice(1, &quot;sim&quot;, 7);   // 故意用接口类型声明——上层只认 IDevice
+        DataEventArgs? got = null;
+        var mre = new ManualResetEventSlim();
+
+        dev.DataReceived += (s, e) =&gt; { got = e; mre.Set(); };
+
+        dev.Connect();
+        ((SimulatedDevice)dev).Start(TimeSpan.FromMilliseconds(20));
+
+        Assert.True(mre.Wait(3000), &quot;3 秒内应收到至少一条数据&quot;);
+        Assert.NotNull(got);
+        Assert.Equal(7, got!.PointId);
+        Assert.InRange(got.Value, 0, 200);
+        Assert.True(got.Timestamp &gt; new DateTime(2000, 1, 1), &quot;Timestamp 应被采集源打上&quot;);
+
+        ((SimulatedDevice)dev).Stop();
+        dev.Disconnect();
+        Assert.Equal(DeviceState.Offline, dev.State);
+    }
+
+    [Fact]
+    public void EventToSensorPoint_Conversion_MustCopyTimestamp()
+    {
+        // R1 说过的翻车点:转 SensorPoint 必须抄 e.Timestamp
+        var e = new DataEventArgs { PointId = 3, Value = 42.0, Timestamp = DateTime.Now };
+
+        var p = new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp };
+
+        Assert.Equal(3, p.Id);
+        Assert.Equal(42.0, p.Value);
+        Assert.Equal(e.Timestamp, p.Timestamp);
+
+        var bad = new SensorPoint { Id = e.PointId, Value = e.Value };   // 反面教材
+        Assert.Equal(new DateTime(1, 1, 1), bad.Timestamp);              // 不抄 = 0001-01-01
+    }
+}
+</code></pre>
+<h2 id="sec-2-5">✅ 验证(必做)</h2>
+<pre><code class="language-bash">dotnet build
+dotnet test
+</code></pre>
+<p><strong>期望输出(关键行)</strong>:</p>
+<pre><code>已成功生成。 → 0 个警告 0 个错误
+已通过! - 失败: 0, 通过: 2 ... DeviceFlowTests
+</code></pre>
+<h2 id="sec-2-6">✅ 验收清单</h2>
+<ul>
+<li>[ ] build 0 错 0 警,test 2/2 绿</li>
+<li>[ ] 能回答:为什么事件载荷是 DataEventArgs 而不是 SensorPoint?(设备只报事实,组装领域模型是管道的职责)</li>
+<li>[ ] 能回答:Connect() 里为什么没有 async/await?(<a href="#" class="kplink" data-kp="sync-facade" onclick="openKp('sync-facade');return false;">同步门面</a>,内部 Task.Run)</li>
+<li>[ ] 把 <code>IDevice dev = new SimulatedDevice(...)</code> 改成未来的 <code>SerialDevice</code>,测试逻辑不用改——体会可插拔</li>
+<li>[ ] git commit -m "R2: IDevice 抽象+模拟设备+流程测试"</li>
+</ul>
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p>"我定义了统一设备接口 IDevice:同步的连接/读写方法加一个 DataReceived 事件。选同步门面是因为工业设备驱动普遍是短指令-快返回的模型,同步语义让上层调用简单;耗时轮询在设备内部用 Task.Run 起,不阻塞 UI。事件参数只带 PointId/Value/Timestamp,由发送方统一打时间戳——下游转领域模型时必须显式抄,否则落 default,这是我们测试里专门锁死的行为。模拟设备实现了同一接口,整个项目零硬件也能开发和测试。"</p>
+</blockquote>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r2',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="proj-r1.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R1 · 工程骨架 + 领域模型</div></a>
+  <a class="next" href="proj-r3.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">R3 · 协议解析层</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

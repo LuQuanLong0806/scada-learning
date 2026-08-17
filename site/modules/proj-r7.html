@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R7 · 组装诊断与容错 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-r7">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(先自己设计,再对照)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
+<li class="l3"><a href="#sec-3-1">⓪ 装包</a></li>
+<li class="l3"><a href="#sec-3-2">① Retry —— 指数退避重试</a></li>
+<li class="l3"><a href="#sec-3-3">② DeviceHealthMonitor —— 心跳探活 + 自动重连</a></li>
+<li class="l3"><a href="#sec-3-4">③ DiagnosticsService —— 指标 + 环形日志</a></li>
+<li class="l3"><a href="#sec-3-5">④ Bootstrapper —— 组合根(R7 版)</a></li>
+<li class="l3"><a href="#sec-3-6">⑤ 四个测试文件(6 个测试)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">R7 · DI 组装 + 诊断 + 容错(零件装箱,一键点火)</h1>
+<blockquote>
+<p><strong>定位</strong>:R1-R6 造好了所有零件,散装零件不是系统。这一篇写<strong>组合根 Bootstrapper</strong>(DI 一处注册全站注入)、诊断服务、重试工具、设备健康监测——最后用<strong>冒烟测试</strong>一键证明全链路真的能跑。
+<strong>前置</strong>:R6 全绿。<strong>预计敲码</strong>:80 分钟。
+<strong>产出</strong>:Retry/DeviceHealthMonitor/DiagnosticsService/Bootstrapper + 6 个新测试(累计 56)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<pre><code>src/DaqMonitor.Core/
+├─ Resilience/Retry.cs              # 指数退避+抖动重试(不依赖 Polly)
+├─ Health/DeviceHealthMonitor.cs    # 心跳探活:连续超时判掉线→自动重连(R4 挪来)
+├─ Diagnostics/DiagnosticsService.cs # 指标计数+环形日志
+└─ AppServices/Bootstrapper.cs      # 组合根:DI 全量注册(R7 版;R9+ 加认证/配方/运控)
+src/DaqMonitor.Tests/
+├─ RetryTests.cs                    # 2 测试
+├─ DeviceHealthMonitorTests.cs      # 2 测试
+├─ DeviceMoqTests.cs                # 1 测试(Moq 替身设备,验证管道)
+└─ CompositionSmokeTests.cs         # 1 冒烟:Bootstrapper 装配→采集→存储
+</code></pre>
+<h2 id="sec-2-2">📋 需求单(先自己设计,再对照)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>需求</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR7-1</td>
+<td><a href="#" class="kplink" data-kp="retry-backoff" onclick="openKp('retry-backoff');return false;">Retry</a>:指数退避(200/400/800ms…)+ 随机抖动;maxRetries=3 表示首试+3 重试;耗尽后抛原异常</td>
+<td>失败 2 次第 3 次成功 → 调用数=3</td>
+</tr>
+<tr>
+<td>FR7-2</td>
+<td>DeviceHealthMonitor:注入心跳委托 + IDevice;连续 missThreshold 次探活失败判掉线(Disconnect);链路恢复自动<a href="#" class="kplink" data-kp="retry-backoff" onclick="openKp('retry-backoff');return false;">指数退避重连</a>回 Online;<code>TickOnceAsync</code> 可单步驱动(测试不用真等定时器)</td>
+<td>2 次失败掉线→恢复→回 Online</td>
+</tr>
+<tr>
+<td>FR7-3</td>
+<td>DiagnosticsService:线程安全计数(样本/报警/批量/耗时/uptime)+ 环形日志(上限 200 条,最新在上)</td>
+<td>计数准确,日志不无限涨</td>
+</tr>
+<tr>
+<td>FR7-4</td>
+<td><a href="#" class="kplink" data-kp="di" onclick="openKp('di');return false;">Bootstrapper 组合根</a>:DI 注册 DbContextFactory/PointStore/AlarmEngine/DiagnosticsService/AcquisitionPipeline/IDevice;数据库放 LocalApplicationData;启动 EnsureCreated + 预置 2 条报警规则</td>
+<td>GetRequiredService 全部可解析</td>
+</tr>
+<tr>
+<td>FR7-5</td>
+<td>冒烟测试:Bootstrapper.Build() → 挂设备 → 起管道 → 3 秒内收到批次且入库</td>
+<td>CompositionSmokeTests 绿</td>
+</tr>
+<tr>
+<td>FR7-6</td>
+<td><a href="#" class="kplink" data-kp="moq" onclick="openKp('moq');return false;">Moq</a> 替身设备:Mock<IDevice> + Raise 模拟 DataReceived,验证管道与具体设备实现解耦</td>
+<td>DeviceMoqTests 绿</td>
+</tr>
+</tbody>
+</table>
+<p><strong>自己先想 10 分钟</strong>:
+1. 组合根为什么放 Core 而不是 UI?(UI/测试/未来服务复用同一套装配;放 UI 则换个壳就要重新接线)
+2. 重试为什么要加<strong>随机抖动</strong>?(多客户端同频重试会"共振"打死服务端——打散重试时刻)
+3. DeviceHealthMonitor 为什么把心跳做成<strong>委托注入</strong>而不是内部写死"读寄存器"?(不同设备探活方式不同;解耦后单测可控)
+4. 冒烟测试和单元测试的区别?(整链路真装配真跑通 vs 单个类逻辑正确——发布前冒烟兜底)</p>
+<h2 id="sec-2-3">📚 本篇知识点</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="di" onclick="openKp('di');return false;">DI 依赖注入</a> · <a href="#" class="kplink" data-kp="retry-backoff" onclick="openKp('retry-backoff');return false;">指数退避重试</a> · <a href="#" class="kplink" data-kp="moq" onclick="openKp('moq');return false;">Moq 替身</a> · <a href="#" class="kplink" data-kp="unit-test" onclick="openKp('unit-test');return false;">xUnit 单元测试</a> · <a href="#" class="kplink" data-kp="taskrun" onclick="openKp('taskrun');return false;">Task/async</a></li>
+</ul>
+<h2 id="sec-2-4">🛠️ 参考实现</h2>
+<h3 id="sec-3-1">⓪ 装包</h3>
+<pre><code class="language-bash">dotnet add src/DaqMonitor.Core package Microsoft.Extensions.DependencyInjection --version 8.0.1
+dotnet add src/DaqMonitor.Tests package Moq --version 4.20.72
+dotnet add src/DaqMonitor.Tests package Microsoft.Extensions.DependencyInjection --version 8.0.1
+</code></pre>
+<h3 id="sec-3-2">① Retry —— 指数退避重试</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Resilience/Retry.cs</code> · namespace <code>DaqMonitor.Core.Resilience</code>
+🔧 无 NuGet
+💡 面试常问"通信断了怎么办"——答案:重试+退避+超时+重连,不是裸 try-catch</p>
+</blockquote>
+<pre><code class="language-csharp">namespace DaqMonitor.Core.Resilience;
+
+/// &lt;summary&gt;
+/// 生产级重试:指数退避 + 随机抖动。无需 Polly,手撸即可。
+/// 用途:串口 / Modbus / PLC / 网络 通信偶发失败,不应直接抛给用户,应重试。
+/// &lt;/summary&gt;
+public static class Retry
+{
+    /// &lt;summary&gt;无返回值的重试。maxRetries=3 表示最多试 4 次(首试 + 3 次重试)。&lt;/summary&gt;
+    public static async Task ExecuteAsync(Func&lt;Task&gt; action, int maxRetries = 3, int baseDelayMs = 200, CancellationToken ct = default)
+    {
+        var attempt = 0;
+        while (true)
+        {
+            try
+            {
+                await action();
+                return;
+            }
+            catch (Exception) when (attempt &lt; maxRetries &amp;&amp; !ct.IsCancellationRequested)
+            {
+                attempt++;
+                var delay = (int)(baseDelayMs * Math.Pow(2, attempt - 1)) + Random.Shared.Next(0, baseDelayMs);
+                await Task.Delay(delay, ct);
+            }
+        }
+    }
+
+    /// &lt;summary&gt;带返回值的重试。&lt;/summary&gt;
+    public static async Task&lt;T&gt; ExecuteAsync&lt;T&gt;(Func&lt;Task&lt;T&gt;&gt; action, int maxRetries = 3, int baseDelayMs = 200, CancellationToken ct = default)
+    {
+        var attempt = 0;
+        while (true)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (Exception) when (attempt &lt; maxRetries &amp;&amp; !ct.IsCancellationRequested)
+            {
+                attempt++;
+                var delay = (int)(baseDelayMs * Math.Pow(2, attempt - 1)) + Random.Shared.Next(0, baseDelayMs);
+                await Task.Delay(delay, ct);
+            }
+        }
+    }
+}
+</code></pre>
+<h3 id="sec-3-3">② DeviceHealthMonitor —— 心跳探活 + 自动重连</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Health/DeviceHealthMonitor.cs</code> · namespace <code>DaqMonitor.Core.Health</code>
+💡 解决"IsConnected 不可信、设备悄悄掉线、数据突然不动"——工业现场真实痛点;测试用 <code>TickOnceAsync</code> 单步驱动,不真等定时器</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Resilience;
+
+namespace DaqMonitor.Core.Health;
+
+/// &lt;summary&gt;
+/// 设备健康监测:周期性发心跳探活,连续多次超时判掉线 → 指数退避重连;设备恢复正常后自动回 Online。
+///
+/// 设计要点:
+///   - 探活动作 heartbeat 由外部注入(读一个寄存器 / 发心跳包 / Ping),不直接耦合具体协议;
+///   - 重连复用已有的 Retry(指数退避 + 随机抖动),不重复造轮子;
+///   - 状态变化通过 StateChanged 广播,UI / 日志可订阅;
+///   - 全程可单测:heartbeat 用 delegate 控制、IDevice 用替身,无需真实硬件。
+///
+/// 用法(通常在组合根里包住设备):
+///   var dev = new CanDevice(2, &quot;CAN&quot;, new SimulatedCanChannel());
+///   var health = new DeviceHealthMonitor(dev, heartbeat: () =&gt; Task.Run(() =&gt; dev.Read(1)),
+///                                        heartbeatIntervalMs: 5000, missThreshold: 2,
+///                                        log: m =&gt; Console.WriteLine(&quot;[health] &quot; + m));
+///   health.Start();   // 后台每 5s 探活一次
+/// &lt;/summary&gt;
+public sealed class DeviceHealthMonitor : IDisposable
+{
+    private readonly IDevice _device;
+    private readonly Func&lt;Task&gt; _heartbeat;
+    private readonly int _intervalMs;
+    private readonly int _missThreshold;
+    private readonly Action&lt;string&gt;? _log;
+    private readonly CancellationTokenSource _cts = new();
+    private int _consecutiveMisses;
+    private bool _running;
+
+    /// &lt;summary&gt;状态变化通知:掉线时发 Offline,重连成功发 Online。&lt;/summary&gt;
+    public event Action&lt;DeviceState&gt;? StateChanged;
+
+    public DeviceHealthMonitor(IDevice device, Func&lt;Task&gt; heartbeat,
+        int heartbeatIntervalMs = 5000, int missThreshold = 2, Action&lt;string&gt;? log = null)
+    {
+        _device = device;
+        _heartbeat = heartbeat;
+        _intervalMs = heartbeatIntervalMs;
+        _missThreshold = missThreshold;
+        _log = log;
+    }
+
+    /// &lt;summary&gt;启动后台心跳循环(真实运行调用)。测试请用 TickOnceAsync 单步验证。&lt;/summary&gt;
+    public void Start()
+    {
+        if (_running) return;
+        _running = true;
+        _ = Task.Run(async () =&gt;
+        {
+            while (!_cts.IsCancellationRequested)
+            {
+                try { await Task.Delay(_intervalMs, _cts.Token); }
+                catch (OperationCanceledException) { break; }
+                if (_cts.IsCancellationRequested) break;
+                try { await TickOnceAsync(_cts.Token); }
+                catch (OperationCanceledException) { break; }
+                catch { /* 单步异常不终止循环 */ }
+            }
+        });
+    }
+
+    /// &lt;summary&gt;执行一次探活 + 掉线判定 + 重连(可单测入口)。&lt;/summary&gt;
+    public async Task TickOnceAsync(CancellationToken ct = default)
+    {
+        bool alive = await ProbeAsync(ct);
+
+        if (alive)
+        {
+            _consecutiveMisses = 0;
+            if (_device.State == DeviceState.Offline)
+            {
+                // 心跳已恢复但链路还断着 → 重连
+                await ReconnectAsync(ct);
+            }
+            return;
+        }
+
+        _consecutiveMisses++;
+        if (_consecutiveMisses &gt;= _missThreshold &amp;&amp; _device.State == DeviceState.Online)
+        {
+            // 判掉线:用 Disconnect 把状态切到 Offline(DeviceBase 内部置位)
+            _device.Disconnect();
+            _log?.Invoke(&quot;连续心跳超时,判定掉线&quot;);
+            StateChanged?.Invoke(DeviceState.Offline);
+        }
+    }
+
+    private async Task&lt;bool&gt; ProbeAsync(CancellationToken ct)
+    {
+        try
+        {
+            // maxRetries:1 即&quot;探一次,失败再试一次就放弃&quot;,模拟一次心跳往返
+            await Retry.ExecuteAsync(_heartbeat, maxRetries: 1, baseDelayMs: 0, ct: ct);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task ReconnectAsync(CancellationToken ct)
+    {
+        _log?.Invoke(&quot;开始指数退避重连...&quot;);
+        try
+        {
+            await Retry.ExecuteAsync(() =&gt; Task.Run(() =&gt; _device.Connect()),
+                maxRetries: 5, baseDelayMs: 500, ct: ct);
+            _consecutiveMisses = 0;
+            _log?.Invoke(&quot;重连成功&quot;);
+            StateChanged?.Invoke(DeviceState.Online);
+        }
+        catch
+        {
+            _log?.Invoke(&quot;重连失败,等待下次心跳&quot;);
+        }
+    }
+
+    public void Dispose() =&gt; _cts.Cancel();
+}
+</code></pre>
+<h3 id="sec-3-4">③ DiagnosticsService —— 指标 + 环形日志</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Diagnostics/DiagnosticsService.cs</code> · namespace <code>DaqMonitor.Core.Diagnostics</code>
+💡 工业现场 80% 的时间在排查"为什么没数据"——指标和日志是第一手证据;放 Core 与 UI 无关,R8 的诊断面板直接绑它</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Collections.ObjectModel;
+using System.ComponentModel;
+
+namespace DaqMonitor.Core.Diagnostics;
+
+/// &lt;summary&gt;
+/// 诊断 / 调试服务(放在 Core,与 UI 无关,纯逻辑)。
+///
+/// 设计要点:
+/// ① 全部用 lock 保护计数,线程安全(后台采集线程 / UI 线程都会调);
+/// ② 日志用环形缓冲(最多 200 条),避免内存无限增长;
+/// ③ 暴露 ReadOnlyObservableCollection,UI 直接绑。
+/// &lt;/summary&gt;
+public class DiagnosticsService
+{
+    private readonly object _gate = new();
+    private int _totalSamples;
+    private int _alarmCount;
+    private int _batchCount;
+    private long _lastBatchMs;
+    private readonly DateTime _startTime = DateTime.Now;
+    private readonly ObservableCollection&lt;string&gt; _log = new();
+    private const int MaxLog = 200;
+
+    /// &lt;summary&gt;累计采样点数(每批累加)。&lt;/summary&gt;
+    public int TotalSamples =&gt; _totalSamples;
+    /// &lt;summary&gt;累计报警触发次数(上升沿计)。&lt;/summary&gt;
+    public int AlarmCount =&gt; _alarmCount;
+    /// &lt;summary&gt;累计批量次数。&lt;/summary&gt;
+    public int BatchCount =&gt; _batchCount;
+    /// &lt;summary&gt;最近一批的处理耗时(毫秒),排查&quot;卡顿/丢点&quot;看它。&lt;/summary&gt;
+    public long LastBatchMs =&gt; _lastBatchMs;
+    /// &lt;summary&gt;已运行时长。&lt;/summary&gt;
+    public TimeSpan Uptime =&gt; DateTime.Now - _startTime;
+    /// &lt;summary&gt;对外只读日志视图,UI 直接绑。&lt;/summary&gt;
+    public ReadOnlyObservableCollection&lt;string&gt; Log { get; }
+
+    public DiagnosticsService() =&gt; Log = new ReadOnlyObservableCollection&lt;string&gt;(_log);
+
+    /// &lt;summary&gt;记录一次批量采集:累加点数/批次数,并写一条 INFO 日志。&lt;/summary&gt;
+    public void RecordBatch(int sampleCount, long elapsedMs)
+    {
+        lock (_gate)
+        {
+            _totalSamples += sampleCount;
+            _batchCount++;
+            _lastBatchMs = elapsedMs;
+        }
+        Append(&quot;INFO&quot;, $&quot;批量 #{_batchCount}: {sampleCount} 点, 耗时 {elapsedMs}ms&quot;);
+    }
+
+    /// &lt;summary&gt;记录一次报警触发(上升沿)。&lt;/summary&gt;
+    public void RecordAlarm(int pointId, string level, double value)
+    {
+        lock (_gate) _alarmCount++;
+        Append(&quot;WARN&quot;, $&quot;报警 点位{pointId} → {level}, 值={value}&quot;);
+    }
+
+    /// &lt;summary&gt;通用 INFO 记录(如设备连接/断开)。&lt;/summary&gt;
+    public void RecordInfo(string message) =&gt; Append(&quot;INFO&quot;, message);
+
+    /// &lt;summary&gt;通用 WARN 记录(如重连/异常)。&lt;/summary&gt;
+    public void RecordWarn(string message) =&gt; Append(&quot;WARN&quot;, message);
+
+    private void Append(string level, string message)
+    {
+        var line = $&quot;[{DateTime.Now:HH:mm:ss.fff}] {level} {message}&quot;;
+        lock (_gate)
+        {
+            // 新日志插到头部(最新在上);超出上限从尾部丢弃
+            _log.Insert(0, line);
+            while (_log.Count &gt; MaxLog) _log.RemoveAt(_log.Count - 1);
+        }
+    }
+}
+</code></pre>
+<h3 id="sec-3-5">④ Bootstrapper —— 组合根(R7 版)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/AppServices/Bootstrapper.cs</code>
+💡 参考工程同名文件还注册认证/配方/运控/MQTT(R9+ 内容)并种子账号配方——<strong>R7 版先删掉这些,R9+ 做到那篇时按参考工程加回</strong>;注释里的"换一行接真设备"示例全保留,这是可插拔的证据</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.Alarms;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Diagnostics;
+using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Store;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace DaqMonitor.Core.AppServices;
+
+/// &lt;summary&gt;
+/// 组合根(Composition Root):用 Microsoft.Extensions.DependencyInjection 把 Core 服务串起来。
+/// 放在 Core 而不是 UI,是因为它是&quot;整个应用的装配说明书&quot;——UI、测试、未来服务都能复用同一套装配。
+///
+/// 用法:
+///   using var provider = Bootstrapper.Build();
+///   var pipeline = provider.GetRequiredService&lt;AcquisitionPipeline&gt;();
+///   var device   = provider.GetRequiredService&lt;IDevice&gt;();   // 当前是 SimulatedDevice
+///   pipeline.Register(device); device.Connect();
+/// &lt;/summary&gt;
+public static class Bootstrapper
+{
+    public static ServiceProvider Build()
+    {
+        var services = new ServiceCollection();
+
+        // 持久化:SQLite + EF Core。工厂模式便于查询 / 写入各自取短生命周期 DbContext。
+        // 数据库文件放 LocalApplicationData(用户可写、随用户隔离、不会被卸载清理)。
+        var dbPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            &quot;DaqMonitor&quot;, &quot;daq.db&quot;);
+        var dbDir = System.IO.Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrEmpty(dbDir)) System.IO.Directory.CreateDirectory(dbDir);
+
+        services.AddDbContextFactory&lt;AppDb&gt;(opt =&gt;
+            opt.UseSqlite($&quot;Data Source={dbPath}&quot;));
+
+        // 单例:全局共享一份存储与报警引擎
+        services.AddSingleton&lt;PointStore&gt;();
+        services.AddSingleton&lt;AlarmEngine&gt;();
+        // 诊断/调试服务:采集统计 + 结构化日志,UI 的诊断面板直接绑它
+        services.AddSingleton&lt;DiagnosticsService&gt;();
+
+        // 管道:定时 200ms 批量出队(统一采集架构)
+        services.AddSingleton&lt;AcquisitionPipeline&gt;(_ =&gt; new AcquisitionPipeline(TimeSpan.FromMilliseconds(200)));
+
+        // 设备:当前用模拟设备,没有真实硬件也能跑通整条链路。
+        // 接真实硬件时只需在这里换实现,UI 与采集层一行不改(面向接口编程的胜利):
+        //   services.AddSingleton&lt;IDevice&gt;(_ =&gt; new SerialDevice(1, &quot;SER&quot;, new RealSerialChannel(&quot;COM3&quot;, 9600)));
+        //   services.AddSingleton&lt;IDevice&gt;(_ =&gt; new CanDevice(2, &quot;CAN-01&quot;, new SimulatedCanChannel()));
+        //   services.AddSingleton&lt;IDevice&gt;(_ =&gt; new ModbusDevice(1, &quot;MB-01&quot;, slave: 1,
+        //       new[] { new ModbusDevice.RegisterMap(1, 0, &quot;float&quot;,
+        //                    ModbusFrameParser.ByteOrder.CDAB) }, simulate: false, portName: &quot;COM3&quot;));
+        //   services.AddSingleton&lt;IDevice&gt;(_ =&gt; new PlcDevice(2, &quot;PLC-01&quot;,
+        //       new[] { new PlcDevice.PlcMap(3, &quot;DB1.DBW0&quot;) }, simulate: true));
+        services.AddSingleton&lt;IDevice&gt;(_ =&gt; new SimulatedDevice(1, &quot;Sim-01&quot;, 1, 2, 3));
+
+        var provider = services.BuildServiceProvider();
+
+        // 启动期一次性建库建表(用 EnsureCreated:简单,不依赖迁移;首次运行后生成 daq.db)。
+        using (var scope = provider.CreateScope())
+        {
+            var factory = scope.ServiceProvider.GetRequiredService&lt;IDbContextFactory&lt;AppDb&gt;&gt;();
+            using var db = factory.CreateDbContext();
+            db.Database.EnsureCreated();
+        }
+
+        // 预置两条报警规则:点位 1 超 100 判 Critical、点位 2 超 100 判 Warning(带回滞 2,防抖动)
+        var alarms = provider.GetRequiredService&lt;AlarmEngine&gt;();
+        alarms.Add(new AlarmRule { PointId = 1, Threshold = 100, IsHigh = true, Level = AlarmLevel.Critical, Hysteresis = 2 });
+        alarms.Add(new AlarmRule { PointId = 2, Threshold = 100, IsHigh = true, Level = AlarmLevel.Warning, Hysteresis = 2 });
+
+        return provider;
+    }
+}
+</code></pre>
+<h3 id="sec-3-6">⑤ 四个测试文件(6 个测试)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/RetryTests.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Resilience;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class RetryTests
+{
+    [Fact]
+    public async Task ExecuteAsync_RetriesThenSucceeds()
+    {
+        int calls = 0;
+        await Retry.ExecuteAsync(async () =&gt;
+        {
+            calls++;
+            if (calls &lt; 3) throw new InvalidOperationException(&quot;transient&quot;);
+            await Task.Yield();
+        }, maxRetries: 5);
+
+        Assert.Equal(3, calls);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ThrowsAfterExhaustingRetries()
+    {
+        await Assert.ThrowsAsync&lt;InvalidOperationException&gt;(() =&gt;
+            Retry.ExecuteAsync(async () =&gt;
+            {
+                await Task.Yield();
+                throw new InvalidOperationException();
+            }, maxRetries: 2));
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/DeviceHealthMonitorTests.cs</code>(R4 挪来的)</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Health;
+using DaqMonitor.Core.Models;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 验证 DeviceHealthMonitor:用替身 IDevice + 可控心跳,
+/// 证明&quot;连续超时判掉线 → 链路恢复自动重连回 Online&quot;这套组合拳成立,且全单测、零硬件。
+/// &lt;/summary&gt;
+public class DeviceHealthMonitorTests
+{
+    /// &lt;summary&gt;最小可控设备替身:Connect→Online,Disconnect→Offline,状态真实切换。&lt;/summary&gt;
+    private sealed class FakeDevice : IDevice
+    {
+        private DeviceState _state = DeviceState.Online;
+        public int Id =&gt; 1;
+        public string Name =&gt; &quot;fake&quot;;
+        public DeviceState State =&gt; _state;
+#pragma warning disable CS0067
+        public event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+#pragma warning restore CS0067
+        public void Connect() =&gt; _state = DeviceState.Online;
+        public void Disconnect() =&gt; _state = DeviceState.Offline;
+        public double Read(int addr) =&gt; 0;
+        public void Write(int addr, double v) { }
+    }
+
+    [Fact]
+    public async Task Drops_Offline_After_MissThreshold_Then_Reconnects_When_Recovered()
+    {
+        var reachable = false;
+        Func&lt;Task&gt; heartbeat = () =&gt;
+        {
+            if (!reachable) throw new InvalidOperationException(&quot;link down&quot;);
+            return Task.CompletedTask;
+        };
+
+        var dev = new FakeDevice();
+        var states = new List&lt;DeviceState&gt;();
+        var monitor = new DeviceHealthMonitor(dev, heartbeat, heartbeatIntervalMs: 5000, missThreshold: 2);
+        monitor.StateChanged += s =&gt; states.Add(s);
+
+        // 1) 连续 2 次探活失败(阈值=2)→ 判掉线
+        await monitor.TickOnceAsync();
+        await monitor.TickOnceAsync();
+        Assert.Contains(DeviceState.Offline, states);
+        Assert.Equal(DeviceState.Offline, dev.State);
+
+        // 2) 链路恢复 → 自动重连回 Online
+        reachable = true;
+        await monitor.TickOnceAsync();
+        Assert.Contains(DeviceState.Online, states);
+        Assert.Equal(DeviceState.Online, dev.State);
+    }
+
+    [Fact]
+    public async Task No_Drop_Before_Threshold()
+    {
+        var reachable = false;
+        Func&lt;Task&gt; heartbeat = () =&gt;
+        {
+            if (!reachable) throw new InvalidOperationException();
+            return Task.CompletedTask;
+        };
+
+        var dev = new FakeDevice();
+        var states = new List&lt;DeviceState&gt;();
+        var monitor = new DeviceHealthMonitor(dev, heartbeat, missThreshold: 3);
+        monitor.StateChanged += s =&gt; states.Add(s);
+
+        await monitor.TickOnceAsync();   // 仅 1 次未达阈值,不应掉线
+        Assert.Empty(states);
+        Assert.Equal(DeviceState.Online, dev.State);
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/DeviceMoqTests.cs</code>(R2 挪来的——那时还没有管道)</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using Moq;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 用 Moq 造&quot;虚拟设备&quot;,验证统一采集管道能从任意 IDevice 收到数据。
+/// 单元测试铁律:不碰真实串口/PLC/MQTT 等外部依赖,全部用 Mock 替身。
+/// &lt;/summary&gt;
+public class DeviceMoqTests
+{
+    [Fact]
+    public async Task Pipeline_ReceivesData_FromMockedDevice()
+    {
+        var device = new Mock&lt;IDevice&gt;();
+        device.Setup(d =&gt; d.Id).Returns(1);
+        device.Setup(d =&gt; d.Name).Returns(&quot;mock&quot;);
+
+        using var pipeline = new AcquisitionPipeline(TimeSpan.FromMilliseconds(50));
+        var done = new TaskCompletionSource();
+        var received = new List&lt;SensorPoint&gt;();
+        pipeline.BatchReady += (s, batch) =&gt;
+        {
+            received.AddRange(batch);
+            if (received.Count &gt;= 1) done.TrySetResult();
+        };
+
+        pipeline.Register(device.Object);
+        // 用 Moq 的 Raise 模拟&quot;设备收到一帧数据并触发事件&quot;
+        device.Raise(d =&gt; d.DataReceived += null,
+            new DataEventArgs { PointId = 7, Value = 42, Timestamp = DateTime.Now });
+
+        await Task.WhenAny(done.Task, Task.Delay(2000));
+        Assert.Single(received);
+        Assert.Equal(7, received[0].Id);
+        Assert.Equal(42, received[0].Value);
+    }
+}
+</code></pre>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/CompositionSmokeTests.cs</code></p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Acquisition;
+using DaqMonitor.Core.AppServices;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Store;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 无界面集成冒烟测试:证明&quot;企业级项目能跑起来&quot;不靠肉眼看窗口。
+/// 直接用组合根 Bootstrapper 装配整套服务,跑真实采集链路,断言有数据产出。
+/// &lt;/summary&gt;
+public class CompositionSmokeTests
+{
+    [Fact]
+    public async Task Bootstrapper_Wires_Device_Pipeline_Store_And_Produces_Points()
+    {
+        using var provider = Bootstrapper.Build();
+        var device = provider.GetRequiredService&lt;IDevice&gt;();
+        var pipeline = provider.GetRequiredService&lt;AcquisitionPipeline&gt;();
+        var store = provider.GetRequiredService&lt;PointStore&gt;();
+
+        pipeline.Register(device);
+        device.Connect();
+
+        // 测试在这里扮演&quot;消费者&quot;角色(真实项目里是 ViewModel/历史库订阅 BatchReady)
+        var gotBatch = new TaskCompletionSource&lt;bool&gt;();
+        var received = new List&lt;SensorPoint&gt;();
+        var gate = new object();
+        pipeline.BatchReady += (_, batch) =&gt;
+        {
+            lock (gate)
+            {
+                foreach (var p in batch) { store.AddOrUpdate(p); received.Add(p); }
+                if (batch.Count &gt; 0) gotBatch.TrySetResult(true);
+            }
+        };
+
+        // 启动模拟设备(真实设备同理,只是数据来源不同)
+        ((SimulatedDevice)device).Start(TimeSpan.FromMilliseconds(20));
+
+        // 等最多 3 秒,必须收到至少一个批次
+        var completed = await Task.WhenAny(gotBatch.Task, Task.Delay(3000));
+        ((SimulatedDevice)device).Stop();
+
+        Assert.True(completed == gotBatch.Task, &quot;管道在 3 秒内未产出任何批次——采集链路未跑通&quot;);
+        Assert.NotEmpty(received);
+        Assert.NotEmpty(store.GetAll());
+        Assert.All(received, p =&gt; Assert.True(p.Timestamp &gt; DateTime.MinValue));
+    }
+}
+</code></pre>
+<h2 id="sec-2-5">✅ 验证(必做)</h2>
+<pre><code class="language-bash">dotnet build
+dotnet test
+</code></pre>
+<p><strong>期望输出(关键行)</strong>:</p>
+<pre><code>已成功生成。 → 0 个警告 0 个错误
+已通过! - 失败: 0,通过: 56 ... DaqMonitor.Tests.dll
+</code></pre>
+<p>(56 = 之前 50 + 本篇 6)</p>
+<h2 id="sec-2-6">✅ 验收清单</h2>
+<ul>
+<li>[ ] build 0 错 0 警,test 56/56 绿</li>
+<li>[ ] 能回答:组合根模式比"哪里需要哪里 new"好在哪?(依赖集中可查、生命周期统一管理、换实现一处改)</li>
+<li>[ ] 能回答:指数退避的 delay 公式 <code>base * 2^(n-1) + rand(0,base)</code> 两段各起什么作用?(指数拉开间隔 / 抖动打散并发)</li>
+<li>[ ] 能回答:DeviceHealthMonitor 判掉线为什么用 <code>Disconnect()</code> 而不是直接改状态?(状态是 protected,走接口语义;顺带触发设备自己的清理逻辑)</li>
+<li>[ ] 打开 <code>%LocalAppData%\DaqMonitor\daq.db</code> 所在目录能看到冒烟测试生成的数据库文件</li>
+<li>[ ] git commit -m "R7: DI组合根+诊断+重试+健康监测+冒烟测试"</li>
+</ul>
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p>"组装用 Microsoft.Extensions.DependencyInjection,组合根 Bootstrapper 放在 Core 层——它是装配说明书,UI、测试、以后做成 Windows 服务都复用同一套注册,换设备只改组合根一行。容错两个件:Retry 是手写的指数退避加随机抖动,不引 Polly,因为逻辑就二十行;DeviceHealthMonitor 用委托注入心跳动作,连续 N 次探活失败判掉线,恢复后自动指数退避重连,单测用 TickOnceAsync 单步驱动,不用真等定时器。诊断服务做线程安全计数和两百条环形日志。最后一条冒烟测试从容器装配出设备、管道、存储跑通全链路——回归时一条测试就知道装配有没有被我改坏。"</p>
+</blockquote>
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r7',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="proj-r6.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R6 · 持久化双写落库</div></a>
+  <a class="next" href="proj-r8.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">R8 · WPF 主界面</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

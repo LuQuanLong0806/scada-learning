@@ -143,8 +143,8 @@
 - <strong>30 分钟</strong>:精读 Day 1-3(C# 类型 / LINQ / 类)— 4-5 年前端能快速迁移
 - <strong>3 小时</strong>:全文精读 + <strong>Day 7 多线程/async/锁(重头戏⭐⭐⭐)</strong> + Day 8 立起 WPF 工程
 - 🎯 <strong>面试高频</strong>:<strong>struct vs class(值类型拷贝陷阱)</strong> / <strong>async void 吞异常 + .Result 死锁</strong> / <strong>Channel<T> 生产消费</strong> / 委托/事件
-- 🔁 <strong>配套复习</strong>:<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱深度版</a> · <a href="代码肌肉训练手册_30天刷题版.html">代码肌肉 B2 Channel 10min / B9 RelayCommand 5min / B26 IDisposable</a> · <a href="代码肌肉训练手册_30天刷题版.html">Debug C1 async void / C2 .Result 死锁 / C6 struct 拷贝</a> · <a href="记忆与复习机制_间隔重复版.html">间隔重复表</a></p>
-<p>📚 <strong>前置语法</strong>(M0 自身是 C# 语法源头,但若你完全没接触过 C#,<strong>强烈建议先扫一遍</strong> <a href="CSharp语法速查_前端视角.html">C# 语法速查 — 前端视角</a> 的 §1 类型推断 / §2 集合 / §4 属性,有了视觉记忆再读 M0,效率会高很多)
+- 🔁 <strong>配套复习</strong>:<a href="traps.html">C# 陷阱深度版</a> · <a href="muscle.html">代码肌肉 B2 Channel 10min / B9 RelayCommand 5min / B26 IDisposable</a> · <a href="muscle.html">Debug C1 async void / C2 .Result 死锁 / C6 struct 拷贝</a> · <a href="spaced-repetition.html">间隔重复表</a></p>
+<p>📚 <strong>前置语法</strong>(M0 自身是 C# 语法源头,但若你完全没接触过 C#,<strong>强烈建议先扫一遍</strong> <a href="csharp-syntax.html">C# 语法速查 — 前端视角</a> 的 §1 类型推断 / §2 集合 / §4 属性,有了视觉记忆再读 M0,效率会高很多)
 - <code>var</code> / <code>new()</code> — 类型推断,速查 §1
 - <code>List&lt;T&gt;</code> / <code>Dictionary&lt;K,V&gt;</code> — 集合,速查 §2
 - <code>{ get; set; }</code> — 属性,速查 §4
@@ -153,12 +153,12 @@
 - <code>lock (_obj)</code> — 多线程互斥(Day 7),速查 §14</p>
 <p>📦 <strong>学习约定 · 跟着敲不报错(必读!)</strong>
 - 本讲义<strong>项目驱动</strong>,所有示例代码属于 <code>DaqMonitor</code> 工程。完整可编译代码在仓库 <code>DaqMonitor.sln</code> 里。
-- <strong>看到 "🏗️ 项目任务" 里写 <code>DaqMonitor.Core/XXX.cs</code> 路径</strong> → 这是让你<strong>在真实项目里建文件</strong>。<strong>还没建项目骨架?</strong> 跳到 <a href="#day-2--类型系统值类型--引用类型--可空--struct--enum-">Day 2 开头「📦 立项目骨架」</a> 跑 6 条 <code>dotnet</code> 命令(10 分钟搭好)。详细版见 <a href="实操入门_从零搭建企业级工程.html">实操入门 · 从零搭建企业级工程</a>。
+- <strong>看到 "🏗️ 项目任务" 里写 <code>DaqMonitor.Core/XXX.cs</code> 路径</strong> → 这是让你<strong>在真实项目里建文件</strong>。<strong>还没建项目骨架?</strong> 跳到 <a href="#day-2--类型系统值类型--引用类型--可空--struct--enum-">Day 2 开头「📦 立项目骨架」</a> 跑 6 条 <code>dotnet</code> 命令(10 分钟搭好)。详细版见 <a href="getting-started.html">实操入门 · 从零搭建企业级工程</a>。
 - <strong>项目类型怎么选?</strong> Core = 类库(classlib),UI = WPF 应用,Tests = xUnit。<strong>不要建控制台(console)</strong>。详见 Day 2 立骨架块。
-- 示例代码引用的核心类型(<code>SensorPoint</code>/<code>DeviceBase</code>/<code>IDevice</code>/<code>AlarmRule</code> 等)都在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong> — 遇到"找不到类型 XXX"报错,<strong>先去这份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。
+- 示例代码引用的核心类型(<code>SensorPoint</code>/<code>DeviceBase</code>/<code>IDevice</code>/<code>AlarmRule</code> 等)都在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a> <strong>集中定义</strong> — 遇到"找不到类型 XXX"报错,<strong>先去这份文档复制对应类型</strong>,在项目里建 <code>_PredefinedTypes.cs</code> 粘进去就能跑。
 - 每个 Day 开头若有 <strong>"📦 前置代码"</strong> 块:本 Day 用到的类型在本块内 inline 定义,直接复制即可。
 - 若没有 "📦 前置代码" 块:说明该 Day 只用 BCL 类型(<code>List&lt;int&gt;</code>/<code>string</code> 等),装好 .NET SDK 直接能跑。
-- <strong>学习姿势</strong>:① Day 1 装环境 → ② Day 2 开头立项目骨架 → ③ Day 2-7 跟着敲代码进项目 → ④ 遇到陌生语法查 <a href="CSharp语法速查_前端视角.html">C# 语法速查</a> → ⑤ 遇到找不到类型查 <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>。</p>
+- <strong>学习姿势</strong>:① Day 1 装环境 → ② Day 2 开头立项目骨架 → ③ Day 2-7 跟着敲代码进项目 → ④ 遇到陌生语法查 <a href="csharp-syntax.html">C# 语法速查</a> → ⑤ 遇到找不到类型查 <a href="predefined-types.html">前置类型定义</a>。</p>
 </blockquote>
 <h2 id="sec-2-1">📋 类型依赖总览(全 30 天会建的 15 个核心类型 · 一表看清)</h2>
 <blockquote>
@@ -286,7 +286,7 @@
 - Day 2 先建 SensorPoint/DeviceState/AlarmLevel(后面所有类型的基础)
 - Day 5 IDevice/DeviceBase 必须在 SimulatedDevice 之前
 - Day 7 AcquisitionPipeline/PointStore 需要 IDevice 已建好
-- 完整类型签名(可直接复制)在 <a href="前置类型定义_学员粘贴版.html">📦 前置类型定义 · 学员粘贴版</a></p>
+- 完整类型签名(可直接复制)在 <a href="predefined-types.html">📦 前置类型定义 · 学员粘贴版</a></p>
 <hr />
 <h2 id="sec-2-2">🎯 优先级路线总览（必学 → 缓学 → 再学，没有天数，按自己节奏啃）</h2>
 <table>
@@ -588,7 +588,7 @@ Console.WriteLine($&quot;端口={502}，温度={25.6}，兜底值={maybe ?? 0}&q
 - <code>DaqMonitor.UI</code> → <strong>WPF 应用(wpf)</strong>:有 MainWindow、能 <code>dotnet run</code> 弹窗的真实程序。<strong>前端类比</strong>:像 <code>apps/web/</code> 是入口。
 - <code>DaqMonitor.Tests</code> → <strong>xUnit 测试(xunit)</strong>:跑单测的工程。
 - <strong>不要选"控制台(console)"</strong>:console 是命令行程序,我们的目标是 WPF 桌面 UI。
-- 完整版教程见 <a href="实操入门_从零搭建企业级工程.html">实操入门 · 从零搭建企业级工程</a>,这里是最小可跑版。</p>
+- 完整版教程见 <a href="getting-started.html">实操入门 · 从零搭建企业级工程</a>,这里是最小可跑版。</p>
 </blockquote>
 <h4>🚦 前置检查(2 分钟,不做后面全卡死)</h4>
 <table>
@@ -689,7 +689,7 @@ dotnet new gitignore      # 在资料根目录生成标准 .NET gitignore(忽略
 <p>前端类比:把 <code>console.log(x)</code> 换成 <code>expect(x).toBe(5)</code> 的单测。"打印出来人眼看"变成"断言自动判",这正是 M9 工程素养的核心理念 —— <strong>测试就是可自动判卷的练习题</strong>,顺便攒测试数量(M9/简历都用得上)。</p>
 <p>📂 新建 <code>src/DaqMonitor.Tests/LinqPracticeTests.cs</code> · namespace <code>DaqMonitor.Tests</code>
 🔧 无需装包(xunit 模板自带 xunit + LINQ)
-💡 引用 Core 里的 <a href="前置类型定义_学员粘贴版.html"><code>SensorPoint</code></a>(Day 2 项目任务已建)</p>
+💡 引用 Core 里的 <a href="predefined-types.html"><code>SensorPoint</code></a>(Day 2 项目任务已建)</p>
 </blockquote>
 <pre><code class="language-csharp">// src/DaqMonitor.Tests/LinqPracticeTests.cs
 using DaqMonitor.Core.Models;
@@ -798,9 +798,9 @@ Console.WriteLine(age2?.ToString());  // ?. 空条件调用（JS 也有）
 }
 </code></pre>
 <blockquote>
-<p>💡 这里就是 DAQ Monitor 项目的<strong>正式 SensorPoint 定义</strong>(与参考工程 <code>DaqMonitor.Core/Models/SensorPoint.cs</code>、<a href="前置类型定义_学员粘贴版.html">前置类型定义</a> 一字不差),后面所有 Day/模块都用这个。<strong>没有构造函数,用对象初始化器赋值</strong>:<code>new SensorPoint { Id = 1, Value = 20.5 }</code>。
+<p>💡 这里就是 DAQ Monitor 项目的<strong>正式 SensorPoint 定义</strong>(与参考工程 <code>DaqMonitor.Core/Models/SensorPoint.cs</code>、<a href="predefined-types.html">前置类型定义</a> 一字不差),后面所有 Day/模块都用这个。<strong>没有构造函数,用对象初始化器赋值</strong>:<code>new SensorPoint { Id = 1, Value = 20.5 }</code>。
 ⚠️ <strong>注意 <code>Timestamp</code> 不会自动取当前时间</strong> — 不写就是 <code>default(DateTime)</code> = <code>0001-01-01</code>。真实采集链路里由 <code>RaiseData</code>/<code>AcquisitionPipeline</code> 统一打时间戳(见 Day 6),你手写测试数据时不关心时间可以省。
-🎤 <strong>面试加分点</strong>:更严谨的现代写法是 <code>readonly struct</code> + <code>init</code> 属性(保证不可变、线程安全,见 <a href="CSharp语法速查_前端视角.html">C# 语法速查</a>)。工程用朴素字段版是为了"学员代码与参考工程逐字对齐",两种都要看得懂。</p>
+🎤 <strong>面试加分点</strong>:更严谨的现代写法是 <code>readonly struct</code> + <code>init</code> 属性(保证不可变、线程安全,见 <a href="csharp-syntax.html">C# 语法速查</a>)。工程用朴素字段版是为了"学员代码与参考工程逐字对齐",两种都要看得懂。</p>
 </blockquote>
 <p><strong>④ enum —— 状态/功能码用它</strong>：🟦 命名常量，比 magic number 可读：</p>
 <pre><code class="language-csharp">public enum DeviceState { Offline, Connecting, Online }
@@ -1231,7 +1231,7 @@ Console.WriteLine($&quot;点位{alarm.PointId} 报警 {alarm.Level} 值={alarm.V
 <p><strong>📌 技术来源</strong>：🟦 集合语法 + 🟩 BCL（<code>List&lt;T&gt;</code>/<code>Dictionary&lt;K,V&gt;</code>/<code>LINQ</code>）</p>
 <h3 id="sec-3-18">📦 前置代码:本 Day 示例用到的类型</h3>
 <blockquote>
-<p>本 Day 所有示例代码都基于 <a href="#day-2--类型基础-值引用enumstruct">Day 2 已定义的 SensorPoint</a>。<strong>完整可编译版本</strong>在 <a href="前置类型定义_学员粘贴版.html">前置类型定义 · 学员粘贴版</a>,如果你还没建好,<strong>复制这份到 <code>DaqMonitor.Core/Models/SensorPoint.cs</code></strong>:</p>
+<p>本 Day 所有示例代码都基于 <a href="#day-2--类型基础-值引用enumstruct">Day 2 已定义的 SensorPoint</a>。<strong>完整可编译版本</strong>在 <a href="predefined-types.html">前置类型定义 · 学员粘贴版</a>,如果你还没建好,<strong>复制这份到 <code>DaqMonitor.Core/Models/SensorPoint.cs</code></strong>:</p>
 </blockquote>
 <pre><code class="language-csharp">namespace DaqMonitor.Core.Models;
 
@@ -1897,7 +1897,7 @@ p1.Equals(p2);   // ✅ true(record 自带值相等)
 var p3 = p1 with { Value = 20.0 };   // 拷贝并改一个字段(不可变修改)
 </code></pre>
 <blockquote>
-<p>💡 用途:DTO/消息/事件参数 — 不变量传递,代码极简。这是给"轻量值对象"用的语法糖;项目里真正的 <code>SensorPoint</code> 是 struct(参 Day 2 / <a href="前置类型定义_学员粘贴版.html">前置类型定义</a>),二者各司其职。</p>
+<p>💡 用途:DTO/消息/事件参数 — 不变量传递,代码极简。这是给"轻量值对象"用的语法糖;项目里真正的 <code>SensorPoint</code> 是 struct(参 Day 2 / <a href="predefined-types.html">前置类型定义</a>),二者各司其职。</p>
 </blockquote>
 <p><strong>④ using / IDisposable(资源释放,Day 7 多线程+并发也用)</strong>:</p>
 <pre><code class="language-csharp">using var stream = new FileStream(&quot;log.txt&quot;, FileMode.Append);   // 离开作用域自动 Dispose
@@ -3680,14 +3680,14 @@ var consumer = Task.Run(() =&gt; ConsumeAsync(cts.Token));
 - 生产者：每个设备的 <code>DataReceived</code> 事件 → <code>_channel.Writer.TryWrite(p)</code>
 - 消费者：后台任务 <code>_consumer = Task.Run(async () =&gt; await foreach (var p in _channel.Reader.ReadAllAsync()) ...</code>
 - 200ms 定时器触发 <code>BatchReady</code> 事件，批量消费（比逐条省 IO）
-- 详见 <a href="M9_工程素养_测试DI容错_深度版.html">M9 工程素养</a> 和 <code>DAQMonitor/src/DaqMonitor.Core/AcquisitionPipeline.cs</code></p>
+- 详见 <a href="M9.html">M9 工程素养</a> 和 <code>DAQMonitor/src/DaqMonitor.Core/AcquisitionPipeline.cs</code></p>
 <p><strong>6. ⚠️ 常见坑点预警表</strong>
 | 坑 | 说明 |
 |---|---|
 | 无界 Channel 内存炸 | 生产远快于消费时，<code>_channel</code> 内部 List 无限增长 → OOM。<strong>生产环境推荐有界</strong> + <code>BoundedChannelFullMode.DropOldest</code> 或 <code>Wait</code> |
 | 忘 <code>Writer.Complete()</code> | 消费者 <code>ReadAllAsync</code> 永远不结束，程序关不掉 |
 | 忘 <code>CancellationToken</code> | 关闭时 <code>WriteAsync</code> 卡住，程序挂 |
-| <code>async void</code> 事件订阅 | 不能在 event handler 里直接 <code>await channel.Writer.WriteAsync()</code>，见 <a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 4</a> |
+| <code>async void</code> 事件订阅 | 不能在 event handler 里直接 <code>await channel.Writer.WriteAsync()</code>，见 <a href="traps.html">C# 陷阱讲义 陷阱 4</a> |
 | 单读单写最快 | Channel 单生产者单消费者（SPSC）性能最高，多生产者多消费者（MPMC）也能用但稍慢 |</p>
 <p><strong>7. 🧪 三档练习</strong>
 - 🟢 <strong>基础</strong>：用 Channel 写一个 "1 生产者 1 消费者"，生产 0-9 数字，消费打印平方。
@@ -3703,7 +3703,7 @@ var consumer = Task.Run(() =&gt; ConsumeAsync(cts.Token));
 - Microsoft 官方 Channel 文档：https://learn.microsoft.com/dotnet/api/system.threading.channels
 - Stephen Toub《An Introduction to System.Threading.Channels》：https://devblogs.microsoft.com/dotnet/an-introduction-to-system-threading-channels/</p>
 <hr />
-<p>📌 <strong>跨模块联动</strong>：本节 <code>Channel&lt;T&gt;</code> 是 <a href="M9_工程素养_测试DI容错_深度版.html">M9 工程素养 AcquisitionPipeline</a> 的核心，DAQMonitor 项目实际用的就是它；<a href="C#_陷阱_前端转上位机必看_深度版.md">C# 陷阱讲义 陷阱 2 多线程</a> 把 Channel vs lock vs ConcurrentQueue 三件套做了对比。</p>
+<p>📌 <strong>跨模块联动</strong>：本节 <code>Channel&lt;T&gt;</code> 是 <a href="M9.html">M9 工程素养 AcquisitionPipeline</a> 的核心，DAQMonitor 项目实际用的就是它；<a href="traps.html">C# 陷阱讲义 陷阱 2 多线程</a> 把 Channel vs lock vs ConcurrentQueue 三件套做了对比。</p>
 <hr />
 <blockquote>
 <p>📦 <strong>前置准备</strong>:需要 <code>IDevice</code>/<code>DeviceBase</code>/<code>DataReceived</code> 事件已就位(Day 5/6 项目任务)。<strong>还没建 Core 工程?</strong> 跳到 <a href="#-立项目骨架本-day-项目任务的前提必做">Day 2 开头「📦 立项目骨架」</a>。</p>
