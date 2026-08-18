@@ -176,7 +176,7 @@ PAGES = [
          title="项目开发全景 · 每一步是什么/为什么", sub="现成 vs 自研 一眼懂",
          what="按真实成长顺序拆解 20 步：做什么/为什么/直接用 vs 自己开发 + 阅读顺序", src="🟦 全景"),
     dict(slug="proj2", kind="support", file="项目二_协议调试助手_规划与路线.md",
-         title="项目二 · CommLab 协议调试助手（规划）", sub="第 2 份简历作品",
+         title="项目三 · CommLab 协议调试助手（规划）", sub="第 3 份简历作品",
          what="与 DAQMonitor 互补的调试工具：复用 IDevice/帧解析，新增报文编辑/从站模拟/抓包回放", src="🟦 规划"),
     dict(slug="interview", kind="support", file="面试高频知识点_速记卡.md",
          title="面试高频知识点 · 速记卡", sub="手机刷 · 23 题",
@@ -222,9 +222,29 @@ PAGES = [
          title="R8 · WPF 主界面", sub="MVVM 主屏(主屏先行)",
          what="App DI 启动、MainViewModel+RelayCommand、GaugeControl/StatusDot 自定义控件、LiveCharts2 曲线、诊断面板+手动验收清单",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
-    dict(slug="proj-mc", kind="module", file="项目实践_MotionControl_运控升级.md",
-         title="MC · 模拟运控升级篇", sub="两轴并发/急停/软限位/插补",
-         what="把 WinForms 模拟运控 v1 升级成 v2:IMotionCard 接口化、每轴 CancellationToken 并发、急停就地冻结、回零/软限位/报警链路、直线插补、工业风界面,14 测试(含 STA 消息泵 UI 冒烟)",
+    dict(slug="proj-mc1", kind="module", file="项目实践_MotionControl_MC1_工程骨架与模拟卡.md",
+         title="MC1 · 骨架与模拟卡", sub="net8 迁移/IMotionCard/两轴并发仿真",
+         what="net8 工程三件套 + IMotionCard 接口(对齐真卡 SDK 返回码)+ MockMotionCard:每轴 CancellationToken、急停就地冻结、回零、软限位、报警链路",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc2", kind="module", file="项目实践_MotionControl_MC2_卡的行为测试.md",
+         title="MC2 · 卡的行为测试", sub="12 个测试钉死全部行为",
+         what="tickMs 快进 10 倍 + WaitUntil 轮询:两轴并发、短距离定位、急停冻结、软限位、回零、报警各有一个测试作证,4 秒跑完的回归防线",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc3", kind="module", file="项目实践_MotionControl_MC3_WinForms主界面.md",
+         title="MC3 · WinForms 主界面", sub="控件数组/集中刷新/跨线程事件",
+         what="两轴控件收数组循环订阅(闭包坑)、按钮状态集中 RefreshUiState 单一真源、卡事件 InvokeRequired+BeginInvoke、定时器边沿检测运动完成、输入防呆自愈、工业配色",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc4", kind="module", file="项目实践_MotionControl_MC4_UI冒烟验收.md",
+         title="MC4 · UI 冒烟验收", sub="STA 线程 + 消息泵全流程冒烟",
+         what="STA 线程创建真实窗体、Application.DoEvents 手动泵消息,连接→双轴并发→定位→报警→急停→断开全流程跑一遍,跨线程错误当场红(13/13)",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc5", kind="module", file="项目实践_MotionControl_MC5_两轴直线插补.md",
+         title="MC5 · 两轴直线插补(可选)", sub="等比推进/一停俱停",
+         what="MoveLinear:共用步数 + 等比分步 = 空间直线;所有参与轴共享一个令牌 = 急停一停俱停;速度语义取最远轴;含中段比例断言测试(14/14)",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc6", kind="module", file="项目实践_MotionControl_MC6_轨迹可视化.md",
+         title="MC6 · 轨迹可视化(可选)", sub="自绘控件/坐标轴/轨迹图",
+         what="自定义 TrajectoryPanel:数据绘制分离、双缓冲、mm→像素等比例映射(Y 轴翻转)、定时器两轴同拍采样防锯齿 —— 插补画出笔直斜线,急停红点冻结",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
 ]
 
@@ -237,7 +257,9 @@ SECTION_OF = {
                   "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
                   "M15", "M16", "M17", "M18", "M19"],
     "projects":  ["proj-daq", "proj-r0", "proj-r1", "proj-r2", "proj-r3", "proj-r4",
-                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj-mc", "proj2"],
+                  "proj-r5", "proj-r6", "proj-r7", "proj-r8",
+                  "proj-mc1", "proj-mc2", "proj-mc3", "proj-mc4", "proj-mc5", "proj-mc6",
+                  "proj2"],
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
@@ -269,8 +291,8 @@ for p in PAGES:
             p["group"] = "从这里开始 · 怎么做项目"
         elif s in _DAQ_RS:
             p["group"] = "项目一 · DaqMonitor 数据采集（R0 → R8，跟着需求单开发）"
-        elif s == "proj-mc":
-            p["group"] = "项目二 · 模拟运动控制（WinForms 升级篇）"
+        elif s in {f"proj-mc{i}" for i in range(1, 7)}:
+            p["group"] = "项目二 · 模拟运动控制（WinForms · MC1 → MC6）"
         else:
             p["group"] = "储备 · 下一份简历作品（规划）"
 

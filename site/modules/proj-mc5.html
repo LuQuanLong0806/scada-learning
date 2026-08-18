@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MC5 · 两轴直线插补(可选) · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-mc5">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(运控工程师视角 —— 先自己想怎么做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点(不懂再点回去学)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现(五步增量,全部"贴进类里")</a><ul>
+<li class="l3"><a href="#sec-3-1">第 1 步:接口加声明(IMotionCard.cs)</a></li>
+<li class="l3"><a href="#sec-3-2">第 2 步:模拟卡实现(MockMotionCard.cs)</a></li>
+<li class="l3"><a href="#sec-3-3">第 3 步:第 14 个测试(MockMotionCardTests.cs)</a></li>
+<li class="l3"><a href="#sec-3-4">第 4 步:界面逻辑(MainForm.cs 三处)</a></li>
+<li class="l3"><a href="#sec-3-5">第 5 步:界面按钮(MainForm.Designer.cs 四处)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(沙盒实测输出 + 手动验收)</a><ul>
+<li class="l3"><a href="#sec-3-6">手动验收</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单(对着需求单逐条勾)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">MC5 · 两轴直线插补(可选加餐:多轴"绑腿跑")</h1>
+<blockquote>
+<p><strong>系列导航</strong>:<a href="proj-mc1.html">MC1 骨架与模拟卡</a> → <a href="proj-mc2.html">MC2 卡的行为测试</a> → <a href="proj-mc3.html">MC3 WinForms 主界面</a> → <a href="proj-mc4.html">MC4 UI 冒烟验收</a> → <strong>MC5 两轴直线插补(可选)</strong> → <a href="proj-mc6.html">MC6 轨迹可视化(可选)</a>
+<strong>定位</strong>:单轴运动会了,多轴<strong>协调</strong>才是运控的灵魂。插补(interpolation)= 多根轴"绑腿跑":同起同停、按比例推进,合成轨迹是一条<strong>空间直线</strong> —— 真卡上对应 G01 直线插补指令。本篇是可选加餐:接口声明 + 卡实现 + 第 14 个测试 + 界面演示按钮,全部"贴进类里",做完对插补的体感比看十篇文档都深。做完 <a href="proj-mc6.html">MC6 轨迹可视化</a> 再按一次演示按钮,还能<strong>亲眼看到</strong>那条直线。
+<strong>前置</strong>:MC4(13/13 全绿)。
+<strong>预计开发时长</strong>:跟敲 0.5 天。<strong>先只看「📋 需求单」自己想,卡住再看「🛠️ 参考实现」。</strong></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<ol>
+<li><code>MoveLinear(int[] axes, double[] targets, double speed)</code>:任意多轴(这里两轴)直线插补,接口声明 + MockMotionCard 实现;</li>
+<li>第 14 个测试:中段抓一次两轴位置比,验证"等比推进 + 同时到位";</li>
+<li>界面【两轴插补演示】按钮 + 它的可用性规则(两轴全可用才亮);</li>
+<li><code>dotnet test</code> 14/14 全绿。</li>
+</ol>
+<hr />
+<h2 id="sec-2-2">📋 需求单(运控工程师视角 —— 先自己想怎么做)</h2>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-L01</td>
+<td>插补指令:一次给多根轴各自的目标位置</td>
+<td>入参形状校验(轴数=目标数、非空);任一轴不满足运动条件,整条指令拒绝</td>
+</tr>
+<tr>
+<td>FR-L02</td>
+<td>等比推进</td>
+<td>走的过程中任意时刻,两轴位移比例恒定(X 走 50、Y 走 30 → X:Y 恒 5:3)</td>
+</tr>
+<tr>
+<td>FR-L03</td>
+<td>同起同停</td>
+<td>两轴同时启动、同时到位(误差 0,测试 precision: 3)</td>
+</tr>
+<tr>
+<td>FR-L04</td>
+<td>一停俱停</td>
+<td>插补中途急停/被新指令打断 → 所有参与轴就地同时冻结</td>
+</tr>
+<tr>
+<td>FR-L05</td>
+<td>速度语义明确</td>
+<td>speed = "走得最远的那根轴"的速度(矢量速度近似),文档写清</td>
+</tr>
+<tr>
+<td>FR-L06</td>
+<td>界面演示按钮</td>
+<td>点击 → X→200、Y→120 插补;任何一轴未使能/有报警,按钮灰</td>
+</tr>
+</tbody>
+</table>
+<p><strong>先自己想</strong>:
+① X 要走 50mm、Y 要走 30mm,你给的速度是 25mm/s —— 每根轴该按什么速度走,才能<strong>同时到</strong>?(这就是插补的全部秘密,一个除法)
+② 仿真循环你已经有"每轴一个令牌"的机制,插补要求"一停俱停" —— 令牌怎么发?
+③ 单轴运动的步数公式你写过(<code>距离÷速度÷节拍</code>),插补时<strong>两根轴距离不一样</strong>,步数按谁算?</p>
+<hr />
+<h2 id="sec-2-3">📚 本篇知识点(不懂再点回去学)</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="taskrun" onclick="openKp('taskrun');return false;">📖 Task.Run / async-await</a> —— 插补仿真循环还是那套后台任务</li>
+<li><a href="#" class="kplink" data-kp="cancel-token" onclick="openKp('cancel-token');return false;">📖 CancellationToken 协作式取消</a> —— "一个令牌发给所有轴"= 一停俱停</li>
+<li><a href="#" class="kplink" data-kp="idevice" onclick="openKp('idevice');return false;">📖 IDevice 设备统一抽象</a> —— 往接口里加能力时,上层如何零改动受益</li>
+</ul>
+<hr />
+<h2 id="sec-2-4">🛠️ 参考实现(五步增量,全部"贴进类里")</h2>
+<h3 id="sec-3-1">第 1 步:接口加声明(IMotionCard.cs)</h3>
+<p>在 <code>ClearAlarm</code> 声明之后、<code>// ———— 模拟卡专用(真卡没有) ————</code> 之前插入:</p>
+<pre><code class="language-csharp">    // ———— 可选进阶:两轴直线插补 ————
+
+    /// &lt;summary&gt;
+    /// 多轴直线插补:各轴同时启动、等比推进、同时到位,走出一条空间直线。
+    /// 例:X 从 0→50,Y 从 0→30,任意时刻 X:Y 恒等于 5:3。
+    /// &lt;/summary&gt;
+    MotionResult MoveLinear(int[] axes, double[] targets, double speed);
+</code></pre>
+<h3 id="sec-3-2">第 2 步:模拟卡实现(MockMotionCard.cs)</h3>
+<p>在 <code>ClearAlarm</code> 方法之后、<code>// ———— 模拟卡专用 ————</code> 之前插入整个区域:</p>
+<pre><code class="language-csharp">    // ———— 直线插补(可选篇) ————
+
+    public MotionResult MoveLinear(int[] axes, double[] targets, double speed)
+    {
+        // 入参形状先验一遍:轴号数组与目标数组必须一一对应且非空
+        if (axes is null || targets is null || axes.Length == 0 || axes.Length != targets.Length)
+            return MotionResult.ParamError;
+
+        lock (_gate)
+        {
+            if (!_connected) return MotionResult.NotConnected;
+            if (speed &lt;= 0) return MotionResult.ParamError;
+
+            // 逐轴检查:轴号 / 使能 / 报警 / 软限位,任何一轴不满足,整条插补指令拒绝
+            // (插补是&quot;绑腿跑&quot;,一个不能跑整队都不动 —— 真卡同理)
+            foreach (var (axis, target) in axes.Zip(targets))
+            {
+                if (!CheckIndex(axis)) return MotionResult.AxisIndexError;
+                if (!_enabled[axis]) return MotionResult.AxisDisabled;
+                if (_alarms[axis] is not null) return MotionResult.AlarmActive;
+                if (Math.Abs(target) &gt; _softLimit) return MotionResult.ParamError;
+            }
+
+            foreach (var axis in axes) _cts[axis]?.Cancel();   // 插补优先:打断各轴在途运动
+
+            // 一个令牌发给所有参与轴 —— 急停/新指令取消它,所有轴同时停(插补的命门:必须同起同停)
+            var cts = new CancellationTokenSource();
+            foreach (var axis in axes) { _cts[axis] = cts; _moving[axis] = true; }
+
+            var froms = axes.Select(a =&gt; _positions[a]).ToArray();
+            // 总步数按&quot;走得最远的那根轴&quot;算 —— 步数定了,每根轴再按各自距离等比分步,速度语义 = 最长轴的速度
+            var maxDist = 0.0;
+            for (var k = 0; k &lt; axes.Length; k++)
+                maxDist = Math.Max(maxDist, Math.Abs(targets[k] - froms[k]));
+
+            Task.Run(async () =&gt;
+            {
+                try
+                {
+                    var steps = Math.Max(1, (int)Math.Ceiling(maxDist / speed * 1000.0 / _tickMs));
+                    for (var i = 1; i &lt;= steps; i++)
+                    {
+                        await Task.Delay(_tickMs, cts.Token);
+                        for (var k = 0; k &lt; axes.Length; k++)
+                        {
+                            // 等比推进:第 i 步位置 = 起点 + 全程位移 × i/steps
+                            // → 任意时刻各轴位移比例恒定,轨迹是空间直线,且同时到位
+                            var p = froms[k] + (targets[k] - froms[k]) * i / steps;
+                            lock (_gate) _positions[axes[k]] = p;
+                            PositionChanged?.Invoke(this, new PositionChangedEventArgs(axes[k], p));
+                        }
+                    }
+                    if (!cts.Token.IsCancellationRequested)
+                    {
+                        // 一步不多一步不少地精确落点(消除浮点累积误差)
+                        for (var k = 0; k &lt; axes.Length; k++)
+                        {
+                            lock (_gate) _positions[axes[k]] = targets[k];
+                            PositionChanged?.Invoke(this, new PositionChangedEventArgs(axes[k], targets[k]));
+                        }
+                    }
+                }
+                catch (OperationCanceledException) { /* 急停/打断:各轴就地冻结 */ }
+                finally
+                {
+                    lock (_gate)
+                        for (var k = 0; k &lt; axes.Length; k++)
+                        {
+                            _moving[axes[k]] = false;
+                            if (ReferenceEquals(_cts[axes[k]], cts)) _cts[axes[k]] = null;
+                        }
+                }
+            });
+            return MotionResult.Ok;
+        }
+    }
+</code></pre>
+<p>💡 <strong>这段实现的四个门道</strong>:</p>
+<ul>
+<li><strong>等比推进公式是插补的全部数学</strong>:<code>p = from + (target - from) × i / steps</code> —— 步数 steps 全体参与轴共用(按最远轴算),每根轴按自己的全程距离等分。两轴的位移比例任何时刻都等于总位移比例 → 轨迹必然是直线,且第 steps 步<strong>同时</strong>到终点。真卡的 G01 在硬件层做的是同一件事(脉冲按比例分配);</li>
+<li><strong>一个令牌发所有轴</strong> = 一停俱停:单轴运动"每轴一个 CTS"防的是误伤;插补<strong>故意</strong>让所有轴共享同一个 CTS 实例 —— 取消它,所有参与轴的 <code>Task.Delay</code> 同时抛取消。两处设计放一起看:"隔离"和"捆绑"都是对的,看场景要哪种;</li>
+<li><strong><code>axes.Zip(targets)</code> 逐轴检查</strong>:绑腿跑的纪律 —— 一根轴没使能/有报警/超软限位,整条指令拒绝。半阕队伍绑腿跑 = 现场事故;</li>
+<li><strong><code>ReferenceEquals</code> 清槽</strong>和单轴版同一个理由:被新指令打断时,槽里可能已经是别人(单轴指令或另一条插补)的令牌,只清"还是自己的"那个。</li>
+</ul>
+<h3 id="sec-3-3">第 3 步:第 14 个测试(MockMotionCardTests.cs)</h3>
+<p>先把类头注释里的清单补上"插补"两个字(改成 <code>…软限位、回零、插补,全部有据可查。</code>),然后在「报警链路」与「生命周期」两节之间插入:</p>
+<pre><code class="language-csharp">    // ———— 两轴直线插补(可选篇,MC5 再加) ————
+
+    [Fact]
+    public async Task 直线插补_两轴等比推进且同时到位()
+    {
+        var card = ReadyCard();
+        // X: 0→50, Y: 0→30,速度 25 → 全程 2s。任意时刻 X:Y 应恒为 5:3
+        Assert.Equal(MotionResult.Ok, card.MoveLinear(new[] { 0, 1 }, new[] { 50.0, 30.0 }, 25));
+
+        await Task.Delay(300);   // 走到中段抓一次比例
+        var midX = card.GetAxisPosition(0);
+        var midY = card.GetAxisPosition(1);
+        Assert.True(midX &gt; 1 &amp;&amp; midY &gt; 1, &quot;两轴都应已在运动中&quot;);
+        Assert.InRange(midX / midY, 5.0 / 3 - 0.1, 5.0 / 3 + 0.1);   // 比例恒定 = 直线
+
+        await WaitUntil(() =&gt; !card.IsMoving(0) &amp;&amp; !card.IsMoving(1));
+        Assert.Equal(50.0, card.GetAxisPosition(0), precision: 3);
+        Assert.Equal(30.0, card.GetAxisPosition(1), precision: 3);
+    }
+</code></pre>
+<p>💡 <strong><code>Assert.InRange(midX / midY, 5.0/3 - 0.1, 5.0/3 + 0.1)</code> 是本篇的灵魂断言</strong>:中段抓拍一次两轴位置,比值落在 5:3 附近 —— 一个数证明了"等比推进"。允许 ±0.1 的容差,因为抓拍瞬间两轴事件上报顺序可能有半个节拍的错位(这是<strong>采样视角</strong>的误差,不是轨迹误差)。</p>
+<h3 id="sec-3-4">第 4 步:界面逻辑(MainForm.cs 三处)</h3>
+<p><strong>4a. 构造函数里</strong>,<code>for</code> 循环订阅完之后、「卡 → 界面」事件订阅之前加:</p>
+<pre><code class="language-csharp">        // 两轴插补演示按钮(驱动两根轴,不属于任何单轴数组,单独订阅)
+        btnLinear.Click += (s, e) =&gt; MoveLinearDemo();
+</code></pre>
+<p><strong>4b. <code>Home()</code> 方法之后</strong>加演示方法:</p>
+<pre><code class="language-csharp">    /// &lt;summary&gt;
+    /// 两轴直线插补演示:X→200、Y→120 同起同停、等比推进。
+    /// 按下后盯着两个位置框看 —— 任意时刻 X:Y 恒等于 200:120(≈5:3),这就是&quot;插补走直线&quot;的直观含义。
+    /// 速度取轴 1 的速度框,语义 = 走得最远的轴(这里是 X)的速度。
+    /// &lt;/summary&gt;
+    private void MoveLinearDemo()
+    {
+        var speed = SpeedOf(_txtSpeed[0]);
+        var r = _card.MoveLinear(new[] { 0, 1 }, new[] { 200.0, 120.0 }, speed);
+        if (r != MotionResult.Ok) { Fail(r, &quot;两轴插补&quot;); return; }
+        AppendLog($&quot;两轴插补 → X 200 · Y 120 @ {speed:F0} mm/s(同起同停,等比推进)&quot;);
+    }
+</code></pre>
+<p><strong>4c. <code>RefreshUiState()</code> 末尾</strong>(for 循环的 <code>}</code> 之后、方法 <code>}</code> 之前)加:</p>
+<pre><code class="language-csharp">        // 插补按钮要求两轴同时可用 —— 插补是&quot;绑腿跑&quot;,任何一轴不满足,整条指令都会被卡拒绝
+        btnLinear.Enabled = connected
+                            &amp;&amp; _card.IsAxisEnabled(0) &amp;&amp; _card.IsAxisEnabled(1)
+                            &amp;&amp; string.IsNullOrEmpty(_card.GetAlarmMessage(0))
+                            &amp;&amp; string.IsNullOrEmpty(_card.GetAlarmMessage(1));
+</code></pre>
+<h3 id="sec-3-5">第 5 步:界面按钮(MainForm.Designer.cs 四处)</h3>
+<p><strong>5a.</strong> <code>btnEstop = new Button();</code> 之后加一行:</p>
+<pre><code class="language-csharp">        btnLinear = new Button();
+</code></pre>
+<p><strong>5b.</strong> <code>gbAxis1.Controls.Add(lblSoftLimit1);</code> 之后加一行:</p>
+<pre><code class="language-csharp">        gbAxis1.Controls.Add(btnLinear);
+</code></pre>
+<p><strong>5c.</strong> <code>lblSoftLimit1</code> 配置块之后、<code>// gbAxis2 ——</code> 注释之前插入:</p>
+<pre><code class="language-csharp">        //
+        // btnLinear —— 两轴直线插补演示:X/Y 同起同停、等比推进(放在轴 1 框里,但驱动两根轴)
+        //
+        btnLinear.Location = new Point(20, 548);
+        btnLinear.Name = &quot;btnLinear&quot;;
+        btnLinear.Size = new Size(355, 44);
+        btnLinear.TabIndex = 15;
+        btnLinear.Text = &quot;⇗ 两轴插补演示 → X 200 · Y 120&quot;;
+        btnLinear.UseVisualStyleBackColor = true;
+</code></pre>
+<p><strong>5d.</strong> 字段区 <code>private Button btnEstop;</code> 之后加:</p>
+<pre><code class="language-csharp">    private Button btnLinear;
+</code></pre>
+<hr />
+<h2 id="sec-2-5">✅ 验证(沙盒实测输出 + 手动验收)</h2>
+<pre><code class="language-bash">dotnet build
+</code></pre>
+<pre><code>已成功生成。
+    0 个警告
+    0 个错误
+</code></pre>
+<pre><code class="language-bash">dotnet test
+</code></pre>
+<pre><code>已通过! - 失败:     0，通过:    14，已跳过:     0，总计:    14，持续时间: 9 s - MotionControl.Tests.dll (net8.0)
+</code></pre>
+<h3 id="sec-3-6">手动验收</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>操作</th>
+<th>预期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>连接 + 使能两轴</td>
+<td>轴 1 框里出现【⇗ 两轴插补演示】按钮,可点</td>
+</tr>
+<tr>
+<td>2</td>
+<td>点击它,盯着两个位置框</td>
+<td>X、Y <strong>同时</strong>开始动;任意瞬间 X 读数 ≈ Y 读数 × 5/3(200:120);<strong>同时</strong>停在 200.000 / 120.000</td>
+</tr>
+<tr>
+<td>3</td>
+<td>只使能轴 1(轴 2 失能)</td>
+<td>插补按钮变灰(绑腿跑,一轴不行整队不动)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>插补运动中点急停</td>
+<td>两轴位置同时冻结(一停俱停)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>速度框输 20 再点</td>
+<td>全程明显变慢(速度语义 = 最长轴 X 的速度)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-6">✅ 验收清单(对着需求单逐条勾)</h2>
+<ul>
+<li>[ ] FR-L01 入参形状 + 逐轴检查,一轴不满足整条拒绝</li>
+<li>[ ] FR-L02 等比推进公式落位,测试中段比例断言通过</li>
+<li>[ ] FR-L03 同时到位,双轴 precision: 3 断言通过</li>
+<li>[ ] FR-L04 共享令牌,急停一停俱停(手动验收 4)</li>
+<li>[ ] FR-L05 速度语义 = 最远轴,注释和文档写清</li>
+<li>[ ] FR-L06 按钮可用性两轴全查,14/14 全绿</li>
+</ul>
+<hr />
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p><strong>一句话开场</strong>:"插补我用'共用步数 + 等比分步'实现:步数按走得最远的轴算,每根轴按自己的全程距离等分推进,轨迹必然是直线且同时到位 —— 和真卡 G01 的脉冲分配是同一个数学。"</p>
+</blockquote>
+<p><strong>追问弹药库</strong>:
+- <strong>"怎么保证轨迹是直线?"</strong> —— 所有参与轴共用同一个步数计数 i,第 i 步位置 = 起点 + 全程位移 × i/steps。两轴位移比值恒等于总位移比值,初中学的两点式直线方程,这就是插补的全部数学;
+- <strong>"怎么保证同时停?"</strong> —— 所有参与轴共享同一个 CancellationToken,急停/打断取消一次,全部仿真循环在同一节拍抛出取消;
+- <strong>"速度是哪根轴的?"</strong> —— 走得最远的那根(最长轴)。真卡矢量速度是 √(vx²+vy²),我取的是近似 —— 演示项目把语义定义清楚比精确建模更重要;
+- <strong>"和单轴运动的'每轴一个令牌'矛盾吗?"</strong> —— 不矛盾,是同一机制的两面:单轴要<strong>隔离</strong>(防误伤),插补要<strong>捆绑</strong>(同起同停)。能讲清"什么时候隔离、什么时候捆绑",说明真理解了取消模型。</p>
+<p>下一篇:<a href="proj-mc6.html">MC6 · 轨迹可视化 —— 把两轴运动画成 X-Y 轨迹图</a></p>
+<div class="pager">
+  <a class="prev" href="proj-mc4.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">MC4 · UI 冒烟验收</div></a>
+  <a class="next" href="proj-mc6.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">MC6 · 轨迹可视化(可选)</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "cancel-token": {"t": "CancellationToken 协作式取消", "d": "可取消的异步循环写法:<code>await Task.Delay(ms, token)</code> —— token 被取消时在这里抛 OperationCanceledException,catch 住就地收尾。急停/松手/新指令打断旧任务全靠它。<b>前端类比</b>:AbortController + fetch 的 signal。"}, "winforms-invoke": {"t": "InvokeRequired / BeginInvoke 跨线程更新界面", "d": "WinForms 控件有线程亲和性:后台线程直接碰控件抛 InvalidOperationException。判 <code>InvokeRequired</code> 后用 <code>BeginInvoke(投递 lambda)</code> 切回 UI 线程 —— WPF 里对应 Dispatcher.Invoke/BeginInvoke。<b>前端类比</b>:跨组件改状态要回到主事件循环。"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

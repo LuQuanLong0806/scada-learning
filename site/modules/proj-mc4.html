@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MC4 · UI 冒烟验收 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-mc4">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(测试经理视角 —— 先自己想怎么做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点(不懂再点回去学)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现(卡住/写完再看)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(沙盒实测输出,你可以逐字对)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单(对着需求单逐条勾)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">MC4 · UI 冒烟验收(让测试替你把界面全流程跑一遍)</h1>
+<blockquote>
+<p><strong>系列导航</strong>:<a href="proj-mc1.html">MC1 骨架与模拟卡</a> → <a href="proj-mc2.html">MC2 卡的行为测试</a> → <a href="proj-mc3.html">MC3 WinForms 主界面</a> → <strong>MC4 UI 冒烟验收</strong> → <a href="proj-mc5.html">MC5 两轴直线插补(可选)</a> → <a href="proj-mc6.html">MC6 轨迹可视化(可选)</a>
+<strong>定位</strong>:MC2 测的是卡,MC3 写的是界面 —— 但"界面 + 卡"合起来对不对,还没人验过。数据采集项目给过一个教训:<strong>短暂启动式的冒烟测不出交互期的 bug</strong>(跨线程事件在程序跑了三五秒后才开始乱飞)。本篇写一个真把全流程跑一遍的 UI 冒烟测试:连接 → 使能 → 双轴并发点动 → 定位 → 注入报警 → 清报警 → 急停 → 断开,全程跑在真窗体上,任何一步跨线程碰控件都会当场抛异常、当场红。
+<strong>前置</strong>:MC3(界面完整可用,手动验收清单已过)。
+<strong>预计开发时长</strong>:跟敲 0.5 天(代码不长,概念要啃:STA、消息泵、DoEvents)。<strong>先只看「📋 需求单」自己写,卡住再看「🛠️ 参考实现」对答案。</strong></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<ol>
+<li>第 13 个测试 <code>UI冒烟_窗体全流程不崩溃</code>:在 STA 线程上创建真窗体、手动驱动消息泵、跑完操作员全流程;</li>
+<li><code>dotnet test</code> 13/13 全绿 —— <strong>从此每次跑测试,都等于免费把界面全流程点了一遍</strong>;</li>
+<li>搞懂三个 WinForms 底层概念:STA 线程、消息队列、消息泵(面试讲跨线程时的深度弹药)。</li>
+</ol>
+<hr />
+<h2 id="sec-2-2">📋 需求单(测试经理视角 —— 先自己想怎么做)</h2>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-S01</td>
+<td>无头环境跑完整 UI 流程</td>
+<td>不弹真窗口、不需要人工点击,测试自己驱动</td>
+</tr>
+<tr>
+<td>FR-S02</td>
+<td>流程覆盖操作员全动作</td>
+<td>连接 → 使能 → <strong>两轴同时点动</strong> → 定位(打断点动)→ 注入报警 → 清报警 → 急停 → 断开 → 关窗</td>
+</tr>
+<tr>
+<td>FR-S03</td>
+<td>每一步都给消息泵留分发时间</td>
+<td>BeginInvoke 投递的回调、Timer 的 Tick 真的被执行到</td>
+</tr>
+<tr>
+<td>FR-S04</td>
+<td>任何异常 = 测试失败</td>
+<td>线程里 catch 住异常带回主断言,不许吞</td>
+</tr>
+</tbody>
+</table>
+<p><strong>先自己想</strong>(这三个问题想明白,代码就是水到渠成):
+① <code>Application.Run(form)</code> 会阻塞直到关窗 —— 测试里根本不能用,那怎么让窗体"活起来"、消息循环照样转?(提示:<code>Application.DoEvents()</code> 是什么?)
+② WinForms 控件必须活在 STA 线程上,而 xUnit 跑测试的线程不是 —— 怎么办?
+③ 卡的事件在后台线程触发,MainForm 用 BeginInvoke 把更新投递回 UI 线程 —— 投递过去的回调,<strong>谁</strong>来执行?测试线程 Sleep 的时候它会自己执行吗?</p>
+<hr />
+<h2 id="sec-2-3">📚 本篇知识点(不懂再点回去学)</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="winforms-invoke" onclick="openKp('winforms-invoke');return false;">📖 WinForms 跨线程访问控件</a> —— BeginInvoke 投递到哪、谁来执行</li>
+<li><a href="#" class="kplink" data-kp="unit-test" onclick="openKp('unit-test');return false;">📖 xUnit 单元测试基础</a> —— 测试方法的组织与断言</li>
+</ul>
+<hr />
+<h2 id="sec-2-4">🛠️ 参考实现(卡住/写完再看)</h2>
+<p><strong>设计思路一句</strong>:开一个 STA 线程跑窗体,主测试流程"做一步操作 → 用 DoEvents 泵一会儿消息"交替推进,让界面事件真的分发;线程里任何异常都被捕获、带回断言。</p>
+<p>对 <code>MockMotionCardTests.cs</code> 做<strong>两处改动</strong>:</p>
+<p><strong>改动 1</strong>:文件头补一个 using(测试里要构造 MainForm):</p>
+<pre><code class="language-csharp">using MotionControlProject.Device;
+using MotionControlProject.UI;      // ← 新增:冒烟测试要 new MainForm
+using System.Diagnostics;
+</code></pre>
+<p><strong>改动 2</strong>:在类末尾(<code>断开连接_所有运动被取消</code> 测试之后、类的 <code>}</code> 之前)追加:</p>
+<pre><code class="language-csharp">    // ———— UI 全流程冒烟(MC4 再加) ————
+
+    [Fact]
+    public void UI冒烟_窗体全流程不崩溃()
+    {
+        // 数据采集项目的教训:短暂启动冒烟测不出交互期 bug。
+        // 这里在 STA 线程上把整个操作流程真跑一遍:
+        // 后台线程事件 → BeginInvoke 投递 → DoEvents 消息泵分发 → 控件更新 → 定时器 Tick,
+        // 任何一步跨线程碰控件都会当场抛异常。
+        Exception? error = null;
+        var thread = new Thread(() =&gt;
+        {
+            try
+            {
+                var card = new MockMotionCard(tickMs: 10);
+                var form = new MainForm(card);
+                form.Show();
+
+                // 模拟操作员全流程:连接 → 使能 → 双轴同时点动 → 定位 → 注入报警 → 清报警 → 急停 → 断开
+                card.Connect(&quot;127.0.0.1&quot;);
+                card.SetAxisEnable(0, true);
+                card.SetAxisEnable(1, true);
+                card.JogAxis(0, 200, forward: true);     // 轴1 正转
+                card.JogAxis(1, 200, forward: false);    // 轴2 反转(两轴并发,事件线程全在跑)
+                Pump(50);                                 // 0.5s 消息泵,让位置事件刷到界面
+                card.MoveAbsolute(0, 300, 400);           // 定位打断点动(打断语义)
+                Pump(50);
+                card.SimulateAlarm(1, &quot;UI 冒烟注入报警&quot;);  // 报警事件 → 报警框
+                Pump(30);
+                card.ClearAlarm(1);
+                Pump(20);
+                card.StopAll();                           // 急停事件
+                Pump(20);
+                card.Disconnect();
+                Pump(10);
+                form.Close();
+            }
+            catch (Exception ex) { error = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);   // WinForms 控件必须活在 STA 线程
+        thread.Start();
+        thread.Join(60000);                             // 等它跑完(上限 60s,防测试挂死)
+        Assert.Null(error);
+        return;
+
+        // 手动消息泵:Application.Run 会阻塞测试,这里用 DoEvents 循环代替,
+        // 每轮处理完队列里所有消息(包括 BeginInvoke 投递和 Timer 的 WM_TIMER)
+        static void Pump(int loops)
+        {
+            for (var i = 0; i &lt; loops; i++)
+            {
+                Application.DoEvents();
+                Thread.Sleep(10);
+            }
+        }
+    }
+</code></pre>
+<p>💡 <strong>这 60 行里的五个门道</strong>:</p>
+<ul>
+<li><strong>为什么开新线程 + STA</strong>:xUnit 的测试线程不是 STA,直接 new 控件会抛 <code>InvalidOperationException</code>(剪贴板/COM 组件要求单线程公寓)。<code>SetApartmentState(ApartmentState.STA)</code> 必须在 <code>Start()</code> <strong>之前</strong>调用 —— 这是 WinForms 控件能被创建的硬前提;</li>
+<li><strong>为什么不用 <code>Application.Run</code></strong>:它会进入消息循环直到窗体关闭,测试就永远停在那。替代方案:手动"泵"消息 —— <code>Application.DoEvents()</code> 每调一次,就把当前消息队列里的消息(按钮点击、BeginInvoke 回调、Timer 的 WM_TIMER、重绘)全部处理一遍再返回;</li>
+<li><strong>"做一步,Pump 一会儿"的节奏</strong>:发指令是同步的,但它引发的<strong>事件 → BeginInvoke → 控件更新</strong>是异步的 —— Pump(50) = 50 轮 × 10ms,给投递出去的回调留足被 DoEvents 分发的时间。不 Pump 就直接断言/做下一步,事件回调可能还躺在队列里没执行,测试就漏掉了它本来要覆盖的路径;</li>
+<li><strong>异常怎么变成测试失败</strong>:<code>Assert.Null(error)</code> —— 线程里抛的异常不会自动让 xUnit 测试失败(它在另一个线程),必须 catch 住存进闭包变量,带回测试线程断言。<code>thread.Join(60000)</code> 设上限,流程万一卡死,测试在 60 秒后失败而不是永远挂着;</li>
+<li><strong><code>static void Pump</code> 是局部函数</strong>(C# 7+):定义在方法体内、<code>return;</code> 之后 —— 它只服务于这一个测试,不该污染类的 API。<code>static</code> 让它不能捕获外部变量,编译器顺便帮你检查没有隐式闭包。</li>
+</ul>
+<p>🔧 <strong>为什么这个测试能抓住 MC2 抓不到的 bug</strong>:MC2 测卡时不碰任何控件。假如某天有人把 <code>OnPositionChanged</code> 里的 <code>InvokeRequired</code> 判断删了 —— 卡的行为测试全绿,但界面一跑就炸;现在这个冒烟测试里,两轴并发点动每 10ms 刷两次位置事件,几十轮 Pump 之后,那次跨线程访问必然发生,<strong>当场抛给你看</strong>。这正是"数据采集项目里短暂冒烟没测出的 bug,拖到联调才爆"的针对性补防。</p>
+<hr />
+<h2 id="sec-2-5">✅ 验证(沙盒实测输出,你可以逐字对)</h2>
+<pre><code class="language-bash">dotnet test
+</code></pre>
+<pre><code>已通过! - 失败:     0，通过:    13，已跳过:     0，总计:    13，持续时间: 6 s - MotionControl.Tests.dll (net8.0)
+</code></pre>
+<p>故意破坏实验(做完记得改回来):把 MainForm.cs 里 <code>OnPositionChanged</code> 的第一行 <code>if (InvokeRequired) …</code> 注释掉,再跑测试 —— <code>UI冒烟_窗体全流程不崩溃</code> 立刻红,报跨线程操作无效。这就是这个测试存在的意义。</p>
+<hr />
+<h2 id="sec-2-6">✅ 验收清单(对着需求单逐条勾)</h2>
+<ul>
+<li>[ ] using 补了,冒烟测试追加在类末尾,13/13 全绿</li>
+<li>[ ] 能说清:为什么 STA、为什么不用 Application.Run、DoEvents 干了什么</li>
+<li>[ ] 做过一次"删 InvokeRequired"的故意破坏实验,亲眼看冒烟测试红</li>
+<li>[ ] (理解题)<code>Pump(50)</code> 的 50 改成 2 会怎样?—— 想清楚再试,试完改回 50</li>
+</ul>
+<hr />
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p><strong>一句话开场</strong>:"我的 UI 没有靠人肉点出来验证 —— 有一个冒烟测试在 STA 线程上创建真实窗体、手动驱动消息泵,把操作员全流程跑一遍,任何跨线程错误当场红。"</p>
+</blockquote>
+<p><strong>追问弹药库</strong>:
+- <strong>"UI 怎么做自动化测试?WinForms 不是很难测吗?"</strong> —— 核心三件套:STA 线程(<code>SetApartmentState</code>)满足控件的公寓要求;<code>Application.DoEvents()</code> 手动泵消息代替阻塞的 <code>Application.Run</code>;操作一步 Pump 一轮,给 BeginInvoke 回调留分发时间;
+- <strong>"BeginInvoke 之后发生了什么?"</strong>(深度题,答出来就超过大多数候选人)—— 回调被包装成消息投递到创建控件线程的消息队列,由该线程的消息循环取出执行;<code>DoEvents</code> 就是在当前调用栈里"借"一次循环,把队列清一遍。所以 Sleep 本身不会让投递执行,<strong>必须泵</strong>;
+- <strong>"这测试值得吗?界面不是常变吗?"</strong> —— 冒烟测试只测"全流程不炸"这一条不变量,不测具体样式;界面再怎么改,连接 → 运动 → 报警 → 急停的主干不变,测试就不用改 —— 投入产出比极高的一层;
+- <strong>"和 MC2 的 12 个测试什么关系?"</strong> —— 分层:MC2 测设备行为(纯逻辑,毫秒级),MC4 测"设备 + 界面"的集成(真实线程模型)。底层快测定位根因,上层冒烟守住集成 —— 就是测试金字塔。</p>
+<p>下一篇:<a href="proj-mc5.html">MC5 · 两轴直线插补(可选加餐)</a></p>
+<div class="pager">
+  <a class="prev" href="proj-mc3.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">MC3 · WinForms 主界面</div></a>
+  <a class="next" href="proj-mc5.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">MC5 · 两轴直线插补(可选)</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "cancel-token": {"t": "CancellationToken 协作式取消", "d": "可取消的异步循环写法:<code>await Task.Delay(ms, token)</code> —— token 被取消时在这里抛 OperationCanceledException,catch 住就地收尾。急停/松手/新指令打断旧任务全靠它。<b>前端类比</b>:AbortController + fetch 的 signal。"}, "winforms-invoke": {"t": "InvokeRequired / BeginInvoke 跨线程更新界面", "d": "WinForms 控件有线程亲和性:后台线程直接碰控件抛 InvalidOperationException。判 <code>InvokeRequired</code> 后用 <code>BeginInvoke(投递 lambda)</code> 切回 UI 线程 —— WPF 里对应 Dispatcher.Invoke/BeginInvoke。<b>前端类比</b>:跨组件改状态要回到主事件循环。"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>

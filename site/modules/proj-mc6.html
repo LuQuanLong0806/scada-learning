@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MC6 · 轨迹可视化(可选) · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="proj-mc6">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/projects.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">🎯 本篇交付物</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">📋 需求单(视觉工程师视角 —— 先自己想怎么做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">📚 本篇知识点(不懂再点回去学)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">🛠️ 参考实现(三步:新控件 → 布局 → 接线)</a><ul>
+<li class="l3"><a href="#sec-3-1">步骤 1:自定义控件 TrajectoryPanel.cs(新建文件)</a></li>
+<li class="l3"><a href="#sec-3-2">步骤 2:布局改造(MainForm.Designer.cs,八处小改)</a></li>
+<li class="l3"><a href="#sec-3-3">步骤 3:接线(MainForm.cs 两处)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">✅ 验证(沙盒实测输出 + 视觉验收)</a><ul>
+<li class="l3"><a href="#sec-3-4">视觉验收清单(F8 跑起来,逐条过)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">✅ 验收清单(对着需求单逐条勾)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">MC6 · 轨迹可视化(可选加餐:X-Y 轨迹图,亲眼看见运动)</h1>
+<blockquote>
+<p><strong>系列导航</strong>:<a href="proj-mc1.html">MC1 骨架与模拟卡</a> → <a href="proj-mc2.html">MC2 卡的行为测试</a> → <a href="proj-mc3.html">MC3 WinForms 主界面</a> → <a href="proj-mc4.html">MC4 UI 冒烟验收</a> → <a href="proj-mc5.html">MC5 两轴直线插补(可选)</a> → <strong>MC6 轨迹可视化(可选)</strong>
+<strong>定位</strong>:数字位置框读得出<strong>数</strong>,看不出<strong>形</strong>。本篇写一个自定义绘图控件 TrajectoryPanel:轴 1 = X、轴 2 = Y,把两轴位置画成平面上的运动轨迹 —— 坐标轴、网格、软限位边框一应俱全,轨迹一条绿线、当前位置一个红点。点动画出走过的路、插补画出<strong>笔直的斜线</strong>(MC5 的数学亲眼可见)、急停红点原地冻住。顺路学会 WinForms 自绘控件的三条铁律:数据绘制分离、双缓冲、坐标映射。
+<strong>前置</strong>:MC5(插补按钮可用,14/14 全绿)。
+<strong>预计开发时长</strong>:跟敲 0.5 天。<strong>先只看「📋 需求单」自己想,卡住再看「🛠️ 参考实现」。</strong></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">🎯 本篇交付物</h2>
+<ol>
+<li>自定义控件 <code>TrajectoryPanel.cs</code>(约 130 行):坐标轴 + 250mm 网格 + 软限位边框 + 轨迹折线 + 当前点;</li>
+<li>界面从三栏变四栏:轴1 | 轴2 | <strong>轨迹图</strong> | 报警/日志,外加【清空轨迹】按钮;</li>
+<li><code>dotnet build</code> 0 错 0 警,14/14 测试照旧全绿(轨迹只读位置,不改任何行为);</li>
+<li>视觉验收:插补画出直线、急停红点冻结、回零画出归零线。</li>
+</ol>
+<hr />
+<h2 id="sec-2-2">📋 需求单(视觉工程师视角 —— 先自己想怎么做)</h2>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-V01</td>
+<td>坐标系:X/Y 十字轴过原点,原点标注 (0,0)</td>
+<td>屏幕上方 = 机械 Y 正方向(X 不翻、Y 要翻)</td>
+</tr>
+<tr>
+<td>FR-V02</td>
+<td>网格 + 软限位边框</td>
+<td>每 250mm 一条浅灰线;±1000 边框银灰色,一眼看出行程边界</td>
+</tr>
+<tr>
+<td>FR-V03</td>
+<td>轨迹折线 + 当前点</td>
+<td>绿线画走过的路,末端红点 = 当前位置;静止时不追加重复点</td>
+</tr>
+<tr>
+<td>FR-V04</td>
+<td>mm→像素<strong>等比例</strong></td>
+<td>比例取面板短边算,1mm 在 X/Y 方向等长,圆画出来不会变椭圆</td>
+</tr>
+<tr>
+<td>FR-V05</td>
+<td>双缓冲防闪烁</td>
+<td>快速点动时轨迹刷新不闪眼</td>
+</tr>
+<tr>
+<td>FR-V06</td>
+<td>两轴位置<strong>同一时刻一起采样</strong></td>
+<td>采样放定时器(100ms),不放逐轴事件 —— 坐标才是同一时刻的快照</td>
+</tr>
+<tr>
+<td>FR-V07</td>
+<td>轨迹点数有上限</td>
+<td>到 4000 点丢最老的(滚动),无限点动也不吃内存</td>
+</tr>
+<tr>
+<td>FR-V08</td>
+<td>【清空轨迹】按钮</td>
+<td>只清画面,不动轴、不断运动</td>
+</tr>
+</tbody>
+</table>
+<p><strong>先自己想</strong>:
+① WinForms 控件上"画画"写在哪?写在按钮事件里行不行?(提示:窗口被别的窗口挡一下再露出,画的东西谁负责恢复?)
+② 面板宽 330、高 560,毫米范围 ±1000 —— scale 这个换算系数,为什么不存成字段、每帧重算?
+③ 轨迹点从哪来?<code>PositionChanged</code> 事件每个轴各自来报,订阅它画轨迹会有什么坑?(提示:X 报到 50.0 的那一瞬间,Y 报到了吗?)
+④ 每个节拍重画整个面板,为什么眼睛看着会闪?前端的 canvas 有个"离屏"技巧,WinForms 对应物是什么?
+⑤ 屏幕 Y 轴向下、机械 Y 轴向上 —— 换算公式哪一项要取反?</p>
+<hr />
+<h2 id="sec-2-3">📚 本篇知识点(不懂再点回去学)</h2>
+<ul>
+<li><a href="#" class="kplink" data-kp="winforms-invoke" onclick="openKp('winforms-invoke');return false;">📖 WinForms 跨线程访问控件</a> —— 为什么采样放在 UI 线程的定时器里就天生安全</li>
+<li><a href="#" class="kplink" data-kp="batching" onclick="openKp('batching');return false;">📖 定时/定量批量刷新</a> —— 事件逐个刷界面 vs 按周期合并,工业系统标配思路</li>
+</ul>
+<hr />
+<h2 id="sec-2-4">🛠️ 参考实现(三步:新控件 → 布局 → 接线)</h2>
+<h3 id="sec-3-1">步骤 1:自定义控件 TrajectoryPanel.cs(新建文件)</h3>
+<p><strong>设计思路一句</strong>:控件自己管"数据(轨迹点)"和"渲染(OnPaint)" —— Sample() 只存点 + 标脏,所有画图只发生在 OnPaint,像前端"改 state → 触发 re-render"。</p>
+<pre><code class="language-csharp">// 📂 文件:src/MotionControl/UI/TrajectoryPanel.cs(新建)
+using System.Drawing.Drawing2D;
+
+namespace MotionControlProject.UI;
+
+/// &lt;summary&gt;
+/// X-Y 轨迹面板(自定义控件):轴 1 = X、轴 2 = Y,把两根轴的位置画成平面上的运动轨迹。
+///
+/// 自定义绘制控件的三条铁律:
+/// 1. 数据与绘制分离:Sample() 只存点 + Invalidate() 标脏,所有画图只发生在 OnPaint 里
+///    —— 相当于前端&quot;改 state → 触发 re-render&quot;,绝不在数据更新时直接拿 Graphics 画;
+/// 2. DoubleBuffered = true:先画进内存位图再整帧贴屏,否则每帧重画都闪 —— 离屏 canvas 同理;
+/// 3. mm→像素的换算不存字段,OnPaint 里每帧现算:窗口会被拉伸,存下来的比例必然过期。
+/// &lt;/summary&gt;
+public class TrajectoryPanel : Panel
+{
+    /// &lt;summary&gt;轨迹点序列(毫米坐标,机坐标系)。[^1] 永远是最新位置。&lt;/summary&gt;
+    private readonly List&lt;PointF&gt; _trail = new();
+
+    /// &lt;summary&gt;软限位(±mm):画边界框 + 定显示范围 —— 轨迹图的可视范围跟着卡的行程走。&lt;/summary&gt;
+    public double SoftLimit { get; set; } = 1000;
+
+    /// &lt;summary&gt;轨迹点数上限:到顶丢最老的(滚动日志的思路),无限长的点动也不会把内存吃穿。&lt;/summary&gt;
+    private const int MaxPoints = 4000;
+
+    public TrajectoryPanel()
+    {
+        DoubleBuffered = true;   // 防闪烁
+        ResizeRedraw = true;     // 拉伸窗口时整块重画,不留残影
+        BackColor = Color.White;
+    }
+
+    /// &lt;summary&gt;
+    /// 采样一个点(毫米)。位置没变就不记 —— 静止时定时器照常调,但轨迹不灌重复点。
+    /// 谁来调:主窗体定时器(100ms),两轴位置同一时刻一起取,坐标才是一致的快照。
+    /// &lt;/summary&gt;
+    public void Sample(double x, double y)
+    {
+        var p = new PointF((float)x, (float)y);
+        if (_trail.Count &gt; 0 &amp;&amp; _trail[^1] == p) return;
+        _trail.Add(p);
+        if (_trail.Count &gt; MaxPoints) _trail.RemoveAt(0);
+        Invalidate();   // 只标记&quot;画面过期&quot;,真正的画发生在下一次 OnPaint
+    }
+
+    /// &lt;summary&gt;清空轨迹(界面&quot;清空轨迹&quot;按钮调用)。&lt;/summary&gt;
+    public void ClearTrail()
+    {
+        _trail.Clear();
+        Invalidate();
+    }
+
+    // OnPaint 是自绘控件的&quot;渲染函数&quot;:所有线条、文字只在这里画。
+    // 系统触发它的时机:Invalidate 之后的消息循环、窗口遮挡后露出、拉伸尺寸(ResizeRedraw)
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        // —— 坐标映射:mm → 像素 ——
+        // 比例取短边算、留 8px 边距:画出来是面板中央一个&quot;正方形工作区&quot;,1mm 在 X/Y 方向等长,
+        // 轨迹不变形(比例若按长宽各算各的,圆会变椭圆、直线会变斜线,这是绘图映射最经典的坑)
+        var scale = (Math.Min(Width, Height) - 16f) / (float)(SoftLimit * 2);
+        float Px(double mm) =&gt; Width / 2f + (float)(mm * scale);    // 机械 X 正向 = 屏幕右,方向一致不翻
+        float Py(double mm) =&gt; Height / 2f - (float)(mm * scale);   // 屏幕 Y 轴向下、机械 Y 轴向上 → 取反
+
+        // 1. 网格:每 SoftLimit/4(=250mm)一条浅灰线,方便对着轨迹读大概位置
+        using (var gridPen = new Pen(Color.Gainsboro, 1f))
+        {
+            var step = SoftLimit / 4;
+            for (var mm = -SoftLimit; mm &lt;= SoftLimit + 0.5; mm += step)
+            {
+                g.DrawLine(gridPen, Px(mm), Py(-SoftLimit), Px(mm), Py(SoftLimit));   // 竖线
+                g.DrawLine(gridPen, Px(-SoftLimit), Py(mm), Px(SoftLimit), Py(mm));   // 横线
+            }
+        }
+
+        // 2. 工作区边框 = 软限位:轴永远出不了这个方框,行程边界一眼可见
+        using (var borderPen = new Pen(Color.Silver, 1.5f))
+            g.DrawRectangle(borderPen,
+                Px(-SoftLimit), Py(SoftLimit),
+                Px(SoftLimit) - Px(-SoftLimit), Py(-SoftLimit) - Py(SoftLimit));
+
+        // 3. 坐标轴:过原点的 X/Y 十字线 —— 读轨迹的参照系
+        using (var axisPen = new Pen(Color.DimGray, 1.2f))
+        {
+            g.DrawLine(axisPen, Px(-SoftLimit), Py(0), Px(SoftLimit), Py(0));   // X 轴
+            g.DrawLine(axisPen, Px(0), Py(SoftLimit), Px(0), Py(-SoftLimit));   // Y 轴
+        }
+        using (var font = new Font(&quot;Consolas&quot;, 9f))
+        using (var brush = new SolidBrush(Color.DimGray))
+        {
+            g.DrawString(&quot;X+&quot;, font, brush, Px(SoftLimit) - 26, Py(0) + 4);
+            g.DrawString(&quot;Y+&quot;, font, brush, Px(0) + 6, Py(SoftLimit) + 2);
+            g.DrawString(&quot;(0,0)&quot;, font, brush, Px(0) + 6, Py(0) + 4);
+        }
+
+        // 4. 轨迹折线:点动画出走过的路,插补画出一条直线,急停后线停在原地
+        if (_trail.Count &gt; 1)
+        {
+            var pts = new PointF[_trail.Count];
+            for (var i = 0; i &lt; _trail.Count; i++)
+                pts[i] = new PointF(Px(_trail[i].X), Py(_trail[i].Y));
+            using var trailPen = new Pen(Color.MediumSeaGreen, 2f);
+            g.DrawLines(trailPen, pts);
+        }
+
+        // 5. 当前位置:轨迹末端一个红点(与急停同款红)—— 没动过时它就坐在原点上
+        if (_trail.Count &gt; 0)
+        {
+            var last = _trail[^1];
+            using var dotBrush = new SolidBrush(Color.FromArgb(214, 64, 64));
+            g.FillEllipse(dotBrush, Px(last.X) - 5, Py(last.Y) - 5, 10, 10);
+        }
+    }
+}
+</code></pre>
+<p>💡 <strong>OnPaint 五层画的顺序就是"后画的压在前画的上面"</strong>:网格(底)→ 边框 → 坐标轴 → 轨迹线 → 当前点(顶)。层次想反了(比如轨迹画在网格下面),线就被网格盖住 —— 绘图永远是从底到顶一层层叠。</p>
+<h3 id="sec-3-2">步骤 2:布局改造(MainForm.Designer.cs,八处小改)</h3>
+<p>窗体从 1200 加宽到 1520,第三栏位置让给轨迹图,报警/日志挪到第四栏。</p>
+<p><strong>2a.</strong> 头部注释:三栏改四栏</p>
+<pre><code class="language-csharp">/// - 主体四栏:轴1 | 轴2 | 轨迹图 | 报警/日志 —— 两轴 GroupBox 内部布局完全一致,对照着抄第二遍即可;
+</code></pre>
+<p><strong>2b.</strong> <code>btnEstop = new Button();</code> 之后(即 <code>btnLinear = new Button();</code> 之后)加三行创建:</p>
+<pre><code class="language-csharp">        gbTraj = new GroupBox();
+        trajPanel = new TrajectoryPanel();
+        btnClearTrail = new Button();
+</code></pre>
+<p><strong>2c.</strong> <code>gbLog.SuspendLayout();</code> 之后加:</p>
+<pre><code class="language-csharp">        gbTraj.SuspendLayout();
+</code></pre>
+<p><strong>2d.</strong> <code>tableLayoutPanel1</code> 整块替换(3 列 34/34/32 → 4 列 26/26/24/24,gbTraj 占第 3 列):</p>
+<pre><code class="language-csharp">        // tableLayoutPanel1 —— 主体四栏:轴1 | 轴2 | 轨迹图 | 报警+日志
+        //
+        tableLayoutPanel1.ColumnCount = 4;
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 26F));
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 26F));
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24F));
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 24F));
+        tableLayoutPanel1.Controls.Add(gbAxis1, 0, 0);
+        tableLayoutPanel1.Controls.Add(gbAxis2, 1, 0);
+        tableLayoutPanel1.Controls.Add(gbTraj, 2, 0);
+        tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 3, 0);
+</code></pre>
+<p><strong>2e.</strong> <code>lblSoftLimit2</code> 配置块之后、<code>// tableLayoutPanel2</code> 注释之前,插入轨迹图三件套:</p>
+<pre><code class="language-csharp">        //
+        // gbTraj —— X-Y 轨迹图(MC6):把两轴位置画成平面运动轨迹
+        //
+        gbTraj.Controls.Add(btnClearTrail);
+        gbTraj.Controls.Add(trajPanel);
+        gbTraj.Dock = DockStyle.Fill;
+        gbTraj.Location = new Point(823, 11);
+        gbTraj.Name = &quot;gbTraj&quot;;
+        gbTraj.Size = new Size(374, 677);
+        gbTraj.TabIndex = 2;
+        gbTraj.TabStop = false;
+        gbTraj.Text = &quot;轨迹图 · X-Y(轴1 = X,轴2 = Y)&quot;;
+        //
+        // trajPanel —— 自定义控件(见 TrajectoryPanel.cs):坐标轴 + 网格 + 软限位边框 + 轨迹线 + 当前点
+        //
+        trajPanel.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        trajPanel.Location = new Point(16, 40);
+        trajPanel.Name = &quot;trajPanel&quot;;
+        trajPanel.Size = new Size(330, 560);
+        trajPanel.TabIndex = 0;
+        //
+        // btnClearTrail —— 清空轨迹(只清画面,不动轴)
+        //
+        btnClearTrail.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+        btnClearTrail.Location = new Point(16, 608);
+        btnClearTrail.Name = &quot;btnClearTrail&quot;;
+        btnClearTrail.Size = new Size(180, 38);
+        btnClearTrail.TabIndex = 1;
+        btnClearTrail.Text = &quot;清空轨迹&quot;;
+        btnClearTrail.UseVisualStyleBackColor = true;
+</code></pre>
+<p><strong>2f.</strong> <code>tableLayoutPanel2</code> 的注释和 TabIndex(第三栏 → 第四栏):</p>
+<pre><code class="language-csharp">        // tableLayoutPanel2 —— 第四栏上下切:报警 52% / 日志 48%
+</code></pre>
+<pre><code class="language-csharp">        tableLayoutPanel2.TabIndex = 3;
+</code></pre>
+<p><strong>2g.</strong> 窗体加宽(1200 → 1520):</p>
+<pre><code class="language-csharp">        ClientSize = new Size(1520, 780);
+</code></pre>
+<pre><code class="language-csharp">        MinimumSize = new Size(1536, 819);
+</code></pre>
+<p><strong>2h.</strong> <code>gbLog.ResumeLayout(false);</code> 之后加:</p>
+<pre><code class="language-csharp">        gbTraj.ResumeLayout(false);
+</code></pre>
+<p><strong>2i.</strong> 字段区 <code>private Button btnLinear;</code> 之后加:</p>
+<pre><code class="language-csharp">    private GroupBox gbTraj;
+    private TrajectoryPanel trajPanel;
+    private Button btnClearTrail;
+</code></pre>
+<h3 id="sec-3-3">步骤 3:接线(MainForm.cs 两处)</h3>
+<p><strong>3a.</strong> 构造函数里,<code>btnLinear.Click += …</code> 之后加:</p>
+<pre><code class="language-csharp">        // 轨迹图(MC6):清空轨迹只清画面,不动轴
+        btnClearTrail.Click += (s, e) =&gt; { trajPanel.ClearTrail(); AppendLog(&quot;轨迹已清空&quot;); };
+</code></pre>
+<p><strong>3b.</strong> <code>Timer1_Tick</code> 里,for 循环的 <code>}</code> 之后、<code>RefreshUiState();</code> 之前加:</p>
+<pre><code class="language-csharp">        // 轨迹采样:每帧把两轴位置一起记一个 (X, Y) 点。
+        // 为什么在定时器里采、而不是订阅 PositionChanged 事件?事件是&quot;每根轴各自来报&quot;,
+        // X 到达时 Y 可能还停在上个节拍 → 轨迹会画出锯齿;定时器同一时刻取两轴,坐标才是
+        // 一致的快照 —— 采集项目里&quot;按周期采样&quot;对付&quot;事件乱序&quot;是同一个思路。
+        trajPanel.Sample(_card.GetAxisPosition(0), _card.GetAxisPosition(1));
+</code></pre>
+<p>💡 <strong>为什么采样放定时器而不是 PositionChanged 事件 —— 本篇最重要的设计决策</strong>:插补时两轴各自发事件,轴 1 报"X=50.0"那一刻,轴 2 可能还停在上个节拍的 Y 值 —— 逐事件记点,轨迹会画出一个个小锯齿,直线变台阶。定时器 100ms 把两轴位置<strong>一次性一起取</strong>,拿到的是同一时刻的快照,轨迹才干净。代价是采样率从 10Hz(节拍)降到 10Hz 定时器 —— 对可视化足够;数据记录才需要更高频率(那是采集项目 R 系列的领域)。<strong>事件适合"发生了什么",采样适合"现在怎么样"</strong> —— 这句话值得记进面试弹药库。</p>
+<hr />
+<h2 id="sec-2-5">✅ 验证(沙盒实测输出 + 视觉验收)</h2>
+<pre><code class="language-bash">dotnet build
+</code></pre>
+<pre><code>已成功生成。
+    0 个警告
+    0 个错误
+</code></pre>
+<pre><code class="language-bash">dotnet test
+</code></pre>
+<pre><code>已通过! - 失败:     0，通过:    14，已跳过:     0，总计:    14，持续时间: 9 s - MotionControl.Tests.dll (net8.0)
+</code></pre>
+<p>(MC4 的冒烟测试此时也顺带覆盖了轨迹面板:定时器 Tick → Sample → Invalidate → DoEvents 分发重绘,整条链路全程在线程模型下真跑。)</p>
+<h3 id="sec-3-4">视觉验收清单(F8 跑起来,逐条过)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>操作</th>
+<th>预期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>启动程序</td>
+<td>第三栏是轨迹图:坐标轴 + 网格 + 银色软限位边框,原点一个红点</td>
+</tr>
+<tr>
+<td>2</td>
+<td>按住轴 1【正转】</td>
+<td>红点沿 X 正方向移动,身后拖出一条水平绿线;松手线停</td>
+</tr>
+<tr>
+<td>3</td>
+<td>双轴同时点动(轴1 正 + 轴2 正)</td>
+<td>红点走斜线,轨迹是平滑斜线不是锯齿台阶</td>
+</tr>
+<tr>
+<td>4</td>
+<td>点【⇗ 两轴插补演示】</td>
+<td><strong>一条笔直的斜线</strong>(X:Y 恒 5:3)—— MC5 的等比推进亲眼可见</td>
+</tr>
+<tr>
+<td>5</td>
+<td>插补运动中点【急停】</td>
+<td>红点在轨迹末端当场冻住,不多走一步</td>
+</tr>
+<tr>
+<td>6</td>
+<td>点【回零 ⌂】再点另一轴回零</td>
+<td>轨迹画回原点的线,红点最终回到 (0,0)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>速度 3000 按住轴 1 正转撞软限位</td>
+<td>红点顶在边框边缘停下(X=+1000 位置),不穿框</td>
+</tr>
+<tr>
+<td>8</td>
+<td>点【清空轨迹】</td>
+<td>绿线消失、红点留在当前位置;轴不受任何影响</td>
+</tr>
+<tr>
+<td>9</td>
+<td>拉伸窗口</td>
+<td>轨迹图随之变大,网格/边框/轨迹等比例缩放,不变形不残影</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-6">✅ 验收清单(对着需求单逐条勾)</h2>
+<ul>
+<li>[ ] FR-V01 坐标轴过原点,Y 方向正确(上 = 正)</li>
+<li>[ ] FR-V02 网格 250mm + 软限位边框可见</li>
+<li>[ ] FR-V03 轨迹线 + 当前点;静止不灌重复点</li>
+<li>[ ] FR-V04 等比例:圆轨迹不会变椭圆(拉伸窗口看视觉验收 9)</li>
+<li>[ ] FR-V05 快速点动不闪(双缓冲)</li>
+<li>[ ] FR-V06 采样在定时器,双轴同拍快照(视觉验收 3/4 无锯齿)</li>
+<li>[ ] FR-V07 MaxPoints = 4000 滚动上限</li>
+<li>[ ] FR-V08 清空按钮只清画面</li>
+<li>[ ] 视觉验收 9 条全过</li>
+</ul>
+<hr />
+<h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
+<blockquote>
+<p><strong>一句话开场</strong>:"轨迹可视化我写了个自绘控件:数据与绘制分离(Sample 存点 + Invalidate 标脏,OnPaint 统一渲染)、双缓冲防闪、mm 到像素等比例映射 —— 顺带用定时器采样解决了多轴事件乱序画锯齿的问题。"</p>
+</blockquote>
+<p><strong>追问弹药库</strong>:
+- <strong>"自绘控件为什么不直接在事件里画?"</strong> —— 绘图必须响应系统的重绘消息(遮挡露出、拉伸、Invalidate),只有把画图放进 OnPaint,任何"需要重画"的时机系统都会来调它;在别处画的,一次遮挡就没了。这是"声明式渲染"和"命令式画一笔"的区别 —— 前端同学可以类比:改 state 触发 re-render,而不是绕过框架直接操作 DOM;
+- <strong>"闪烁怎么解决?"</strong> —— 双缓冲 DoubleBuffered:每帧先画进内存位图,再整帧贴屏。没有它,网格、边框、轨迹逐笔画到屏幕上,眼睛看得到中间态,就是闪。离屏 canvas / requestAnimationFrame 合成同理;
+- <strong>"坐标映射有什么坑?"</strong> —— 两个:① 屏幕 Y 向下、机械 Y 向上,Y 必须取反,忘了就是"轴往上走轨迹往下跑";② 比例必须 X/Y 共用一个(按短边算),各算各的圆变椭圆。另外窗口会拉伸,比例每帧现算,不能存字段;
+- <strong>"轨迹数据从事件来还是轮询来?"</strong> —— 轮询(定时器 100ms 两轴一起采)。事件是每根轴各自报,插补时两轴上报有半个节拍的错位,逐事件记点会画出锯齿;定时器一次取两轴,快照才一致。原则:<strong>事件适合感知"发生了什么",采样适合回答"现在怎么样"</strong>;
+- <strong>"轨迹无限长怎么办?"</strong> —— 点数上限 4000,到顶丢最老的,滚动窗口 —— 和日志滚动的思路一样,内存占用有界。</p>
+<p><a href="proj-mc1.html">← 回系列导航</a> · 恭喜,MC 系列六篇全部完成 —— 两个项目(DaqMonitor + MotionControl)在手,14K 的底气就是它们加上你能把每一行讲清楚。</p>
+<div class="pager">
+  <a class="prev" href="proj-mc5.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">MC5 · 两轴直线插补(可选)</div></a>
+  <a style="visibility:hidden"></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+<div id="kpmask" class="kpmask" onclick="closeKp()"></div>
+<div id="kpmodal" class="kpmodal" role="dialog" aria-modal="true">
+  <button class="kpclose" onclick="closeKp()" aria-label="关闭">×</button>
+  <div id="kptitle" class="kptitle"></div>
+  <div id="kpbody" class="kpbody"></div>
+</div>
+<script>
+var KP_DATA = {"struct-vs-class": {"t": "struct vs class（值类型 vs 引用类型）", "d": "SensorPoint 用 struct：小而高频传递，赋值即拷贝，GC 零压力。SensorRecord 用 class：EF Core 实体需要引用语义。<b>前端类比</b>：struct ≈ primitive/值拷贝，class ≈ object/传引用。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "event-delegate": {"t": "event / EventHandler 事件机制", "d": "设备采集到数据 → <code>RaiseData</code> 触发 <code>DataReceived</code> → 订阅方（管道/UI）收到通知。<b>前端类比</b>：EventEmitter 的 on/emit，但类型安全、只允许 +=/-= 订阅。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "idevice": {"t": "IDevice 设备统一抽象", "d": "所有设备（串口/Modbus/PLC/TCP/CAN…）实现同一接口：同步门面 Connect/Disconnect/Read/Write + DataReceived 事件。上层只认 IDevice，换品牌设备 = 换实现类，采集层零改动——这就是面向接口 + 可插拔。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "sync-facade": {"t": "为什么 IDevice 是同步门面（不是 async）", "d": "接口方法立即返回，真正的 IO/轮询在 Connect() 内部用 Task.Run 起后台循环。<b>面试标准答</b>：设备接口同步语义 + 内部异步实现，上层调用简单，下层不阻塞 UI。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "taskrun": {"t": "Task.Run / async-await", "d": "Task.Run 把活丢线程池；await 挂起方法不占线程。<b>前端类比</b>：Task ≈ Promise，await ≈ await，Task.WhenAll ≈ Promise.all。陷阱：不 .Result（死锁）、不 async void（异常炸进程）。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "dispatcher": {"t": "Dispatcher —— 后台线程回 UI 线程", "d": "WPF UI 只能 UI 线程改。后台事件里更新 ObservableCollection 前：<code>Application.Current.Dispatcher.Invoke(() => ...)</code>。<b>前端类比</b>：跨组件改状态要走同一个事件循环。", "m": "M0", "lt": "M0 · C#/.NET 热身 + 工程骨架"}, "channel": {"t": "Channel<T> 生产者-消费者", "d": "设备事件(100Hz) → Channel 缓冲 → 后台单消费者批量处理。为什么不用 ConcurrentQueue：Channel 是 async-native，没数据时 await 不占线程；高频采集把 CPU 从轮询空转里解放出来。面试高频题。", "m": "M9", "lt": "M9 · 工程素养"}, "batching": {"t": "定时/定量批量刷盘", "d": "AcquisitionPipeline：Channel 攒数据 + Timer 每 200ms 扫一批 → BatchReady 事件。逐条写库/刷 UI 会把系统打爆，批量是工业系统标配。", "m": "M9", "lt": "M9 · 工程素养"}, "di": {"t": "DI 依赖注入", "d": "Bootstrapper 一处注册（services.AddSingleton），构造函数到处接收。换实现只改注册一行，测试可注入 Mock。<b>前端类比</b>：Vue 的 provide/inject，但类型安全、生命周期托管。", "m": "M9", "lt": "M9 · 工程素养"}, "unit-test": {"t": "xUnit 单元测试", "d": "[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。", "m": "M9", "lt": "M9 · 工程素养"}, "cancel-token": {"t": "CancellationToken 协作式取消", "d": "可取消的异步循环写法:<code>await Task.Delay(ms, token)</code> —— token 被取消时在这里抛 OperationCanceledException,catch 住就地收尾。急停/松手/新指令打断旧任务全靠它。<b>前端类比</b>:AbortController + fetch 的 signal。"}, "winforms-invoke": {"t": "InvokeRequired / BeginInvoke 跨线程更新界面", "d": "WinForms 控件有线程亲和性:后台线程直接碰控件抛 InvalidOperationException。判 <code>InvokeRequired</code> 后用 <code>BeginInvoke(投递 lambda)</code> 切回 UI 线程 —— WPF 里对应 Dispatcher.Invoke/BeginInvoke。<b>前端类比</b>:跨组件改状态要回到主事件循环。"}, "moq": {"t": "Moq 模拟对象", "d": "Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。", "m": "M9", "lt": "M9 · 工程素养"}, "retry-backoff": {"t": "重试 + 指数退避", "d": "通信失败别裸抛：1s→2s→4s→8s 退避重试，上限后熔断报离线。工业现场网线被踢一脚是常态，系统要自己站起来。", "m": "M9", "lt": "M9 · 工程素养"}, "hysteresis": {"t": "回滞 Hysteresis —— 防报警风暴", "d": "阈值 100 时值在 99↔101 抖动会狂报警。回滞 = 触发 100 / 恢复 95，中间保持原状态。<b>类比</b>：空调 26° 停机、28° 才重启。生产报警必配。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "alarm-edge": {"t": "边沿触发 —— 只报一次", "d": "持续超阈值也只触发一次报警（记录 active 状态），恢复后才允许再触发。否则一秒刷几十条，值班员直接无视。", "m": "M6", "lt": "M6 · 报警引擎 + 日志"}, "crc": {"t": "CRC 校验", "d": "工业帧尾带 CRC16 校验码，收方重算比对——网线干扰改一个字节就能被发现。Modbus RTU 用 CRC16-Modbus 多项式。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "byte-order": {"t": "字节序 ABCD/CDAB", "d": "两个寄存器拼 float 时，不同设备字节顺序不同（西门子 ABCD、部分仪表 CDAB）。读出来数值离谱（如 10^38）先查字节序。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "modbus": {"t": "Modbus RTU 协议", "d": "工业事实标准：主问从答，功能码 03 读保持寄存器 / 06 写单寄存器，帧 = 从站地址+功能码+数据+CRC16。", "m": "M2", "lt": "M2 · Modbus RTU/TCP"}, "serial-frame": {"t": "串口帧协议 AA55", "d": "自定义协议帧：帧头 AA 55 + 长度 + 载荷 + CRC。串口是字节流，要靠帧头+长度+校验切出完整报文——和 TCP 粘包同一个问题。", "m": "M1", "lt": "M1 · 串口通信"}, "plc-s7": {"t": "S7 协议与 DB 块", "d": "西门子 PLC 通过 S7 协议按地址读 DB 块：DB1.DBD0 = 1号数据块内 0 偏移的 Double Word。地址写错是新手第一天坑。", "m": "M3", "lt": "M3 · PLC 通信(西门子 S7)"}, "tcp-sticky": {"t": "TCP 粘包/拆包", "d": "TCP 是字节流没有消息边界，一次 Read 可能收到半条或两条半报文。解法：帧头+长度 的状态机解析器（FrameParser）。", "m": "M11", "lt": "M11 · TCP Socket 自定义协议"}, "efcore": {"t": "EF Core + SQLite 持久化", "d": "DbContext 管 DbSet 映射，EnsureCreated 自动建表。domain 的 SensorPoint(struct) 不适合做实体 → 转成 SensorRecord(class) 落库——领域模型和持久化模型分离。", "m": "M4", "lt": "M4 · 数据持久化"}, "dbfactory": {"t": "IDbContextFactory —— DbContext 线程安全", "d": "DbContext 非线程安全，多线程共用必炸。工厂模式每次给一个独立短命实例：await using var db = _factory.CreateDbContext()。", "m": "M4", "lt": "M4 · 数据持久化"}, "dual-write": {"t": "内存索引 + 异步落库双写", "d": "PointStore：内存字典保证实时查询秒回，Channel 串行写 SQLite（满足单写者）。读走内存、写排队——工业采集标配架构。", "m": "M4", "lt": "M4 · 数据持久化"}, "mvvm": {"t": "MVVM 模式", "d": "Model-View-ViewModel：XAML(View) 绑定 ViewModel 的属性/命令，VM 不认识 V。<b>前端类比</b>：ViewModel ≈ Vue 的 data+methods，Binding ≈ v-model，值通知 ≈ 响应式。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "binding": {"t": "WPF 数据绑定", "d": "{Binding Temp}：UI 自动读 VM 属性。改了属性界面不动？—— 没实现 INotifyPropertyChanged（或没用 [ObservableProperty] 源生成）。前端转过来第一坑。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "relaycommand": {"t": "ICommand / RelayCommand", "d": "把\"点击该干嘛\"变成可绑定的命令属性（CanExecute 控制按钮灰亮）。≈ useCallback 但可绑定、可测试。", "m": "wpf", "lt": "WPF / XAML 入门速查（前端类比版）"}, "livecharts": {"t": "LiveCharts2 实时曲线", "d": "ObservableValue/observable 集合驱动，数据变了曲线自动动。高频刷图要先聚合再喂（逐点刷会卡死），本项目用管道 BatchReady 批量喂。", "m": "M5", "lt": "M5 · 实时可视化"}, "eng-scale": {"t": "工程量转换（量程标定）", "d": "AD 原始值(0~4095) → 物理量(4~20mA → 0~100℃)：线性公式 eng = raw*scale + offset。传感器标定错了，后面全错。", "m": "M12", "lt": "M12 · 工程量转换 + 企业数据库"}};
+function openKp(id){
+  var k = KP_DATA[id]; if(!k) return;
+  document.getElementById('kptitle').textContent = k.t;
+  var more = k.m ? '<p class="kplinkmore"><a href="../modules/' + k.m + '.html">📖 跳转「' + k.lt + '」看详解 →</a></p>' : '';
+  document.getElementById('kpbody').innerHTML = k.d + more;
+  document.getElementById('kpmask').style.display = 'block';
+  document.getElementById('kpmodal').style.display = 'block';
+}
+function closeKp(){
+  document.getElementById('kpmask').style.display = 'none';
+  document.getElementById('kpmodal').style.display = 'none';
+}
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeKp(); });
+</script>
+
+</body>
+</html>
