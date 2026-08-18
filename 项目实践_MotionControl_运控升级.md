@@ -32,6 +32,7 @@
 │ │ 当前位置      │ │ │               │ │ │ [黑底/浅绿等宽字日志]   │ │ │
 │ │ 速度/目标位置 │ │ │               │ │ │ (同时落盘 logs\ 目录)  │ │ │
 │ │ [绝对定位][回零⌂]│ │              │ │ └────────────────────────┘ │ │
+│ │ [⇗两轴插补演示]│ │                │                              │
 │ └───────────────┘ │ └───────────────┘ └────────────────────────────┘ │
 └──────────────────┴──────────────────┴────────────────────────────────┘
 ```
@@ -71,7 +72,7 @@
 | FR-M10 | UI 分区整容 | GroupBox 分区;急停是唯一红色按钮;报警淡黄底深红字;日志黑底浅绿等宽字 |
 | FR-M11 | 界面状态集中管理 | 按钮可用性只在 `RefreshUiState()` 一处计算;两轴控件数组化 |
 | FR-M12 | 线程安全日志 | 多线程写文件不乱码(lock);界面日志后台线程投递回 UI 线程;同时落盘 `logs\` |
-| FR-M13 | (可选)两轴直线插补 `MoveLinear` | X:0→50、Y:0→30 过程中任意时刻 X:Y≈5:3,同时到位 |
+| FR-M13 | (可选)两轴直线插补 `MoveLinear` + 界面演示按钮 | X:0→50、Y:0→30 过程中任意时刻 X:Y≈5:3,同时到位;界面一键"插补演示",两个位置框同步推进 |
 | FR-M14 | UI 全流程冒烟测试 | STA 线程真跑窗体:连接→使能→双轴点动→定位→注报警→清警→急停→断开,0 异常 |
 
 **先自己想**:别急着往下翻。拿张纸画出 —— ① `IMotionCard` 接口要哪些方法和事件?② "两轴同时点动互不打断"用 v1 的全局变量思路怎么改?③ 急停要能打断"正在走的一段运动",你想到了 C# 的哪个机制?④ WinForms 里按钮事件来自后台线程时怎么安全更新界面?
@@ -1149,6 +1150,9 @@ public partial class MainForm : Form
             _btnHome[i].Click    += (s, e) => Home(axis);
         }
 
+        // 两轴插补演示按钮(驱动两根轴,不属于任何单轴数组,单独订阅)
+        btnLinear.Click += (s, e) => MoveLinearDemo();
+
         // 卡 → 界面:三个事件分别在"位置变化 / 报警变化 / 急停"时被后台线程触发
         _card.PositionChanged  += OnPositionChanged;
         _card.AlarmChanged     += OnAlarmChanged;
@@ -1246,6 +1250,19 @@ public partial class MainForm : Form
         AppendLog($"轴{axis + 1} 回零启动(固定 {MockMotionCard.HomeSpeed:F0} mm/s)…");
     }
 
+    /// <summary>
+    /// 两轴直线插补演示:X→200、Y→120 同起同停、等比推进。
+    /// 按下后盯着两个位置框看 —— 任意时刻 X:Y 恒等于 200:120(≈5:3),这就是"插补走直线"的直观含义。
+    /// 速度取轴 1 的速度框,语义 = 走得最远的轴(这里是 X)的速度。
+    /// </summary>
+    private void MoveLinearDemo()
+    {
+        var speed = SpeedOf(_txtSpeed[0]);
+        var r = _card.MoveLinear(new[] { 0, 1 }, new[] { 200.0, 120.0 }, speed);
+        if (r != MotionResult.Ok) { Fail(r, "两轴插补"); return; }
+        AppendLog($"两轴插补 → X 200 · Y 120 @ {speed:F0} mm/s(同起同停,等比推进)");
+    }
+
     // ———— 卡事件 → 界面(全部先切回 UI 线程) ————
 
     private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
@@ -1318,6 +1335,12 @@ public partial class MainForm : Form
             _btnMoveAbs[i].Enabled = operable;
             _btnHome[i].Enabled = operable;
         }
+
+        // 插补按钮要求两轴同时可用 —— 插补是"绑腿跑",任何一轴不满足,整条指令都会被卡拒绝
+        btnLinear.Enabled = connected
+                            && _card.IsAxisEnabled(0) && _card.IsAxisEnabled(1)
+                            && string.IsNullOrEmpty(_card.GetAlarmMessage(0))
+                            && string.IsNullOrEmpty(_card.GetAlarmMessage(1));
     }
 
     // ———— 小工具 ————
@@ -1413,6 +1436,7 @@ partial class MainForm
         txtIp = new TextBox();
         lblIp = new Label();
         btnEstop = new Button();
+        btnLinear = new Button();
         tableLayoutPanel1 = new TableLayoutPanel();
         gbAxis1 = new GroupBox();
         lblSoftLimit1 = new Label();
@@ -1582,6 +1606,7 @@ partial class MainForm
         gbAxis1.Controls.Add(btnMoveAbs1);
         gbAxis1.Controls.Add(btnHome1);
         gbAxis1.Controls.Add(lblSoftLimit1);
+        gbAxis1.Controls.Add(btnLinear);
         gbAxis1.Dock = DockStyle.Fill;
         gbAxis1.Location = new Point(13, 11);
         gbAxis1.Name = "gbAxis1";
@@ -1730,6 +1755,15 @@ partial class MainForm
         lblSoftLimit1.Size = new Size(311, 17);
         lblSoftLimit1.TabIndex = 14;
         lblSoftLimit1.Text = "软限位 ±1000 mm · 流程:连接 → 使能 → 运动";
+        //
+        // btnLinear —— 两轴直线插补演示:X/Y 同起同停、等比推进(放在轴 1 框里,但驱动两根轴)
+        //
+        btnLinear.Location = new Point(20, 548);
+        btnLinear.Name = "btnLinear";
+        btnLinear.Size = new Size(355, 44);
+        btnLinear.TabIndex = 15;
+        btnLinear.Text = "⇗ 两轴插补演示 → X 200 · Y 120";
+        btnLinear.UseVisualStyleBackColor = true;
         //
         // gbAxis2 —— 与 gbAxis1 布局完全一致,仅控件名后缀不同
         //
@@ -2014,6 +2048,7 @@ partial class MainForm
     private Button btnDisconnect;
     private Panel lblConnectStatus;
     private Button btnEstop;
+    private Button btnLinear;
     private TableLayoutPanel tableLayoutPanel1;
     private GroupBox gbAxis1;
     private Label lblEnable1;
@@ -2169,6 +2204,7 @@ dotnet test
 - [ ] 定位输入 2000 → 日志报"参数不合法"(软限位)
 - [ ] 速度框输入 abc → 自动变回 50(防呆自愈)
 - [ ] 按住正转不放约 3 秒(速度调 3000)→ 撞 +1000 自动停,报警框淡黄底出现"触发正软限位",运动按钮变灰
+- [ ] 两轴使能后点"⇗ 两轴插补演示" → **两个位置框同步跳动,任意时刻 X:Y≈5:3,同时停在 200.000 / 120.000**(插补的直观含义)
 - [ ] 清除全部报警 → 报警框打"已清除",按钮恢复
 - [ ] 运动中拍急停 → 位置立刻停住,日志红字"急停触发",再点回零 → 精确回 0.000
 - [ ] 关窗重开,`bin\Debug\net8.0-windows\logs\motion_今天日期.txt` 里有全部操作记录
@@ -2189,7 +2225,7 @@ dotnet test
 - [ ] FR-M10 GroupBox 分区;红色只属于急停;报警淡黄深红;日志黑底浅绿等宽
 - [ ] FR-M11 按钮态只在 RefreshUiState() 计算;两轴控件数组化
 - [ ] FR-M12 LogHelper 加锁落盘;界面日志后台线程安全投递
-- [ ] FR-M13 (可选)插补任意时刻 X:Y≈5:3,同时到位
+- [ ] FR-M13 (可选)插补任意时刻 X:Y≈5:3,同时到位;界面演示按钮同步驱动两轴
 - [ ] FR-M14 UI 全流程冒烟测试通过
 
 ---
