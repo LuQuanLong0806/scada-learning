@@ -284,7 +284,16 @@ public class DiagnosticsService
     /// <summary>对外只读日志视图,UI 直接绑。</summary>
     public ReadOnlyObservableCollection<string> Log { get; }
 
-    public DiagnosticsService() => Log = new ReadOnlyObservableCollection<string>(_log);
+    public DiagnosticsService()
+    {
+        // 坑⑤修复:捕获构造时的同步上下文。WPF 里在 UI 线程构造(Bootstrapper 在 OnStartup 里跑)
+        // => 之后任何后台线程 Append 都自动投递回 UI 线程,不再抛跨线程集合异常。
+        // 参考工程原文没有这层(它从没真正跑过界面),照抄会在 R8 点「启动采集」的第一批数据就崩。
+        _uiCtx = SynchronizationContext.Current;
+        Log = new ReadOnlyObservableCollection<string>(_log);
+    }
+
+    private readonly SynchronizationContext? _uiCtx;
 
     /// <summary>记录一次批量采集:累加点数/批次数,并写一条 INFO 日志。</summary>
     public void RecordBatch(int sampleCount, long elapsedMs)
@@ -314,11 +323,24 @@ public class DiagnosticsService
     private void Append(string level, string message)
     {
         var line = $"[{DateTime.Now:HH:mm:ss.fff}] {level} {message}";
-        lock (_gate)
+        // 坑⑤:_log 被 UI 的诊断面板绑定,非 UI 线程直接改会抛
+        // NotSupportedException("CollectionView 不支持从不同线程更改 SourceCollection")。
+        // lock 只保证线程互斥,不解决"改绑定了 UI 的集合必须在其线程上"——这是两码事。
+        if (_uiCtx is not null && SynchronizationContext.Current != _uiCtx)
         {
-            // 新日志插到头部(最新在上);超出上限从尾部丢弃
-            _log.Insert(0, line);
-            while (_log.Count > MaxLog) _log.RemoveAt(_log.Count - 1);
+            _uiCtx.Post(_ => InsertLine(), null);
+            return;
+        }
+        InsertLine();
+
+        void InsertLine()
+        {
+            lock (_gate)
+            {
+                // 新日志插到头部(最新在上);超出上限从尾部丢弃
+                _log.Insert(0, line);
+                while (_log.Count > MaxLog) _log.RemoveAt(_log.Count - 1);
+            }
         }
     }
 }

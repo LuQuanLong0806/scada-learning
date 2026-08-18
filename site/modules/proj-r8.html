@@ -660,9 +660,11 @@ public class StatusDot : Control
               &lt;DataTrigger.EnterActions&gt;
                 &lt;BeginStoryboard&gt;
                   &lt;Storyboard RepeatBehavior=&quot;Forever&quot; AutoReverse=&quot;True&quot;&gt;
+                    &lt;!-- 坑④:参考工程原文写的是 Duration=&quot;0 0:0:0.6&quot;——不是合法 TimeSpan,
+                         状态灯一进 Connecting 就 XamlParseException 崩溃。正确写法 &quot;0:0:0.6&quot;(0.6 秒)。 --&gt;
                     &lt;DoubleAnimation Storyboard.TargetName=&quot;dot&quot;
                                      Storyboard.TargetProperty=&quot;Opacity&quot;
-                                     From=&quot;1&quot; To=&quot;0.3&quot; Duration=&quot;0 0:0:0.6&quot;/&gt;
+                                     From=&quot;1&quot; To=&quot;0.3&quot; Duration=&quot;0:0:0.6&quot;/&gt;
                   &lt;/Storyboard&gt;
                 &lt;/BeginStoryboard&gt;
               &lt;/DataTrigger.EnterActions&gt;
@@ -1020,7 +1022,11 @@ dotnet run --project src/DaqMonitor.UI
 <li>[ ] 关窗退出,<code>%LocalAppData%\DaqMonitor\daq.db</code> 存在(R6 的库在真实路径上)</li>
 </ul>
 <blockquote>
-<p>🧪 R8 的 UI 我在交付前用 <code>dotnet build</code> + 短暂启动做了冒烟(窗口能起来、无启动崩溃;冒烟还真抓到并修掉一个启动崩溃,见 ⑦ 坑③);<strong>交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验</strong>——每一行都能追溯到 R2~R7 某个已测过的模块。</p>
+<p>🧪 R8 的 UI 我在交付前做了<strong>全流程模拟运行</strong>(点启动 → 批量数据 → 报警触发 → 长时间挂机),一共抓掉参考工程的 3 个潜伏运行时 bug——这类 bug 短暂冒烟根本暴露不出来,都是真跑起来才炸:
+- <strong>坑③(Run.Text)</strong>:状态文字绑定只读 IsRunning,默认 TwoWay 启动即崩 → <code>Mode=OneWay</code>(见 ⑦)
+- <strong>坑④(Duration)</strong>:Generic.xaml 脉冲动画 <code>Duration="0 0:0:0.6"</code> 不是合法 TimeSpan,状态灯进 Connecting 即崩 → <code>0:0:0.6</code>(见 ④)
+- <strong>坑⑤(跨线程日志)</strong>:DiagnosticsService 后台线程直改被 UI 绑定的日志集合,点启动第一批数据即崩 → R7 已修(捕获 SynchronizationContext 投递)
+<strong>交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验</strong>——每一行都能追溯到 R2~R7 某个已测过的模块。</p>
 </blockquote>
 <h2 id="sec-2-6">✅ 验收清单</h2>
 <ul>
@@ -1031,6 +1037,7 @@ dotnet run --project src/DaqMonitor.UI
 <li>[ ] 能回答:自定义控件和 UserControl 什么时候选哪个?(基础件/换肤/跨项目复用 → Control+Generic.xaml;页面级组合 → UserControl)</li>
 <li>[ ] 能回答:Generic.xaml 为什么必须在 Themes/ 目录、ThemeInfo 特性干什么?(WPF 按约定找主题字典;ThemeInfo 告诉它"字典在本程序集内")</li>
 <li>[ ] 能回答:状态文字 <code>&lt;Run Text="{Binding IsRunning,...}"/&gt;</code> 为什么必须写 <code>Mode=OneWay</code>?(Run.Text 默认 TwoWay,IsRunning 只读 → 不写启动即崩)</li>
+<li>[ ] 能回答:R7 的 DiagnosticsService 为什么要捕获 SynchronizationContext?(后台线程写被 UI 绑定的集合,lock 防互斥但不解决线程亲和;Post 回 UI 上下文才安全)</li>
 <li>[ ] git commit -m "R8: WPF主界面(点位表+仪表+状态灯+报警日志+曲线+诊断,主屏先行)"</li>
 </ul>
 <h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>

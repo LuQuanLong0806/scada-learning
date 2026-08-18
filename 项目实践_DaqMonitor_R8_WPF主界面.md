@@ -599,9 +599,11 @@ using System.Windows;
               <DataTrigger.EnterActions>
                 <BeginStoryboard>
                   <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                    <!-- 坑④:参考工程原文写的是 Duration="0 0:0:0.6"——不是合法 TimeSpan,
+                         状态灯一进 Connecting 就 XamlParseException 崩溃。正确写法 "0:0:0.6"(0.6 秒)。 -->
                     <DoubleAnimation Storyboard.TargetName="dot"
                                      Storyboard.TargetProperty="Opacity"
-                                     From="1" To="0.3" Duration="0 0:0:0.6"/>
+                                     From="1" To="0.3" Duration="0:0:0.6"/>
                   </Storyboard>
                 </BeginStoryboard>
               </DataTrigger.EnterActions>
@@ -971,7 +973,11 @@ dotnet run --project src/DaqMonitor.UI
 - [ ] 点「停止采集」→ 状态变 **已停止**,仪表读数停住,曲线仍在滚(演示模式自走,正常)
 - [ ] 关窗退出,`%LocalAppData%\DaqMonitor\daq.db` 存在(R6 的库在真实路径上)
 
-> 🧪 R8 的 UI 我在交付前用 `dotnet build` + 短暂启动做了冒烟(窗口能起来、无启动崩溃;冒烟还真抓到并修掉一个启动崩溃,见 ⑦ 坑③);**交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验**——每一行都能追溯到 R2~R7 某个已测过的模块。
+> 🧪 R8 的 UI 我在交付前做了**全流程模拟运行**(点启动 → 批量数据 → 报警触发 → 长时间挂机),一共抓掉参考工程的 3 个潜伏运行时 bug——这类 bug 短暂冒烟根本暴露不出来,都是真跑起来才炸:
+> - **坑③(Run.Text)**:状态文字绑定只读 IsRunning,默认 TwoWay 启动即崩 → `Mode=OneWay`(见 ⑦)
+> - **坑④(Duration)**:Generic.xaml 脉冲动画 `Duration="0 0:0:0.6"` 不是合法 TimeSpan,状态灯进 Connecting 即崩 → `0:0:0.6`(见 ④)
+> - **坑⑤(跨线程日志)**:DiagnosticsService 后台线程直改被 UI 绑定的日志集合,点启动第一批数据即崩 → R7 已修(捕获 SynchronizationContext 投递)
+> **交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验**——每一行都能追溯到 R2~R7 某个已测过的模块。
 
 ## ✅ 验收清单
 
@@ -982,6 +988,7 @@ dotnet run --project src/DaqMonitor.UI
 - [ ] 能回答:自定义控件和 UserControl 什么时候选哪个?(基础件/换肤/跨项目复用 → Control+Generic.xaml;页面级组合 → UserControl)
 - [ ] 能回答:Generic.xaml 为什么必须在 Themes/ 目录、ThemeInfo 特性干什么?(WPF 按约定找主题字典;ThemeInfo 告诉它"字典在本程序集内")
 - [ ] 能回答:状态文字 `<Run Text="{Binding IsRunning,...}"/>` 为什么必须写 `Mode=OneWay`?(Run.Text 默认 TwoWay,IsRunning 只读 → 不写启动即崩)
+- [ ] 能回答:R7 的 DiagnosticsService 为什么要捕获 SynchronizationContext?(后台线程写被 UI 绑定的集合,lock 防互斥但不解决线程亲和;Post 回 UI 上下文才安全)
 - [ ] git commit -m "R8: WPF主界面(点位表+仪表+状态灯+报警日志+曲线+诊断,主屏先行)"
 
 ## 🎤 面试怎么讲这一篇
