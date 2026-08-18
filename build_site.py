@@ -222,6 +222,10 @@ PAGES = [
          title="R8 · WPF 主界面", sub="MVVM 主屏(主屏先行)",
          what="App DI 启动、MainViewModel+RelayCommand、GaugeControl/StatusDot 自定义控件、LiveCharts2 曲线、诊断面板+手动验收清单",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc", kind="module", file="项目实践_MotionControl_运控升级.md",
+         title="MC · 模拟运控升级篇", sub="两轴并发/急停/软限位/插补",
+         what="把 WinForms 模拟运控 v1 升级成 v2:IMotionCard 接口化、每轴 CancellationToken 并发、急停就地冻结、回零/软限位/报警链路、直线插补、工业风界面,14 测试(含 STA 消息泵 UI 冒烟)",
+         src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -233,7 +237,7 @@ SECTION_OF = {
                   "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
                   "M15", "M16", "M17", "M18", "M19"],
     "projects":  ["proj-daq", "proj-r0", "proj-r1", "proj-r2", "proj-r3", "proj-r4",
-                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj2"],
+                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj-mc", "proj2"],
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
@@ -306,6 +310,12 @@ KPOINTS = {
     "unit-test": dict(t="xUnit 单元测试",
         d="[Fact] 一个用例 / [Theory]+[InlineData] 参数化。Assert.Equal / Assert.Throws。测试是 15K 岗位硬通货：改代码不怕回归。",
         m="M9"),
+    "cancel-token": dict(t="CancellationToken 协作式取消",
+        d="可取消的异步循环写法:<code>await Task.Delay(ms, token)</code> —— token 被取消时在这里抛 OperationCanceledException,catch 住就地收尾。急停/松手/新指令打断旧任务全靠它。<b>前端类比</b>:AbortController + fetch 的 signal。",
+        m=""),
+    "winforms-invoke": dict(t="InvokeRequired / BeginInvoke 跨线程更新界面",
+        d="WinForms 控件有线程亲和性:后台线程直接碰控件抛 InvalidOperationException。判 <code>InvokeRequired</code> 后用 <code>BeginInvoke(投递 lambda)</code> 切回 UI 线程 —— WPF 里对应 Dispatcher.Invoke/BeginInvoke。<b>前端类比</b>:跨组件改状态要回到主事件循环。",
+        m=""),
     "moq": dict(t="Moq 模拟对象",
         d="Mock<IDevice> 造假设备：Setup 指定行为、Verify 断言调用、Raise 触发事件。没有硬件也能测采集逻辑。",
         m="M9"),
