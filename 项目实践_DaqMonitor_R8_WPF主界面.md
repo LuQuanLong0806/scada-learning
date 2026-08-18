@@ -32,9 +32,9 @@ src/DaqMonitor.UI/
 |---|---|---|
 | FR8-1 | 启动接线:App.OnStartup → `Bootstrapper.Build()` → `pipeline.Register(device)` + `device.Connect()` → `new MainWindow{DataContext=new MainViewModel(Services)}`;窗口关闭 `Services.Dispose()` | 启动直接进主窗,无登录 |
 | FR8-2 | [RelayCommand](kp:relaycommand):ICommand 极简实现,CanExecuteChanged 挂 `CommandManager.RequerySuggested` | 按钮绑命令;IsRunning 翻转后启停按钮自动灰亮互换 |
-| FR8-3 | MainViewModel:PointView 展示模型([INotifyPropertyChanged](kp:binding));`BatchReady` 里用 [Dispatcher](kp:dispatcher).Invoke 更新存储+报警+点位表;报警事件插入日志并同步 Level 给表盘 | 启动采集后点位表出现 3 行,数值/时间持续跳动 |
+| FR8-3 | MainViewModel:PointView 展示模型([INotifyPropertyChanged](kp:binding));`BatchReady` 里用 [Dispatcher](kp:dispatcher).Invoke 更新存储+报警+点位表+曲线(`Push`);报警事件插入日志并同步 Level 给表盘 | 启动采集后点位表出现 3 行,数值/时间持续跳动 |
 | FR8-4 | 自定义控件 [GaugeControl/StatusDot](kp:mvvm):继承 Control + DependencyProperty + Generic.xaml 默认模板;ThemeInfo 特性指到本程序集 | 表盘指针随值转;报警时环变橙/红;状态灯绿点 |
-| FR8-5 | [ChartView](kp:livecharts) 实时曲线:LiveCharts2 两条 LineSeries,ObservableCollection 滚动缓冲 600 点(60 秒) | 曲线页两条线滚动推进 |
+| FR8-5 | [ChartView](kp:livecharts) 实时曲线:LiveCharts2 两条 LineSeries,ObservableCollection 滚动缓冲 600 点(60 秒) | **启动采集后**曲线页两条线滚动推进(真实采集值);未启动时曲线静止不动 |
 | FR8-6 | DiagnosticsPanel(UserControl):绑 `DiagnosticsSummary` 一行式统计 + `DiagnosticsLog` 环形日志 | 诊断页统计数字实时增长 |
 | FR8-7 | 主窗口组装:顶部标题+启停+状态文字,左点位表(DataGrid:点位/仪表/状态/时间),右 TabControl(报警日志/实时曲线/诊断),底部架构说明 | 全布局可用,启动/停止切换状态文字 |
 
@@ -298,11 +298,13 @@ public class MainViewModel : INotifyPropertyChanged
         _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断）。");
     }
 
-    /// <summary>由 MainWindow 注入：把实时曲线页接到 BatchReady。</summary>
+    /// <summary>
+    /// 由 MainWindow 注入：曲线页只吃真实采集数据（OnBatchReady 里 Push），
+    /// 不启动演示模式——否则没开始采集曲线也在跳，且跳的是随机数不是真实值。
+    /// </summary>
     public void AttachChart(ChartView chart)
     {
         _chart = chart;
-        chart.StartDemo();   // 演示模式：无外部数据源时自动生成曲线
     }
 
     private void OnBatchReady(object? _, IReadOnlyList<SensorPoint> batch)
@@ -330,6 +332,8 @@ public class MainViewModel : INotifyPropertyChanged
                 }
                 // 把“当前报警级别”同步给控件（没有报警就保持 Normal → 蓝环）
                 if (_levels.TryGetValue(p.Id, out var lv)) row.Level = lv;
+
+                _chart?.Push(p);   // 实时曲线：点位 1/2 分流进温度/压力两条线
             }
             OnChanged(nameof(DiagnosticsSummary));
         });
@@ -968,15 +972,16 @@ dotnet run --project src/DaqMonitor.UI
 - [ ] 左侧「实时点位」出现 **P1/P2/P3 三行**:每个一个仪表盘,读数/指针/采样时间持续跳动(100ms 一发)
 - [ ] 状态列三个绿点 Online(模拟设备 Connect 后即 Online)
 - [ ] 数值偶尔冲上 95~120(模拟设备 10% 概率越限):某行表盘**环变红/橙**,右侧「报警日志」插入一条 `[时间] 点位 1 → Critical 报警,值 = 1xx`;值回落后表盘恢复蓝环、日志加一条"报警恢复"——这就是 R5 的**回滞+边沿**在界面上的样子
-- [ ] 「实时曲线」页两条线(温度/压力)滚动推进
+- [ ] 「实时曲线」页:启动前**静止不动**(不接演示模式,没数据就不画);启动采集后两条线(温度/压力)滚动推进,数值与左侧仪表一致(是真实采集值,不是随机数)
 - [ ] 「诊断 / 调试」页:统计行"采样 N 点|报警 N 次|批次 N|末批 Nms"持续增长,日志列表有启动/报警记录
-- [ ] 点「停止采集」→ 状态变 **已停止**,仪表读数停住,曲线仍在滚(演示模式自走,正常)
+- [ ] 点「停止采集」→ 状态变 **已停止**,仪表读数停住,曲线也停住(没有批量数据进来,曲线自然冻结)
 - [ ] 关窗退出,`%LocalAppData%\DaqMonitor\daq.db` 存在(R6 的库在真实路径上)
 
-> 🧪 R8 的 UI 我在交付前做了**全流程模拟运行**(点启动 → 批量数据 → 报警触发 → 长时间挂机),一共抓掉参考工程的 3 个潜伏运行时 bug——这类 bug 短暂冒烟根本暴露不出来,都是真跑起来才炸:
+> 🧪 R8 的 UI 我在交付前做了**全流程模拟运行**(点启动 → 批量数据 → 报警触发 → 长时间挂机),抓掉参考工程的 3 个潜伏运行时 bug;上线后真机运行又抓出第 4 个(坑⑥)——这类 bug 短暂冒烟根本暴露不出来,都是真跑起来才炸:
 > - **坑③(Run.Text)**:状态文字绑定只读 IsRunning,默认 TwoWay 启动即崩 → `Mode=OneWay`(见 ⑦)
 > - **坑④(Duration)**:Generic.xaml 脉冲动画 `Duration="0 0:0:0.6"` 不是合法 TimeSpan,状态灯进 Connecting 即崩 → `0:0:0.6`(见 ④)
 > - **坑⑤(跨线程日志)**:DiagnosticsService 后台线程直改被 UI 绑定的日志集合,点启动第一批数据即崩 → R7 已修(捕获 SynchronizationContext 投递)
+> - **坑⑥(演示模式接管主屏,真机运行发现)**:ChartView 自带 `StartDemo()` 演示模式(无数据源时自造随机数),接线时顺手在 `AttachChart` 里调了它——结果**没点启动采集曲线也在跳**,而且跳的是随机数;更隐蔽的是 `OnBatchReady` 里忘了 `_chart.Push(p)`,就算启动了,曲线显示的也永远不是真实采集值。修法两行:AttachChart 只存引用不开演示,BatchReady 循环里补 `Push`。教训:**演示入口和真实数据通路是两条线,接了真实通路就必须关演示入口**,否则你看到的永远是假数据。
 > **交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验**——每一行都能追溯到 R2~R7 某个已测过的模块。
 
 ## ✅ 验收清单
@@ -993,6 +998,6 @@ dotnet run --project src/DaqMonitor.UI
 
 ## 🎤 面试怎么讲这一篇
 
-> "界面用 MVVM:MainWindow 的 XAML 只做布局,数据全部绑 MainViewModel——点位表绑 ObservableCollection,启停按钮绑 RelayCommand,IsRunning 翻转时通知 CanStart/CanStop 按钮自动灰亮。采集回调在后台线程,更新 UI 前统一 Dispatcher.Invoke 切回 UI 线程。展示模型上我把领域层的 SensorPoint(struct)转成 PointView(class + INotifyPropertyChanged),因为 struct 是值拷贝、没有属性通知,绑不上 UI——领域模型和视图模型各管各的。控件层我写了两个自定义控件:量程仪表盘和设备状态灯,继承 Control、依赖属性对外、外观全部在 Generic.xaml 的 ControlTemplate 里,报警级别用 DataTrigger 驱动换色——换肤、复用都不用动 C# 代码。曲线用 LiveCharts2 双线滚动缓冲六百点。整窗从 DI 组合根装配,换真设备只改 Bootstrapper 一行注册,UI 和采集层零耦合。"
+> "界面用 MVVM:MainWindow 的 XAML 只做布局,数据全部绑 MainViewModel——点位表绑 ObservableCollection,启停按钮绑 RelayCommand,IsRunning 翻转时通知 CanStart/CanStop 按钮自动灰亮。采集回调在后台线程,更新 UI 前统一 Dispatcher.Invoke 切回 UI 线程。展示模型上我把领域层的 SensorPoint(struct)转成 PointView(class + INotifyPropertyChanged),因为 struct 是值拷贝、没有属性通知,绑不上 UI——领域模型和视图模型各管各的。控件层我写了两个自定义控件:量程仪表盘和设备状态灯,继承 Control、依赖属性对外、外观全部在 Generic.xaml 的 ControlTemplate 里,报警级别用 DataTrigger 驱动换色——换肤、复用都不用动 C# 代码。曲线用 LiveCharts2 双线滚动缓冲六百点,真实点位从 BatchReady 批量回调里 Push 进去,未启动采集时曲线静止。整窗从 DI 组合根装配,换真设备只改 Bootstrapper 一行注册,UI 和采集层零耦合。"
 
 **✅ 打卡[ ]**

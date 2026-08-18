@@ -96,7 +96,7 @@
 </tr>
 <tr>
 <td>FR8-3</td>
-<td>MainViewModel:PointView 展示模型(<a href="#" class="kplink" data-kp="binding" onclick="openKp('binding');return false;">INotifyPropertyChanged</a>);<code>BatchReady</code> 里用 <a href="#" class="kplink" data-kp="dispatcher" onclick="openKp('dispatcher');return false;">Dispatcher</a>.Invoke 更新存储+报警+点位表;报警事件插入日志并同步 Level 给表盘</td>
+<td>MainViewModel:PointView 展示模型(<a href="#" class="kplink" data-kp="binding" onclick="openKp('binding');return false;">INotifyPropertyChanged</a>);<code>BatchReady</code> 里用 <a href="#" class="kplink" data-kp="dispatcher" onclick="openKp('dispatcher');return false;">Dispatcher</a>.Invoke 更新存储+报警+点位表+曲线(<code>Push</code>);报警事件插入日志并同步 Level 给表盘</td>
 <td>启动采集后点位表出现 3 行,数值/时间持续跳动</td>
 </tr>
 <tr>
@@ -107,7 +107,7 @@
 <tr>
 <td>FR8-5</td>
 <td><a href="#" class="kplink" data-kp="livecharts" onclick="openKp('livecharts');return false;">ChartView</a> 实时曲线:LiveCharts2 两条 LineSeries,ObservableCollection 滚动缓冲 600 点(60 秒)</td>
-<td>曲线页两条线滚动推进</td>
+<td><strong>启动采集后</strong>曲线页两条线滚动推进(真实采集值);未启动时曲线静止不动</td>
 </tr>
 <tr>
 <td>FR8-6</td>
@@ -364,11 +364,13 @@ public class MainViewModel : INotifyPropertyChanged
         _diag.RecordInfo(&quot;应用启动，DI 容器已装配（设备/管道/存储/报警/诊断）。&quot;);
     }
 
-    /// &lt;summary&gt;由 MainWindow 注入：把实时曲线页接到 BatchReady。&lt;/summary&gt;
+    /// &lt;summary&gt;
+    /// 由 MainWindow 注入：曲线页只吃真实采集数据（OnBatchReady 里 Push），
+    /// 不启动演示模式——否则没开始采集曲线也在跳，且跳的是随机数不是真实值。
+    /// &lt;/summary&gt;
     public void AttachChart(ChartView chart)
     {
         _chart = chart;
-        chart.StartDemo();   // 演示模式：无外部数据源时自动生成曲线
     }
 
     private void OnBatchReady(object? _, IReadOnlyList&lt;SensorPoint&gt; batch)
@@ -396,6 +398,8 @@ public class MainViewModel : INotifyPropertyChanged
                 }
                 // 把“当前报警级别”同步给控件（没有报警就保持 Normal → 蓝环）
                 if (_levels.TryGetValue(p.Id, out var lv)) row.Level = lv;
+
+                _chart?.Push(p);   // 实时曲线：点位 1/2 分流进温度/压力两条线
             }
             OnChanged(nameof(DiagnosticsSummary));
         });
@@ -1016,16 +1020,17 @@ dotnet run --project src/DaqMonitor.UI
 <li>[ ] 左侧「实时点位」出现 <strong>P1/P2/P3 三行</strong>:每个一个仪表盘,读数/指针/采样时间持续跳动(100ms 一发)</li>
 <li>[ ] 状态列三个绿点 Online(模拟设备 Connect 后即 Online)</li>
 <li>[ ] 数值偶尔冲上 95~120(模拟设备 10% 概率越限):某行表盘<strong>环变红/橙</strong>,右侧「报警日志」插入一条 <code>[时间] 点位 1 → Critical 报警,值 = 1xx</code>;值回落后表盘恢复蓝环、日志加一条"报警恢复"——这就是 R5 的<strong>回滞+边沿</strong>在界面上的样子</li>
-<li>[ ] 「实时曲线」页两条线(温度/压力)滚动推进</li>
+<li>[ ] 「实时曲线」页:启动前<strong>静止不动</strong>(不接演示模式,没数据就不画);启动采集后两条线(温度/压力)滚动推进,数值与左侧仪表一致(是真实采集值,不是随机数)</li>
 <li>[ ] 「诊断 / 调试」页:统计行"采样 N 点|报警 N 次|批次 N|末批 Nms"持续增长,日志列表有启动/报警记录</li>
-<li>[ ] 点「停止采集」→ 状态变 <strong>已停止</strong>,仪表读数停住,曲线仍在滚(演示模式自走,正常)</li>
+<li>[ ] 点「停止采集」→ 状态变 <strong>已停止</strong>,仪表读数停住,曲线也停住(没有批量数据进来,曲线自然冻结)</li>
 <li>[ ] 关窗退出,<code>%LocalAppData%\DaqMonitor\daq.db</code> 存在(R6 的库在真实路径上)</li>
 </ul>
 <blockquote>
-<p>🧪 R8 的 UI 我在交付前做了<strong>全流程模拟运行</strong>(点启动 → 批量数据 → 报警触发 → 长时间挂机),一共抓掉参考工程的 3 个潜伏运行时 bug——这类 bug 短暂冒烟根本暴露不出来,都是真跑起来才炸:
+<p>🧪 R8 的 UI 我在交付前做了<strong>全流程模拟运行</strong>(点启动 → 批量数据 → 报警触发 → 长时间挂机),抓掉参考工程的 3 个潜伏运行时 bug;上线后真机运行又抓出第 4 个(坑⑥)——这类 bug 短暂冒烟根本暴露不出来,都是真跑起来才炸:
 - <strong>坑③(Run.Text)</strong>:状态文字绑定只读 IsRunning,默认 TwoWay 启动即崩 → <code>Mode=OneWay</code>(见 ⑦)
 - <strong>坑④(Duration)</strong>:Generic.xaml 脉冲动画 <code>Duration="0 0:0:0.6"</code> 不是合法 TimeSpan,状态灯进 Connecting 即崩 → <code>0:0:0.6</code>(见 ④)
 - <strong>坑⑤(跨线程日志)</strong>:DiagnosticsService 后台线程直改被 UI 绑定的日志集合,点启动第一批数据即崩 → R7 已修(捕获 SynchronizationContext 投递)
+- <strong>坑⑥(演示模式接管主屏,真机运行发现)</strong>:ChartView 自带 <code>StartDemo()</code> 演示模式(无数据源时自造随机数),接线时顺手在 <code>AttachChart</code> 里调了它——结果<strong>没点启动采集曲线也在跳</strong>,而且跳的是随机数;更隐蔽的是 <code>OnBatchReady</code> 里忘了 <code>_chart.Push(p)</code>,就算启动了,曲线显示的也永远不是真实采集值。修法两行:AttachChart 只存引用不开演示,BatchReady 循环里补 <code>Push</code>。教训:<strong>演示入口和真实数据通路是两条线,接了真实通路就必须关演示入口</strong>,否则你看到的永远是假数据。
 <strong>交互效果(指针/报警变色/曲线滚动)按上面清单逐条自验</strong>——每一行都能追溯到 R2~R7 某个已测过的模块。</p>
 </blockquote>
 <h2 id="sec-2-6">✅ 验收清单</h2>
@@ -1042,12 +1047,12 @@ dotnet run --project src/DaqMonitor.UI
 </ul>
 <h2 id="sec-2-7">🎤 面试怎么讲这一篇</h2>
 <blockquote>
-<p>"界面用 MVVM:MainWindow 的 XAML 只做布局,数据全部绑 MainViewModel——点位表绑 ObservableCollection,启停按钮绑 RelayCommand,IsRunning 翻转时通知 CanStart/CanStop 按钮自动灰亮。采集回调在后台线程,更新 UI 前统一 Dispatcher.Invoke 切回 UI 线程。展示模型上我把领域层的 SensorPoint(struct)转成 PointView(class + INotifyPropertyChanged),因为 struct 是值拷贝、没有属性通知,绑不上 UI——领域模型和视图模型各管各的。控件层我写了两个自定义控件:量程仪表盘和设备状态灯,继承 Control、依赖属性对外、外观全部在 Generic.xaml 的 ControlTemplate 里,报警级别用 DataTrigger 驱动换色——换肤、复用都不用动 C# 代码。曲线用 LiveCharts2 双线滚动缓冲六百点。整窗从 DI 组合根装配,换真设备只改 Bootstrapper 一行注册,UI 和采集层零耦合。"</p>
+<p>"界面用 MVVM:MainWindow 的 XAML 只做布局,数据全部绑 MainViewModel——点位表绑 ObservableCollection,启停按钮绑 RelayCommand,IsRunning 翻转时通知 CanStart/CanStop 按钮自动灰亮。采集回调在后台线程,更新 UI 前统一 Dispatcher.Invoke 切回 UI 线程。展示模型上我把领域层的 SensorPoint(struct)转成 PointView(class + INotifyPropertyChanged),因为 struct 是值拷贝、没有属性通知,绑不上 UI——领域模型和视图模型各管各的。控件层我写了两个自定义控件:量程仪表盘和设备状态灯,继承 Control、依赖属性对外、外观全部在 Generic.xaml 的 ControlTemplate 里,报警级别用 DataTrigger 驱动换色——换肤、复用都不用动 C# 代码。曲线用 LiveCharts2 双线滚动缓冲六百点,真实点位从 BatchReady 批量回调里 Push 进去,未启动采集时曲线静止。整窗从 DI 组合根装配,换真设备只改 Bootstrapper 一行注册,UI 和采集层零耦合。"</p>
 </blockquote>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r8',1)"> 打卡</label></strong></p>
 <div class="pager">
   <a class="prev" href="proj-r7.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R7 · 组装诊断与容错</div></a>
-  <a class="next" href="proj-mc.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">MC · 模拟运控升级篇</div></a>
+  <a class="next" href="proj-mc1.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">MC1 · 骨架与模拟卡</div></a>
 </div>
   <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
   </main>

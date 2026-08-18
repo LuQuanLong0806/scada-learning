@@ -165,11 +165,13 @@ public class MainViewModel : INotifyPropertyChanged
         _diag.RecordInfo("应用启动，DI 容器已装配（设备/管道/存储/报警/诊断/认证/配方）。");
     }
 
-    /// <summary>由 MainWindow 注入：把实时曲线页接到 BatchReady。</summary>
+    /// <summary>
+    /// 由 MainWindow 注入：曲线页只吃真实采集数据（OnBatchReady 里 Push），
+    /// 不启动演示模式——否则没开始采集曲线也在跳，且跳的是随机数不是真实值。
+    /// </summary>
     public void AttachChart(ChartView chart)
     {
         _chart = chart;
-        chart.StartDemo();   // 演示模式：无外部数据源时自动生成曲线
     }
 
     private void OnBatchReady(object? _, IReadOnlyList<SensorPoint> batch)
@@ -197,6 +199,8 @@ public class MainViewModel : INotifyPropertyChanged
                 }
                 // 把“当前报警级别”同步给控件（没有报警就保持 Normal → 蓝环）
                 if (_levels.TryGetValue(p.Id, out var lv)) row.Level = lv;
+
+                _chart?.Push(p);   // 实时曲线：点位 1/2 分流进温度/压力两条线
             }
             OnChanged(nameof(DiagnosticsSummary));
         });
