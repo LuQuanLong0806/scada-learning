@@ -260,6 +260,20 @@ for p in PAGES:
         p["group"] = "核心必学（M0 → M8）" if p["slug"] in (
             "M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8") else "进阶扩展（M8.5 → M19）"
 
+# 项目实践分区分四组：总入口 → 项目一(DaqMonitor R0-R8) → 模拟运控 → 储备规划
+_DAQ_RS = {f"proj-r{i}" for i in range(9)}
+for p in PAGES:
+    if p["section"] == "projects":
+        s = p["slug"]
+        if s == "proj-daq":
+            p["group"] = "从这里开始 · 怎么做项目"
+        elif s in _DAQ_RS:
+            p["group"] = "项目一 · DaqMonitor 数据采集（R0 → R8，跟着需求单开发）"
+        elif s == "proj-mc":
+            p["group"] = "项目二 · 模拟运动控制（WinForms 升级篇）"
+        else:
+            p["group"] = "储备 · 下一份简历作品（规划）"
+
 SECTIONS = [
     dict(id="start", emoji="🚀", title="入口 · 路线",
          desc="第一次来从这里进：零基础带练 → 实操入门 → 30 天作战路线 → 项目开发全景。"),
@@ -944,7 +958,9 @@ SEC_DIR = os.path.join(SITE, "sections")
 os.makedirs(SEC_DIR, exist_ok=True)
 
 for sec in SECTIONS:
-    pages = [p for p in PAGES if p["section"] == sec["id"]]
+    # 按 SECTION_OF 声明顺序渲染(分组要求同组页面连续;PAGES 定义序里 proj2 在 proj-daq 之前)
+    _by_slug = {p["slug"]: p for p in PAGES}
+    pages = [_by_slug[s] for s in SECTION_OF[sec["id"]]]
     # 分组渲染（无 group 的页面归为一组、不显示组标题）
     groups_html, cur_group, cards = [], None, []
     for p in pages:
