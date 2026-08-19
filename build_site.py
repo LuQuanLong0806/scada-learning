@@ -249,6 +249,9 @@ PAGES = [
          title="MC6 · 轨迹可视化(可选)", sub="自绘控件/坐标轴/轨迹图",
          what="自定义 TrajectoryPanel:数据绘制分离、双缓冲、mm→像素等比例映射(Y 轴翻转)、定时器两轴同拍采样防锯齿 —— 插补画出笔直斜线,急停红点冻结",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="mistakes", kind="support", file="错题本_查漏补缺.md",
+         title="📕 错题本 · 查漏补缺", sub="不熟的/易错的,登记+详解+自测",
+         what="活页错题册:报出不懂的点 → 固定格式详解(总纲/项目实物/前端类比/易错点/自测) → 分区登记,复习节奏与状态标记", src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -262,7 +265,7 @@ SECTION_OF = {
     "projects":  ["proj-daq", "proj-r0", "proj-r1", "proj-r2", "proj-r3", "proj-r4",
                   "proj-r5", "proj-r6", "proj-r7", "proj-r8",
                   "proj-mc1", "proj-mc2", "proj-mc3", "proj-mc4", "proj-mc5", "proj-mc6",
-                  "proj2"],
+                  "mistakes", "proj2"],
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "design-qa40", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
