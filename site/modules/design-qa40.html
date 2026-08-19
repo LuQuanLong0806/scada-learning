@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🏗️ 项目设计决策 · 40 问 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="design-qa40">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/career.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、架构与分层(8 问)</a><ul>
+<li class="l3"><a href="#sec-3-1">Q1 · 为什么 Core/UI/Tests 三层,依赖只从外向内?</a></li>
+<li class="l3"><a href="#sec-3-2">Q2 · 为什么目标框架 net8.0 + RollForward,而不是本机最新的 net10?</a></li>
+<li class="l3"><a href="#sec-3-3">Q3 · SensorPoint 为什么是 struct、字段为什么直接公开?</a></li>
+<li class="l3"><a href="#sec-3-4">Q4 · 设备状态为什么三态枚举而不是 bool IsOnline?</a></li>
+<li class="l3"><a href="#sec-3-5">Q5 · 设备接口为什么是同步门面,不做成全 async?</a></li>
+<li class="l3"><a href="#sec-3-6">Q6 · 设备给上层为什么用事件推送,而不是轮询 Read()?</a></li>
+<li class="l3"><a href="#sec-3-7">Q7 · 为什么第二个类是"模拟设备",而不是直接写真串口?</a></li>
+<li class="l3"><a href="#sec-3-8">Q8 · 协议解析为什么独立成纯函数层,不写进设备类?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、通信与协议(6 问)</a><ul>
+<li class="l3"><a href="#sec-3-9">Q9 · CRC 为什么自己写 15 行不用库?为什么 CRC 不是累加校验和?</a></li>
+<li class="l3"><a href="#sec-3-10">Q10 · 拆帧为什么是流式蓄水池(Feed + TryTakeFrame),不是一次性 Parse?</a></li>
+<li class="l3"><a href="#sec-3-11">Q11 · 串口帧用 AA55 帧头+CRC,TCP 帧为什么改成长度前缀?</a></li>
+<li class="l3"><a href="#sec-3-12">Q12 · 设备为什么不直接用 SerialPort,中间隔一层 ISerialChannel?</a></li>
+<li class="l3"><a href="#sec-3-13">Q13 · Modbus 为什么手搓 RTU 帧,不用 NModbus 库?</a></li>
+<li class="l3"><a href="#sec-3-14">Q14 · 断线重连为什么指数退避?心跳为什么必须自己发?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、异步与并发(4 问)</a><ul>
+<li class="l3"><a href="#sec-3-15">Q15 · 缓冲为什么用 Channel,不用 ConcurrentQueue 或 ObservableCollection?</a></li>
+<li class="l3"><a href="#sec-3-16">Q16 · 采集管道为什么"构造即启动",不给 Start/Stop?</a></li>
+<li class="l3"><a href="#sec-3-17">Q17 · 事件回调里为什么只做 TryWrite 一件事?</a></li>
+<li class="l3"><a href="#sec-3-18">Q18 · 锁内为什么只干纳秒级的事(自增/换包),重活全部锁外?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、报警规则(2 问)</a><ul>
+<li class="l3"><a href="#sec-3-19">Q19 · 报警规则为什么是数据字段,不是 Func 谓词?</a></li>
+<li class="l3"><a href="#sec-3-20">Q20 · 报警判断为什么必须回滞+边沿,不能纯阈值?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、持久化(3 问)</a><ul>
+<li class="l3"><a href="#sec-3-21">Q21 · 为什么要"双写"(内存+数据库),不直接读写库?</a></li>
+<li class="l3"><a href="#sec-3-22">Q22 · DbContext 为什么用 IDbContextFactory 现造现弃,不做单例?</a></li>
+<li class="l3"><a href="#sec-3-23">Q23 · 为什么选 SQLite,不是 SQL Server 或时序库?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、容错与诊断(2 问)</a><ul>
+<li class="l3"><a href="#sec-3-24">Q24 · 重试为什么抽成公共类?为什么要加随机抖动?</a></li>
+<li class="l3"><a href="#sec-3-25">Q25 · 诊断日志为什么构造时抓 SynchronizationContext、写时 Post?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、WPF 主界面(7 问)</a><ul>
+<li class="l3"><a href="#sec-3-26">Q26 · 整个界面为什么走 MVVM,不把事件写在 code-behind?</a></li>
+<li class="l3"><a href="#sec-3-27">Q27 · 命令为什么包 RelayCommand,不直接 Click 事件?</a></li>
+<li class="l3"><a href="#sec-3-28">Q28 · UI 表格为什么绑 PointView(class),不直接绑 SensorPoint(struct)?</a></li>
+<li class="l3"><a href="#sec-3-29">Q29 · 仪表盘/状态灯为什么自绘控件,不用现成库?</a></li>
+<li class="l3"><a href="#sec-3-30">Q30 · 实时曲线为什么自管 600 点滚动缓冲、对外只开 Push?</a></li>
+<li class="l3"><a href="#sec-3-31">Q31 · 演示模式和真实数据通路为什么必须严格分家?</a></li>
+<li class="l3"><a href="#sec-3-32">Q32 · 批量刷新为什么一次 Dispatcher.Invoke 包整批,不每条 Invoke 一次?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">八、WinForms 与运控(8 问)</a><ul>
+<li class="l3"><a href="#sec-3-33">Q33 · 运动指令失败为什么走返回码,不走异常?</a></li>
+<li class="l3"><a href="#sec-3-34">Q34 · 模拟"运动"为什么用节拍循环,不 Sleep 到终点?</a></li>
+<li class="l3"><a href="#sec-3-35">Q35 · 12 个测试为什么按"行为"组织,不按方法覆盖?</a></li>
+<li class="l3"><a href="#sec-3-36">Q36 · 测试等待为什么轮询条件+超时,时间为什么 tickMs 快进?</a></li>
+<li class="l3"><a href="#sec-3-37">Q37 · 两轴界面为什么用控件数组+循环,不复制粘贴两份?</a></li>
+<li class="l3"><a href="#sec-3-38">Q38 · UI 冒烟为什么要自动化(STA 线程+手动泵+异常回传)?</a></li>
+<li class="l3"><a href="#sec-3-39">Q39 · 两轴插补为什么做成卡的指令,不界面循环发单轴小步?</a></li>
+<li class="l3"><a href="#sec-3-40">Q40 · 轨迹图为什么自绘 Panel,不用 Chart 控件?</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">自测清单(面试前一夜逐条打勾)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">项目设计决策问答 40 问(面试官的"为什么"题库)</h1>
+<blockquote>
+<p><strong>来源</strong>:DaqMonitor(R1-R8)+ MotionControl(MC1-MC6)全部「🏗️ 为什么这样设计」决策块的集中背诵版。
+<strong>为什么有这一篇</strong>:面试官区分"敲过项目的人"和"设计过项目的人",靠的就是追问"为什么这样设计、不用别的方案"。这 40 问每问都是"备选方案 → 为什么选它 → 不这样会怎样"的完整决策链。
+<strong>用法</strong>:每做完一篇实践,回头过对应分区;面试前一天全量过一遍,每问脱稿说满 1 分钟。配套:语言八股见《面试问答_逐字稿_30题》,项目叙事见每篇末尾「🎤 面试怎么讲」。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、架构与分层(8 问)</h2>
+<h3 id="sec-3-1">Q1 · 为什么 Core/UI/Tests 三层,依赖只从外向内?</h3>
+<ul>
+<li><strong>决策</strong>:编译方向=依赖方向——UI、Tests 引用 Core,Core 谁也不引用。</li>
+<li><strong>备选</strong>:单项目全塞一起(建得快,但换皮/无界面测试都要大改,测试得加载 XAML)。</li>
+<li><strong>🎤</strong>:"我分层的原则是编译方向=依赖方向:UI 引用 Core、Core 谁也不引用。Core 可以被 WPF、WinForms 或无界面服务任意复用,测试也只测 Core 不碰 UI。"</li>
+<li><strong>详解</strong>:R1</li>
+</ul>
+<h3 id="sec-3-2">Q2 · 为什么目标框架 net8.0 + RollForward,而不是本机最新的 net10?</h3>
+<ul>
+<li><strong>决策</strong>:LTS 对齐企业部署;RollForward.Major 允许"用 8 编译、用 10 运行"。</li>
+<li><strong>备选</strong>:net10.0 零配置(STS 18 个月 EOL;客户工控机多装 LTS 运行时)。</li>
+<li><strong>🎤</strong>:"目标框架选 LTS 的 net8.0 对齐企业部署习惯,本机高版本运行时靠 RollForward 向前兼容——目标旧、运行新可以,反过来必炸。"</li>
+<li><strong>详解</strong>:R1</li>
+</ul>
+<h3 id="sec-3-3">Q3 · SensorPoint 为什么是 struct、字段为什么直接公开?</h3>
+<ul>
+<li><strong>决策</strong>:采样点"小、短命、海量"——栈分配零 GC;值拷贝=天然快照;纯数据载体不需要属性封装。</li>
+<li><strong>备选</strong>:class(引用语义好改,但 100Hz 堆分配让 Gen0 GC 每分钟上千次;到处判 null)。</li>
+<li><strong>代价要认</strong>:List 索引器返回副本必须整取整存;字段忘赋是默认值(Timestamp 0001 年)——项目里显式抄时间戳就是对策。</li>
+<li><strong>🎤</strong>:"SensorPoint 是 4 字段 struct:高频采集避免 Gen0 抖动、值语义是快照;struct 的坑我踩过也管住了——索引器副本、默认值,代码里都有对应处理。"</li>
+<li><strong>详解</strong>:R1</li>
+</ul>
+<h3 id="sec-3-4">Q4 · 设备状态为什么三态枚举而不是 bool IsOnline?</h3>
+<ul>
+<li><strong>决策</strong>:Offline/Connecting/Online 三态是状态机最小完备集,握手中间态必须让用户看见。</li>
+<li><strong>备选</strong>:bool(把"正在连"显示成"离线",操作员连点重连→双开连接任务抢串口)。</li>
+<li><strong>🎤</strong>:"设备状态我做三态不是 bool:握手是用户必须看得见的中间态,UI 状态灯的黄灯闪烁就是它驱动的;bool 会诱导操作员重复点连接。"</li>
+<li><strong>详解</strong>:R1</li>
+</ul>
+<h3 id="sec-3-5">Q5 · 设备接口为什么是同步门面,不做成全 async?</h3>
+<ul>
+<li><strong>决策</strong>:设备指令低频毫秒级,async 的传染成本(ViewModel/测试/回调全要 async,一处 .Result 就死锁)远大于收益;真正不能卡的采集循环在 Task.Run 后台线程,和接口签名无关。</li>
+<li><strong>🎤</strong>:"设备接口我刻意做成同步门面:设备指令低频且毫秒级,async 传染成本远大于收益;UI 不卡靠的是采集在后台线程,不是接口 async。异步用在刀刃上,不是 everywhere。"</li>
+<li><strong>详解</strong>:R2</li>
+</ul>
+<h3 id="sec-3-6">Q6 · 设备给上层为什么用事件推送,而不是轮询 Read()?</h3>
+<ul>
+<li><strong>决策</strong>:采集是持续数据流,推送让频率由设备定、多订阅方(管道+UI+诊断)零成本。</li>
+<li><strong>备选</strong>:轮询(周期配低丢数据、配高浪费;各消费方自己起定时器、时间戳各盖各的)。</li>
+<li><strong>🎤</strong>:"设备到上层我用事件不用轮询:推送让频率由设备定、多订阅方零成本;轮询无论周期设多少,不是丢数据就是浪费,还破坏单一时间源。"</li>
+<li><strong>详解</strong>:R2</li>
+</ul>
+<h3 id="sec-3-7">Q7 · 为什么第二个类是"模拟设备",而不是直接写真串口?</h3>
+<ul>
+<li><strong>决策</strong>:行业现实是开发期经常没有真设备——模拟与真实共用 IDevice,全链路先行,真机到了只换 new 的那一行;单元测试和 CI 也不依赖硬件。</li>
+<li><strong>🎤</strong>:"我先写模拟设备再接真机——设备开发期经常不在手上,共用接口让全链路先跑通,真机到了只换一行;测试也因此不依赖硬件。"</li>
+<li><strong>详解</strong>:R2 / R4</li>
+</ul>
+<h3 id="sec-3-8">Q8 · 协议解析为什么独立成纯函数层,不写进设备类?</h3>
+<ul>
+<li><strong>决策</strong>:IDevice 拆"谁提供数据",协议层拆"字节怎么变数值"——两个变化方向;纯逻辑零 IO,半包/粘包/坏帧/字节序全部不插硬件就能穷举测试。</li>
+<li><strong>🎤</strong>:"协议解析独立成纯函数层:字节进数值出、零 IO 依赖,拆包的坑全部纯单测覆盖;换传输方式解析层原样复用。"</li>
+<li><strong>详解</strong>:R3</li>
+</ul>
+<h2 id="sec-2-2">二、通信与协议(6 问)</h2>
+<h3 id="sec-3-9">Q9 · CRC 为什么自己写 15 行不用库?为什么 CRC 不是累加校验和?</h3>
+<ul>
+<li><strong>决策</strong>:Modbus CRC16 规范定死(0xA001/初值 FFFF/低字节在前),手写参数可控+已知向量验证;CRC 抓得住字节换序,累加和抓不住。</li>
+<li><strong>🎤</strong>:"帧校验用 CRC16 不是累加和:累加和检测不到换序,CRC 指纹特性保证任意 1 位翻转必被抓住;15 行手写配规范样例向量,比引库再对参数更可控。"</li>
+<li><strong>详解</strong>:R3</li>
+</ul>
+<h3 id="sec-3-10">Q10 · 拆帧为什么是流式蓄水池(Feed + TryTakeFrame),不是一次性 Parse?</h3>
+<ul>
+<li><strong>决策</strong>:串口/TCP 给的是字节流不保证帧边界——Feed 攒缓冲、TryTakeFrame 循环切,半包等下批、粘包多切几条。</li>
+<li><strong>备选</strong>:一次性 Parse(测试里整帧喂入全绿,现场随机丢数据——最难排查的 bug)。</li>
+<li><strong>🎤</strong>:"拆帧我做成流式:传输层不保证帧边界,先攒后切,半包等下批粘包多切;一次性 Parse 只在测试里成立,现场必丢数据。"</li>
+<li><strong>详解</strong>:R3</li>
+</ul>
+<h3 id="sec-3-11">Q11 · 串口帧用 AA55 帧头+CRC,TCP 帧为什么改成长度前缀?</h3>
+<ul>
+<li><strong>决策</strong>:帧格式跟传输介质走——串口有干扰用魔数帧头硬同步;TCP 可靠有序,长度前缀一次定位、载荷里出现什么字节都不怕。解析器还做成无状态纯函数,一个类服务多个连接。</li>
+<li><strong>🎤</strong>:"帧格式跟介质走:串口不可靠用帧头加 CRC 硬同步;TCP 可靠有序用长度前缀一次定位。解析器无状态、缓冲归调用方,多连接复用同一个类。"</li>
+<li><strong>详解</strong>:R3</li>
+</ul>
+<h3 id="sec-3-12">Q12 · 设备为什么不直接用 SerialPort,中间隔一层 ISerialChannel?</h3>
+<ul>
+<li><strong>决策</strong>:SerialDevice 管协议不该关心字节从哪来;LoopbackSerialChannel 让"请求-响应"全时序(延迟/坏帧/超时)零硬件穷举测试。</li>
+<li><strong>备选</strong>:直接 new SerialPort(测试要装虚拟串口对,CI 跑不了)。</li>
+<li><strong>🎤</strong>:"协议和链路我分开抽:设备只认 ISerialChannel,生产真串口、测试内存回环——串口全时序不插硬件就能测,这是 axios 换 msw 的同一个思路。"</li>
+<li><strong>详解</strong>:R4</li>
+</ul>
+<h3 id="sec-3-13">Q13 · Modbus 为什么手搓 RTU 帧,不用 NModbus 库?</h3>
+<ul>
+<li><strong>决策</strong>:只用 03/06/16 三个功能码,百行代码换全链路白盒——现场抓包能逐字节解释;判定依据是"用的深度"不是"手搓瘾",要全功能码就立刻换库。</li>
+<li><strong>🎤</strong>:"Modbus 我手搓没用库:只用三个功能码,百行换全链路白盒,异常码、字节序都能逐字节调试;什么时候该换库我也清楚——用得深了控制力的收益就不抵维护成本了。"</li>
+<li><strong>详解</strong>:R4</li>
+</ul>
+<h3 id="sec-3-14">Q14 · 断线重连为什么指数退避?心跳为什么必须自己发?</h3>
+<ul>
+<li><strong>决策</strong>:固定间隔=故障期匀速敲门,恢复瞬间惊群;退避让重试密度递减。TCP 是惰性协议,对端断电不通知——半开连接只能靠 10s 心跳+30s 超时判死。</li>
+<li><strong>🎤</strong>:"重连用指数退避防惊群;心跳必须应用层自发——对端断电 TCP 不通知你,半开连接靠心跳超时才能及时判死,WebSocket 的 ping/pong 是同一个解。"</li>
+<li><strong>详解</strong>:R4</li>
+</ul>
+<h2 id="sec-2-3">三、异步与并发(4 问)</h2>
+<h3 id="sec-3-15">Q15 · 缓冲为什么用 Channel<T>,不用 ConcurrentQueue 或 ObservableCollection?</h3>
+<ul>
+<li><strong>决策</strong>:Channel 是官方生产者-消费者原语:线程安全之外还有异步挂起唤醒(没数据不占线程)、Complete 完成语义、取消配合;ObservableCollection 跨线程 Add 直接异常。</li>
+<li><strong>🎤</strong>:"管道缓冲用 Channel:await foreach 没数据时异步挂起零线程开销,还有完成/取消语义;ConcurrentQueue 要自己管轮询节拍,ObservableCollection 跨线程直接崩。"</li>
+<li><strong>详解</strong>:R5</li>
+</ul>
+<h3 id="sec-3-16">Q16 · 采集管道为什么"构造即启动",不给 Start/Stop?</h3>
+<ul>
+<li><strong>决策</strong>:管道是常驻基础设施,生命周期=容器生命周期——引用在手必在消费,把"忘启动"这类静默错误从结构上消灭;按需启停在设备层做。</li>
+<li><strong>备选</strong>:显式 Start(忘了调,系统"看起来正常"但曲线永远空白——无报错不工作的 bug 比崩溃难查一个量级)。</li>
+<li><strong>🎤</strong>:"管道做成构造即启动、Dispose 即停:常驻服务的启动不该依赖每个调用点记得调;真正按需的启停在设备层,每层管自己的生命周期。"</li>
+<li><strong>详解</strong>:R5</li>
+</ul>
+<h3 id="sec-3-17">Q17 · 事件回调里为什么只做 TryWrite 一件事?</h3>
+<ul>
+<li><strong>决策</strong>:1000 事件/秒时回调越短,设备线程越不被拖住——重活(刷 UI/落库)全部留给后台批量消费。</li>
+<li><strong>🎤</strong>:"事件回调只做入队一件事:设备线程的回调每多干一毫秒,采集就慢一毫秒,重活全部推给管道批量消费。"</li>
+<li><strong>详解</strong>:R5</li>
+</ul>
+<h3 id="sec-3-18">Q18 · 锁内为什么只干纳秒级的事(自增/换包),重活全部锁外?</h3>
+<ul>
+<li><strong>决策</strong>:锁内干得越少竞争越少——R5"锁内换包、锁外触发 BatchReady"、R7"锁内自增计数、锁外 Append 日志"同一条纪律。</li>
+<li><strong>🎤</strong>:"锁里只做不可再分的最小动作:换列表引用、自增整数,然后放锁再干可能慢的活——锁的持有时间决定竞争强度。"</li>
+<li><strong>详解</strong>:R5 / R7</li>
+</ul>
+<h2 id="sec-2-4">四、报警规则(2 问)</h2>
+<h3 id="sec-3-19">Q19 · 报警规则为什么是数据字段,不是 Func 谓词?</h3>
+<ul>
+<li><strong>决策</strong>:阈值是现场调出来的配置——要能 UI 编辑、JSON 序列化存盘;谓词改一次阈值就改代码发版。配置数据化是工程软件和 demo 的分水岭。</li>
+<li><strong>🎤</strong>:"报警规则我做成纯数据字段:阈值是现场调的配置,要能编辑要能存盘;谓词函数把配置变成了代码。"</li>
+<li><strong>详解</strong>:R5</li>
+</ul>
+<h3 id="sec-3-20">Q20 · 报警判断为什么必须回滞+边沿,不能纯阈值?</h3>
+<ul>
+<li><strong>决策</strong>:阈值附近信号必抖(100 上下飘 0.5 → 1 秒报 50 条刷屏);回滞把恢复门槛拉到 Threshold−Hysteresis 吸收抖动,边沿只在"正常→报警"跃迁时报一次——工业报警标配防抖。</li>
+<li><strong>🎤</strong>:"报警加回滞和边沿:阈值附近信号必抖,纯阈值一秒几十条把真报警淹没;回滞吸收带内抖动、边沿只在跃迁时报,这是温控器、烟感通用的工业做法。"</li>
+<li><strong>详解</strong>:R5</li>
+</ul>
+<h2 id="sec-2-5">五、持久化(3 问)</h2>
+<h3 id="sec-3-21">Q21 · 为什么要"双写"(内存+数据库),不直接读写库?</h3>
+<ul>
+<li><strong>决策</strong>:实时表(微秒)和历史查询(毫秒)延迟要求差三个数量级——内存字典伺候实时+报警,Channel 写泵串行落 SQLite;崩机只丢队列尾巴几条,风险有界。</li>
+<li><strong>🎤</strong>:"存储双写:内存层伺候实时和报警,写泵串行落库伺候历史——两条链路延迟要求差三个数量级,拆开各自满足;SQLite 单写者也靠串行写泵天然化解。"</li>
+<li><strong>详解</strong>:R6</li>
+</ul>
+<h3 id="sec-3-22">Q22 · DbContext 为什么用 IDbContextFactory 现造现弃,不做单例?</h3>
+<ul>
+<li><strong>决策</strong>:DbContext 非线程安全——写泵和历史查询是两个并发场景;短命上下文线程安全、变更跟踪即用即弃。单例会随机抛 second operation 异常(不定时崩,最难查)。</li>
+<li><strong>🎤</strong>:"DbContext 用 factory 按需创建用完即弃:写泵和查询并发,而它非线程安全;短命上下文还不积累跟踪缓存,这是正确性设计不是性能优化。"</li>
+<li><strong>详解</strong>:R6</li>
+</ul>
+<h3 id="sec-3-23">Q23 · 为什么选 SQLite,不是 SQL Server 或时序库?</h3>
+<ul>
+<li><strong>决策</strong>:上位机交付形态是"拷文件夹到断网工控机就能跑"——嵌入式零部署、备份=拷文件;单写者限制已被串行写泵化解,单机采集量远未到天花板。</li>
+<li><strong>🎤</strong>:"落库选 SQLite:断网车间现场没有 DBA,零部署压倒一切;要多机共享时,EF Core 换个 provider 就迁 PostgreSQL。"</li>
+<li><strong>详解</strong>:R6</li>
+</ul>
+<h2 id="sec-2-6">六、容错与诊断(2 问)</h2>
+<h3 id="sec-3-24">Q24 · 重试为什么抽成公共类?为什么要加随机抖动?</h3>
+<ul>
+<li><strong>决策</strong>:横切关注点只留一份策略真相;指数退避防猛敲故障设备,抖动防多客户端同步重试形成雪崩(react-query、AWS SDK 同款)。</li>
+<li><strong>🎤</strong>:"重试抽公共类:退避节奏全项目一份真相;指数退避加抖动是标配——固定退避下 100 个客户端会在同一毫秒集体涌回,把刚恢复的服务再打挂。"</li>
+<li><strong>详解</strong>:R7</li>
+</ul>
+<h3 id="sec-3-25">Q25 · 诊断日志为什么构造时抓 SynchronizationContext、写时 Post?</h3>
+<ul>
+<li><strong>决策</strong>:WPF 绑定集合只许 UI 线程改(真实修过的 bug:后台 Add 当场异常)——把线程规则关进类里,调用方无感;用 SynchronizationContext 不用 Dispatcher,因为 Core 层不许依赖 WPF 类型。</li>
+<li><strong>🎤</strong>:"诊断服务构造时抓 UI 上下文快照,后台写日志类内部自动 Post 回 UI 线程——线程安全是类的责任不是每个调用者的责任;选 SynchronizationContext 是为了 Core 不反向依赖 WPF。"</li>
+<li><strong>详解</strong>:R7</li>
+</ul>
+<h2 id="sec-2-7">七、WPF 主界面(7 问)</h2>
+<h3 id="sec-3-26">Q26 · 整个界面为什么走 MVVM,不把事件写在 code-behind?</h3>
+<ul>
+<li><strong>决策</strong>:客户改界面极频繁——MVVM 把"长什么样"和"什么逻辑"切开;VM 无控件引用可以纯 new 就测;数据流统一"数据→VM→绑定→控件"。</li>
+<li><strong>前端同源</strong>:React 的 render(state) 就是这个思想,WPF 2005 年就内建了。</li>
+<li><strong>🎤</strong>:"界面走 MVVM:View 只绑定、逻辑全在 VM——可脱离 UI 单测、改界面不动逻辑;本质是声明式 UI,和 React 同一个思想。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h3 id="sec-3-27">Q27 · 命令为什么包 RelayCommand,不直接 Click 事件?</h3>
+<ul>
+<li><strong>决策</strong>:把"点击"变成 VM 属性——执行体和 CanExecute 都在 VM(可单测);CanExecute=false 按钮自动灰;一个命令多处绑定。</li>
+<li><strong>🎤</strong>:"按钮用 Command 不用 Click:命令成为 VM 的属性,VM 不引用控件可以纯测,CanExecute 自动灰按钮——从事件回调换成可绑定可测试的意图声明。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h3 id="sec-3-28">Q28 · UI 表格为什么绑 PointView(class),不直接绑 SensorPoint(struct)?</h3>
+<ul>
+<li><strong>决策</strong>:WPF 刷新靠 PropertyChanged 事件,struct 值拷贝发不出通知——Core 为性能用 struct,UI 为通知用 class+OnChanged,两套形状各司其职,中间一道转换是 MVVM 标准件。</li>
+<li><strong>🎤</strong>:"Core 和 UI 各有各的数据形状:SensorPoint struct 为零 GC,PointView class 每属性带通知——两层各要各的,转换不是冗余是分工。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h3 id="sec-3-29">Q29 · 仪表盘/状态灯为什么自绘控件,不用现成库?</h3>
+<ul>
+<li><strong>决策</strong>:工业客户有"照旧软件长"的像素级迁移要求——Control+Generic.xaml 把外观(模板)和逻辑(角度换算)分离,换皮不换逻辑;依赖属性让控件和 TextBlock 一样可绑定。</li>
+<li><strong>🎤</strong>:"仪表自绘:继承 Control、外观全在 Generic.xaml、对外只暴露依赖属性——风格换模板就行,数值一动指针自己转;会依赖属性+模板才算摸到 WPF 核心机制。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h3 id="sec-3-30">Q30 · 实时曲线为什么自管 600 点滚动缓冲、对外只开 Push?</h3>
+<ul>
+<li><strong>决策</strong>:滚动缓冲(超限 RemoveAt(0))让内存有界、画面像心电图左移;这层逻辑放 VM 会沾图表库类型,放 XAML 写不了循环——控件自包含、可整体搬走。</li>
+<li><strong>🎤</strong>:"曲线控件自管滚动缓冲、对外只开 Push 一个口:内存有界、控件可复用,VM 不沾图表库类型。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h3 id="sec-3-31">Q31 · 演示模式和真实数据通路为什么必须严格分家?</h3>
+<ul>
+<li><strong>决策</strong>:真实修过的 bug——AttachChart 顺手调了 StartDemo(),没启动采集曲线也跳随机数。纪律:演示和真实是两条线,接了真实通路必须关演示入口(单一显式开关)。</li>
+<li><strong>前端同源</strong>:忘关 mock、上线还在吐假数据,同一个经典 bug。</li>
+<li><strong>🎤</strong>:"这里修过一个真 bug:演示模式被顺手调用,曲线在吐随机数。从此定死规矩——演示通路和真实通路绝不并存,mock 必须有显式单一开关。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h3 id="sec-3-32">Q32 · 批量刷新为什么一次 Dispatcher.Invoke 包整批,不每条 Invoke 一次?</h3>
+<ul>
+<li><strong>决策</strong>:跨线程切换本身有开销——一批 500 点切一次线程,循环在 UI 线程内跑完;每条 Invoke 等于 500 次线程往返,批量优化的意义全没了。</li>
+<li><strong>🎤</strong>:"批量更新一次 Dispatcher.Invoke 包整批:跨线程一次、批内循环——每条 Invoke 一次等于把批量优化又还给线程切换。"</li>
+<li><strong>详解</strong>:R8</li>
+</ul>
+<h2 id="sec-2-8">八、WinForms 与运控(8 问)</h2>
+<h3 id="sec-3-33">Q33 · 运动指令失败为什么走返回码,不走异常?</h3>
+<ul>
+<li><strong>决策</strong>:没使能、超限位、断线是业务常态不是异常路径——返回码让失败处理显式平铺;枚举负数值还和固高/雷赛真卡 SDK 对齐,换真卡上层不改。</li>
+<li><strong>🎤</strong>:"运动指令用返回码:失败是业务常态,每个调用点 if 判断显式处理;枚举对齐真卡 SDK 的 int 返回,换真卡判断逻辑一行不改。"</li>
+<li><strong>详解</strong>:MC1</li>
+</ul>
+<h3 id="sec-3-34">Q34 · 模拟"运动"为什么用节拍循环,不 Sleep 到终点?</h3>
+<ul>
+<li><strong>决策</strong>:模拟的价值在于像真——节拍循环产生连续中间状态:UI 看得到数字一格格走、急停能中途冻结、测试能断言"停在半路"。Sleep 版全绿,换真机第一次急停就暴露没处理过中途状态。</li>
+<li><strong>🎤</strong>:"模拟卡用节拍循环:真卡运动是连续过程,急停要能中途打断、测试要能断言中间状态——省事版模拟会把时序问题留到真机一次性爆出来。"</li>
+<li><strong>详解</strong>:MC1</li>
+</ul>
+<h3 id="sec-3-35">Q35 · 12 个测试为什么按"行为"组织,不按方法覆盖?</h3>
+<ul>
+<li><strong>决策</strong>:卡的正确性是一组业务规则(未连接必拒/急停必冻结/报警必锁轴)——一条规则一个测试,名字即验收标准;只调公共 API,实现重构行为在就全绿。</li>
+<li><strong>🎤</strong>:"测试按行为组织:规则被破坏时测试名直接告诉你坏了什么;方法级覆盖会在重构后一片假绿——方法全在,行为没人验证。"</li>
+<li><strong>详解</strong>:MC2</li>
+</ul>
+<h3 id="sec-3-36">Q36 · 测试等待为什么轮询条件+超时,时间为什么 tickMs 快进?</h3>
+<ul>
+<li><strong>决策</strong>:等的是条件不是时间——条件成立立即返回(快)、超时兜底(永不卡死),堵死 flaky 两个方向;仿真节拍 10ms 快进,时序完整但套件秒级。</li>
+<li><strong>🎤</strong>:"异步等待轮询条件加超时,不固定 Sleep——快机器不等冤枉时间、慢机器等到条件才走,这是 Jest waitFor 的同款;再加仿真快进,稳和快各由一个设计负责。"</li>
+<li><strong>详解</strong>:MC2</li>
+</ul>
+<h3 id="sec-3-37">Q37 · 两轴界面为什么用控件数组+循环,不复制粘贴两份?</h3>
+<ul>
+<li><strong>决策</strong>:轴是同构的——下标即轴号,一份逻辑跑两轴、按钮状态集中算,加轴=数组加一项;事件里 IndexOf(sender) 反查轴号,控件→数据映射只在一处。</li>
+<li><strong>🎤</strong>:"两轴界面控件数组加循环:WinForms 没有组件化,控件数组就是那个年代的 v-for;复制粘贴版加第三轴要改 40 处控件名,漏一处就是真 bug。"</li>
+<li><strong>详解</strong>:MC3</li>
+</ul>
+<h3 id="sec-3-38">Q38 · UI 冒烟为什么要自动化(STA 线程+手动泵+异常回传)?</h3>
+<ul>
+<li><strong>决策</strong>:MC2 测卡的行为,窗体接线恰恰没人测——90 行测试换"每次提交自动把操作员全流程真点一遍";UI 线程异常必须显式回传测试线程,否则测试看不见异常照样假绿。</li>
+<li><strong>🎤</strong>:"窗体做了冒烟自动化:STA 线程跑真窗体、DoEvents 驱动消息泵、全流程断言零异常——测的是接线不是逻辑;关键是异常回传,不然 UI 线程崩了测试还是绿的。"</li>
+<li><strong>详解</strong>:MC4</li>
+</ul>
+<h3 id="sec-3-39">Q39 · 两轴插补为什么做成卡的指令,不界面循环发单轴小步?</h3>
+<ul>
+<li><strong>决策</strong>:插补要求两轴严格同步——UI 消息泵一卡顿轨迹就歪;卡内一个循环同拍推进,同步由结构保证。对齐真卡:插补在硬件做(G01),上位机只发一条指令。</li>
+<li><strong>🎤</strong>:"插补下推到卡:同步要求放在有时钟权威的一方——卡内一个循环两轴同拍推进;界面软件插补每拍都有微小错拍,画出来的直线全是锯齿。"</li>
+<li><strong>详解</strong>:MC5</li>
+</ul>
+<h3 id="sec-3-40">Q40 · 轨迹图为什么自绘 Panel,不用 Chart 控件?</h3>
+<ul>
+<li><strong>决策</strong>:要的是机床俯视坐标系——Y 向上、毫米等比(圆是圆)、十字定位线,这些是领域语义不是图表语义;4000 点 DrawLines 一帧+双缓冲,比图表库少背动画开销。类似前端:数据可视化用 ECharts,游戏小地图一定自己拿 canvas 画。</li>
+<li><strong>🎤</strong>:"轨迹图自绘:机床坐标系的 Y 翻转就是一个减号、等比缩放一条公式,领域语义握在手里;Chart 库要先说服它反转 Y 轴,再加一个效果都要和库搏斗。"</li>
+<li><strong>详解</strong>:MC6</li>
+</ul>
+<hr />
+<h2 id="sec-2-9">自测清单(面试前一夜逐条打勾)</h2>
+<ul>
+<li>[ ] 一、架构分层 8 问能脱稿(Q1/Q3/Q5 是最高频)</li>
+<li>[ ] 二、通信协议 6 问能脱稿(Q10 粘包半包/Q14 退避心跳必考)</li>
+<li>[ ] 三、异步并发 4 问能脱稿(Q15 Channel 是两项目共用的招牌答案)</li>
+<li>[ ] 四、报警规则 2 问(回滞是"懂工业"的信号弹)</li>
+<li>[ ] 五、持久化 3 问(Q21 双写/Q22 factory 高频)</li>
+<li>[ ] 六、容错诊断 2 问(Q25 讲得出"修过的真 bug"最加分)</li>
+<li>[ ] 七、WPF 7 问(MVVM 三连 Q26/27/28 是 WPF 岗标配)</li>
+<li>[ ] 八、运控 8 问(Q33/Q39 是运控岗分水岭)</li>
+<li>[ ] 每问的"备选方案"至少说得出一个——只说"选了什么"不说"放弃了什么",面试官会认为你在背</li>
+</ul>
+<div class="pager">
+  <a class="prev" href="interview30.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🎤 面试问答 · 逐字稿 30 题</div></a>
+  <a class="next" href="spaced-repetition.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">🔁 记忆与复习机制 · 间隔重复版</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>
