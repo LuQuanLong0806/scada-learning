@@ -102,6 +102,32 @@
 <hr />
 <h2 id="sec-2-4">🛠️ 参考实现(卡住/写完再看)</h2>
 <p><strong>设计思路一句</strong>:开一个 STA 线程跑窗体,主测试流程"做一步操作 → 用 DoEvents 泵一会儿消息"交替推进,让界面事件真的分发;线程里任何异常都被捕获、带回断言。</p>
+<h4>🏗️ 为什么这样设计:UI 冒烟为什么要费这么大劲自动化(STA 线程+手动泵+异常回传),而不是发版前人肉点一遍?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>手动验收清单(人点一遍)</td>
+<td>零开发成本</td>
+<td>每次改动都要重点;人点 20 步必偷懒漏步;"我这边没问题"不是证据</td>
+</tr>
+<tr>
+<td>UI 冒烟自动化:真窗体+真事件流跑全流程(选定)</td>
+<td>约 90 行测试代码</td>
+<td>要啃 STA/消息泵三个底层概念</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:这个测试测的是<strong>接线</strong>,不是逻辑——MC2 已经验证了卡的行为,MC3 手写的窗体代码(控件数组反查、边沿检测、InvokeRequired 切换)恰恰是<strong>没有测试覆盖的部分</strong>,而"接线错误"只有把窗体真跑起来才暴露。自动化的价值不在"跑得快",在<strong>每次提交都跑</strong>:MC3 以后每次改窗体,<code>dotnet test</code> 第 13 个用例都会把"连接→使能→点动→定位→急停"全流程真点一遍。90 行换"界面接线永不倒退",这笔账划算。前端类比:Playwright 冒烟一条链路 vs 全手点,同一个决策。</p>
+<p><strong>为什么异常要回传</strong>:测试线程和 UI 线程是两条命,UI 线程抛的异常 xUnit 默认<strong>看不见</strong>(测试照样绿!)——所以必须在 STA 线程里 try-catch 存起来、Join 之后由测试线程断言"整个流程零异常"。不回传的 UI 测试是假安全。</p>
+<p><strong>🎤 面试一句话</strong>:"窗体我做了冒烟自动化:真开 STA 线程跑真窗体,DoEvents 手动驱动消息泵,操作员全流程走完断言零异常——MC2 测的是卡的行为,这个测的是窗体接线,每次提交自动回归。关键是 UI 线程异常必须显式回传测试线程,否则测试线程看不见异常照样假绿。"</p>
 <p>对 <code>MockMotionCardTests.cs</code> 做<strong>两处改动</strong>:</p>
 <p><strong>改动 1</strong>:文件头补一个 using(测试里要构造 MainForm):</p>
 <pre><code class="language-csharp">using MotionControlProject.Device;

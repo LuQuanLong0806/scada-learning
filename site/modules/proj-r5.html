@@ -130,6 +130,63 @@ src/DaqMonitor.Tests/
 💡 <strong>构造即启动</strong>:new 的时候定时器和消费循环就位,没有 Start/Stop——这是本工程的既定契约,后面 R7 的 DI 组装、R8 的 UI 都按这个语义用
 🗺️ <strong>新手读码地图</strong>(5 步看懂,这是全项目最核心的 40 行):1. 它解决的问题:100Hz × 多设备 = 每秒几百次事件,如果每次都直接刷 UI,界面必卡死——所以要"攒一批、一次刷" 2. <code>Register(dev)</code> 把管道挂到设备事件上;<code>OnPoint</code> 是事件入口,只干一件极轻的事:把 DataEventArgs 转成 SensorPoint <strong>塞进 Channel</strong>(注意抄了 e.Timestamp)就返回 3. <code>Channel&lt;T&gt;</code> 是线程安全的传送带:任意线程往里塞,<code>ConsumeAsync</code> 用 <code>await foreach</code> 在后台一条条取,取出来先攒进 <code>_pending</code> 4. 什么时候"一批就绪"?两个出口任一满足:<code>_pending</code> 攒满 maxBatch(量大不等定时器)或 <code>_flushTimer</code> 到点 Flush(量少也别憋太久)——两处都在 <code>lock (_gate)</code> 里把 <code>_pending</code> 整包换新再在锁外触发 BatchReady,<strong>锁外触发</strong>是避免订阅方在锁里干慢活把别人卡住 5. UI 订阅 BatchReady 拿到一批,一次 Dispatcher.Invoke 刷 N 个点。<strong>前端类比</strong>:Channel ≈ 无限长的事件队列,整个模式 ≈ 前端性能优化里的"rAF 节流批量 setState"——高频事件先入队,定时批量消化。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:缓冲为什么用 Channel<T>,而不是 ConcurrentQueue 或直接 ObservableCollection?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接 ObservableCollection.Add</td>
+<td>最直观</td>
+<td><strong>跨线程改绑定集合直接 NotSupportedException</strong>;每条一次 UI 通知,100Hz 必卡</td>
+</tr>
+<tr>
+<td>ConcurrentQueue + 轮询出队</td>
+<td>线程安全</td>
+<td>没有异步等待:没数据时消费线程要么空转要么 Sleep,完成/取消语义全要自己搭</td>
+</tr>
+<tr>
+<td><code>Channel&lt;T&gt;</code> + <code>await foreach</code>(选定)</td>
+<td>多学一个 API</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:Channel 是 .NET 官方为"<strong>生产者-消费者</strong>"造的传送带,恰好就是采集管道的形状:①线程安全入队/出队开箱即用;②<code>ReadAllAsync</code> 没数据时<strong>异步挂起不占线程</strong>,有数据立刻醒——比轮询省一个线程的空转;③带"写端关闭"(Complete)和取消(CancellationToken)语义,优雅停机不用自己发明。前端类比:RxJS 的 Subject/缓冲操作符,但语言级原生、零依赖。</p>
+<p><strong>不这样会怎样</strong>:ObservableCollection 跨线程加元素当场崩(这是 WPF 新手必踩的第一坑);ConcurrentQueue 能跑,但消费循环要自己写"空了睡多久"的节拍——睡短了空转、睡长了延迟,而 Channel 的异步唤醒天然没有这个两难。</p>
+<p><strong>🎤 面试一句话</strong>:"管道缓冲我用 Channel 不用 ConcurrentQueue:它是官方生产者-消费者原语,线程安全之外还有异步挂起唤醒、Complete 完成语义和取消配合——await foreach 没数据时零线程开销。ObservableCollection 更不行,跨线程 Add 直接异常。"</p>
+<h4>🏗️ 为什么这样设计:管道为什么"构造即启动",不给 Start/Stop 方法?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>显式 Start()/Stop()</td>
+<td>生命周期"显式"</td>
+<td>忘调 Start 系统静默没数据(最难查);每个用它的地方都要多一步</td>
+</tr>
+<tr>
+<td>构造即启动,Dispose 即停(选定)</td>
+<td>语义 = "存在即工作"</td>
+<td>无法"建好但暂停"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:管道是<strong>常驻基础设施</strong>,不是按需开关的业务对象——系统跑起来它就该在转,生命周期 == 容器/应用的生命周期。构造即启动把"忘了启动"这类错误<strong>从运行期消灭在编译期思维里</strong>:拿到管道引用,它一定在消费。C# 生态同款哲学:<code>Channel</code> 写端没有 Start、<code>Timer</code> new 出来就走。真正的开关(暂停采集)放在设备层 Start/Stop——每层管自己该管的生命周期。</p>
+<p><strong>不这样会怎样</strong>:显式 Start 的版本,R7 组装时忘了调,系统"看起来正常"但曲线永远空白——这种"无报错但不工作"的 bug 比崩溃难查一个量级。</p>
+<p><strong>🎤 面试一句话</strong>:"管道是常驻服务,我做成构造即启动、Dispose 即停——引用在手它必在消费,把'忘启动'这类静默错误直接消灭;按需的启停在设备层做,每层管自己的生命周期。"</p>
 <p><strong>第 1 步 · 骨架 + 构造即启动 + 消费循环</strong>(整个文件先建出来;构造函数和 ConsumeAsync 互相绑定,一起贴)</p>
 <pre><code class="language-csharp">using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Models;
@@ -340,6 +397,32 @@ public class AlarmRule
 <p>📚 <strong>知识点</strong>
 - <strong><code>class</code> + <code>get; set;</code> 而不是 record</strong>:规则是<strong>运行时可改配置</strong>(现场调阈值直接 <code>rule.Threshold = 105</code>),要可变性;而 R4 的 RegisterMap 是建好就不动的映射,用 record——<strong>可变/不可变的选择跟着使用场景走</strong>。
 - <strong>五个字段回答"谁、多高、多严重、哪个方向、多迟钝"</strong>:<code>IsHigh</code> 区分超上限(温度)与低于下限(压力/液位),<code>Hysteresis</code> 是防抖带宽——<strong>规则对象是报警业务的全部配置面</strong>,UI 配置界面照着它长。</p>
+<h4>🏗️ 为什么这样设计:报警规则为什么是"四个数据字段",而不是一个 Func<SensorPoint, bool> 谓词?为什么必须带回滞?</h4>
+<p><strong>当时面临的选择(规则的形态)</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Func&lt;double,bool&gt;</code> 谓词(代码即规则)</td>
+<td>任意逻辑都能写</td>
+<td><strong>没法序列化/没法做配置界面</strong>;改阈值=改代码重新发版;现场工程师看不懂</td>
+</tr>
+<tr>
+<td>Threshold + IsHigh + Hysteresis 数据字段(选定)</td>
+<td>多打几行</td>
+<td>只覆盖"单阈值+方向"一种规则形态</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:报警阈值是<strong>现场调试出来的参数</strong>,不是开发期定死的逻辑——温控设备的合理阈值要试产才知道,现场工程师要在 UI 上改、要存盘、要下次开机还在。数据字段天然可 JSON 序列化、可生成表格编辑界面(R8 的报警配置就照着它长);谓词函数这三样全做不到。<strong>"配置数据化"是工程软件和 demo 的分水岭</strong>。真遇到复杂规则再扩展字段(如窗口期),但那是需求推着走,不是现在猜。</p>
+<p><strong>为什么必须带回滞</strong>:阈值附近信号必然抖动——温度 100 上下飘 0.5,纯阈值判断会 100.2 报、99.8 恢复、100.3 又报……1 秒报 50 条,报警列表被刷成垃圾,真报警反而被淹没。回滞把"恢复"的门槛拉到 Threshold−Hysteresis,带内一律视为"还没好",物理层抖动被吸收。配合<strong>边沿触发</strong>(只在"正常→报警"跃迁那一刻报一次),这就是温度控制器、烟雾报警器通用的工业做法。</p>
+<p><strong>🎤 面试一句话</strong>:"报警规则我做成纯数据字段不带谓词:阈值是现场调出来的配置,要能 UI 编辑、序列化存盘;谓词函数改一次阈值就得改代码发版。判断上加回滞+边沿——阈值附近信号必抖,纯阈值一秒能报几十条,回滞把恢复门槛拉低、边沿只在跃迁时报,这是工业报警的标配防抖。"</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Alarms/AlarmEvent.cs</code></p>
 </blockquote>

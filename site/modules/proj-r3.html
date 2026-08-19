@@ -33,11 +33,13 @@
 <li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
-<li class="l3"><a href="#sec-3-1">① Crc16 —— 一切帧的防伪码</a></li>
-<li class="l3"><a href="#sec-3-2">② FrameParser —— AA55 自定义帧(串口半包/粘包)</a></li>
-<li class="l3"><a href="#sec-3-3">③ ModbusFrameParser —— 工业标准协议的拆包</a></li>
-<li class="l3"><a href="#sec-3-4">④ TcpFrameParser —— TCP 长度前缀帧</a></li>
-<li class="l3"><a href="#sec-3-5">⑤ 三个测试文件(13 个测试)</a></li>
+<li class="l3"><a href="#sec-3-1">🏗️ 为什么这样设计:协议解析为什么独立成一层,而不是写进设备类里?</a></li>
+<li class="l3"><a href="#sec-3-2">① Crc16 —— 一切帧的防伪码</a></li>
+<li class="l3"><a href="#sec-3-3">① Crc16 —— 一切帧的防伪码</a></li>
+<li class="l3"><a href="#sec-3-4">② FrameParser —— AA55 自定义帧(串口半包/粘包)</a></li>
+<li class="l3"><a href="#sec-3-5">③ ModbusFrameParser —— 工业标准协议的拆包</a></li>
+<li class="l3"><a href="#sec-3-6">④ TcpFrameParser —— TCP 长度前缀帧</a></li>
+<li class="l3"><a href="#sec-3-7">⑤ 三个测试文件(13 个测试)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
 </ul></li>
@@ -114,13 +116,71 @@ src/DaqMonitor.Tests/
 <blockquote>
 <p>全部是<strong>纯逻辑</strong>:吃 byte[] 吐 byte[]/数值,零 IO 依赖——这是"协议层可单测"的架构前提(前端类比:把 axios 换成纯函数处理响应体,Storybook 就能测)。</p>
 </blockquote>
-<h3 id="sec-3-1">① Crc16 —— 一切帧的防伪码</h3>
+<h3 id="sec-3-1">🏗️ 为什么这样设计:协议解析为什么独立成一层,而不是写进设备类里?</h3>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>解析逻辑写在设备类里(收到字节就地拆)</td>
+<td>少建几个文件</td>
+<td>解析要 IO 才能测;换传输(串口↔TCP)时解析跟着重写;设备类越来越胖</td>
+</tr>
+<tr>
+<td>独立 Protocol 层、纯函数(选定)</td>
+<td>多两个文件夹</td>
+<td>字节要在层间传递(多一步显式转换)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:R2 的 IDevice 拆的是"<strong>谁</strong>提供数据",R3 拆的是"<strong>字节怎么变成数值</strong>"——两个变化方向。解析算法是纯数学(给定字节必得给定结果),把它从 IO 里剥出来,<strong>不需要串口/网络就能穷举测试</strong>:半包、粘包、坏 CRC、异常码……本篇 13 个测试没有一个碰硬件。换设备时协议层原样复用,换协议时设备壳不动。</p>
+<p><strong>不这样会怎样</strong>:解析混在设备类里,测试要先 mock 串口再喂字节;现场抓到一包可疑数据,想单独调试拆包逻辑,得把整个设备拖起来。</p>
+<p><strong>🎤 面试一句话</strong>:"协议解析我独立成纯函数层:字节进、数值出,零 IO 依赖——所以半包粘包、坏帧、字节序这些坑全部可以用纯单测覆盖,不用插硬件;换传输方式解析层原样复用。"</p>
+<h3 id="sec-3-2">① Crc16 —— 一切帧的防伪码</h3>
+<h3 id="sec-3-3">① Crc16 —— 一切帧的防伪码</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Protocol/Crc16.cs</code> · namespace <code>DaqMonitor.Core.Protocol</code>
 🔧 无 NuGet
 💡 逐位异或移位的教科书实现;Modbus 约定 CRC <strong>低字节在前</strong>放进帧尾
 🗺️ <strong>新手读码地图</strong>:<code>Check(字节[])</code> 对每个字节做两件事——先和当前值低 8 位异或,再循环 8 次"右移 1 位,移出去的是 1 就再异或多项式 0xA001"。本质是给整段字节<strong>算指纹</strong>:任何一个字节被干扰,指纹就变,收方重算比对就知道帧坏了。面试常追问的查表法 = 预先算好 256 种结果换速度,原理一模一样。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:CRC 为什么自己写 15 行,而不是用 NuGet 库?为什么是 CRC 不是累加校验和?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>累加校验和(所有字节相加取低 8 位)</td>
+<td>3 行,最快</td>
+<td><code>01 02</code> 和 <code>02 01</code>、<code>00 03</code> 和 <code>03 00</code> 和全部加起来相同的组合全撞车——<strong>换序/对称错误检测不到</strong></td>
+</tr>
+<tr>
+<td>NuGet 现成 CRC 库</td>
+<td>不用手写</td>
+<td>引依赖只为 15 行代码;库的参数变体(初值/多项式/异或输出)还要对文档</td>
+</tr>
+<tr>
+<td>手写移位版 CRC16-Modbus(选定)</td>
+<td>多写 15 行</td>
+<td>必须用已知向量验证正确性</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:Modbus 的 CRC16 是<strong>规范定死的</strong>(多项式 0xA001、初值 0xFFFF、低字节在前)——自己写才有参数可控,和文档逐条对上;手写版正好是"逐位异或移位"教科书实现,配已知向量测试(① 的第 1 步就是拿规范样例帧验指纹)保证正确。工业现场干扰是<strong>连发多位翻转</strong>,累加和抓不住换序错误,CRC 的指纹特性是任何 1 位翻转必然改变结果——这是 Modbus 40 年选它的原因。</p>
+<p><strong>不这样会怎样</strong>:用累加和,现场静电干扰把两个字节换了位置,校验照样通过——上位机拿到错数据还以为设备坏了,排查方向全错。</p>
+<p><strong>🎤 面试一句话</strong>:"帧校验用 CRC16 不是累加和:累加和检测不到字节换序,CRC 的指纹特性保证任意 1 位翻转必被抓住。实现是规范定死的 0xA001 移位异或,15 行手写加已知向量测试,比引一个库再对参数更可控。"</p>
 <p><strong>第 1 步 · 算法核心 <code>Modbus()</code>:给字节算指纹</strong>(整个文件先建出来)</p>
 <pre><code class="language-csharp">namespace DaqMonitor.Core.Protocol;
 
@@ -195,13 +255,39 @@ public static class Crc16
 }
 </code></pre>
 </details>
-<h3 id="sec-3-2">② FrameParser —— AA55 自定义帧(串口半包/粘包)</h3>
+<h3 id="sec-3-4">② FrameParser —— AA55 自定义帧(串口半包/粘包)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Protocol/FrameParser.cs</code>
 🔧 无 NuGet
 💡 帧格式 <code>AA 55 | Len | Payload... | CRC_L CRC_H</code>;<strong>有状态</strong>(内部缓冲),所以是 class 不是 static
 🗺️ <strong>新手读码地图</strong>(4 步看懂):1. <code>Feed(chunk)</code> 是进货口:网络/串口来的字节<strong>一段一段</strong>到(可能是半帧,也可能几帧粘在一起),先全倒进 <code>_buffer</code> 这个蓄水池 2. <code>TryTakeFrame</code> 是取货口:循环从缓冲头尝试拆出<strong>一条</strong>完整帧,拆得出就收走,拆不出(字节不够=半包)就停手等下一批 3. 找帧头 <code>0xAA</code>:找不到→<strong>清空整个缓冲</strong>(防垃圾无限堆积);<code>0xAA</code> 后面不是 <code>0x55</code>→假帧头,删掉这 1 字节继续找 4. 拆走一条 = 头 3 字节 + Len 载荷 + 2 字节 CRC,只把载荷切出来返回,并从缓冲删掉已消费部分。<strong>前端类比</strong>:和 WebSocket onmessage 里攒字节流切消息一模一样(先 concat 再 while 切完整包);因为 <code>_buffer</code> 是跨调用记忆的状态,所以它是 class,而 Crc16/ModbusFrameParser 是 static——<strong>有没有状态决定 class 还是 static</strong>。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:拆帧为什么是"流式蓄水池"(Feed + TryTakeFrame),而不是一次性的 Parse(byte[])?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Parse(byte[] frame)</code> 一次到位</td>
+<td>API 直白</td>
+<td>假设"收到的恰好是完整一帧"——串口/TCP <strong>根本不保证</strong>,半包粘包下直接废</td>
+</tr>
+<tr>
+<td>流式:Feed 攒缓冲 + TryTakeFrame 循环切(选定)</td>
+<td>能处理任意切割:半帧、粘包、帧头前有垃圾</td>
+<td>类要有状态(缓冲跨调用记忆),多两个方法</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:底层传输的语义是<strong>字节流</strong>,不是"消息流"——串口一次 Read 可能只有半帧,TCP 一次可能收到三帧粘着。流式设计把"进货"和"取货"分开:Feed 只管倒进蓄水池,TryTakeFrame 只管尽力切,切不出就停手等下批。<strong>这是所有串口/网络协议解析的标准形态</strong>,Modbus 库、Redis 协议、HTTP chunked 内部都是这个套路。前端类比:WebSocket onmessage 里必须自己攒 buffer 切完整 JSON消息——一模一样的问题。</p>
+<p><strong>不这样会怎样</strong>:一次性 Parse 在真实串口上,半包时返回失败、粘包时丢掉后面几帧——测试环境(整帧喂入)全绿,现场随机丢数据,是最难排查的那类 bug。</p>
+<p><strong>🎤 面试一句话</strong>:"拆帧我做成流式:传输层给的是字节流不保证帧边界,所以 Feed 先攒缓冲、TryTakeFrame 循环切,半包就等下批、粘包就多切几条。一次性 Parse 只在测试里成立,现场必丢数据。"</p>
 <p><strong>第 1 步 · 骨架:蓄水池 + 开关</strong>(整个文件先建出来,一个有状态类最小可编译的形态)</p>
 <pre><code class="language-csharp">using System.Collections.Generic;
 
@@ -374,7 +460,7 @@ public class FrameParser
 }
 </code></pre>
 </details>
-<h3 id="sec-3-3">③ ModbusFrameParser —— 工业标准协议的拆包</h3>
+<h3 id="sec-3-5">③ ModbusFrameParser —— 工业标准协议的拆包</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Protocol/ModbusFrameParser.cs</code>
 🔧 无 NuGet
@@ -647,13 +733,39 @@ public static class ModbusFrameParser
 }
 </code></pre>
 </details>
-<h3 id="sec-3-4">④ TcpFrameParser —— TCP 长度前缀帧</h3>
+<h3 id="sec-3-6">④ TcpFrameParser —— TCP 长度前缀帧</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Protocol/TcpFrameParser.cs</code>
 🔧 无 NuGet
 💡 与 FrameParser 的区别:TCP 帧头后带 <strong>2 字节小端长度域</strong>,且"解析"与"缓冲"解耦——本类无状态,缓冲区调用方维护,失败时给 needResync 信号
 🗺️ <strong>新手读码地图</strong>:拆的还是"字节流切帧"这同一个问题,和 ② 的差别就两点:1. 帧头后是 <strong>2 字节小端长度域</strong>(<code>AA 55 LEN_LO LEN_HI payload CRC</code>),用小端是因为 C# 的 BitConverter 本机就是小端,拼长度不用翻转 2. 本类<strong>无状态</strong>:自己不攒缓冲,只提供 TryParse"给一段字节、试拆一帧",拆不出/拆坏返回 false 并告诉调用方要不要重同步,缓冲由调用方维护。<strong>前端类比</strong>:FrameParser 像"自己管 state 的组件"(内部攒 buffer),TcpFrameParser 像"受控/纯函数组件"(state 提升给调用方)——两种设计都对,看你想把复杂度放哪边。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:串口帧靠"帧头 AA55 + CRC"找边界,TCP 帧为什么改用"长度前缀"?状态为什么从类里挪给调用方?</h4>
+<p><strong>当时面临的选择(帧边界)</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>帧头 AA55 定界</td>
+<td>串口没有长度也可同步</td>
+<td>载荷里出现 AA 55 就可能"假同步",要靠 CRC 兜底反复试错</td>
+</tr>
+<tr>
+<td>2 字节长度前缀(选定,TCP 场景)</td>
+<td>读头部即知帧长,一次定位</td>
+<td>双方必须严格按同一格式组帧</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:串口是"裸字节+干扰"环境,只能用魔数帧头硬同步;TCP 是<strong>可靠有序</strong>的字节流(没有位翻转、不乱序),长度前缀能一次定位帧边界,载荷内容随便出现什么字节都不怕。<strong>传输介质决定帧格式</strong>——这不是口味问题,是物理层的约束。至于无状态化(缓冲上交给调用方):TCP 客户端往往自己就有接收缓冲管理,解析器做成纯函数 <code>TryParse(缓冲, out 帧)</code>,同一个类可以被多个连接复用,测试也不用先 new、再 Feed、再取——一步到位。</p>
+<p><strong>不这样会怎样</strong>:TCP 上仍用帧头同步,载荷含 AA 55 时反复假同步+CRC 试错,白白浪费;解析器自带缓冲则每个连接要 new 一个实例,还多一层"缓冲里剩了什么"的隐藏状态。</p>
+<p><strong>🎤 面试一句话</strong>:"帧格式跟传输介质走:串口不可靠,用 AA55 帧头加 CRC 硬同步;TCP 可靠有序,用长度前缀一次定位。解析器本身做成无状态纯函数,缓冲由调用方维护——一个类服务多个连接,测试也简单。"</p>
 <p><strong>第 1 步 · 骨架:协议常数先立规矩</strong>(整个文件先建出来)</p>
 <pre><code class="language-csharp">namespace DaqMonitor.Core.Protocol;
 
@@ -857,7 +969,7 @@ public static class TcpFrameParser
 }
 </code></pre>
 </details>
-<h3 id="sec-3-5">⑤ 三个测试文件(13 个测试)</h3>
+<h3 id="sec-3-7">⑤ 三个测试文件(13 个测试)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/FrameParserTests.cs</code> · namespace <code>DaqMonitor.Tests</code>
 🔧 无 NuGet

@@ -68,6 +68,21 @@ dotnet add src/DaqMonitor.Core package System.IO.Ports --version 8.0.0
 > 💡 "链路"与"协议"解耦:SerialDevice 只认这个接口——生产换真串口、测试换内存回环,各是一个实现类
 > 🗺️ **新手读码地图**(三个类一起看):`ISerialChannel` 只回答一个问题——"字节从哪来、到哪去"(Open/Write/Close + 一个 BytesReceived 事件)。`RealSerialChannel` 包一层 .NET 官方 SerialPort,把硬件收到的字节转成事件;`LoopbackSerialChannel` 是测试替身——Write 进去的字节原样"当成线上收到的"弹回来,零硬件跑通全链路。**前端类比**:把 axios 抽成 `IHttp` 接口——组件只认接口,测试换 msw mock、生产换真 axios;这里的 SerialDevice 就是业务层,对链路具体实现无感。
 
+#### 🏗️ 为什么这样设计:设备为什么不直接用 SerialPort,中间还要隔一层 ISerialChannel?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| SerialDevice 直接 new SerialPort | 少一个接口两个类 | 测试必须插真串口(或虚拟串口对);SerialPort 是 Win32 东西,CI/Linux 上没有 |
+| 抽 ISerialChannel,真串口/回环各一实现(选定) | 多写约 60 行 | 多一层间接 |
+
+**为什么选它**:R2 的 IDevice 抽的是"设备长什么样",ISerialChannel 抽的是"**字节从哪来**"——SerialDevice 的职责是协议(组帧/拆帧/超时),它不该关心字节是串口线来的还是内存里造的。**LoopbackSerialChannel 是关键收益**:Write 进去的帧原样弹回来,设备"发出请求→收到响应"的完整时序在无硬件环境下就能穷举测试(响应延迟、坏帧、超时都能模拟)。
+
+**不这样会怎样**:ModbusDevice 直接持有 SerialPort,单测要装 com0com 虚拟串口对,CI 上跑不了;换个 USB 转串口芯片的怪癖行为,设备协议代码跟着遭殃。
+
+**🎤 面试一句话**:"设备协议和传输链路我分开抽:SerialDevice 只认 ISerialChannel,生产包真 SerialPort、测试用内存回环——串口设备'请求-响应'的全时序,包括坏帧和超时,不插硬件就能穷举测试。"
+
 ```csharp
 namespace DaqMonitor.Core.Devices;
 
@@ -350,6 +365,21 @@ public sealed class SerialDevice : DeviceBase
 > 📂 `src/DaqMonitor.Core/Devices/ModbusDevice.cs`
 > 💡 双模式套路:**simulate=true 零硬件跑链路;真实模式手搓请求帧**。TCP 模式只需把 SerialPort 换 TcpClient + MBAP 头,解析逻辑复用
 > 🗺️ **新手读码地图**(4 步看懂):1. `RegisterMap` 是一张"翻译对照表":哪个点位对应哪个寄存器地址、什么类型(float 跨 2 寄存器/word 1 个)、什么字节序——现场调试改的是这张表,不是代码 2. 双模式在 `Start()` 的后台循环里分叉:每 500ms 一次 `SimulateTick()`(发随机值,零硬件)或 `RealTick()`(手搓"读保持寄存器"请求帧 → 写串口 → 收响应 → Crc16 验 → ModbusFrameParser 拆 → 按字节序拼回浮点) 3. 真实模式的"手搓帧"就是 R3 `BuildReadHoldingRequest` + `ParseReadRegisters` + `ToFloatModbus` 三件套串起来——R3 的纯函数在这落地成真设备 4. 对外仍然只暴露 IDevice:管道/UI 完全不知道底下是 Modbus。**前端类比**:`RegisterMap` ≈ 后端字段映射表(接口返回 snake_case 映射到组件的 camelCase),双模式 ≈ dev 环境 mock/生产环境真接口同一开关切换。
+
+#### 🏗️ 为什么这样设计:Modbus 为什么手搓 RTU 帧,而不是直接用 NModbus 库?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| NuGet 引 NModbus | 协议细节不用管 | 黑盒:半包粘包、字节序、异常码出问题时只能翻库源码;面试讲不出原理;版本坑(NModbus4/5 API 大改) |
+| 用 R3 的解析层手搓请求/响应(选定) | 多写约 100 行 | 要自己管超时、重试 |
+
+**为什么选它**:本项目只用 Modbus 的**一小角**(03 读保持寄存器 + 06/16 写),手搓的成本是百行级,收益是**全链路白盒**——寄存器地址、字节序、CRC、异常码每一环都自己走过,现场抓包能对着字节逐个解释。这不是"永远别用库":如果明天要支持 Modbus 全部功能码 + 从站仿真,我会立刻换 NModbus。**决策依据是"用的深度",不是"手搓瘾"**。真实工作里的判断也是这样:核心链路留控制力,边角功能用库。
+
+**不这样会怎样**:现场设备返回异常码 0x02(非法地址),用库的只能看到"读取失败";手搓的能把响应帧十六进制打出来,对着手册查到"寄存器偏移没减 40001"——10 分钟定位 vs 半天猜。
+
+**🎤 面试一句话**:"Modbus 我手搓没用库:只用 03/06/16 三个功能码,百行代码换来全链路白盒——字节序、CRC、异常码都能逐字节调试。什么时候该换库我也清楚:要用全功能码或从站仿真时,控制力的收益就不抵维护成本了。"
 
 **第 1 步 · 骨架:RegisterMap 映射表 + 字段 + 构造**(整个文件先建出来)
 
@@ -704,6 +734,21 @@ public sealed class ModbusDevice : DeviceBase
 > 📂 `src/DaqMonitor.Core/Devices/TcpDevice.cs`
 > 💡 本篇最重的类:把 R3 的 TcpFrameParser 塞进真实 socket 循环;[指数退避](kp:retry-backoff)在这里先见第一面(R7 会抽成通用 Retry)
 > 🗺️ **新手读码地图**(按"一条命"的周期看):1. 外层 `MaintainConnectionLoop` 是一条永动的命:连上 → 干活 → 断了 → 睡一会儿再连,直到 Dispose。睡多久不是固定值,是 `BackoffMs = {1s,2s,4s,8s,16s}` 一级级往上爬——网络刚抖完马上重连只会雪上加霜,这就是**指数退避** 2. 连上后兵分两路:`HeartbeatLoop` 每 10s 发一帧 `[0x02]` 心跳保活,30s 收不到对端消息判离线;`ReceiveLoop` 是主收线——socket 只管把字节堆进滚动缓冲,切帧全交给 `TcpFrameParser.TryParse`(R3 的无状态设计在这兑现:缓冲归调用方管) 3. 切出的帧按载荷解码成点位 → `RaiseData` 上报,和串口设备殊途同归 4. `OfflineTimeout` = 心跳超时兜底:TCP 半开连接(对端拔网线)不会自动报错,必须自己掐表。**前端类比**:`MaintainConnectionLoop` ≈ socket.io 内置的重连机制(它默认也是指数退避),心跳 ≈ ping/pong 帧——你写前端长连接时框架替你干的事,这里全部手写一遍。
+
+#### 🏗️ 为什么这样设计:断线重连为什么是指数退避(1s→2s→4s→…→16s),而不是固定 3 秒一次?心跳为什么要自己发?
+
+**当时面临的选择(重连节奏)**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| 固定间隔重连(每 3s 试一次) | 实现最简单 | 对端刚恢复就被匀速敲门;多客户端断网恢复瞬间同时冲击(惊群) |
+| 指数退避 1→2→4→8→16s 封顶(选定) | 多一张退避表 | 网络恢复后最长多等十几秒 |
+
+**为什么选它**:断线的常见原因是**对端过载或网络风暴**,固定间隔 = 故障期间匀速敲门,恢复窗口一开,所有客户端按同一节拍涌入,把刚喘过气的服务再打崩。指数退避让重试密度随失败次数**递减**,给对端留恢复时间;16s 封顶保证最坏延迟有界。前端类比:socket.io 默认重连就是指数退避,同一套理由。
+
+**心跳为什么必须自己发**:TCP 是惰性协议——对端拔网线/断电,本端 socket **不会收到任何通知**,连接"看起来还在"(半开连接)。心跳 10s 一发 + 30s 收不到就判离线,是应用层用自己的节奏探测死活;没有它,设备断电后上位机可能要等 TCP keepalive 默认的 2 小时才发现。WebSocket 的 ping/pong 帧是同一个问题的同一个解。
+
+**🎤 面试一句话**:"重连我用指数退避:故障期匀速重试会在恢复瞬间形成惊群,退避让重试密度递减、给对端喘息时间。心跳必须应用层自发——对端断电 TCP 不通知你,半开连接只有靠 10s 心跳 + 30s 超时才能及时判死。"
 
 > 这个文件是**本篇最重的类(约 280 行),且方法互相调用成网**(RealLoop 调 ConnectOnce/ReceiveLoop/HeartbeatLoop,Stop 调 CloseSocket……),拆开贴中间态编译不过——所以玩法是:**先展开文末折叠块把完整文件贴进去,然后按下面 6 步逐块读懂**。每一步都标了它在文件里的位置。
 

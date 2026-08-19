@@ -68,6 +68,21 @@ dotnet add src/DaqMonitor.Tests reference src/DaqMonitor.Core
 已添加引用 “..\DaqMonitor.Core\DaqMonitor.Core.csproj” ×2
 ```
 
+### 🏗️ 为什么这样设计:为什么是三个项目、依赖只能从外向内?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| 单项目全塞一起 | 建得快、不用管引用 | UI 和业务编译耦合,以后换皮/跑无界面测试都要大改 |
+| Core/UI/Tests 三项目,UI、Tests 引用 Core(选定) | 多一步 `dotnet add reference` | 依赖方向被**编译器强制**成单向 |
+
+**为什么选它**:Core 不知道 UI 存在——不是"约定不许引用",是**编译上引用不了**(没加项目引用就 using 不了)。业务逻辑天然可以被任何壳复用:今天是 WPF,明天换 WinForms、换成 Windows 服务跑在无头工控机上,Core 一行不改。测试项目只引用 Core,跑测试不用加载任何 UI 程序集。
+
+**不这样会怎样**:单项目里把采集逻辑写进 MainWindow.xaml.cs,三个月后想给核心逻辑加自动化测试——测试项目必须引用整个 WPF 工程,测试宿主要加载 XAML,又慢又脆。
+
+**🎤 面试一句话**:"我分层的原则是编译方向=依赖方向:UI 引用 Core、Core 谁也不引用。Core 可以被 WPF、WinForms 或无界面服务任意复用,测试也只测 Core 不碰 UI。"
+
 ### ③ FR1-1/FR1-3:改 csproj 目标框架为 net8.0 + RollForward
 
 > 📂 三个 `src/*/*.csproj` 的 `<PropertyGroup>` 里,把 TargetFramework 改成 net8.0,再加一行 RollForward
@@ -88,6 +103,21 @@ dotnet add src/DaqMonitor.Tests reference src/DaqMonitor.Core
 如果你的机器装了 .NET 8 运行时,RollForward 可省(加了也无害)。
 
 > ⚠️ **漏加的典型症状**(R2 跑 `dotnet test` 才会爆):`You must install or use .NET 8.0 ... framework_version=8.0.0`——build 能过(不加载运行时),test 过不去(测试宿主要真跑 net8.0)。报这个错就回三个 csproj 检查 RollForward。
+
+### 🏗️ 为什么这样设计:为什么目标 net8.0 而不是本机最新的 net10.0?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| net10.0(本机 SDK 默认) | 零配置 | STS 版 18 个月就 EOL;客户工控机装的多是 LTS 运行时 |
+| net8.0 + `RollForward.Major`(选定) | LTS 长支持;机器只有更高版本运行时也能跑 | 本机多写一行配置 |
+
+**为什么选它**:工业软件部署在**客户的工控机**,不是你的开发机——现场装什么运行时版本你说了不算。net8.0 是企业主流 LTS;`RollForward.Major` 的语义是"用 8 编译,允许用 9/10 运行时跑",同时拿到"目标 LTS"和"本机能跑"两个好处。前端类比:类似 `browserslist` 目标旧浏览器 + 现代构建——**目标旧、运行新永远可以;目标新、运行旧必炸**。
+
+**不这样会怎样**:目标 net10.0 交付到只装 .NET 8 运行时的客户机器,启动直接报"找不到框架";反过来目标 net8.0 不加 RollForward,在你这台只有 .NET 10 的机器上 `dotnet test` 就过不去(上面的 ⚠️ 就是这个)。
+
+**🎤 面试一句话**:"目标框架选 LTS 的 net8.0 对齐企业部署习惯,本机高版本运行时靠 RollForward.Major 向前兼容——.NET 的兼容方向是单向的,旧目标能跑在新运行时上,反之不行。"
 
 ### ④ 删模板垃圾
 
@@ -137,6 +167,36 @@ public struct Alarm
 ```
 
 > ⚠️ **不写 Timestamp 会怎样**:`new SensorPoint { Id = 1, Value = 10 }` 的 Timestamp 落 `default(DateTime)` = `0001-01-01`。所以后面凡是事件转 SensorPoint,必须抄时间戳——这是本项目最常翻车的点,记住它。
+
+### 🏗️ 为什么这样设计:SensorPoint 为什么是 struct、字段为什么直接公开?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| class | 引用语义,`list[0].Value = 1` 直接生效 | 100Hz × 多点位持续堆分配,Gen0 GC 频繁抖动;到处要判 null |
+| struct + 公开字段(选定) | 栈分配零 GC;值拷贝=天然快照 | `list[i].Value = 1` 改的是副本,必须整取整存;字段忘赋是默认值 |
+
+**为什么选它**:采样点是"小、短命、海量"的数据——struct 的主场。每秒几百个点在管道里传递,若是堆对象,Gen0 GC 一分钟触发上千次。而且值拷贝在这里是**优点**:传出去的就是采样那一瞬间的快照,下游改不动原始数据。字段直接公开省掉 `{ get; set; }` 样板——纯数据载体没有需要守护的不变量,属性封装是 ceremony(框架源码里 `KeyValuePair`、`DateTime` 同样思路)。
+
+**代价要认**:struct 的坑在本项目里真实存在——R2 的事件转发必须显式抄 Timestamp、`List<T>` 改字段必须整取整存。**选型 = 认清它的坑并管理它,不是假装没有坑**——面试时主动讲坑,比回避坑加分。
+
+**🎤 面试一句话**:"SensorPoint 是 4 字段 struct:采集高频,栈分配避免 Gen0 GC 抖动;值语义天然是快照。struct 的两个坑我也踩过——List 索引器返回副本、字段忘赋是默认值,项目里 Timestamp 必须显式抄就是第二个坑的对策。"
+
+### 🏗️ 为什么这样设计:设备状态为什么是三态枚举而不是 bool IsOnline?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| bool IsOnline | 最简单 | "正在连接"无法表达,UI 只能闪 离线→在线 |
+| enum 三态 Offline/Connecting/Online(选定) | 多写一个枚举 | UI 要处理三个分支 |
+
+**为什么选它**:串口握手/Modbus 连接是几百毫秒到几秒的真实过程,这段**中间态必须让用户看见**——R8 的状态灯在 Connecting 时黄灯闪烁,就是它驱动的。三态还是状态机的最小完备集:任何时刻设备必居其一,不存在"又在线又离线"的非法组合(两个 bool 就会出现非法组合)。
+
+**不这样会怎样**:bool 版在握手期间 UI 显示"离线",现场操作员以为没点上,再点一次连接按钮——开出第二个连接任务,两个任务抢同一个串口,经典事故。
+
+**🎤 面试一句话**:"设备状态我做 Offline/Connecting/Online 三态而不是 bool:握手是用户必须看得见的中间态,UI 状态灯的黄灯闪烁就是它驱动的。用 bool 会把'正在连'显示成'离线',诱导操作员连点重连、双开连接任务。"
 
 ## ✅ 验证(必做,贴着敲)
 

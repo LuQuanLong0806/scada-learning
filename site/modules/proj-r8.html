@@ -230,6 +230,32 @@ public partial class App : Application
 <p>📂 <code>src/DaqMonitor.UI/ViewModels/RelayCommand.cs</code>
 🔧 无 NuGet · 💡 把"点击该干嘛"变成 VM 上的属性,XAML <code>Command="{Binding StartCommand}"</code> 直接绑</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:命令为什么要包一层 RelayCommand,而不是按钮直接 Click 事件?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>code-behind:<code>Button Click="OnStart"</code></td>
+<td>直观零封装</td>
+<td>逻辑长在 .xaml.cs 上:<strong>不可单测</strong>(要 new 窗口)、按钮状态(能否点击)要手写 IsEnabled 同步、VM 不知道命令存在</td>
+</tr>
+<tr>
+<td><code>Command="{Binding StartCommand}"</code>(选定)</td>
+<td>多写 20 行 ICommand</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:RelayCommand 把"点击"翻译成 <strong>VM 上的一个属性</strong>——命令的执行体(Execute)和可执行性(CanExecute)都活在 ViewModel 里。三个直接收益:①VM 不引用任何控件,<strong>测试直接 new VM 调命令</strong>,不碰 UI;②<code>CanExecute</code> 返回 false 时按钮<strong>自动灰掉</strong>(WPF 替你做 IsEnabled 同步);③同一个命令可绑按钮/菜单/快捷键多处。本质是把"事件回调"换成"可绑定可测试的意图声明"——前端类比:从 <code>addEventListener('click')</code> 换成声明式的 <code>:disabled</code> + 纯函数 handler,handler 进了 VM 就能脱离 DOM 测试。</p>
+<p><strong>不这样会怎样</strong>:逻辑全在窗体类里,想验证"点启动后 IsRunning 变 true"必须启动整个 WPF 窗口;按钮可用性散在各处手写,状态多了必不同步。</p>
+<p><strong>🎤 面试一句话</strong>:"按钮我用 Command 绑定不用 Click 事件:RelayCommand 把'点击'变成 VM 的属性,执行体和 CanExecute 都在 ViewModel——VM 不引用控件可以纯单测,CanExecute 自动灰按钮,还能多处复用同一个命令。"</p>
 <pre><code class="language-csharp">using System.Windows.Input;
 
 namespace DaqMonitor.UI.ViewModels;
@@ -271,6 +297,58 @@ public class RelayCommand : ICommand
 💡 看三处精髓:</em><em>PointView 为什么是 class</em><em>(struct 拷贝+无通知,绑不了 UI)、</em><em>Dispatcher.Invoke 包住整个批量更新</em><em>(一次跨线程,整批处理)、</em><em>_levels 字典把报警级别带回下次批量刷新</em><em>(报警恢复后表盘能变回蓝)
 🗺️ </em><em>新手读码地图</em><em>(顺着"一批数据的旅程"看,VM 只是接线员):1. 构造函数干的全是</em><em>接线</em><em>:从 DI 容器领服务 → 造两个 ICommand → 订阅 3 个事件(管道 BatchReady、报警触发/恢复)。VM 自己不采集、不存库、不判报警,全是 R5-R7 的活 2. <code>OnBatchReady</code> 是主数据流:一批点进来 → </em><em>一次</em><em> <code>Dispatcher.Invoke</code> 切到 UI 线程(后台事件线程不能直接改 ObservableCollection)→ 循环里每条点走三步:写库 <code>_store.AddOrUpdate</code>、喂报警 <code>_alarms.Evaluate</code>、刷表格(找不到行就 Add 新 PointView,找到就改属性——属性 setter 触发 PropertyChanged,DataGrid 自动重画) 3. <code>_levels</code> 字典解决一个时序问题:报警事件可能在两批数据之间到,而表盘颜色跟着批量刷——所以报警先记进 <code>_levels</code>,每次批量刷新时 <code>TryGetValue</code> 同步给行(331 行),颜色就不丢 4. <code>OnAlarmTriggered/Cleared</code> 是旁路:插一条日志到 AlarmLog 头部(最新的在最上面)+ 立刻改该行 Level 让表盘变红 5. <code>Start/Stop</code> 只是拨开关:<code>SimulatedDevice.Start(100ms)</code>,IsRunning 一翻,四个绑定属性(按钮可用性)跟着变。</em><em>前端类比</em>*:VM ≈ React 容器组件——<code>Dispatcher.Invoke</code> ≈ setState 必须在 React 上下文里;<code>OnChanged(nameof(X))</code> ≈ 手动触发一次针对性 re-render;<code>_levels</code> ≈ 用 ref 存一份"跨 render 也要活着"的中间状态。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:为什么整个界面走 MVVM,而不是像 WinForms 那样事件写在 code-behind 里?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>code-behind 事件驱动</td>
+<td>上手最快</td>
+<td>逻辑长在窗体上:不可单测、界面改版逻辑跟着重写、状态散在几十个控件里</td>
+</tr>
+<tr>
+<td>MVVM:View 只绑 ViewModel(选定)</td>
+<td>多一层 VM + 绑定</td>
+<td>学习曲线(绑定/通知/命令一整套)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:上位机界面<strong>变化极频繁</strong>——客户今天要加一列、明天要换布局、后天要做第二套皮肤。MVVM 把"长什么样"(XAML)和"什么逻辑"(VM)切开:逻辑在 VM 上没有控件引用,<strong>纯 new 就能测</strong>;界面随便改,绑定名不变逻辑不动。数据流也统一成一条:<strong>数据 → VM 属性 → 绑定 → 控件</strong>,调试看 VM 就知道界面该长什么样,不用人肉点一遍界面。前端类比:这不是新知识——React 的"组件=render(state)"就是这个思想的实现,VM ≈ 容器组件的状态层,XAML ≈ 模板,MVVM 是 2005 年前端圈还没发明 JSX 时就定型的"声明式 UI"。</p>
+<p><strong>不这样会怎样</strong>:三百行 MainWindow.xaml.cs 里找"为什么这个数没刷新",事件处理器互相改状态,和 jQuery 时代的面条回调一个下场。</p>
+<p><strong>🎤 面试一句话</strong>:"界面我用 MVVM:View 只做绑定,逻辑全在 ViewModel——VM 不引用控件可以脱离 UI 单测,客户改界面不动逻辑,数据流是'数据→VM→绑定→控件'一条线。本质就是声明式 UI,和 React 的 render(state) 同一个思想,WPF 在 2005 年就内建了。"</p>
+<h4>🏗️ 为什么这样设计:UI 表格绑的为什么是 PointView(class),而不是直接绑 R1 的 SensorPoint(struct)?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DataGrid 直接绑 <code>List&lt;SensorPoint&gt;</code></td>
+<td>零转换</td>
+<td>struct 值拷贝:改了 <code>Value</code> 界面不知道(<strong>没有 PropertyChanged 通知</strong>);整行替换又丢"行"的稳定性</td>
+</tr>
+<tr>
+<td>造 PointView : INotifyPropertyChanged(选定)</td>
+<td>多一个展示模型类</td>
+<td>领域和展示两套类型要同步</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:WPF 绑定刷新的机制是 <strong>PropertyChanged 事件</strong>——控件订阅它才知道"这个格子该重画"。SensorPoint 是 struct:①值语义,赋值即拷贝,根本没有"同一个对象属性变了"的事件可发;②就算改成 struct+接口,装箱和拷贝也会让通知丢失。所以 UI 层要有<strong>自己的展示模型</strong>:class + 每个属性 setter 里 <code>OnChanged()</code>,改一格亮一格。这不是重复造类型,而是<strong>两个层次各要各的形状</strong>——Core 里 SensorPoint 为性能而生(struct 零 GC),UI 里 PointView 为通知而生(class+事件);中间一层转换是 MVVM 的标准件(前端类比:接口返回的 DTO ≠ 组件的 state model,redux 里还要 mapStateToProps 一道)。</p>
+<p><strong>不这样会怎样</strong>:绑 struct 集合,表格只在整集合替换时才刷新,高频点位变灰;为救场把 SensorPoint 改 class,Core 的 GC 压力又回来了——一处将就,两层都坏。</p>
+<p><strong>🎤 面试一句话</strong>:"Core 和 UI 各有各的数据形状:SensorPoint 是 struct,为了采集高频零 GC;表格绑的是 PointView class,每个属性带 PropertyChanged——WPF 刷新靠事件通知,struct 值拷贝发不出通知。两层之间一道转换,是 MVVM 的标准分工而不是冗余。"</p>
 <p><strong>第 1 步 · PointView:展示模型</strong>(新文件,先贴文件头 + 第一个类)</p>
 <pre><code class="language-csharp">using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -690,6 +768,34 @@ public class MainViewModel : INotifyPropertyChanged
 <blockquote>
 <p>📂 <code>src/DaqMonitor.UI/Controls/GaugeControl.cs</code>
 💡 "自绘控件"最正宗写法:继承 Control、无 xaml.cs、外观全在 Generic.xaml、对外只有 DependencyProperty。指针角度 = -135° + 量程比例 × 270°</p>
+</blockquote>
+<h4>🏗️ 为什么这样设计:仪表盘/状态灯为什么要自己写控件,而不是找现成库拖一个?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>现成仪表库(NILMTune/LiveCharts Gauges 等)</td>
+<td>拖上就能用</td>
+<td>样式定制受限(现场客户常要"照我们旧软件的样子");引入整库只为一两个控件</td>
+</tr>
+<tr>
+<td>继承 Control 自绘 + Generic.xaml 模板(选定)</td>
+<td>多写百来行</td>
+<td>要懂模板/依赖属性一整套</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:工业客户对界面常有<strong>像素级迁移要求</strong>("和原来那套 WinForms 长得一样,师傅才肯用")——现成库的默认外观改到深处就是和库搏斗。自定义控件把<strong>外观(XAML 模板)和逻辑(角度换算)分离</strong>:同一套 GaugeControl 逻辑,换个 Generic.xaml 就是另一种风格;依赖属性(Value/Min/Max)让控件<strong>可绑定</strong>——VM 里数值一动指针自己转,和绑定 TextBlock 没有区别。这也是 WPF 的"正字标记":会用依赖属性+模板,才算摸到 WPF 的核心机制,而不只是"拖控件的 WinForms 搬家"。</p>
+<p><strong>不这样会怎样</strong>:引库后客户要求改指针形状/刻度密度,改不动库模板只能再造一层包装;面试问"依赖属性怎么回事"也答不上——因为从没写过。</p>
+<p><strong>🎤 面试一句话</strong>:"仪表和状态灯我自绘:继承 Control、外观全在 Generic.xaml、对外只暴露依赖属性——逻辑换算在类里,风格换模板就行,应对工业客户'照旧软件长'的要求最灵活。依赖属性让控件像 TextBlock 一样可绑定,数值动指针自己转。"</p>
+<blockquote>
 <p>⚠️ <strong>这个类用"先贴后读"模式</strong>:7 个依赖属性里 Value/Min/Max 的变更回调指向 <code>RecalcAngle</code>,而 <code>RecalcAngle</code> 又反过来读写这些属性——成员互相成环,没法拆成可编译的中间态。<strong>先展开文末折叠块把完整文件贴进工程,再按 3 步读懂</strong>。</p>
 </blockquote>
 <p><strong>第 1 步 · 读:类壳 + 静态构造(主题挂钩)</strong></p>
@@ -1083,6 +1189,32 @@ public class StatusDot : Control
 <p>📂 <code>src/DaqMonitor.UI/Views/ChartView.xaml</code>
 💡 XAML 只放最简壳,Series 由后台代码注入——避免和 ViewModel 的可观察集合强耦合</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:曲线为什么 XAML 只放壳、Series 后台注入?演示模式和真实数据为什么必须严格分家?</h4>
+<p><strong>当时面临的选择(Series 归属)</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Series 全在 XAML 里声明,VM 提供集合</td>
+<td>声明式,看着"标准"</td>
+<td>LiveCharts 的 Series 对象带大量自身状态,XAML 静态声明和 VM 动态数据源互相缠死</td>
+</tr>
+<tr>
+<td>XAML 只放壳,后台 <code>Push(SensorPoint)</code> 喂点(选定)</td>
+<td>多几行代码</td>
+<td>控件知道自己怎么被喂数</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:实时曲线的关键设计是<strong>滚动缓冲</strong>:两条 <code>ObservableCollection&lt;double&gt;</code> 超 600 点就 <code>RemoveAt(0)</code>,内存有界、画面像心电图一样左移。这层缓冲逻辑放 VM 会让 VM 沾上图表库类型;放 XAML 又写不了循环——所以 ChartView 自己管缓冲,对外只开一个 <code>Push(SensorPoint)</code> 小口,VM 每批数据来了 push 一轮。<strong>小接口 + 自包含</strong>,控件可以整体搬走复用。</p>
+<p><strong>演示模式为什么必须分家(真实修过的 bug)</strong>:ChartView 有个 <code>StartDemo()</code>——无数据源时自动生成随机曲线,本是给"界面还没接采集"时看效果用的。早期版本在 <code>AttachChart</code> 里顺手调了它,结果<strong>没点启动采集曲线也在跳</strong>,用户当场发现"跳的是随机数不是真实值"。教训固化成一条纪律:<strong>演示入口和真实数据通路是两条线,接了真实通路必须关演示入口</strong>——任何"演示/mock 方便开关"都要有显式的单一开关,不能两套并行。前端类比:dev 环境 mock 和真接口共存时,最经典的 bug 就是"忘了关 mock,页面上线还在吐假数据"。</p>
+<p><strong>🎤 面试一句话</strong>:"实时曲线我让控件自管 600 点滚动缓冲,对外只开 Push 一个口,XAML 只放壳——内存有界、控件可整体复用。这里还修过一个真实 bug:演示模式 StartDemo 被顺手调用,没启动采集曲线也在跳假数据——从此定死规矩:演示通路和真实通路绝不并存,接了真的必须关假的。"</p>
 <pre><code class="language-xml">&lt;UserControl x:Class=&quot;DaqMonitor.UI.Views.ChartView&quot;
              xmlns=&quot;http://schemas.microsoft.com/winfx/2006/xaml/presentation&quot;
              xmlns:x=&quot;http://schemas.microsoft.com/winfx/2006/xaml&quot;

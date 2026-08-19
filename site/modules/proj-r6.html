@@ -351,6 +351,88 @@ public class AppDb : DbContext
 💡 三层人格:<strong>旧 API 纯内存(实时永不阻塞)</strong> + <strong>Channel 串行写泵(满足 SQLite 单写者)</strong> + <strong>历史查询走库</strong>
 🗺️ <strong>新手读码地图</strong>(顺着 AddOrUpdate 一条数据的去向看):1. <strong>第一层·内存</strong>:<code>AddOrUpdate</code> 在 <code>lock</code> 里同步更新字典+列表——UI 实时表/报警判断只走这层,<strong>永远不碰磁盘</strong>,所以再高频也不会卡采集 2. <strong>第二层·落盘</strong>:同一方法里紧接着 <code>TryWrite</code> 把记录塞进 <code>_writeQueue</code>(Channel),塞完立刻返回,<strong>不等写库</strong>——这就是"fire-and-forget" 3. 谁来写库?构造时 <code>Task.Run(PumpWritesAsync)</code> 起的<strong>单消费者写泵</strong>,后台一条条取、一条条 SaveChanges。为什么必须串行:SQLite 同一时刻只允许一个写者,并发写会锁冲突——Channel 天然 FIFO + 单读者,比手工加锁稳 4. <strong>第三层·历史查询</strong>:<code>QueryHistoryAsync</code> 拿 EF 出一个新 DbContext 按"点位+时间窗"查库,和内存层互不干扰 5. <code>FlushAsync</code> 是关机前的好习惯:让队列收尾、等写泵把尾巴写完,防止最后几条丢在队列里。<strong>前端类比</strong>:内存层 ≈ 组件 state(毫秒级读写),写泵 ≈ 埋点上报的批处理队列(sentry/redux 持久化中间件都是"先入队、后台慢慢写"的双写套路)。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:为什么要"双写"(内存 + 数据库),而不是 UI 直接读写库?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接读写库(UI 每次查询打 SQLite)</td>
+<td>一份数据零冗余</td>
+<td>磁盘毫秒级 vs 实时表毫秒内刷新——100Hz 点位表直接卡死;SQLite 单写者,采集写+UI 读并发锁冲突</td>
+</tr>
+<tr>
+<td>内存实时层 + 异步落库层(选定)</td>
+<td>多一份内存字典</td>
+<td>两层要同步(靠同一个 AddOrUpdate 入口);进程崩了最多丢队列里几条</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:两条链路对数据的<strong>延迟要求差三个数量级</strong>——实时表/报警判断要"这一拍的值"(内存字典,微秒),历史查询/报表要"过去一个月"(数据库,毫秒无所谓)。硬用一层同时伺候两边,必有一边被拖死。双写把矛盾拆开:<strong>写入路径</strong>是"内存同步改 + Channel 入队即返回"(采集永不阻塞),<strong>落库</strong>由单消费者写泵慢慢消化(SQLite 单写者约束天然满足)。丢数据风险有界:崩机只丢队列里未落盘的几条,采集类数据可接受——真不可接受再加 WAL/批量事务,同样是隔离在写泵一处改。</p>
+<p><strong>不这样会怎样</strong>:UI 实时表每 200ms SELECT 一次,配采集线程不停 INSERT,SQLite 文件锁打架,界面卡、采集丢——两个都是"偶发、难复现"的现场故障。</p>
+<p><strong>🎤 面试一句话</strong>:"存储我做了双写:内存字典伺候实时表和报警(微秒级),Channel 写泵串行落 SQLite(毫秒级,天然满足单写者)。两条链路延迟要求差三个数量级,拆开各自满足;崩机最多丢队列尾巴几条,风险有界。"</p>
+<h4>🏗️ 为什么这样设计:DbContext 为什么用 IDbContextFactory 每次现造,而不是做成单例复用?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单例 DbContext(一个实例到处用)</td>
+<td>省构造开销</td>
+<td><strong>DbContext 非线程安全</strong>:写泵和历史查询并发用它,随机崩;变更跟踪缓存越积越大(内存泄漏)</td>
+</tr>
+<tr>
+<td><code>IDbContextFactory&lt;AppDb&gt;</code> 按需造、用完 Dispose(选定)</td>
+<td>多一层工厂</td>
+<td>每次 new 有微小开销(毫秒以下)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:项目里至少<strong>两处并发用库</strong>:写泵在后台线程 INSERT,历史查询在 UI 发起的任务里 SELECT——DbContext 同时只伺候一个。工厂模式让"每次操作一个短命上下文"成为强制结构:线程安全(各用各的)、变更跟踪即用即弃(不泄漏)、SaveChanges 语义清晰。EF Core 官方在多线程场景就是推荐 factory——它不是性能优化,是<strong>正确性</strong>设计。前端类比:每次请求 new 一个请求作用域,而不是全局共享一个 store。</p>
+<p><strong>不这样会怎样</strong>:单例 DbContext 并发读写,抛 "A second operation started on this context"(不定时出现,跟线程调度有关)——现场表现为"跑半天突然崩一次",最难定位的那种。</p>
+<p><strong>🎤 面试一句话</strong>:"DbContext 我用 factory 按需创建用完即弃,因为写泵和历史查询是两个并发场景,而 DbContext 非线程安全;短命上下文还让变更跟踪即用即弃,不积累内存。单例上下文并发用会随机抛 second operation 异常。"</p>
+<h4>🏗️ 为什么这样设计:为什么选 SQLite,而不是 SQL Server 或时序数据库?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL Server / MySQL</td>
+<td>并发强、生态全</td>
+<td><strong>要装服务</strong>——断网友装版上位机现场根本没有 DBA;License/运维成本</td>
+</tr>
+<tr>
+<td>InfluxDB/TimescaleDB 时序库</td>
+<td>时序场景性能最强</td>
+<td>又一个要安装维护的引擎;上位机交付物变得沉重</td>
+</tr>
+<tr>
+<td>SQLite 单文件嵌入(选定)</td>
+<td>"零部署":一个 db 文件跟着 exe 走</td>
+<td>单写者(靠写泵串行化解决);不适合多进程共享</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:上位机的典型交付形态是<strong>拷个文件夹到工控机就能跑</strong>——很多车间刻意断网隔离(air-gapped),现场没有数据库管理员,任何"先装个数据库服务"的方案都把部署复杂度翻倍。SQLite 是进程内嵌入库,数据一个文件,备份=拷文件,EF Core 支持完整。写入瓶颈(单写者)已被"单消费者写泵 + 批量"化解,而单机单应用的采集量(百点×1Hz~100Hz)远没到 SQLite 天花板。<strong>选型跟着部署环境走,不是跟着跑分走</strong>。</p>
+<p><strong>🎤 面试一句话</strong>:"落库选 SQLite:上位机交付到断网车间,要的是拷文件夹就能跑、备份就是拷文件——嵌入式零部署压倒一切。单写者限制用串行写泵化解,单机采集量离它的天花板还很远。哪天要多机共享数据,再换 PostgreSQL 是 EF Core 换个 provider 的事。"</p>
 <p><strong>第 1 步 · 骨架:字段全家福 + 私有构造 + 写泵 + Dispose</strong>(新文件,整段贴)</p>
 <blockquote>
 <p>这一步把<strong>生命周期核心</strong>一次贴齐:私有构造函数里 <code>Task.Run(PumpWritesAsync)</code> 启动写泵(构造即启动,和 R5 管道同一个契约),所以构造和泵必须同贴;类声明了 <code>: IDisposable</code>,Dispose 也得当场兑现,否则编译不过。</p>

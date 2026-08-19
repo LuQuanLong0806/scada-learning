@@ -162,6 +162,32 @@
 <blockquote>
 <p>🧩 <strong>这篇可以"边贴边跑"</strong>:测试方法彼此独立,每贴一组就能 <code>dotnet test</code> 看到新测试变绿 —— 贴 5 次看 5 次绿,比一口气贴完再跑的体感好得多。第 1 步贴文件骨架,第 2-5 步都是<strong>贴到类的末尾(最后一个 <code>}</code> 之前)</strong>;赶时间也可以直接展开文末折叠块整体粘贴,再回头按 5 步读。</p>
 </blockquote>
+<h4>🏗️ 为什么这样设计:12 个测试为什么按"行为"组织,而不是"每个公共方法测一遍"?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按方法覆盖:每个 public 方法至少一个用例</td>
+<td>覆盖率报表好看</td>
+<td>方法能调通 ≠ 行为正确:MoveAbsolute 有用例,不代表"未使能时必拒"这条<strong>规则</strong>被验证</td>
+</tr>
+<tr>
+<td>按行为/验收标准组织(T01-T12 每条钉死一条行为)(选定)</td>
+<td>测试名即文档</td>
+<td>实现重构时部分测试要跟着改(这本就是该改的)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:模拟卡的正确性 = 一组<strong>业务规则</strong>("未连接必拒""急停必冻结""报警必锁轴"),不是"每个方法能跑通"。按行为组织,测试清单就是需求单(本篇需求单的标题就叫"验收标准本身就是需求");哪条规则被破坏,测试名直接告诉你<strong>坏了什么</strong>,而不是"某断言红了再去读代码"。测试还只调公共 API(黑盒):实现随便重构(节拍循环换算法),行为在就全绿——<strong>测试钉住行为,才配得上"重构安全网"这个称号</strong>。前端类比:Cypress 按用户故事写用例,不按"每个 reducer 分支写一个"。</p>
+<p><strong>不这样会怎样</strong>:方法级覆盖在参数校验重构进基类后一片假绿——方法全在、行数没少,但"没使能必拒"这条行为已经没人验证了。</p>
+<p><strong>🎤 面试一句话</strong>:"卡的测试我按行为组织不按方法覆盖:上位机的正确性是一组规则——未连接必拒、急停必冻结、报警必锁轴,一条规则一个测试,名字就是验收标准;实现怎么重构只要行为在就全绿,这才是重构安全网。"</p>
 <p><strong>第 1 步 · 文件骨架 + 三个 helper</strong>(贴法:新建 <code>MockMotionCardTests.cs</code>,以下整段贴入 —— 此时应能 build)</p>
 <pre><code class="language-csharp">using MotionControlProject.Device;
 using System.Diagnostics;
@@ -204,7 +230,33 @@ public class MockMotionCardTests
 <p>📚 <strong>知识点</strong>
 - <strong>NewCard / ReadyCard 两层准备,各管一种起点</strong>:大多数用例要"已连接 + 已使能"才好直接测运动;少数用例(T01-T03)恰恰要测"没连接/没使能"的拒绝路径 —— 两个 helper 各管一头,测试体内只剩"动作 + 断言",一眼读完。前端类比:给 <code>renderHook</code> 再封一个 <code>renderLoggedIn</code>,把重复的登录态铺底收敛到一个函数里。
 - <strong><code>tickMs: 10</code> = 仿真时间快进 10 倍</strong>:节拍越小,同样的运动时长折算的真实毫秒越少,12 个用例 4 秒跑完。<strong>测试慢一秒,开发者就多一分借口不跑它</strong>;真卡测试做不了这件事(电机不会快进),所以能在模拟层测的行为全部在模拟层测 —— 接口化的又一红利。类比:msw 把网络延迟调成 0,测试要能控制时间。
-- <strong><code>WaitUntil</code> 轮询 + 超时,不是固定 Sleep</strong>:固定等 2 秒 = 最慢用例永远耗 2 秒,且机器慢时等够了时间却没等到结果就偶发红;轮询"条件成立立即返回"又快又稳,<code>TimeoutException</code> 兜底保证永不卡死。这就是 Jest 的 <code>waitFor()</code> / react-query 轮询的思想:<strong>对付异步的标准姿势是轮询条件 + 超时,不是死等时间</strong>。
+- <strong><code>WaitUntil</code> 轮询 + 超时,不是固定 Sleep</strong>:固定等 2 秒 = 最慢用例永远耗 2 秒,且机器慢时等够了时间却没等到结果就偶发红;轮询"条件成立立即返回"又快又稳,<code>TimeoutException</code> 兜底保证永不卡死。这就是 Jest 的 <code>waitFor()</code> / react-query 轮询的思想:<strong>对付异步的标准姿势是轮询条件 + 超时,不是死等时间</strong>。</p>
+<h4>🏗️ 为什么这样设计:等待为什么用"轮询条件 + 超时",时间为什么用 tickMs 快进 10 倍?</h4>
+<p><strong>当时面临的选择(等异步运动完成)</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Thread.Sleep(2000)</code> 固定等</td>
+<td>一行,零思考</td>
+<td>快机器白等、慢机器不够等 → <strong>偶发红</strong>(flaky);12 个用例全这样,套件又慢又不稳</td>
+</tr>
+<tr>
+<td><code>WaitUntil(条件, 超时)</code> 轮询(选定)</td>
+<td>多写 8 行 helper</td>
+<td>无</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:运动是异步完成的,测试要等的是<strong>条件</strong>不是<strong>时间</strong>——条件成立立即返回(快),3 秒不成立抛超时(永不卡死)。两个方向的失败都被堵死:快机器不等冤枉时间,慢机器等到条件才走。这是 Jest <code>waitFor()</code> 的同款思想。<strong>tickMs:10 快进</strong>是另一半:模拟卡节拍周期从 50ms 缩到 10ms,一段 5 秒的运动 1 秒演完——<strong>仿真时间可缩放</strong>,测试既保留完整时序过程(急停测的仍是"运动中途"),又把套件总时长压回秒级。测试要的两个美德"稳"和"快",分别由这两个设计各管一个。</p>
+<p><strong>不这样会怎样</strong>:Sleep 版在 CI 慢机上随机红,团队第一反应是"再睡长点"——套件越改越慢,flaky 却没绝迹;真实速度跑仿真,12 个用例要一分多钟,没人愿意频繁跑测试。</p>
+<p><strong>🎤 面试一句话</strong>:"异步等待我用轮询条件加超时,不用固定 Sleep——条件成立立刻返回所以快,超时兜底所以永不假死,flaky 的根源'快机器白等、慢机器不够等'一次堵死;再加仿真节拍快进 10 倍,时序过程完整保留,套件秒级跑完。"
 - <strong><code>Stopwatch</code> 而不是 <code>DateTime.Now</code></strong>:秒表是单调时钟(只往前走),系统时间会被授时/手动改 —— 测耗时一律用 Stopwatch,和前端用 <code>performance.now()</code> 而不是 <code>Date.now()</code> 同理。</p>
 <p><strong>第 2 步 · T01-T03:参数与状态检查</strong>(贴法:贴到 <code>WaitUntil</code> 方法后面、类的最后一个 <code>}</code> 之前)</p>
 <pre><code class="language-csharp">    // ———— 参数与状态检查 ————

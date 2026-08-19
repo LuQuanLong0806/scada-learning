@@ -35,9 +35,13 @@
 <li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
 <li class="l3"><a href="#sec-3-1">① 建解决方案 + 三项目</a></li>
 <li class="l3"><a href="#sec-3-2">② 挂进解决方案 + 引用关系</a></li>
-<li class="l3"><a href="#sec-3-3">③ FR1-1/FR1-3:改 csproj 目标框架为 net8.0 + RollForward</a></li>
-<li class="l3"><a href="#sec-3-4">④ 删模板垃圾</a></li>
-<li class="l3"><a href="#sec-3-5">⑤ FR1-4:领域模型(全项目的"数据货币")</a></li>
+<li class="l3"><a href="#sec-3-3">🏗️ 为什么这样设计:为什么是三个项目、依赖只能从外向内?</a></li>
+<li class="l3"><a href="#sec-3-4">③ FR1-1/FR1-3:改 csproj 目标框架为 net8.0 + RollForward</a></li>
+<li class="l3"><a href="#sec-3-5">🏗️ 为什么这样设计:为什么目标 net8.0 而不是本机最新的 net10.0?</a></li>
+<li class="l3"><a href="#sec-3-6">④ 删模板垃圾</a></li>
+<li class="l3"><a href="#sec-3-7">⑤ FR1-4:领域模型(全项目的"数据货币")</a></li>
+<li class="l3"><a href="#sec-3-8">🏗️ 为什么这样设计:SensorPoint 为什么是 struct、字段为什么直接公开?</a></li>
+<li class="l3"><a href="#sec-3-9">🏗️ 为什么这样设计:设备状态为什么是三态枚举而不是 bool IsOnline?</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-5">✅ 验证(必做,贴着敲)</a><ul>
 </ul></li>
@@ -131,7 +135,33 @@ dotnet add src/DaqMonitor.Tests reference src/DaqMonitor.Core
 <pre><code>已将项目“src/DaqMonitor.Core”添加到解决方案中。 ×3
 已添加引用 “..\DaqMonitor.Core\DaqMonitor.Core.csproj” ×2
 </code></pre>
-<h3 id="sec-3-3">③ FR1-1/FR1-3:改 csproj 目标框架为 net8.0 + RollForward</h3>
+<h3 id="sec-3-3">🏗️ 为什么这样设计:为什么是三个项目、依赖只能从外向内?</h3>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单项目全塞一起</td>
+<td>建得快、不用管引用</td>
+<td>UI 和业务编译耦合,以后换皮/跑无界面测试都要大改</td>
+</tr>
+<tr>
+<td>Core/UI/Tests 三项目,UI、Tests 引用 Core(选定)</td>
+<td>多一步 <code>dotnet add reference</code></td>
+<td>依赖方向被<strong>编译器强制</strong>成单向</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:Core 不知道 UI 存在——不是"约定不许引用",是<strong>编译上引用不了</strong>(没加项目引用就 using 不了)。业务逻辑天然可以被任何壳复用:今天是 WPF,明天换 WinForms、换成 Windows 服务跑在无头工控机上,Core 一行不改。测试项目只引用 Core,跑测试不用加载任何 UI 程序集。</p>
+<p><strong>不这样会怎样</strong>:单项目里把采集逻辑写进 MainWindow.xaml.cs,三个月后想给核心逻辑加自动化测试——测试项目必须引用整个 WPF 工程,测试宿主要加载 XAML,又慢又脆。</p>
+<p><strong>🎤 面试一句话</strong>:"我分层的原则是编译方向=依赖方向:UI 引用 Core、Core 谁也不引用。Core 可以被 WPF、WinForms 或无界面服务任意复用,测试也只测 Core 不碰 UI。"</p>
+<h3 id="sec-3-4">③ FR1-1/FR1-3:改 csproj 目标框架为 net8.0 + RollForward</h3>
 <blockquote>
 <p>📂 三个 <code>src/*/*.csproj</code> 的 <code>&lt;PropertyGroup&gt;</code> 里,把 TargetFramework 改成 net8.0,再加一行 RollForward
 💡 模板默认生成 net10.0;本项目对齐参考工程用 net8.0(企业里常见的 LTS 目标)。本机只装了 .NET 10 运行时,<code>RollForward</code> 让 net8.0 应用用高版本运行时跑——生产常用技巧,面试可讲</p>
@@ -148,12 +178,38 @@ dotnet add src/DaqMonitor.Tests reference src/DaqMonitor.Core
 <blockquote>
 <p>⚠️ <strong>漏加的典型症状</strong>(R2 跑 <code>dotnet test</code> 才会爆):<code>You must install or use .NET 8.0 ... framework_version=8.0.0</code>——build 能过(不加载运行时),test 过不去(测试宿主要真跑 net8.0)。报这个错就回三个 csproj 检查 RollForward。</p>
 </blockquote>
-<h3 id="sec-3-4">④ 删模板垃圾</h3>
+<h3 id="sec-3-5">🏗️ 为什么这样设计:为什么目标 net8.0 而不是本机最新的 net10.0?</h3>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>net10.0(本机 SDK 默认)</td>
+<td>零配置</td>
+<td>STS 版 18 个月就 EOL;客户工控机装的多是 LTS 运行时</td>
+</tr>
+<tr>
+<td>net8.0 + <code>RollForward.Major</code>(选定)</td>
+<td>LTS 长支持;机器只有更高版本运行时也能跑</td>
+<td>本机多写一行配置</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:工业软件部署在<strong>客户的工控机</strong>,不是你的开发机——现场装什么运行时版本你说了不算。net8.0 是企业主流 LTS;<code>RollForward.Major</code> 的语义是"用 8 编译,允许用 9/10 运行时跑",同时拿到"目标 LTS"和"本机能跑"两个好处。前端类比:类似 <code>browserslist</code> 目标旧浏览器 + 现代构建——<strong>目标旧、运行新永远可以;目标新、运行旧必炸</strong>。</p>
+<p><strong>不这样会怎样</strong>:目标 net10.0 交付到只装 .NET 8 运行时的客户机器,启动直接报"找不到框架";反过来目标 net8.0 不加 RollForward,在你这台只有 .NET 10 的机器上 <code>dotnet test</code> 就过不去(上面的 ⚠️ 就是这个)。</p>
+<p><strong>🎤 面试一句话</strong>:"目标框架选 LTS 的 net8.0 对齐企业部署习惯,本机高版本运行时靠 RollForward.Major 向前兼容——.NET 的兼容方向是单向的,旧目标能跑在新运行时上,反之不行。"</p>
+<h3 id="sec-3-6">④ 删模板垃圾</h3>
 <pre><code class="language-bash">rm src/DaqMonitor.Core/Class1.cs
 rm src/DaqMonitor.Tests/UnitTest1.cs
 </code></pre>
 <p>(UI 的 MainWindow.xaml 留着,R8 会重写它。)</p>
-<h3 id="sec-3-5">⑤ FR1-4:领域模型(全项目的"数据货币")</h3>
+<h3 id="sec-3-7">⑤ FR1-4:领域模型(全项目的"数据货币")</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Models/SensorPoint.cs</code> · namespace <code>DaqMonitor.Core.Models</code>
 🔧 无 NuGet(纯 C#)
@@ -193,6 +249,58 @@ public struct Alarm
 <blockquote>
 <p>⚠️ <strong>不写 Timestamp 会怎样</strong>:<code>new SensorPoint { Id = 1, Value = 10 }</code> 的 Timestamp 落 <code>default(DateTime)</code> = <code>0001-01-01</code>。所以后面凡是事件转 SensorPoint,必须抄时间戳——这是本项目最常翻车的点,记住它。</p>
 </blockquote>
+<h3 id="sec-3-8">🏗️ 为什么这样设计:SensorPoint 为什么是 struct、字段为什么直接公开?</h3>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>class</td>
+<td>引用语义,<code>list[0].Value = 1</code> 直接生效</td>
+<td>100Hz × 多点位持续堆分配,Gen0 GC 频繁抖动;到处要判 null</td>
+</tr>
+<tr>
+<td>struct + 公开字段(选定)</td>
+<td>栈分配零 GC;值拷贝=天然快照</td>
+<td><code>list[i].Value = 1</code> 改的是副本,必须整取整存;字段忘赋是默认值</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:采样点是"小、短命、海量"的数据——struct 的主场。每秒几百个点在管道里传递,若是堆对象,Gen0 GC 一分钟触发上千次。而且值拷贝在这里是<strong>优点</strong>:传出去的就是采样那一瞬间的快照,下游改不动原始数据。字段直接公开省掉 <code>{ get; set; }</code> 样板——纯数据载体没有需要守护的不变量,属性封装是 ceremony(框架源码里 <code>KeyValuePair</code>、<code>DateTime</code> 同样思路)。</p>
+<p><strong>代价要认</strong>:struct 的坑在本项目里真实存在——R2 的事件转发必须显式抄 Timestamp、<code>List&lt;T&gt;</code> 改字段必须整取整存。<strong>选型 = 认清它的坑并管理它,不是假装没有坑</strong>——面试时主动讲坑,比回避坑加分。</p>
+<p><strong>🎤 面试一句话</strong>:"SensorPoint 是 4 字段 struct:采集高频,栈分配避免 Gen0 GC 抖动;值语义天然是快照。struct 的两个坑我也踩过——List 索引器返回副本、字段忘赋是默认值,项目里 Timestamp 必须显式抄就是第二个坑的对策。"</p>
+<h3 id="sec-3-9">🏗️ 为什么这样设计:设备状态为什么是三态枚举而不是 bool IsOnline?</h3>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bool IsOnline</td>
+<td>最简单</td>
+<td>"正在连接"无法表达,UI 只能闪 离线→在线</td>
+</tr>
+<tr>
+<td>enum 三态 Offline/Connecting/Online(选定)</td>
+<td>多写一个枚举</td>
+<td>UI 要处理三个分支</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:串口握手/Modbus 连接是几百毫秒到几秒的真实过程,这段<strong>中间态必须让用户看见</strong>——R8 的状态灯在 Connecting 时黄灯闪烁,就是它驱动的。三态还是状态机的最小完备集:任何时刻设备必居其一,不存在"又在线又离线"的非法组合(两个 bool 就会出现非法组合)。</p>
+<p><strong>不这样会怎样</strong>:bool 版在握手期间 UI 显示"离线",现场操作员以为没点上,再点一次连接按钮——开出第二个连接任务,两个任务抢同一个串口,经典事故。</p>
+<p><strong>🎤 面试一句话</strong>:"设备状态我做 Offline/Connecting/Online 三态而不是 bool:握手是用户必须看得见的中间态,UI 状态灯的黄灯闪烁就是它驱动的。用 bool 会把'正在连'显示成'离线',诱导操作员连点重连、双开连接任务。"</p>
 <h2 id="sec-2-5">✅ 验证(必做,贴着敲)</h2>
 <pre><code class="language-bash">dotnet build
 </code></pre>

@@ -189,6 +189,32 @@ internal static class Program
 <p>💡 <code>[STAThread]</code> 别删:WinForms 大量依赖 COM(剪贴板、拖放、文件对话框),STA 单线程公寓是它们的运行前提。<code>Application.Run</code> 启动消息循环 —— WinForms 的一切(按钮点击、Paint、BeginInvoke 回调)都从这个循环里派发,这个概念 MC4 冒烟测试还要用到。</p>
 <h3 id="sec-3-4">步骤 3:主窗体 MainForm.cs(逻辑全在这)</h3>
 <p><strong>设计思路一句</strong>:窗体 = 纯"翻译官" —— 用户输入翻译成卡指令,卡事件翻译成界面变化;两轴逻辑写成"控件数组 + 循环",按钮状态集中一处计算。</p>
+<h4>🏗️ 为什么这样设计:两根轴的界面为什么用"控件数组 + 循环",而不是轴 1 写一份、轴 2 复制粘贴改改名?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每轴一套控件名(txtPos1/txtPos2、btnEnable1/btnEnable2)+ 两份事件处理</td>
+<td>直观,Designer 里所见即所得</td>
+<td>每个逻辑写两遍;加第 3 根轴 = 全套再抄一遍;改一处忘另一处(两轴行为悄悄不一致)</td>
+</tr>
+<tr>
+<td>控件数组 + <code>for (var i = 0; i &lt; 2; i++)</code>(选定)</td>
+<td>先想一步"下标对应轴号"</td>
+<td>事件处理要从 <code>sender</code> 反查是哪个控件</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:轴是<strong>同构的</strong>——两根轴的按钮逻辑完全一样,只差轴号。控件数组让"轴号"变成循环下标:使能/点动/回零全部一份代码跑两轴,按钮状态集中一个方法算。<strong>加一根轴 = 数组多一项</strong>,不是界面重抄一遍。事件里用 <code>Array.IndexOf(_btnEnable, sender)</code> 反查轴号——控件→数据的映射集中一处。前端类比:这就是"组件 props 驱动 vs 复制粘贴两段 JSX"的差别,WinForms 没有组件化,控件数组就是那个年代的 v-for。</p>
+<p><strong>不这样会怎样</strong>:八个月后客户要三轴机,复制粘贴版改 40 处控件名,漏改 3 处——轴 3 的点动按钮实际控制轴 2,这种 bug 只有客户发现。</p>
+<p><strong>🎤 面试一句话</strong>:"两轴界面我用控件数组加循环,不用复制粘贴:轴是同构的,下标即轴号,一份逻辑跑两轴、按钮状态集中算,加轴只是数组加一项;事件里用 IndexOf(sender) 反查轴号,控件到数据的映射只在一处。"</p>
 <blockquote>
 <p>🧩 <strong>贴法说明</strong>:<code>MainForm.cs</code> 和下面步骤 4 的 <code>MainForm.Designer.cs</code> 互相引用(Designer 声明控件字段,MainForm 构造调 <code>InitializeComponent</code>),<strong>两个文件都贴完才能 build</strong>。可以先把两处折叠块整体贴完跑起来,再按 ①-⑦ 读懂 MainForm;也可以边贴边读 —— 7 步是按"字段 → 构造 → 各区块"的走读顺序排的。</p>
 </blockquote>
@@ -824,6 +850,32 @@ public partial class MainForm : Form
 </details>
 <h3 id="sec-3-5">步骤 4:界面布局 MainForm.Designer.cs</h3>
 <p><strong>设计思路一句</strong>:Designer 文件只描述"长相"(控件、位置、颜色),事件订阅一行不放(全在 MainForm.cs 构造里)—— 布局与行为彻底分家,抄布局不会抄错行为。</p>
+<h4>🏗️ 为什么这样设计:一个窗体为什么要拆成 MainForm.cs + Designer.cs 两个文件(partial)?事件订阅为什么故意不放 Designer?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一个文件混写:布局 + 行为 + 事件订阅</td>
+<td>不用理解 partial</td>
+<td>680 行布局代码和逻辑搅在一起,找"按钮点击干什么"要在坐标设置里翻</td>
+</tr>
+<tr>
+<td>partial 拆两文件:Designer 管长相、MainForm.cs 管行为;事件订阅写在构造里(选定)</td>
+<td>习惯了很自然</td>
+<td>要知道 InitializeComponent 在哪、partial 是同一个类</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:partial 让<strong>生成代码和手写代码物理分居</strong>——Designer.cs 是"机器维护的界面描述"(VS 设计器每次拖控件都重写它),MainForm.cs 是人写的逻辑;机器重写不该有权力碰人的代码,分文件就是这条权力的边界。本项目再进一步:<strong>事件订阅也不放 Designer</strong>(标准做法是 <code>btn.Click += ...</code> 由设计器生成),而是集中在 MainForm.cs 构造里——这样 Designer 文件变成纯数据,<strong>抄别人的布局绝不带走任何行为</strong>,反过来也知道自己窗体的全部行为入口都在构造函数附近。前端类比:模板与逻辑分离(SFC 的 template/script 两个块),Designer ≈ 自动生成的 template。</p>
+<p><strong>不这样会怎样</strong>:混写文件里设计器一重排控件,合并冲突全是坐标;行为散在 Designer 事件行里的版本,排查"这个按钮到底干了什么"要跨两个文件搜索。</p>
+<p><strong>🎤 面试一句话</strong>:"窗体我拆 partial 两文件:Designer 是机器维护的界面描述,MainForm.cs 是人的逻辑,机器重写设计永远碰不到手写代码;事件订阅我特意收回构造函数里集中放——Designer 退化成纯布局数据,行为入口一眼看全,这相当于前端模板和逻辑分离。"</p>
 <blockquote>
 <p>⚠️ <strong>这一节用"导读模式"</strong>:整个文件 680 行是一台"代码化的界面",没有可拆的中间态 —— <strong>先展开文末折叠块把完整文件贴进工程</strong>,再按 4 步读懂它的结构。大量重复(轴 2 抄轴 1)只讲一遍。</p>
 </blockquote>

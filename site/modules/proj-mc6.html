@@ -130,6 +130,32 @@
 <h2 id="sec-2-4">🛠️ 参考实现(三步:新控件 → 布局 → 接线)</h2>
 <h3 id="sec-3-1">步骤 1:自定义控件 TrajectoryPanel.cs(新建文件)</h3>
 <p><strong>设计思路一句</strong>:控件自己管"数据(轨迹点)"和"渲染(OnPaint)" —— Sample() 只存点 + 标脏,所有画图只发生在 OnPaint,像前端"改 state → 触发 re-render"。</p>
+<h4>🏗️ 为什么这样设计:轨迹图为什么自绘(Panel + OnPaint + GDI),而不是用 Chart 控件或 LiveCharts?</h4>
+<p><strong>当时面临的选择</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>优点</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chart/LiveCharts 画 XY 散点连线</td>
+<td>现成,轴/图例白送</td>
+<td>坐标系是"数据轴",不是"机床坐标系"(Y 要向上、原点在左下);几千点连线重绘,库动画开销大;机床十字线/当前点高亮都要和库搏斗</td>
+</tr>
+<tr>
+<td>自绘 Panel:存点 + OnPaint 画(选定)</td>
+<td>百余行</td>
+<td>轴刻度、缩放这些"轮子"自己造(本项目只要十字定位线,够用)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么选它</strong>:轨迹图要的不是"图表",是<strong>俯视图的机床坐标系</strong>——X 向右、Y 向上、毫米等比例(圆要画成圆,不能被拉伸),还有十字线、当前点、越界边框变色这些领域专属画法。自绘把映射公式拿在手里:<code>屏x = ox + px * scale</code>、<code>屏y = oy - py * scale</code>(那个<strong>减号</strong>就是 Y 轴翻转),机床语义和像素语义一一对应,任何效果改 OnPaint 即得。性能也是自绘主场:4000 点 <code>DrawLines</code> 一次成帧 + DoubleBuffered 整帧贴屏,Chart 库的动画/命中测试全是白背的开销。前端类比:要一个"数据可视化"用 ECharts;要一个"游戏小地图",你一定会自己拿 canvas 画——这里是后者。</p>
+<p><strong>不这样会怎样</strong>:Chart 版先要说服库接受"Y 轴反向 + 等比坐标",再逐个关掉图例/动画/悬停提示;两周后客户说"当前点画个大红点、超程边框变红"——每加一个效果都在和库的抽象搏斗。</p>
+<p><strong>🎤 面试一句话</strong>:"轨迹图我自绘不用 Chart 库:要的是机床俯视坐标系——Y 向上、毫米等比、十字定位线,这些是领域语义不是图表语义,自绘把坐标映射拿在手里一个减号就能翻转 Y 轴;4000 点 DrawLines 一帧加双缓冲,比图表库少背动画和交互的开销。"</p>
 <blockquote>
 <p>🧩 <strong>这篇可以"边贴边跑"</strong>:<code>OnPaint</code> 是 override(不重写也能编译,只是空白一片)—— 先贴 ①②(字段 + 数据入口),控件已能用;再贴 ③④(渲染)。也可以直接展开文末折叠块整体粘贴,再按 4 步走读。</p>
 </blockquote>

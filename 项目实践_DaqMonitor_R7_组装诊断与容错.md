@@ -59,6 +59,21 @@ dotnet add src/DaqMonitor.Tests package Microsoft.Extensions.DependencyInjection
 > 💡 面试常问"通信断了怎么办"——答案:重试+退避+超时+重连,不是裸 try-catch
 > 🗺️ **新手读码地图**(10 行代码两个亮点):1. `catch ... when (attempt < maxRetries ...)`:异常过滤器——次数没用完才吞掉异常进重试,用完了让异常正常抛出去给调用方。这比 try-catch 里 if-else 干净得多 2. 延迟公式 `base * 2^(n-1) + 随机抖动`:第 1/2/3 次重试分别约 200/400/800ms——翻倍是**指数退避**(别猛敲刚出故障的设备),再加 0~200ms 随机数是**抖动**(100 个客户端同时失败,不会变成 200ms 后又同时涌回来)。**前端类比**:请求失败自动重连的 axios-retry / react-query retry,默认策略一模一样(指数+抖动),这是业界通用套路不是本项目发明。
 
+#### 🏗️ 为什么这样设计:重试为什么要抽成一个公共类,而不是每个调用点自己 try-catch 循环?为什么加随机抖动?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| 每个调用点自己写 for + catch + Sleep | 直观 | 策略散落:R4 设备、R7 监控器各写一遍,退避节奏不一致,改策略要改 N 处 |
+| `Retry.ExecuteAsync(op)` 一处封装(选定) | 多一个类 | 调用方要改成委托写法 |
+
+**为什么选它**:"断线重试"是**横切关注点**(设备连接、数据库打开、网络请求全要),横切逻辑抽一处是 DDD 到前端 interceptor 的通用纪律。封装后策略只有一份真相:maxRetries、指数底数、抖动范围改一处全局生效。**抖动(jitter)是容易被漏的半个决策**:固定退避下,100 个客户端同瞬失败就会在 200ms、400ms…整整齐齐地集体涌回(同步雪崩);加 0~200ms 随机把重试时刻打散——react-query、AWS SDK 的重试都带抖动,不是锦上添花是标配。
+
+**不这样会怎样**:散落的 try-catch 各自为政,现场改一次退避参数要发全量版;没有抖动的多客户端部署,服务恢复瞬间的重连风暴把它再次打挂。
+
+**🎤 面试一句话**:"重试我抽成公共类:横切关注点只留一份策略真相,指数退避防止猛敲故障设备,再加随机抖动防止多客户端同步重试形成雪崩——这套参数化策略和 react-query、AWS SDK 的默认重试一致。"
+
 **第 1 步 · 无返回值版 ExecuteAsync**(新文件,整段贴)
 
 ```csharp
@@ -465,6 +480,22 @@ public sealed class DeviceHealthMonitor : IDisposable
 > 📂 `src/DaqMonitor.Core/Diagnostics/DiagnosticsService.cs` · namespace `DaqMonitor.Core.Diagnostics`
 > 💡 工业现场 80% 的时间在排查"为什么没数据"——指标和日志是第一手证据;放 Core 与 UI 无关,R8 的诊断面板直接绑它
 
+#### 🏗️ 为什么这样设计:诊断日志为什么"构造时抓 UI 上下文、写日志时 Post 投递",而不是后台线程直接 Add?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| 后台线程直接 `Logs.Add(...)` | 一行搞定 | **WPF 绑定集合只许 UI 线程改**——后台 Append 当场 NotSupportedException 崩界面 |
+| 每个写日志处自己 Dispatcher.Invoke | 能跑 | 写日志的地方越多,每个都要记得切线程,漏一处崩一处 |
+| 构造抓 `SynchronizationContext` 快照,Append 内部自动 Post(选定) | 多几行 | 构造必须在 UI 线程做(由 DI 组装时机保证) |
+
+**为什么选它**:这是个真实修过的 bug——早期版本后台线程直接改集合,界面随机崩溃。修复思路不是"每个调用点小心",而是**把线程规则关进类里**:构造时(UI 线程)记下邮局地址 `_uiCtx`,之后任何线程 Append,类内部判断"当前不在这个上下文就 Post 寄回去"。调用方完全不知道线程规则存在——**线程安全是类的责任,不是每个调用者的责任**。用 SynchronizationContext 而不是 Dispatcher 是因为这是 Core 层,不能引用 WPF 类型(引用了就破坏 R1 的依赖方向)。前端类比:Worker 里算完数据必须 postMessage 回主线程才能改 DOM——这个类把 postMessage 封装进了"写日志"动作本身。
+
+**不这样会怎样**:每处调用自己 Invoke,新增一个日志点就多一处可能忘;而且 Core 层用 Dispatcher 会让业务逻辑反向依赖 WPF 框架。
+
+**🎤 面试一句话**:"诊断服务我在构造时抓 SynchronizationContext 快照,后台线程写日志时类内部自动 Post 回 UI 线程——线程规则封装在类里,调用方无感。这是修过的真实 bug:后台直接改绑定集合会 NotSupportedException。选 SynchronizationContext 不选 Dispatcher,还因为 Core 层不许依赖 WPF 类型。"
+
 **第 1 步 · 骨架:字段 + 七个只读属性 + 构造**(新文件,整段贴)
 
 ```csharp
@@ -693,6 +724,21 @@ public class DiagnosticsService
 > 📂 `src/DaqMonitor.Core/AppServices/Bootstrapper.cs`
 > 💡 参考工程同名文件还注册认证/配方/运控/MQTT(R9+ 内容)并种子账号配方——**R7 版先删掉这些,R9+ 做到那篇时按参考工程加回**;注释里的"换一行接真设备"示例全保留,这是可插拔的证据
 > 🗺️ **新手读码地图**(这就是全项目的"总装配车间"):1. 前面 R2-R6 造的都是零件(设备/管道/存储/报警/诊断),这个类只干一件事——**把零件按依赖关系拧在一起**:建容器 → 注册每个服务 → Build 出 ServiceProvider,谁要什么自己 `GetRequiredService` 领 2. 三种注册姿势看仔细:`AddDbContextFactory`(工厂,EF 短生命周期专用)、`AddSingleton`(全局一份:存储/报警/诊断/管道——管道注册时顺手 `new AcquisitionPipeline(200ms)`,这就是 R5"构造即启动"的落点)、`AddSingleton<IDevice>(_ => ...)`(**注册的是接口,给的是实现**——最底下那行注释就是"换真设备只改这一行"的实物证据) 3. `EnsureCreated` 启动时建库建表(首次运行生成 daq.db);随后预置两条报警规则——配置也集中在组合根,不散落在代码里 4. 为什么放 Core 不放 UI:测试、未来的无界面服务,都能 `Bootstrapper.Build()` 复用同一套装配。**前端类比**:组合根 ≈ 应用入口的 Provider 装配(store/router/i18n 一次配好)+ NestJS 的 AppModule——依赖注入框架哪个语言都长这样,会一个就都通了。
+
+#### 🏗️ 为什么这样设计:为什么用 Microsoft.Extensions.DependencyInjection 手拧组合根,而不是上 Prism 容器?组合根为什么放 Core 不放 UI?
+
+**当时面临的选择**:
+
+| 方案 | 优点 | 代价 |
+|---|---|---|
+| 上 Prism(容器+区域导航+模块化全家桶) | WPF 生态"标配" | 全家桶里本项目只用得到容器那 10%;Core 层被迫引用 WPF 框架 |
+| MS Extensions.DI + 一个静态 Bootstrapper(选定) | 多写 60 行装配代码 | 没有 Prism 的模块化/区域导航(本项目用不到) |
+
+**为什么选它**:本项目对容器的全部需求就是"注册-解析",MS DI 是 .NET 官方轻量容器,Bootstrapper 60 行显式装配——**每个零件怎么接的,打开一个文件全看见**,不藏在框架魔法后。更关键的是**分层约束**:组合根放 Core,意味着"测试、未来的无界面服务"都能 `Bootstrapper.Build()` 复用同一套装配;Prism 的容器装配天然长在 UI 工程,Core 就得反过来依赖 WPF——破坏 R1 定下的依赖方向。**引入框架的判据:它解决的问题大于它的重量**。Prism 解决"大型模块化 WPF",本项目没这个问题。
+
+**顺带的收益**:组合根是个"可测试的零件清单"——⑤ 的组合冒烟测试就是 Build 一遍、把关键服务全 resolve 一遍,谁依赖配错了**启动测试当场红**,不用等运行期才发现。
+
+**🎤 面试一句话**:"DI 我用官方轻量容器手写组合根:项目只需要注册-解析,Prism 全家桶的重量换不回收益;组合根放 Core 不放 UI,测试和无界面服务能复用同一套装配,Core 也不欠 WPF 的引用。组合根还天然可做冒烟测试——Build 完把关键服务逐个 resolve,装配错误在测试期就爆。"
 
 > ⚠️ **这个文件是"一个静态类 + 一个 Build() 方法"**——方法是原子的,没法"贴一半编译一半"。**先展开文末折叠块把完整文件贴进工程,再按下面 3 步逐段读懂**。贴完这一步,R1-R6 的所有零件就装箱完毕。
 
