@@ -33,8 +33,8 @@
 <li class="l2"><a href="#sec-2-3">📚 本篇知识点</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">🛠️ 参考实现</a><ul>
-<li class="l3"><a href="#sec-3-1">① 契约:IDevice + DataEventArgs + DeviceBase</a></li>
-<li class="l3"><a href="#sec-3-2">② 模拟设备 SimulatedDevice</a></li>
+<li class="l3"><a href="#sec-3-1">① 契约:IDevice + DataEventArgs + DeviceBase(一个文件,分 3 步搭)</a></li>
+<li class="l3"><a href="#sec-3-2">② 模拟设备 SimulatedDevice(单类文件:先整体贴入,再分 3 步读懂)</a></li>
 <li class="l3"><a href="#sec-3-3">③ 第一批测试(设备流程 + 时间戳铁律)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-5">✅ 验证(必做)</a><ul>
@@ -102,13 +102,83 @@ src/DaqMonitor.Tests/
 <li><a href="#" class="kplink" data-kp="idevice" onclick="openKp('idevice');return false;">IDevice 统一抽象</a> · <a href="#" class="kplink" data-kp="sync-facade" onclick="openKp('sync-facade');return false;">为什么是同步门面</a> · <a href="#" class="kplink" data-kp="event-delegate" onclick="openKp('event-delegate');return false;">event 事件机制</a> · <a href="#" class="kplink" data-kp="struct-vs-class" onclick="openKp('struct-vs-class');return false;">struct vs class</a> · <a href="#" class="kplink" data-kp="unit-test" onclick="openKp('unit-test');return false;">xUnit 单元测试</a></li>
 </ul>
 <h2 id="sec-2-4">🛠️ 参考实现</h2>
-<h3 id="sec-3-1">① 契约:IDevice + DataEventArgs + DeviceBase</h3>
+<h3 id="sec-3-1">① 契约:IDevice + DataEventArgs + DeviceBase(一个文件,分 3 步搭)</h3>
 <blockquote>
-<p>📂 <code>src/DaqMonitor.Core/Devices/IDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>(一个文件三个类型,与参考工程一字不差)
-🔧 无 NuGet
-💡 用到 R1 的 <code>DeviceState</code>(<code>DaqMonitor.Core.Models</code>)
-🗺️ <strong>新手读码地图</strong>:一个文件三个类型——<code>DataEventArgs</code>(一次采样的快递盒:点号+值+时间戳)→ <code>IDevice</code>(所有设备的合同:Connect/Disconnect/Read/Write + 一个 DataReceived 事件)→ <code>DeviceBase</code>(把合同里重复的部分先写好:状态机 + RaiseData 发射器,子类只写差异)。<strong>前端类比</strong>:IDevice ≈ interface,DeviceBase ≈ 抽象基类组件,DataReceived ≈ 事件的 on/emit。</p>
+<p>📂 <code>src/DaqMonitor.Core/Devices/IDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>(与参考工程一字不差)
+🔧 无 NuGet · 💡 用到 R1 的 <code>DeviceState</code>(<code>DaqMonitor.Core.Models</code>)
+这个文件是"三个类型平铺"的结构,天然适合搭积木:<strong>每一步追加一个类型,贴完就能编译</strong>。跟敲完 3 步,你的文件就和折叠块里的完整版一模一样。
+🗺️ <strong>前端类比</strong>:IDevice ≈ interface,DeviceBase ≈ 抽象基类组件,DataReceived ≈ 事件的 on/emit</p>
 </blockquote>
+<p><strong>第 1 步 · DataEventArgs —— 一次采样的"快递盒"</strong>(新建文件,贴入下面全部)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// 数据到达事件参数。注意:载荷不是 SensorPoint——
+/// 事件只报&quot;哪个点、什么值、何时&quot;,转成 SensorPoint 是采集管道的事(职责分离)。
+/// &lt;/summary&gt;
+public class DataEventArgs : EventArgs
+{
+    public int PointId { get; init; }
+    public double Value { get; init; }
+    public DateTime Timestamp { get; init; } = DateTime.Now;   // 发送方统一打时间戳
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>为什么载荷不是 SensorPoint?</strong> 设备层只报事实("哪个点、什么值、何时"),组装成领域模型是采集管道的职责——设备不该知道领域模型长什么样,这样换领域模型不动设备层。前端类比:<code>CustomEvent</code> 的 <code>detail</code> 只放最小事实,组件自己决定怎么用它渲染。
+- <strong><code>{ get; init; }</code></strong> = 只读属性 + 只能在对象初始化器里赋值(C# 9)。比 <code>set</code> 安全:事件参数发出去之后没人能改——≈ TS 的 <code>readonly</code>。
+- <strong>时间戳默认 <code>DateTime.Now</code></strong>:谁发数据谁打时间,下游不许自己补——"单一时间源"是分布式采集的铁律,否则各盖各的章,历史回放时序全乱。</p>
+<p><strong>第 2 步 · IDevice —— 所有设备的"合同"</strong>(追加到同一文件末尾)</p>
+<pre><code class="language-csharp">/// &lt;summary&gt;设备统一接口:UI/采集层只认它,不关心底层是串口/网口/PLC&lt;/summary&gt;
+public interface IDevice
+{
+    int Id { get; }
+    string Name { get; }
+    DeviceState State { get; }
+
+    void Connect();
+    void Disconnect();
+    double Read(int addr);
+    void Write(int addr, double value);
+
+    /// &lt;summary&gt;采集层拿到数据后单向通知订阅方(UI 刷新用)&lt;/summary&gt;
+    event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>接口 = 可插拔的合同</strong>:上层只 <code>using IDevice</code>,底层是串口/网口/PLC 无所谓。R4 接入真实设备时你会体会:换设备只改 <code>new</code> 的那一行,管道/UI/报警零改动——这就是"面向接口编程"值钱的地方。
+- <strong><code>Read</code> 返回 <code>double</code> 不是 <code>byte[]</code></strong>:设备层交出来的已经是工程量(25.3 ℃),协议字节、CRC、字节序是设备内部的事(见 R3)。<strong>原始值与工程量的分层</strong>,后面每一层都在受益。
+- <strong>接口里能声明 event</strong>:C# 接口成员不止方法,事件/属性都行。<code>EventHandler&lt;T&gt;?</code> 的 <code>?</code> 表示"可以没人订阅"——调用前必须判空,所以 DeviceBase 里用 <code>?.Invoke</code>。</p>
+<p><strong>第 3 步 · DeviceBase —— 把重复的部分先写好</strong>(追加到文件末尾)</p>
+<pre><code class="language-csharp">/// &lt;summary&gt;设备基类:复用通用状态与事件触发逻辑(FR2-5)&lt;/summary&gt;
+public abstract class DeviceBase : IDevice
+{
+    public int Id { get; }
+    public string Name { get; }
+    public DeviceState State { get; protected set; } = DeviceState.Offline;
+
+    public event EventHandler&lt;DataEventArgs&gt;? DataReceived;
+
+    protected DeviceBase(int id, string name) { Id = id; Name = name; }
+
+    public abstract void Connect();
+    public abstract void Disconnect();
+    public abstract double Read(int addr);
+    public abstract void Write(int addr, double value);
+
+    /// &lt;summary&gt;子类采集到数据后调用:触发 DataReceived 事件(自动打时间戳)&lt;/summary&gt;
+    protected void RaiseData(int pointId, double value)
+        =&gt; DataReceived?.Invoke(this, new DataEventArgs { PointId = pointId, Value = value, Timestamp = DateTime.Now });
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>为什么接口之外还要一个抽象基类?</strong> 接口定合同,基类写"合同里所有设备都要重复写的那部分":Id/Name/State 字段、事件字段、发射器。子类只写差异(怎么连、怎么读)——模板方法思想,前端类比:抽象基类组件(HOC)把"订阅/卸载"包好,子组件只写渲染。
+- <strong><code>protected set</code></strong>:状态只有设备自己(和子类)能改,外面只读——防止 UI 层手滑把设备改成 Online。状态机转换权收在设备内部。
+- <strong><code>RaiseData</code> 是唯一的发射口</strong>:所有子类报数必须走它 → 时间戳统一在这里盖 → 想加"事件计数/日志"只改一处。<strong>一个口子进出,是留扩展点的基本功</strong>。</p>
+<details>
+<summary>📄 完整文件 IDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using System;
 
@@ -162,18 +232,109 @@ public abstract class DeviceBase : IDevice
         =&gt; DataReceived?.Invoke(this, new DataEventArgs { PointId = pointId, Value = value, Timestamp = DateTime.Now });
 }
 </code></pre>
-<h3 id="sec-3-2">② 模拟设备 SimulatedDevice</h3>
+</details>
+<h3 id="sec-3-2">② 模拟设备 SimulatedDevice(单类文件:先整体贴入,再分 3 步读懂)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/SimulatedDevice.cs</code> · namespace <code>DaqMonitor.Core.Devices</code>
 🔧 无 NuGet
-💡 "同步门面 + 内部异步"的样板:Connect() 立即返回,采集在 <a href="#" class="kplink" data-kp="taskrun" onclick="openKp('taskrun');return false;">Task.Run</a> 的后台循环里
-🗺️ <strong>新手读码地图</strong>(5 步看懂):
-1. <code>Connect()</code> 只改状态:Connecting(睡 50ms 假装握手)→ Online,<strong>不做采集</strong>,所以立即返回、不卡调用方
-2. <code>Start(interval)</code> 才真正干活:Task.Run 起后台循环,每 interval 毫秒遍历所有点位发一个随机值——类比前端 setInterval 定时 emit
-3. <code>RaiseData(pid, v)</code> 是从 DeviceBase 继承的发射器:值打包成 DataEventArgs(<strong>自动盖 DateTime.Now 时间戳</strong>)再触发 DataReceived,谁订阅谁收到
-4. 10% 概率发 95~120 越限值——故意让 R5 的报警引擎有事干,界面能看到报警变色
-5. <code>Stop()</code> 用 CancellationTokenSource 取消循环;catch OperationCanceledException 是<strong>正常退出</strong>,不是 bug</p>
+💡 "同步门面 + 内部异步"的样板:Connect() 立即返回,采集在 <a href="#" class="kplink" data-kp="taskrun" onclick="openKp('taskrun');return false;">Task.Run</a> 的后台循环里</p>
+<p>这个文件是<strong>一个类、成员互相调用</strong>(Disconnect 调 Stop、Start 用字段),拆成几段分开编译过不了——所以玩法是:<strong>先展开折叠块把完整文件贴进去,然后按下面 3 步逐块读懂</strong>。每一步都标了它在文件里的位置。</p>
 </blockquote>
+<p><strong>第 1 步 · 类骨架:字段 + 构造 + 四个接口方法</strong>(文件开头到 <code>Write</code> 为止)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System.Threading;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// 模拟设备:实现 IDevice,用后台线程周期性产生随机点位。
+/// 没有真实硬件也能跑通整个采集链路——本地演示 / 单元测试 / 面试 demo 都用它。
+/// 它和真实串口/PLC 设备暴露同一接口,上层(管道/UI/报警)完全无感——可插拔。
+/// &lt;/summary&gt;
+public class SimulatedDevice : DeviceBase
+{
+    private readonly int[] _pointIds;
+    private readonly Random _rnd = new();
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+
+    public SimulatedDevice(int id, string name, params int[] pointIds)
+        : base(id, name)
+        =&gt; _pointIds = pointIds.Length &gt; 0 ? pointIds : new[] { 1 };
+
+    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        Thread.Sleep(50); // 模拟握手耗时
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        State = DeviceState.Offline;
+    }
+
+    public override double Read(int addr) =&gt; Math.Round(_rnd.NextDouble() * 100, 2);
+
+    public override void Write(int addr, double value) { /* 模拟设备只读,忽略写 */ }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>params int[]</code> 构造</strong>:<code>new SimulatedDevice(1, "Sim-01", 1, 2, 3)</code> 最后三个参数自动收进数组——调用方写起来像可变参数,和 <code>console.log(...)</code> 的观感一致。
+- <strong><code>Connect()</code> 为什么睡 50ms?</strong> 假装握手耗时,让 <code>Connecting</code> 状态肉眼可见(真实设备握手要几百毫秒)。注意它<strong>只改状态、不做采集</strong>——采集是 <code>Start()</code> 的事,所以 Connect 立即返回,不卡调用方。
+- <strong>状态机的三个态都在这了</strong>:Connecting(握着)→ Online(通了)→ Disconnect 时 Offline。UI 的状态灯(绿/黄/灰)绑的就是这个属性。</p>
+<p><strong>第 2 步 · Start:Task.Run 后台采集循环</strong>(<code>Write</code> 之后,类的中间)</p>
+<pre><code class="language-csharp">    /// &lt;summary&gt;
+    /// 开始模拟采集:每隔 interval 给每个点位发一个随机值。
+    /// 约 10% 概率冲到 95~120 区间,从而越过 100 的报警阈值,方便看到报警效果。
+    /// &lt;/summary&gt;
+    public void Start(TimeSpan interval)
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    foreach (var pid in _pointIds)
+                    {
+                        var v = _rnd.NextDouble() &lt; 0.1
+                            ? 95 + _rnd.NextDouble() * 25   // 可能越界,触发报警
+                            : 20 + _rnd.NextDouble() * 70;  // 正常区间
+                        RaiseData(pid, Math.Round(v, 2));
+                    }
+                    await Task.Delay(interval, token);
+                }
+            }
+            catch (OperationCanceledException) { /* 正常退出 */ }
+        }, token);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><a href="#" class="kplink" data-kp="sync-facade" onclick="openKp('sync-facade');return false;">同步门面</a> + 内部异步</strong>:<code>Start()</code> 是同步方法,内部 <code>Task.Run</code> 起后台循环——≈ 前端 <code>setInterval(fn, ms)</code> 定时 emit,区别是这里用 <code>Task.Delay + while</code>,因为要能<strong>取消</strong>。
+- <strong>CancellationToken 是优雅停机的钥匙</strong>:<code>Task.Delay(interval, token)</code> 一被取消就抛 <code>OperationCanceledException</code>,<code>while</code> 循环自然散架——catch 它是<strong>正常退出</strong>,不是 bug。这套"令牌取消"模式在 MC 运控项目里还管着两轴电机急停,是工业软件的标准动作(详见 <a href="#" class="kplink" data-kp="cancel-token" onclick="openKp('cancel-token');return false;">取消令牌</a>)。
+- <strong><code>if (_loop is not null) return;</code></strong>:防重复启动——连点两次"启动采集"不会起两个循环、数据翻倍。UI 按钮灰亮之外的第二道保险。
+- <strong>10% 越限概率不是随便写的</strong>:让 R5 的报警引擎有事干、R8 的表盘会变红——模拟数据的形状要<strong>服务于下游演示</strong>,这是做 demo 设备的门道。</p>
+<p><strong>第 3 步 · Stop:取消 + 等收尾 + 释放</strong>(<code>Start</code> 之后,类的末尾)</p>
+<pre><code class="language-csharp">    /// &lt;summary&gt;停止模拟采集并释放后台任务。&lt;/summary&gt;
+    public void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { /* 忽略 */ }
+        _cts?.Dispose();
+        _cts = null;
+        _loop = null;
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>停机的三步舞</strong>:<code>Cancel()</code>(发停止信号)→ <code>Wait(500)</code>(等后台循环退出,<strong>带超时</strong>,防止设备卡死拖死 UI)→ 清空字段(允许再次 Start)。顺序不能乱:先 Dispose 再 Wait 的话,循环里还在用的令牌就没了。
+- <strong><code>catch { /* 忽略 */ }</code></strong>:等 500ms 超时会抛异常,这里吞掉是<strong>故意的</strong>——停机路径上任何异常都不该往上冒(冒上去的就是"点停止按钮崩溃")。工业软件里"关闭/停止"代码路径的容错标准比"运行"路径高一档。</p>
+<details>
+<summary>📄 完整文件 SimulatedDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using System.Threading;
 
@@ -252,12 +413,80 @@ public class SimulatedDevice : DeviceBase
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-3">③ 第一批测试(设备流程 + 时间戳铁律)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/DeviceFlowTests.cs</code> · namespace <code>DaqMonitor.Tests</code>
 🔧 无需装包(R1 的 xunit 模板自带)
 💡 这是本项目的"测试样板":事件异步到达,用 <code>ManualResetEventSlim</code>/超时等待断言</p>
+<p>测试文件天然适合搭积木:先立一个空测试类(能编译),再把两个测试方法一块块贴进去,每步都编译通过。</p>
 </blockquote>
+<p><strong>第 1 步 · 空测试类骨架</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+// 设备抽象的教学测试:接口可用 + 事件推送 + 时间戳铁律
+public class DeviceFlowTests
+{
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>三个 using 各管一摊</strong>:<code>Devices</code>(被测的 SimulatedDevice)、<code>Models</code>(SensorPoint 等领域模型)、<code>Xunit</code>([Fact] 标记 + Assert 断言库)。
+- <strong>空类也能过 <code>dotnet test</code></strong>:显示"总计: 0"——先让骨架编译通过,再加测试,和前端先写空 <code>describe</code> 再填 <code>it</code> 一个套路。
+- <strong>测试文件按功能命名</strong>:<code>DeviceFlowTests</code> 测的是"设备流程"(连上→启动→收数→停机),以后每篇新模块都会有自己的 <code>XxxTests</code> 文件,见名知义。</p>
+<p><strong>第 2 步 · 测试 1:事件推送 + 时间戳</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void SimulatedDevice_RaisesData_WithTimestamp()
+    {
+        IDevice dev = new SimulatedDevice(1, &quot;sim&quot;, 7);   // 故意用接口类型声明——上层只认 IDevice
+        DataEventArgs? got = null;
+        var mre = new ManualResetEventSlim();
+
+        dev.DataReceived += (s, e) =&gt; { got = e; mre.Set(); };
+
+        dev.Connect();
+        ((SimulatedDevice)dev).Start(TimeSpan.FromMilliseconds(20));
+
+        Assert.True(mre.Wait(3000), &quot;3 秒内应收到至少一条数据&quot;);
+        Assert.NotNull(got);
+        Assert.Equal(7, got!.PointId);
+        Assert.InRange(got.Value, 0, 200);
+        Assert.True(got.Timestamp &gt; new DateTime(2000, 1, 1), &quot;Timestamp 应被采集源打上&quot;);
+
+        ((SimulatedDevice)dev).Stop();
+        dev.Disconnect();
+        Assert.Equal(DeviceState.Offline, dev.State);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>事件是后台线程发的,不能直接断言</strong>:<code>RaiseData</code> 在 Task.Run 循环里触发,主测试线程立刻读 <code>got</code> 大概率还是 null——和测前端 <code>setTimeout</code> 回调一个道理,必须等它发生。<code>ManualResetEventSlim</code> 就是等待信号:事件处理器里 <code>Set()</code>(发信号),主线程 <code>Wait(3000)</code>(最多等 3 秒)。所以第一行 Assert 断的不是数据,而是<strong>"事件确实发生了"</strong>——信号没来,后面全免谈。
+- <strong><code>IDevice dev = new SimulatedDevice(...)</code> 故意用接口类型声明</strong>:整个测试只通过合同访问设备;<code>Start</code> 是 SimulatedDevice 特有的,才 <code>((SimulatedDevice)dev)</code> 强转一下。体会这里:以后换成 <code>SerialDevice</code>,除强转外一字不改——可插拔不是嘴上说的,是测试替你锁死的。
+- <strong>断言断不变量,不断偶然值</strong>:<code>Timestamp &gt; 2000-01-01</code> 只验证"被采集源打上了",不断言精确时刻(时钟不可预测);<code>InRange(Value, 0, 200)</code> 断的是模拟数据的合理区间——比 <code>NotNull</code> 有内容得多。</p>
+<p><strong>第 3 步 · 测试 2:时间戳铁律 + 反面教材</strong>(同样贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void EventToSensorPoint_Conversion_MustCopyTimestamp()
+    {
+        // R1 说过的翻车点:转 SensorPoint 必须抄 e.Timestamp
+        var e = new DataEventArgs { PointId = 3, Value = 42.0, Timestamp = DateTime.Now };
+
+        var p = new SensorPoint { Id = e.PointId, Value = e.Value, Timestamp = e.Timestamp };
+
+        Assert.Equal(3, p.Id);
+        Assert.Equal(42.0, p.Value);
+        Assert.Equal(e.Timestamp, p.Timestamp);
+
+        var bad = new SensorPoint { Id = e.PointId, Value = e.Value };   // 反面教材
+        Assert.Equal(new DateTime(1, 1, 1), bad.Timestamp);              // 不抄 = 0001-01-01
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这个测试锁的是 R1 说的翻车点</strong>:事件 → SensorPoint 转换必须显式抄 <code>e.Timestamp</code>,不抄就是 <code>0001-01-01</code>(C# struct 的 default 值)。代码里专门写了反面教材变量 <code>bad</code>,把"错误的写法长什么样"也变成断言——以后谁改坏这条链路,测试立刻红给你看。
+- <strong>用测试锁约定 = 防御性文档</strong>:比注释强一个量级——注释会过时,测试每次 CI 都重新验证一遍。工业软件的时间戳牵着历史曲线排序、报警先后,错一位全乱。</p>
+<details>
+<summary>📄 完整文件 DeviceFlowTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Models;
 using Xunit;
@@ -307,6 +536,7 @@ public class DeviceFlowTests
     }
 }
 </code></pre>
+</details>
 <h2 id="sec-2-5">✅ 验证(必做)</h2>
 <pre><code class="language-bash">dotnet build
 dotnet test

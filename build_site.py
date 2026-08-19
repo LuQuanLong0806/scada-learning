@@ -642,7 +642,7 @@ LEGEND = """
 # ---------------------------------------------------------------------------
 # Markdown -> HTML, 赋 id, 提取 TOC, 打卡复选框
 # ---------------------------------------------------------------------------
-md_engine = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists"])
+md_engine = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists", "md_in_html"])
 
 def convert(md_text, slug):
     md_engine.reset()

@@ -142,6 +142,58 @@ dotnet add src/DaqMonitor.Tests package Microsoft.EntityFrameworkCore.Sqlite --v
 🔧 依赖 EF Sqlite(⓪ 已装)
 💡 "领域模型 ↔ 持久化模型"分离:内存里跑 struct,库里存 class,互转只在 Store 边界</p>
 </blockquote>
+<p><strong>第 1 步 · 类壳 + 六个属性:一张表的列</strong>(新文件,整段贴)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Store;
+
+public class SensorRecord
+{
+    /// &lt;summary&gt;自增主键(持久化用,与业务 PointId 不是一回事)。&lt;/summary&gt;
+    public int Id { get; set; }
+
+    /// &lt;summary&gt;点位 ID(业务键,来自 SensorPoint.Id)。&lt;/summary&gt;
+    public int PointId { get; set; }
+
+    /// &lt;summary&gt;采样值。&lt;/summary&gt;
+    public double Value { get; set; }
+
+    /// &lt;summary&gt;设备状态。&lt;/summary&gt;
+    public DeviceState State { get; set; }
+
+    /// &lt;summary&gt;采样时间戳(来自 SensorPoint.Timestamp)。&lt;/summary&gt;
+    public DateTime Time { get; set; }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Id ≠ PointId</strong>:Id 是数据库自增主键(这一行数据的身份证),PointId 是业务键(哪个测点)。<strong>前端类比</strong>:表格渲染的 <code>key</code> 用数组下标,行里另有业务 id——两个"标识"各管各的,别混。
+- <strong>全是 <code>{ get; set; }</code> 可变属性</strong>:EF Core 变更跟踪需要可写属性 + 引用语义。对比 R1 的 <code>SensorPoint</code>——readonly 字段的 struct,"出生即定型"。<strong>领域模型要的是不变性,持久化模型要的是可变性</strong>,所以分两个类。
+- <strong>属性名叫 Time 而不是 Timestamp</strong>:列名跟着表走(<code>time</code> 列);存的是 UTC,SQLite 把 DateTime 存成字符串,UTC 字符串排序 = 时间排序。</p>
+<p><strong>第 2 步 · FromPoint / ToPoint 互转对</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    /// &lt;summary&gt;从领域 struct 转换为持久化实体(纯映射,零副作用)。&lt;/summary&gt;
+    public static SensorRecord FromPoint(in SensorPoint p) =&gt; new()
+    {
+        PointId = p.Id,
+        Value = p.Value,
+        State = p.State,
+        Time = p.Timestamp
+    };
+
+    /// &lt;summary&gt;从持久化实体还原为领域 struct。&lt;/summary&gt;
+    public SensorPoint ToPoint() =&gt; new()
+    {
+        Id = PointId,
+        Value = Value,
+        State = State,
+        Timestamp = Time
+    };
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>in SensorPoint p</code></strong>:按只读引用传 struct,避免 24 字节拷贝——高频采集路径的微优化。和 R5 里 <code>in</code> 出现的理由相同:struct 传参默认拷贝。
+- <strong><code>=&gt; new() { ... }</code> 目标类型 new 表达式</strong>:返回类型已声明,构造处只写 <code>new()</code>。<strong>前端类比</strong>:TS 里函数返回类型标注后,返回对象字面量不用再写 <code>: SensorRecord</code>。
+- <strong>⚠️ 又是时间戳</strong>:FromPoint 抄 <code>p.Timestamp → Time</code>,ToPoint 抄 <code>Time → Timestamp</code>,双向都手动搬运——R1 的铁律第三次出现。struct 没有自动映射,漏抄一条字段,历史曲线就缺一列,且<strong>编译器不报错</strong>。</p>
+<details>
+<summary>📄 完整文件 SensorRecord.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 
 namespace DaqMonitor.Core.Store;
@@ -194,14 +246,58 @@ public class SensorRecord
     };
 }
 </code></pre>
-<blockquote>
-<p>⚠️ 又是时间戳:FromPoint/ToPoint 双向都抄 Timestamp/Time——R1 的铁律第三次出现。</p>
-</blockquote>
+</details>
 <h3 id="sec-3-3">② AppDb —— DbContext(R6 版)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Store/AppDbContext.cs</code> · 类名是 <code>AppDb</code>
 💡 参考工程的同名文件里还有用户/审计/配方表(R9+ 的内容),R6 版先只留 sensor_record——<strong>R9+ 做到那篇时再往 OnModelCreating 里加表</strong>,种子代码结构不变</p>
 </blockquote>
+<p><strong>第 1 步 · 类壳 + 构造 + DbSet:表声明</strong>(新文件,整段贴)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace DaqMonitor.Core.Store;
+
+public class AppDb : DbContext
+{
+    public AppDb(DbContextOptions&lt;AppDb&gt; options) : base(options) { }
+
+    /// &lt;summary&gt;历史样本表(按时间追加,几乎不更新)。&lt;/summary&gt;
+    public DbSet&lt;SensorRecord&gt; Records =&gt; Set&lt;SensorRecord&gt;();
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>DbContext 是"一场对话",不是"一个数据库"</strong>:一个 AppDb 实例 = 一次打开的会话(带变更跟踪缓存),用完就丢。数据库本体是那个 .db 文件。<strong>前端类比</strong>:DbContext ≈ 一个打开的 WebSocket 连接,不是服务器本身;连接要短用短弃,文件才是持久的东西。
+- <strong>ctor 只收 <code>DbContextOptions&lt;AppDb&gt;</code></strong>:连什么库(连接串、驱动)由外部注入——本类不写死 <code>Data Source=...</code>,测试才能换文件、生产才能换路径。<strong>依赖注入的"配置也走构造"</strong>。
+- <strong><code>DbSet&lt;SensorRecord&gt; Records =&gt; Set&lt;SensorRecord&gt;()</code></strong>:属性只是"这张表的门牌",表达式体 <code>=&gt;</code> 每次取现成的 Set,不为每上下文存一份。有这个属性,后面 LINQ 查询才能写 <code>db.Records.Where(...)</code>。</p>
+<p><strong>第 2 步 · OnModelCreating:一次说清表结构</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    protected override void OnModelCreating(ModelBuilder mb)
+    {
+        base.OnModelCreating(mb);
+
+        var e = mb.Entity&lt;SensorRecord&gt;();
+        e.ToTable(&quot;sensor_record&quot;);
+        e.HasKey(x =&gt; x.Id);
+        e.Property(x =&gt; x.Id).ValueGeneratedOnAdd();
+
+        e.Property(x =&gt; x.PointId).HasColumnName(&quot;point_id&quot;).IsRequired();
+        e.Property(x =&gt; x.Value).HasColumnName(&quot;value&quot;).IsRequired();
+        e.Property(x =&gt; x.State).HasColumnName(&quot;state&quot;).HasConversion&lt;string&gt;().IsRequired();
+        e.Property(x =&gt; x.Time).HasColumnName(&quot;time&quot;).IsRequired();
+
+        // 主查询路径:按点位 + 时间窗。SQLite 的 ASC 索引同时支持 ASC / DESC 查询。
+        e.HasIndex(x =&gt; new { x.PointId, x.Time }).HasDatabaseName(&quot;ix_record_point_time&quot;);
+        e.HasIndex(x =&gt; x.PointId).HasDatabaseName(&quot;ix_record_point&quot;);
+        e.HasIndex(x =&gt; x.Time).HasDatabaseName(&quot;ix_record_time&quot;);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Fluent API 是"建表图纸"</strong>:这一段只在 <code>EnsureCreated()</code> 建库时执行一次,生成 SQL 的 <code>CREATE TABLE</code>。<strong>前端类比</strong>:像 Prisma 的 <code>schema.prisma</code> / TypeORM 的 entity 装饰器——ORM 的表定义,只是 C# 用链式调用写。
+- <strong><code>HasConversion&lt;string&gt;()</code> 让枚举存字符串</strong>:<code>state</code> 列存 <code>"OverRange"</code> 而不是 <code>3</code>。好处:用 sqlite3 手工查库能看懂;将来 DeviceState 中间插一个新枚举值,老数据不会错位。<strong>前端类比</strong>:常量存语义名而非 magic number,一个道理。
+- <strong>三个索引 = 三种查询姿势</strong>:<code>(PointId, Time)</code> 复合索引服务主路径"按点位+时间窗查历史"(最左前缀:先定位点位,再在时间上二分);<code>PointId</code> 单列服务"按点位聚合";<code>Time</code> 单列服务"全点位扫时间段"。索引不是越多越好——每多一个,写入就多一份维护成本;这里写入频率 20 条/秒,三个索引的代价可以忽略。
+- <strong>匿名类型 <code>new { x.PointId, x.Time }</code> 声明复合索引</strong>:C# 的匿名类型在这里只是"列清单"的载体,EF 拿反射读列名。</p>
+<details>
+<summary>📄 完整文件 AppDbContext.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -248,12 +344,225 @@ public class AppDb : DbContext
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-4">③ PointStore —— 双写存储(本篇主角)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Store/PointStore.cs</code>
 💡 三层人格:<strong>旧 API 纯内存(实时永不阻塞)</strong> + <strong>Channel 串行写泵(满足 SQLite 单写者)</strong> + <strong>历史查询走库</strong>
 🗺️ <strong>新手读码地图</strong>(顺着 AddOrUpdate 一条数据的去向看):1. <strong>第一层·内存</strong>:<code>AddOrUpdate</code> 在 <code>lock</code> 里同步更新字典+列表——UI 实时表/报警判断只走这层,<strong>永远不碰磁盘</strong>,所以再高频也不会卡采集 2. <strong>第二层·落盘</strong>:同一方法里紧接着 <code>TryWrite</code> 把记录塞进 <code>_writeQueue</code>(Channel),塞完立刻返回,<strong>不等写库</strong>——这就是"fire-and-forget" 3. 谁来写库?构造时 <code>Task.Run(PumpWritesAsync)</code> 起的<strong>单消费者写泵</strong>,后台一条条取、一条条 SaveChanges。为什么必须串行:SQLite 同一时刻只允许一个写者,并发写会锁冲突——Channel 天然 FIFO + 单读者,比手工加锁稳 4. <strong>第三层·历史查询</strong>:<code>QueryHistoryAsync</code> 拿 EF 出一个新 DbContext 按"点位+时间窗"查库,和内存层互不干扰 5. <code>FlushAsync</code> 是关机前的好习惯:让队列收尾、等写泵把尾巴写完,防止最后几条丢在队列里。<strong>前端类比</strong>:内存层 ≈ 组件 state(毫秒级读写),写泵 ≈ 埋点上报的批处理队列(sentry/redux 持久化中间件都是"先入队、后台慢慢写"的双写套路)。</p>
 </blockquote>
+<p><strong>第 1 步 · 骨架:字段全家福 + 私有构造 + 写泵 + Dispose</strong>(新文件,整段贴)</p>
+<blockquote>
+<p>这一步把<strong>生命周期核心</strong>一次贴齐:私有构造函数里 <code>Task.Run(PumpWritesAsync)</code> 启动写泵(构造即启动,和 R5 管道同一个契约),所以构造和泵必须同贴;类声明了 <code>: IDisposable</code>,Dispose 也得当场兑现,否则编译不过。</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace DaqMonitor.Core.Store;
+
+public class PointStore : IDisposable
+{
+    // ===== 内存索引(旧 API 用,保持原语义不变) =====
+    private readonly List&lt;SensorPoint&gt; _points = new();
+    private readonly Dictionary&lt;int, SensorPoint&gt; _byId = new();
+    private readonly object _gate = new();
+
+    // ===== SQLite 持久化 =====
+    private readonly IDbContextFactory&lt;AppDb&gt; _dbFactory;
+    private readonly bool _ownsFactory;
+    // 串行化所有写库操作(SQLite 单写者)。Channel 比 lock + SemaphoreSlim 更稳:
+    // 写任务不会堆积在 ThreadPool,且按 FIFO 顺序执行。
+    private readonly System.Threading.Channels.Channel&lt;SensorRecord&gt; _writeQueue =
+        System.Threading.Channels.Channel.CreateUnbounded&lt;SensorRecord&gt;(
+            new System.Threading.Channels.UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+    private readonly Task _writePump;
+    private volatile bool _disposed;
+
+    private PointStore(IDbContextFactory&lt;AppDb&gt; factory, bool ownsFactory)
+    {
+        _dbFactory = factory;
+        _ownsFactory = ownsFactory;
+        // 启动写库泵(单消费者,串行执行 SaveChanges,天然满足 SQLite 单写者)
+        _writePump = Task.Run(PumpWritesAsync);
+    }
+
+    // ===================== 内部实现 =====================
+
+    private async Task PumpWritesAsync()
+    {
+        var reader = _writeQueue.Reader;
+        try
+        {
+            await foreach (var rec in reader.ReadAllAsync())
+            {
+                if (_disposed) break;
+                try
+                {
+                    await using var db = await _dbFactory.CreateDbContextAsync();
+                    db.Records.Add(rec);
+                    await db.SaveChangesAsync();
+                }
+                catch
+                {
+                    // 落盘失败不阻断采集——实时路径已用内存索引服务。
+                    // 真实工程可注入 ILogger 在此上报。
+                }
+            }
+        }
+        catch
+        {
+            // pump 异常不应冒泡到 finalizer
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        // 通知 pump 收尾
+        _writeQueue.Writer.TryComplete();
+        try { _writePump.Wait(TimeSpan.FromSeconds(2)); } catch { /* 忽略超时 */ }
+        if (_ownsFactory &amp;&amp; _dbFactory is IDisposable d) d.Dispose();
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>三份"家当"分区放</strong>:①内存索引(<code>_points</code> 列表保序 + <code>_byId</code> 字典按 Id 秒查,一份数据两个索引——前端表格"行数组 + byId map"完全同构);②SQLite 持久化(<code>_dbFactory</code> 出 DbContext、<code>_writeQueue</code> 排队、<code>_writePump</code> 后台写);③<code>_gate</code> 锁保护内存区。
+- <strong><code>SingleReader = true</code></strong>:向 Channel 声明"只有一个消费者",运行时可以省掉读者侧的竞争开销。<strong>SQLite 单写者约束在类型系统层面就表达出来了</strong>。
+- <strong><code>Task.Run(PumpWritesAsync)</code> 起泵、Dispose 里 <code>TryComplete()</code> 关泵</strong>:writer 完成后 <code>ReadAllAsync</code> 自然走到尽头,泵退出。这是 Channel 的标准关停姿势——不用 kill、不用 flag 轮询。前端类比:socket.io 的 graceful close,先 <code>end()</code> 再等 drain。
+- <strong>两层 catch 的"静默降级"</strong>:内层 catch 兜"单条写失败"(磁盘满也只丢这一条,泵继续跑);外层 catch 兜"泵本身崩了"(不让异常冒泡到线程池把进程打挂)。真实工程在内层注入 ILogger 上报——这里留了口子。
+- <strong><code>volatile bool _disposed</code></strong>:Dispose 在 UI 线程调用,<code>_disposed</code> 在泵线程读——volatile 保证读到的不是过期缓存。最简单的跨线程可见性工具。</p>
+<p><strong>第 2 步 · 旧 API 四件套:第一层·内存</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    // ===================== 旧 API(不变) =====================
+
+    /// &lt;summary&gt;更新或插入当前点位(内存索引同步刷新;SQLite 异步追加一行)。&lt;/summary&gt;
+    public void AddOrUpdate(SensorPoint p)
+    {
+        // 1) 内存索引同步更新(旧语义)
+        lock (_gate)
+        {
+            _byId[p.Id] = p;
+            var idx = _points.FindIndex(x =&gt; x.Id == p.Id);
+            if (idx &gt;= 0) _points[idx] = p;
+            else _points.Add(p);
+        }
+
+        // 2) 异步落盘:仅追加(历史库要保留全部时序样本,不因&quot;更新当前值&quot;而丢历史)
+        if (!_disposed)
+        {
+            _writeQueue.Writer.TryWrite(SensorRecord.FromPoint(p));
+        }
+    }
+
+    public SensorPoint? Get(int id)
+    {
+        lock (_gate) return _byId.TryGetValue(id, out var p) ? p : null;
+    }
+
+    public IReadOnlyList&lt;SensorPoint&gt; GetAll()
+    {
+        lock (_gate) return _points.ToList();
+    }
+
+    /// &lt;summary&gt;返回超阈值的点(实时报警直接复用)。&lt;/summary&gt;
+    public IReadOnlyList&lt;SensorPoint&gt; GetAlarms(double threshold)
+    {
+        lock (_gate) return _points.Where(p =&gt; p.Value &gt; threshold).ToList();
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>AddOrUpdate 是双写的"分叉点"</strong>:上半段 <code>lock</code> 里同步刷内存(UI/报警毫秒级可见),下半段 <code>TryWrite</code> 塞队列后<strong>立刻返回</strong>——采集线程从头到尾没等过磁盘。这一行 <code>TryWrite</code> 就是 FR6-4"采集线程不等盘"的全部实现。
+- <strong>对内存是"更新",对库是"追加"</strong>:<code>_byId[p.Id] = p</code> 覆盖当前值,但库里每个历史样本都留着——"当前值"和"历史序列"是两个概念,前者内存管,后者 SQLite 管。想看"温度探针昨天 3 点的值"?只能靠历史库。
+- <strong>双索引同步维护</strong>:<code>_byId</code> 字典 + <code>_points</code> 列表在锁内同时更新,<code>FindIndex</code> 找到就替换(保住列表顺序),找不到就 Add。列表保序是 UI 表格的渲染顺序。
+- <strong><code>Get</code> 返回 <code>SensorPoint?</code></strong>:可空值类型——"没这个点位"和"值是 0"必须区分。前端类比:接口返回 <code>null</code> vs <code>0</code> 的区别,坑过每个人的。
+- <strong>GetAll 的 <code>.ToList()</code> 是防逃逸快照</strong>:锁内拷一份再放锁,调用方遍历时即使别的线程正在写内存区也不会崩——和 R2 设备快照 <code>ToList()</code> 同一招。</p>
+<p><strong>第 3 步 · 历史查询 + FlushAsync:第三层·走库</strong>(继续贴进类里)</p>
+<pre><code class="language-csharp">    // ===================== 新 API:历史查询走 SQLite =====================
+
+    /// &lt;summary&gt;按点位 + 时间窗查历史(含闭区间 [from, to])。结果按时间升序返回。&lt;/summary&gt;
+    public async Task&lt;List&lt;SensorPoint&gt;&gt; QueryHistoryAsync(
+        int pointId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
+        var rows = await db.Records.AsNoTracking()
+            .Where(r =&gt; r.PointId == pointId &amp;&amp; r.Time &gt;= from &amp;&amp; r.Time &lt;= to)
+            .OrderBy(r =&gt; r.Time)
+            .ToListAsync(ct);
+        return rows.ConvertAll(r =&gt; r.ToPoint());
+    }
+
+    /// &lt;summary&gt;同步版本(少量遗留调用方或测试用)。&lt;/summary&gt;
+    public List&lt;SensorPoint&gt; QueryHistory(int pointId, DateTime from, DateTime to)
+        =&gt; QueryHistoryAsync(pointId, from, to).GetAwaiter().GetResult();
+
+    /// &lt;summary&gt;把队列里残留的写任务全部落盘(停机 / 测试结束前可调用,避免丢点)。&lt;/summary&gt;
+    public Task FlushAsync(TimeSpan? timeout = null)
+    {
+        // 让 writer 完成 → pump 把剩余记录写完 → 等 pump 退出
+        _writeQueue.Writer.TryComplete();
+        return _writePump.WaitAsync(timeout ?? TimeSpan.FromSeconds(5));
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>查询走库不走内存</strong>:历史在 SQLite,内存里只有"当前值"。<code>AsNoTracking()</code> 告诉 EF"只读不改",跳过变更跟踪缓存——纯查询场景的标准提速手段。<strong>前端类比</strong>:GET 请求带 no-cache,别把响应塞进缓存。
+- <strong><code>await using</code></strong>:异步版 using——DbContext 释放连接可能涉及 IO,用 <code>await using var db</code> 确保异步释放。整个 LINQ 链(<code>Where/OrderBy/ToListAsync</code>)翻译成一条 SQL 发给 SQLite,<code>ToListAsync</code> 才真正执行——和 JS Promise 的"thenable 链不 await 不跑"神似。
+- <strong><code>ConvertAll(r =&gt; r.ToPoint())</code></strong>:出边界时把 SensorRecord 还原回领域 struct——Store 的门里门外两种模型,转换只发生在门上(仓储模式的核心纪律)。
+- <strong><code>FlushAsync</code> 三步收尾</strong>:①<code>TryComplete()</code> 关闸(不再有新写入)→ ②泵把队列里剩的写完 → ③<code>WaitAsync</code> 等泵退出。测试里每次断言前都要 <code>await store.FlushAsync()</code>——<strong>不等它,断言可能在数据落库前就跑了</strong>(异步测试的头号假失败)。
+- <strong><code>GetAwaiter().GetResult()</code> 同步堵</strong>:给遗留同步调用方的桥。 UI 线程上别用它(死锁风险),新代码一律 async。</p>
+<p><strong>第 4 步 · 两个公共构造 + 默认工厂:出生证明</strong>(继续贴进类里;本步三个成员互相依赖,一起贴)</p>
+<blockquote>
+<p>无参构造调用 <code>CreateDefaultFactory()</code>,而它 <code>new InlineFactory&lt;AppDb&gt;(...)</code>——三个成员绑在一辆车上,拆开贴中间态编译不过。</p>
+</blockquote>
+<pre><code class="language-csharp">    /// &lt;summary&gt;
+    /// 兼容旧调用方的无参构造:内部建一个本地文件 SQLite 工厂。
+    /// 既有测试都是 new PointStore(),不需要改一行就能继续跑——同时还免费拿到 SQLite 持久化能力。
+    /// &lt;/summary&gt;
+    public PointStore()
+        : this(CreateDefaultFactory(), ownsFactory: true)
+    {
+    }
+
+    /// &lt;summary&gt;DI 构造:由 Bootstrapper 注入工厂(生产路径)。&lt;/summary&gt;
+    public PointStore(IDbContextFactory&lt;AppDb&gt; factory) : this(factory, ownsFactory: false) { }
+
+    /// &lt;summary&gt;默认工厂:系统临时目录下的 daq-{guid}.db(并行测试不互相串库)。&lt;/summary&gt;
+    private static IDbContextFactory&lt;AppDb&gt; CreateDefaultFactory()
+    {
+        var path = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(), $&quot;daq-{Guid.NewGuid():N}.db&quot;);
+        var options = new DbContextOptionsBuilder&lt;AppDb&gt;()
+            .UseSqlite($&quot;Data Source={path}&quot;)
+            .Options;
+
+        // 轻量工厂:每次 CreateDbContext 返回新实例(SQLite 连接随 DbContext 释放而关闭)
+        var factory = new InlineFactory&lt;AppDb&gt;(() =&gt; new AppDb(options));
+
+        // 建库(同步,构造期一次性——旧 API 是同步的,不能让 Get/GetAll 等测试因为库未建而失败)
+        using (var init = factory.CreateDbContext())
+        {
+            init.Database.EnsureCreated();
+        }
+        return factory;
+    }
+
+    /// &lt;summary&gt;极简 IDbContextFactory 实现:用委托拼装(options 已闭包进委托里)。&lt;/summary&gt;
+    private sealed class InlineFactory&lt;TCtx&gt; : IDbContextFactory&lt;TCtx&gt; where TCtx : DbContext
+    {
+        private readonly Func&lt;TCtx&gt; _factory;
+        public InlineFactory(Func&lt;TCtx&gt; factory) =&gt; _factory = factory;
+        public TCtx CreateDbContext() =&gt; _factory();
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>构造链:<code>this(...)</code> 串联</strong>:两个公共构造(无参/DI)都委托给第 1 步的私有主构造——真正的初始化逻辑只有一份。无参构造传 <code>ownsFactory: true</code>,Dispose 时连工厂一起释放("我建的摊我收");DI 构造传 false(工厂归 DI 容器管)。<strong>谁创建谁负责销毁</strong>,和 React useEffect 的"谁订阅谁清理"同一条纪律。
+- <strong>无参构造 = 向后兼容的口子</strong>:R5 的既有测试全是 <code>new PointStore()</code>,这一行 <code>: this(CreateDefaultFactory(), ...)</code> 让它们<strong>一行不改</strong>继续跑,还免费升级成"真的在写 SQLite"(FR6-7)。老代码零迁移成本是设计出来的,不是碰运气。
+- <strong><code>daq-{Guid:N}.db</code> 唯一文件名</strong>:xUnit 并行跑测试,共用一个库文件就是互相踩——GUID 文件名天然隔离。和 R4 模拟设备"每实例独立状态"同一思路。
+- <strong><code>EnsureCreated()</code> 在构造期同步执行</strong>:建库必须赶在第一次 Get/GetAll 之前——旧 API 是同步的,不能让老测试"库还没建就查"而翻车。构造函数里做重活通常是坏味道,但"一次性初始化"是合法例外。
+- <strong><code>InlineFactory&lt;TCtx&gt;</code> 用委托实现接口</strong>:<code>options</code> 已经闭包进 lambda,工厂类只存一个 <code>Func&lt;TCtx&gt;</code>。<strong>前端类比</strong>:库里要一个 class,你用一个箭头函数包一下交差——12 行搞定一个"自定义工厂"。</p>
+<details>
+<summary>📄 完整文件 PointStore.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -444,11 +753,82 @@ public class PointStore : IDisposable
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-5">④ TestDb —— 测试库工厂</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/TestDb.cs</code>
 💡 用独立文件不用 <code>:memory:</code>:EF 每次 CreateDbContext 开新连接,:memory: 库随连接销毁,跨上下文丢表</p>
 </blockquote>
+<p><strong>第 1 步 · 外壳:字段 + 私有构造 + 接口转发 + Dispose</strong>(新文件,整段贴)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Store;
+using Microsoft.EntityFrameworkCore;
+
+namespace DaqMonitor.Tests;
+
+public sealed class TestDb : IDisposable, IDbContextFactory&lt;AppDb&gt;
+{
+    public Factory FactoryInstance { get; }
+
+    private TestDb(string file, Factory factory)
+    {
+        _file = file;
+        FactoryInstance = factory;
+    }
+    private readonly string _file;
+
+    // 直接实现 IDbContextFactory&lt;AppDb&gt;,让 new PointStore(fixture) 不需要隐式转换
+    public AppDb CreateDbContext() =&gt; FactoryInstance.CreateDbContext();
+    public Task&lt;AppDb&gt; CreateDbContextAsync(CancellationToken cancellationToken = default)
+        =&gt; FactoryInstance.CreateDbContextAsync(cancellationToken);
+
+    public void Dispose()
+    {
+        try { if (System.IO.File.Exists(_file)) System.IO.File.Delete(_file); } catch { /* 忽略 */ }
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>私有构造 + 静态 Create 命名工厂</strong>:外界只能 <code>TestDb.Create()</code> 出生,保证"生成唯一文件名 → 建库 → 打包"这套流程不会被人绕过半截。<strong>前端类比</strong>:组件不暴露 constructor,只给一个 <code>createXxx()</code> 工厂函数,防止使用方 new 出一个没初始化完的半成品。
+- <strong>外壳直接实现 <code>IDbContextFactory&lt;AppDb&gt;</code></strong>:两个方法都转发给内部的 <code>FactoryInstance</code>——这样测试里 <code>new PointStore(fixture)</code> 直接传 fixture,不需要 <code>.FactoryInstance</code> 再取一次。外壳是<strong>适配器</strong>:对 PointStore 装作工厂,对内部包着真工厂。
+- <strong>Dispose 删临时文件</strong>:测试不留垃圾。<code>try/catch</code> 兜底是因为 Windows 上文件可能还被 SQLite 连占着——删不掉就算了,在 %TEMP% 里不碍事。测试夹具"自清扫"是好习惯。</p>
+<p><strong>第 2 步 · Create() + 嵌套 Factory:工厂本体</strong>(贴进类里,最后一个 <code>}</code> 之前;两个成员互相引用,一起贴)</p>
+<pre><code class="language-csharp">    /// &lt;summary&gt;测试用工厂(每实例对应一个唯一文件 SQLite)。&lt;/summary&gt;
+    public sealed class Factory : IDbContextFactory&lt;AppDb&gt;
+    {
+        private readonly string _path;
+        public Factory(string path)
+        {
+            _path = path;
+            // 一次性建库建表
+            using var init = CreateDbContext();
+            init.Database.EnsureCreated();
+        }
+        public AppDb CreateDbContext()
+        {
+            var options = new DbContextOptionsBuilder&lt;AppDb&gt;()
+                .UseSqlite($&quot;Data Source={_path}&quot;)
+                .Options;
+            return new AppDb(options);
+        }
+        public Task&lt;AppDb&gt; CreateDbContextAsync(CancellationToken cancellationToken = default)
+            =&gt; Task.FromResult(CreateDbContext());
+    }
+
+    public static TestDb Create()
+    {
+        var file = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(), $&quot;daq-test-{Guid.NewGuid():N}.db&quot;);
+        var factory = new Factory(file);
+        return new TestDb(file, factory);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Factory 的构造函数里就 <code>EnsureCreated()</code></strong>:工厂一出生库就建好——后面不管谁 CreateDbContext,表一定在。把"一次性初始化"压进构造,使用方零心智负担。
+- <strong><code>CreateDbContextAsync</code> 用 <code>Task.FromResult</code> 包装</strong>:<code>new AppDb(options)</code> 是纯内存操作(还没连库),不需要 async——但接口要求返回 Task。<code>Task.FromResult(同步结果)</code> = "同步值冒充已完成任务",最轻的桥接写法。
+- <strong>每个 TestDb 一个 <code>daq-test-{guid}.db</code></strong>:xUnit 默认并行跑不同测试类,共享一个库文件 = 互相覆盖。GUID 文件名 + Dispose 删除 = 并行安全 + 不留垃圾。
+- <strong>为什么不用 <code>:memory:</code>(FR 单里问过)</strong>:EF 每次 <code>CreateDbContext</code> 开新连接,而 <code>:memory:</code> 库<strong>随连接关闭而销毁</strong>——上一个上下文建的表,下一个上下文里根本不存在。文件库才能跨上下文共享表结构。</p>
+<details>
+<summary>📄 完整文件 TestDb.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Store;
 using Microsoft.EntityFrameworkCore;
 
@@ -513,10 +893,61 @@ public sealed class TestDb : IDisposable, IDbContextFactory&lt;AppDb&gt;
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-6">⑤ 测试(6 个新文件测试 + 2 个回填)</h3>
 <blockquote>
-<p>📂 <code>src/DaqMonitor.Tests/PointStoreTests.cs</code>(无参构造,纯内存语义)</p>
+<p>📂 <code>src/DaqMonitor.Tests/PointStoreTests.cs</code>(无参构造,纯内存语义)
+测试文件天然适合搭积木:先立一个空测试类(能编译),再把测试方法一块块贴进去。</p>
 </blockquote>
+<p><strong>第 1 步 · 空测试类 + 插入更新测试</strong>(新文件,整段贴)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Store;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class PointStoreTests
+{
+    [Fact]
+    public void AddOrUpdate_InsertsThenUpdatesSameId()
+    {
+        var store = new PointStore();
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 10 });
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 99 });
+
+        Assert.Single(store.GetAll());
+        Assert.Equal(99d, store.GetAll().First().Value);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这个测试是 FR6-3 的守门员</strong>:同 Id 两次 AddOrUpdate,<code>Assert.Single</code> 证明内存里<strong>只有一行</strong>(更新不增行),值是 99(覆盖成功)。R5 时代它就存在,R6 改完内核它<strong>一行不改照样绿</strong>——这就是"旧 API 语义不变"的验收方式:用测试钉死。
+- <strong>没写 <code>using var store</code></strong>:PointStore 实现 IDisposable,测试里不释放也能接受——无参构造建的是 %TEMP% 下的临时库,进程退出即弃。严格派可以加 <code>using</code>,不影响结果。</p>
+<p><strong>第 2 步 · Get 未知 Id + GetAlarms 过滤</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void Get_ReturnsNullForUnknownId()
+    {
+        var store = new PointStore();
+        Assert.Null(store.Get(999));
+    }
+
+    [Fact]
+    public void GetAlarms_ReturnsOnlyAboveThreshold()
+    {
+        var store = new PointStore();
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 10 });
+        store.AddOrUpdate(new SensorPoint { Id = 2, Value = 200 });
+
+        var alarms = store.GetAlarms(100);
+        Assert.Single(alarms);
+        Assert.Equal(2, alarms[0].Id);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Assert.Null(store.Get(999))</code> 钉住可空语义</strong>:"查无此点"返回 null 而不是抛异常——UI 层拿到 null 显示"--",拿到异常直接崩。接口契约用测试写死,后来者不敢改。
+- <strong>GetAlarms 测试喂了 2 条只中 1 条</strong>:阈值 100,值 10 的不中、200 的中。测试数据必须"有中有不中",全中的数据证明不了过滤逻辑。<strong>前端类比</strong>:测 filter 函数不能只喂全过的数组。</p>
+<details>
+<summary>📄 完整文件 PointStoreTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Store;
 using Xunit;
@@ -556,9 +987,97 @@ public class PointStoreTests
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/PointStorePersistenceTests.cs</code>(注入 TestDb,验持久化)</p>
 </blockquote>
+<p><strong>第 1 步 · 空测试类 + 时间窗查询测试</strong>(新文件,整段贴)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Store;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+public class PointStorePersistenceTests
+{
+    [Fact]
+    public async Task QueryHistoryAsync_Returns_PersistedSamples_InTimeOrder()
+    {
+        // Arrange:用 TestDb(每实例独立 SQLite 文件),并行测试不互相串库
+        using var fixture = TestDb.Create();
+        using var store = new PointStore(fixture);   // 走 DI 构造(注入工厂)
+
+        var t0 = new DateTime(2026, 8, 4, 10, 0, 0, DateTimeKind.Utc);
+        var windowStart = t0.AddSeconds(-1);
+        var windowEnd = t0.AddMinutes(10);
+
+        // 三条样本:1 条在窗外、2 条在窗内(乱序喂入,验证结果按时间升序)
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 1.0, Timestamp = t0 });
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 3.0, Timestamp = t0.AddSeconds(2) });
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 0.5, Timestamp = t0.AddSeconds(-30) }); // 窗外
+
+        // 等异步写库泵把队列写完
+        await store.FlushAsync();
+
+        // Act
+        var history = await store.QueryHistoryAsync(1, windowStart, windowEnd);
+
+        // Assert:2 条窗内样本,按时间升序
+        Assert.Equal(2, history.Count);
+        Assert.Equal(1.0d, history[0].Value);
+        Assert.Equal(3.0d, history[1].Value);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这是本篇的主测试</strong>:一条数据走完"AddOrUpdate → Channel → 泵 → SQLite → QueryHistoryAsync 查回"整个环。它绿了,FR6-3/4/6 三个需求同时有证据。
+- <strong><code>await store.FlushAsync()</code> 是异步测试的"对表"</strong>:AddOrUpdate 是 fire-and-forget,断言时数据可能还在队列里。FlushAsync 关闸等泵写完——不加这行,测试偶尔绿偶尔红(flap),最难查的那种。
+- <strong>测试数据故意"乱序喂 + 一条窗外"</strong>:喂入顺序 1.0 → 3.0 → 0.5(时间乱序),断言 <code>history[0]=1.0, history[1]=3.0</code>(升序)——证明 ORDER BY 在干活;窗外的 0.5 查不回——证明 WHERE 过滤在干活。<strong>喂法即考点</strong>。
+- <strong>固定时刻 <code>new DateTime(2026, 8, 4, ...)</code> 而不是 UtcNow</strong>:时间窗测试用绝对时间,窗内窗外清清楚楚;用"现在"当基准,边界样本会随执行时刻漂移。</p>
+<p><strong>第 2 步 · 点位过滤 + 双写一致性</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public async Task QueryHistoryAsync_FiltersByPointId()
+    {
+        using var fixture = TestDb.Create();
+        using var store = new PointStore(fixture);
+
+        var t = DateTime.UtcNow;
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 10, Timestamp = t });
+        store.AddOrUpdate(new SensorPoint { Id = 2, Value = 20, Timestamp = t });
+        store.AddOrUpdate(new SensorPoint { Id = 1, Value = 30, Timestamp = t.AddSeconds(1) });
+        await store.FlushAsync();
+
+        var onlyPoint1 = await store.QueryHistoryAsync(1, t.AddSeconds(-1), t.AddSeconds(10));
+        Assert.Equal(2, onlyPoint1.Count);
+        Assert.All(onlyPoint1, p =&gt; Assert.Equal(1, p.Id));
+    }
+
+    [Fact]
+    public async Task Memory_And_Sqlite_StayConsistent_AfterAddOrUpdate()
+    {
+        // 内存索引(实时)与 SQLite(历史)的值要一致——这是双写模式的基本契约
+        using var fixture = TestDb.Create();
+        using var store = new PointStore(fixture);
+
+        var t = DateTime.UtcNow;
+        store.AddOrUpdate(new SensorPoint { Id = 5, Value = 42.5, Timestamp = t });
+        await store.FlushAsync();
+
+        var memCurrent = store.Get(5);
+        Assert.NotNull(memCurrent);
+        Assert.Equal(42.5d, memCurrent!.Value.Value);
+
+        var hist = await store.QueryHistoryAsync(5, t.AddSeconds(-1), t.AddSeconds(1));
+        Assert.Single(hist);
+        Assert.Equal(42.5d, hist[0].Value);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Assert.All(onlyPoint1, p =&gt; Assert.Equal(1, p.Id))</code></strong>:对集合每个元素断言,任何一个不满足整个测试红。比手写 foreach + 标志位干净。<strong>前端类比</strong>:jest 的 <code>forEach(expect(...))</code> 升级版。
+- <strong>第三个测试是双写契约的"对账"</strong>:同一条数据,内存查(<code>Get(5)</code>)和库里查(<code>QueryHistoryAsync</code>)必须给出同一个值 42.5。双写最大的隐患就是"两边各说各话"(写了一边漏了另一边),对账测试把这个隐患钉死。
+- <strong><code>memCurrent!.Value.Value</code> 双重解引用</strong>:<code>Get</code> 返回 <code>SensorPoint?</code>(可空包装),属性 <code>.Value</code> 拆出 struct,再 <code>.Value</code> 是 struct 的字段。两个 <code>!</code>/<code>.Value</code> 各拆一层——可空值类型用起来啰嗦,但换来"null 和 0 不混"的精确性。</p>
+<details>
+<summary>📄 完整文件 PointStorePersistenceTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Store;
 using Xunit;
@@ -637,6 +1156,7 @@ public class PointStorePersistenceTests
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>SerialDeviceTests.cs</code> — <strong>贴进 SerialDeviceTests 类里</strong>(最后一个 <code>}</code> 之前)追加 R4 埋的穿管道测试;文件头同步补 <code>using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Models; using DaqMonitor.Core.Store;</code></p>
 </blockquote>
@@ -667,6 +1187,10 @@ public class PointStorePersistenceTests
             &quot;SerialDevice 经管道写入存储失败——'换设备 UI 零改动'未成立&quot;);
     }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这是 R4 埋的"证据链最后一环"</strong>:R4 只验证设备吐点位,R6 有了 PointStore 才能验证<strong>完整生产链</strong>:<code>Loopback 通道写帧 → SerialDevice 解析 → 管道攒批 → BatchReady → store 落双写</code>。整条链不碰 UI、不碰真实硬件——"每一层都可测"的兑现。
+- <strong><code>ch.Write(FrameParser.Build(1, 123.5))</code> 模拟"设备说话"</strong>:回环通道写进去什么,设备就读到什么。测试里扮设备的是测试代码自己——R2 的替身思路一路用到底。
+- <strong><code>Math.Abs(p.Value - 123.5) &lt; 1e-6</code> 浮点比较</strong>:永远不要 <code>== 123.5</code>,浮点经过字节序转换有微损。<strong>前端类比</strong>:金额比较用 <code>Math.abs(a-b) &lt; epsilon</code>,不是 <code>a === b</code>。</p>
 <blockquote>
 <p>📂 <code>ModbusDeviceTests.cs</code> — <strong>同样贴进 ModbusDeviceTests 类里</strong>(最后一个 <code>}</code> 之前)追加穿管道测试;using 同步补 <code>using DaqMonitor.Core.Acquisition; using DaqMonitor.Core.Store;</code></p>
 </blockquote>
@@ -694,6 +1218,9 @@ public class PointStorePersistenceTests
         Assert.True(store.GetAll().Any(p =&gt; p.Id == 1), &quot;ModbusDevice 经管道写入存储失败——'换设备 UI 零改动'未成立&quot;);
     }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>和上面 Serial 那条是"双保险"</strong>:两种协议(自定义帧 / Modbus 寄存器)走同一条管道进同一个 store——证明<strong>换设备不改管道、不改存储</strong>,分层解耦的收益在测试上兑现。
+- <strong><code>RegisterMap(1, 0, "float")</code> 走 R5 的工程换算</strong>:<code>"float"</code> 类型让 Modbus 寄存器值按浮点字节序解析再标定——R3 的字节序 + R5 的 EngineeringConverter 在真实设备路径上串起来了。</p>
 <h2 id="sec-2-5">✅ 验证(必做)</h2>
 <pre><code class="language-bash">dotnet build
 dotnet test

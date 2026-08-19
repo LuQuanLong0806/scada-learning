@@ -171,6 +171,10 @@ public interface ISerialChannel : IDisposable
     void Close();
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>接口只有 4 个成员,回答一个问题:"字节从哪来、到哪去"</strong>——事件(字节来)+ Open/Write/Close(字节走)。故意不含"解析协议"的任何成员:<strong>链路层不该懂协议语义</strong>,这是 ② SerialDevice 能换链路零改动的前提。
+- <strong><code>event Action&lt;byte[]&gt;?</code> 而不是自定义 EventArgs</strong>:载荷就是裸字节,链路层对内容零立场——协议解释权完全交给上层。和前端把 <code>onMessage(Event)</code> 里的 <code>event.data</code> 直接给业务层一个道理,传输层不猜格式。
+- <strong>继承 <code>IDisposable</code></strong>:串口/socket 是操作系统资源,不用必须释放——接口声明周期契约,编译器强制 using/Dispose 纪律。</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/LoopbackSerialChannel.cs</code></p>
 </blockquote>
@@ -199,6 +203,10 @@ public sealed class LoopbackSerialChannel : ISerialChannel
     public void Dispose() { BytesReceived = null; }
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Task.Run(() =&gt; ...)</code> 让回环"像真串口一样异步到达"</strong>:如果同步回调,测试里的粘包/半包场景就测不出时序问题——<strong>测试替身的"仿真度"很重要</strong>,差太远的 mock 会给你假信心(前端类比:msw 延迟响应比同步 mock 更接近真网络)。
+- <strong><code>data.ToArray()</code> 防御性拷贝</strong>:ReadOnlySpan 是别人的内存视图,回调到别的线程时原缓冲可能已被复用——<strong>跨线程前先拷贝成独立数组</strong>,这是 Span 使用的安全边界。
+- <strong><code>Dispose</code> 里 <code>BytesReceived = null</code></strong>:事件是对外部对象的引用,不置空会让订阅方被意外"勾住"——通道死了就彻底断开所有订阅。</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/RealSerialChannel.cs</code></p>
 </blockquote>
@@ -235,12 +243,99 @@ public sealed class RealSerialChannel : ISerialChannel
     public void Dispose() { Close(); _sp.Dispose(); }
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>DataReceived</code> 里"有多少读多少"</strong>:<code>BytesToRead</code> 拿到当前堆着的字节数,一把读走弹事件——注意 <strong>n 可能是半条帧</strong>!串口天生流式,这里只负责"把字节送出门",拼帧是 FrameParser 的事。分层的意义就在这:每层只干一件事。
+- <strong><code>ReadTimeout/WriteTimeout = 500</code></strong>:卡死保护——设备不回最多等 500ms 抛超时,绝不永久挂起(工业软件"任何 IO 都要有时限"的纪律)。
+- <strong>NuGet 依赖被关在这一个文件里</strong>:<code>System.IO.Ports</code> 的 using 只出现在这——将来真要换 USB 转串口方案,改动不出这个类。<strong>依赖隔离是接口抽象的隐形收益</strong>。
+- <strong><code>(_, _1)</code> 丢弃参数</strong>:SerialPort 的 DataReceived 签名带 sender/args,这里用不上——下划线丢弃,避免警告。</p>
 <h3 id="sec-3-3">② SerialDevice —— AA55 帧串口设备</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/SerialDevice.cs</code>
 💡 R3 FrameParser 的第一个真实消费者:字节流进、SensorPoint 语义的事件出
 🗺️ <strong>新手读码地图</strong>(3 步看懂):1. <code>Connect()</code> 只做两件事:订阅通道的 BytesReceived + Open 链路——从此字节是"推"过来的,不用轮询 2. 灵魂在 <code>OnBytes</code> 的 10 行:收到一坨字节 → <code>RawLog</code> 先留痕(联调时看清线上到底来了什么)→ 喂 <code>_parser.Feed</code>,半包/粘包它内部搞定,吐出 N 条完整载荷 → 每条按"1 字节 pointId + 8 字节 double"解码,<code>RaiseData</code> 发事件(DeviceBase 继承来的,自动盖时间戳) 3. <code>Read(addr)</code> 返回 <code>_last</code> 缓存的新值——不是真去问设备;串口设备没有"随叫随到"的读法,值全靠事件推。<strong>前端类比</strong>:<code>OnBytes</code> ≈ WebSocket onmessage 的 handler:先 log → 切包 → emit 给上层。整类 = 链路 + 协议解析 + 事件发射的三合一。</p>
 </blockquote>
+<p><strong>第 1 步 · 骨架:三件家当 + 联调开关</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Protocol;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// 串口设备:继承 DeviceBase,把&quot;串口字节流&quot;转成系统统一的 DataEventArgs 事件,
+/// 从而无缝接入采集管道——UI 与采集层一行都不用改,只是组合根里把 SimulatedDevice 换成了它。
+///
+/// 职责划分(这就是&quot;现成 vs 自研&quot;的边界):
+///   - 🟩 现成:字节收发靠 ISerialChannel(真实串口用 SerialPort,回环用内存);
+///   - 🛠️ 自研:协议解析靠 FrameParser(AA55|Len|Payload|CRC)+ CRC16 校验 + 载荷解码。
+/// &lt;/summary&gt;
+public sealed class SerialDevice : DeviceBase
+{
+    private readonly ISerialChannel _channel;
+    private readonly FrameParser _parser = new(verifyCrc: true);
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    /// &lt;summary&gt;联调&quot;调试开关&quot;:非 null 时,收发字节会回调出去(接日志即可落盘)。联调定位必备。&lt;/summary&gt;
+    public Action&lt;string&gt;? RawLog { get; set; }
+
+    public SerialDevice(int id, string name, ISerialChannel channel) : base(id, name)
+        =&gt; _channel = channel;
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>三个字段就是三个职责</strong>:<code>_channel</code>(链路,注入)→ <code>_parser</code>(协议,verifyCrc:true 生产必开)→ <code>_last</code>(数据缓存,Read 用)。类的依赖图 = 一句话架构图。
+- <strong><code>RawLog</code> 是可空属性不是接口方法</strong>:<code>Action&lt;string&gt;?</code> 默认 null、谁需要谁挂上——<strong>联调能力做成"可选插槽"而不是必经之路</strong>,平时零开销。前端类比:可选的 onDebug 回调,不传就不执行。
+- <strong><code>sealed</code> 明确"到我为终点"</strong>:串口设备不做继承扩展,要新协议就写新类——防止继承滥用导致的隐式耦合。</p>
+<p><strong>第 2 步 · 连接生命周期 + 字节解码 <code>OnBytes</code></strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    public override void Connect()
+    {
+        _channel.BytesReceived += OnBytes;
+        _channel.Open();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        _channel.BytesReceived -= OnBytes;
+        _channel.Close();
+        State = DeviceState.Offline;
+    }
+
+    private void OnBytes(byte[] bytes)
+    {
+        RawLog?.Invoke($&quot;RX {Convert.ToHexString(bytes)}&quot;);   // 联调:看清收到了啥
+        // 把收到的字节流喂给解析器;它自动处理&quot;半包/粘包&quot;,逐帧回调载荷
+        foreach (var payload in _parser.Feed(bytes))
+        {
+            if (payload.Length &lt; 9) continue;                 // 载荷格式:pointId(1) + double(8)
+            int pointId = payload[0];
+            double value = BitConverter.ToDouble(payload, 1);  // 🛠️ 自研解码:字节 → 工程量点位
+            _last[pointId] = value;
+            RaiseData(pointId, value);                        // 推给采集管道 → 最终到 UI
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Connect 的顺序:先订阅再 Open</strong>:反过来会丢数据——Open 之后字节可能立刻到,而你还没订阅。<strong>"先挂号再看诊"是事件订阅的铁律</strong>;Disconnect 对称地先退订再关链路,防关闭瞬间的事件打到已停用的对象。
+- <strong><code>Convert.ToHexString</code> 是十六进制留痕的标准姿势</strong>:输出 <code>RX AA5509...</code> 直接和抓包工具/设备手册比对——联调日志的价值取决于<strong>能不能和现场证据对上号</strong>。
+- <strong><code>payload.Length &lt; 9 continue</code></strong>:载荷约定 1 字节 id + 8 字节 double,不足 9 字节的帧是残废帧,<strong>跳过而不是崩</strong>——协议代码对畸形数据的默认态度是"丢弃并继续"。
+- <strong><code>BitConverter.ToDouble(payload, 1)</code></strong>:从偏移 1 读 8 字节拼 double(小端,和 Build 的 GetBytes 互逆)——自研协议的解码就这一行,难的不是 API 是<strong>字节布局约定</strong>。</p>
+<p><strong>第 3 步 · 读缓存 + 写命令帧</strong>(贴进类里,收尾)</p>
+<pre><code class="language-csharp">    public override double Read(int addr)
+        =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        // 下发查询/置数命令帧(写方向也走同一套自研协议)
+        var frame = FrameParser.Build(addr, value);
+        RawLog?.Invoke($&quot;TX {Convert.ToHexString(frame)}&quot;);    // 联调:看清发出了啥
+        _channel.Write(frame);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Read</code> 读的是缓存,不问设备</strong>:串口是"设备推、我记"的模型,<code>_last</code> 就是账本;没收到过就 NaN——<strong>NaN 是"不知道"的诚实表达</strong>,比返回 0 好(0 是合法温度!)。
+- <strong><code>Write</code> 走同一套 Build 组帧</strong>:命令帧和数据帧同一格式,发送端免费获得 CRC 保护——协议复用的红利。</p>
+<details>
+<summary>📄 完整文件 SerialDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Protocol;
 
@@ -306,12 +401,188 @@ public sealed class SerialDevice : DeviceBase
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-4">③ ModbusDevice —— 手搓 RTU 帧(不依赖 NModbus)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/ModbusDevice.cs</code>
 💡 双模式套路:<strong>simulate=true 零硬件跑链路;真实模式手搓请求帧</strong>。TCP 模式只需把 SerialPort 换 TcpClient + MBAP 头,解析逻辑复用
 🗺️ <strong>新手读码地图</strong>(4 步看懂):1. <code>RegisterMap</code> 是一张"翻译对照表":哪个点位对应哪个寄存器地址、什么类型(float 跨 2 寄存器/word 1 个)、什么字节序——现场调试改的是这张表,不是代码 2. 双模式在 <code>Start()</code> 的后台循环里分叉:每 500ms 一次 <code>SimulateTick()</code>(发随机值,零硬件)或 <code>RealTick()</code>(手搓"读保持寄存器"请求帧 → 写串口 → 收响应 → Crc16 验 → ModbusFrameParser 拆 → 按字节序拼回浮点) 3. 真实模式的"手搓帧"就是 R3 <code>BuildReadHoldingRequest</code> + <code>ParseReadRegisters</code> + <code>ToFloatModbus</code> 三件套串起来——R3 的纯函数在这落地成真设备 4. 对外仍然只暴露 IDevice:管道/UI 完全不知道底下是 Modbus。<strong>前端类比</strong>:<code>RegisterMap</code> ≈ 后端字段映射表(接口返回 snake_case 映射到组件的 camelCase),双模式 ≈ dev 环境 mock/生产环境真接口同一开关切换。</p>
 </blockquote>
+<p><strong>第 1 步 · 骨架:RegisterMap 映射表 + 字段 + 构造</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Protocol;
+using System.Collections.Generic;
+using System.IO.Ports;
+using System.Threading;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// Modbus 设备:实现 IDevice。
+///
+/// 两种运行模式:
+/// - 模拟模式(simulate=true):后台轮询产生随机值,零硬件即可跑通整条链路;
+/// - 真实 RTU 模式:手搓 Modbus RTU 请求帧 → 经 SerialPort 下发 → 收响应 → 用
+///   ModbusFrameParser 解析 + Crc16 校验。不依赖第三方库
+///   (生产要省事可直接换 NModbus,但手搓版让你真正&quot;懂协议&quot;)。
+/// &lt;/summary&gt;
+public sealed class ModbusDevice : DeviceBase
+{
+    /// &lt;summary&gt;点位 → 寄存器映射:地址 + 数据类型(float 跨 2 寄存器 / word 单寄存器) + 浮点字节序。&lt;/summary&gt;
+    public sealed record RegisterMap(int PointId, ushort Address, string Type, ModbusFrameParser.ByteOrder Order = ModbusFrameParser.ByteOrder.ABCD);
+
+    private readonly bool _simulate;
+    private readonly byte _slave;
+    private readonly List&lt;RegisterMap&gt; _maps;
+    private readonly string _portName;
+    private readonly int _baud;
+    private SerialPort? _port;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+    private readonly Random _rnd = new();
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    public ModbusDevice(int id, string name, byte slave, IEnumerable&lt;RegisterMap&gt; maps,
+        bool simulate = false, string portName = &quot;COM3&quot;, int baud = 9600)
+        : base(id, name)
+    {
+        _simulate = simulate;
+        _slave = slave;
+        _maps = maps.ToList();
+        _portName = portName;
+        _baud = baud;
+        if (!_simulate) _port = new SerialPort(portName, baud, Parity.None, 8, StopBits.One);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>RegisterMap</code> 是"现场调试改的地方"</strong>:哪个点位 ↔ 哪个寄存器地址、什么类型、什么字节序——<strong>换一台设备改一张表,代码不动</strong>。它用 <code>record</code> 一行定义(值语义 + 自动相等比较),映射条目天然适合 record。
+- <strong><code>Order</code> 参数默认 ABCD</strong>:约定优先(大多数手册默认 ABCD),特殊的现场显式传 CDAB——<strong>默认值 = 最常见情况,别让调用方每次都写全</strong>。
+- <strong><code>if (!_simulate) _port = new SerialPort(...)</code></strong>:串口对象<strong>只在真实模式才创建</strong>——模拟模式连 COM 口对象都不碰,保证零硬件机器上 <code>new ModbusDevice(..., simulate: true)</code> 不炸。
+- <strong>构造参数 7 个全有默认值/可省</strong>:slave、portName、baud 都给了典型值(COM3/9600 是现场最常见的配置)——API 的"顺手度"就是减少调用方的记忆负担。</p>
+<p><strong>第 2 步 · 生命周期 + 轮询循环骨架</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        if (!_simulate) _port!.Open();
+        Start();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        if (_port?.IsOpen == true) _port.Close();
+        State = DeviceState.Offline;
+    }
+
+    private void Start()
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    if (_simulate) SimulateTick();
+                    else RealTick();
+                    await Task.Delay(500, token);   // 500ms 轮询,不阻塞 UI
+                }
+            }
+            catch (OperationCanceledException) { /* 正常退出 */ }
+        }, token);
+    }
+
+    private void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { /* 忽略 */ }
+        _cts?.Dispose();
+        _cts = null;
+        _loop = null;
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>if (_simulate) SimulateTick(); else RealTick();</code> 是双模式的全部机关</strong>:循环骨架(启动/取消/防重/500ms 节拍)只有一份,<strong>两条业务线在循环内部分叉</strong>——加第三种模式也只加一个分支,骨架零改动。
+- <strong>Connect 三拍:Connecting → Open → Online</strong>:先标 Connecting(握手期 UI 亮黄灯),开串口(可能几十 ms 到几百 ms),成功才 Online——<strong>状态转换的粒度就是 UI 反馈的粒度</strong>。
+- <strong>Start/Stop 与 R2 SimulatedDevice 的同款三步舞</strong>:防重入(<code>_loop is not null</code>)→ 令牌取消 → 等收尾 500ms。<strong>同一模式在项目里出现第三次时,你会闭眼写对</strong>——这就是 R2 反复练的回报。</p>
+<p><strong>第 3 步 · 模拟心跳 <code>SimulateTick</code></strong>(贴进类里)</p>
+<pre><code class="language-csharp">    private void SimulateTick()
+    {
+        foreach (var m in _maps)
+        {
+            double v = m.Type == &quot;float&quot;
+                ? Math.Round(20 + _rnd.NextDouble() * 70, 2)   // 模拟工程量
+                : Math.Round(_rnd.NextDouble() * 100, 2);
+            _last[m.PointId] = v;
+            RaiseData(m.PointId, v);                            // 推给采集管道 → 最终到 UI
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>模拟数据按类型分流</strong>:float 型给 20~90(像温度),word 型给 0~100(像百分比)——<strong>模拟数据的形状要贴近真实物理量</strong>,下游 UI 的量程刻度才不会闹笑话。
+- <strong><code>RaiseData</code> 是从 DeviceBase 继承的单一出口</strong>:不管模拟还是真实,数据最终都从这一个门出来——上层(管道/UI)对模式完全无感。</p>
+<p><strong>第 4 步 · 真实轮询 <code>RealTick</code>(R3 三件套的落地现场)</strong>(贴进类里)</p>
+<pre><code class="language-csharp">    private void RealTick()
+    {
+        foreach (var m in _maps)
+        {
+            bool isFloat = m.Type == &quot;float&quot;;
+            ushort count = isFloat ? (ushort)2 : (ushort)1;    // float 跨 2 个寄存器
+            var req = ModbusFrameParser.BuildReadHoldingRequest(_slave, m.Address, count);
+            _port!.Write(req, 0, req.Length);
+
+            // 等响应(简化:轮询 BytesToRead;真实工程要按 3.5 字符静默判断帧边界)
+            int waited = 0;
+            int minLen = isFloat ? 9 : 7;                      // 读1寄存器响应=7B;读2=9B
+            while (_port.BytesToRead &lt; minLen &amp;&amp; waited &lt; 1000) { Thread.Sleep(10); waited += 10; }
+            if (_port.BytesToRead == 0) continue;
+
+            var resp = new byte[_port.BytesToRead];
+            _port.Read(resp, 0, resp.Length);
+
+            if (ModbusFrameParser.IsExceptionResponse(resp, out var code)) continue;  // 设备拒了
+            if (!Crc16.Check(resp)) continue;                                       // CRC 坏帧丢弃
+            var regs = ModbusFrameParser.ParseReadRegisters(resp);
+            if (regs.Length == 0) continue;
+
+            double value = isFloat
+                ? ModbusFrameParser.ToFloatModbus(regs[0], regs[1], m.Order)        // 32 位浮点按字节序拼
+                : regs[0];
+            _last[m.PointId] = value;
+            RaiseData(m.PointId, value);
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这一个方法 = R3 协议层的"应用现场"</strong>:<code>BuildReadHoldingRequest</code>(组帧)→ 写串口 → 等响应 → <code>IsExceptionResponse</code>(设备拒绝?)→ <code>Crc16.Check</code>(帧完好?)→ <code>ParseReadRegisters</code>(拆寄存器)→ <code>ToFloatModbus</code>(按字节序拼浮点)。<strong>R3 每个纯函数都在这排好了队</strong>——这就是"协议层零 IO、设备层串起来"的架构红利。
+- <strong>等待响应用"轮询 BytesToRead + 上限 1000ms"</strong>:10ms 一看、最多等 1 秒——简化实现,真实工程要按 Modbus 规范的"3.5 字符静默"判帧边界(帧间静默 = 帧结束),注释里已标明。<strong>简化版先跑通,升级点留注释</strong>,是学习项目的正确姿势。
+- <strong>四道防线一路 <code>continue</code></strong>:设备拒了、CRC 坏了、寄存器拆空了——<strong>任何一个点位失败只跳过该点位,不拖垮整轮轮询</strong>:工业采集的"局部故障局部处理"。
+- <strong><code>regs[0], regs[1]</code> 直接下标</strong>:因为 minLen 已保证读到至少 9 字节(2 寄存器),ParseReadRegisters 也校验过长度——<strong>前面防线立住了,后面才敢裸下标</strong>。</p>
+<p><strong>第 5 步 · 读缓存 + 写单寄存器</strong>(贴进类里,收尾)</p>
+<pre><code class="language-csharp">    public override double Read(int addr)
+        =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        if (_simulate) return;   // 模拟设备只读
+        // 写单寄存器(功能码 0x06):[从站][0x06][地址2B][值2B][CRC低前]
+        var payload = new List&lt;byte&gt; { _slave, 0x06, (byte)(addr &gt;&gt; 8), (byte)addr,
+                                       (byte)((int)value &gt;&gt; 8), (byte)(int)value };
+        ushort crc = Crc16.Modbus(payload.ToArray());
+        payload.Add((byte)(crc &amp; 0xFF));
+        payload.Add((byte)(crc &gt;&gt; 8));
+        _port!.Write(payload.ToArray(), 0, payload.Count);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>写单寄存器 = 功能码 0x06,和读请求同一个拼法</strong>:从站 + 功能码 + 地址 2B + 值 2B + CRC 低前——<strong>会拼读请求就会拼写命令</strong>,Modbus 的对称美。
+- <strong><code>(byte)((int)value &gt;&gt; 8)</code> 把 double 硬转 int 再拆字节</strong>:写寄存器只能写整数(65535 封顶),带小数的值要先乘倍率(如温度×10)再写——真实工程由 RegisterMap 层处理标定,这里演示最小路径。</p>
+<details>
+<summary>📄 完整文件 ModbusDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Protocol;
 using System.Collections.Generic;
@@ -460,12 +731,331 @@ public sealed class ModbusDevice : DeviceBase
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-5">④ TcpDevice —— 长连接 + 心跳 + 指数退避重连</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/TcpDevice.cs</code>
 💡 本篇最重的类:把 R3 的 TcpFrameParser 塞进真实 socket 循环;<a href="#" class="kplink" data-kp="retry-backoff" onclick="openKp('retry-backoff');return false;">指数退避</a>在这里先见第一面(R7 会抽成通用 Retry)
 🗺️ <strong>新手读码地图</strong>(按"一条命"的周期看):1. 外层 <code>MaintainConnectionLoop</code> 是一条永动的命:连上 → 干活 → 断了 → 睡一会儿再连,直到 Dispose。睡多久不是固定值,是 <code>BackoffMs = {1s,2s,4s,8s,16s}</code> 一级级往上爬——网络刚抖完马上重连只会雪上加霜,这就是<strong>指数退避</strong> 2. 连上后兵分两路:<code>HeartbeatLoop</code> 每 10s 发一帧 <code>[0x02]</code> 心跳保活,30s 收不到对端消息判离线;<code>ReceiveLoop</code> 是主收线——socket 只管把字节堆进滚动缓冲,切帧全交给 <code>TcpFrameParser.TryParse</code>(R3 的无状态设计在这兑现:缓冲归调用方管) 3. 切出的帧按载荷解码成点位 → <code>RaiseData</code> 上报,和串口设备殊途同归 4. <code>OfflineTimeout</code> = 心跳超时兜底:TCP 半开连接(对端拔网线)不会自动报错,必须自己掐表。<strong>前端类比</strong>:<code>MaintainConnectionLoop</code> ≈ socket.io 内置的重连机制(它默认也是指数退避),心跳 ≈ ping/pong 帧——你写前端长连接时框架替你干的事,这里全部手写一遍。</p>
+<p>这个文件是<strong>本篇最重的类(约 280 行),且方法互相调用成网</strong>(RealLoop 调 ConnectOnce/ReceiveLoop/HeartbeatLoop,Stop 调 CloseSocket……),拆开贴中间态编译不过——所以玩法是:<strong>先展开文末折叠块把完整文件贴进去,然后按下面 6 步逐块读懂</strong>。每一步都标了它在文件里的位置。</p>
 </blockquote>
+<p><strong>第 1 步 · 骨架与常数:心跳/超时/退避三个魔法数</strong>(文件开头到构造函数)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using DaqMonitor.Core.Protocol;
+using System.Collections.Concurrent;
+using System.Net.Sockets;
+using System.Threading;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// TCP 设备:实现 IDevice,面向长连接 + 长度前缀帧。
+///
+/// 设计要点(与 ModbusDevice / SerialDevice 一致的接口语义):
+///   - 上层只认 IDevice,换成它零改动。
+///   - 帧格式由 TcpFrameParser 处理(AA55 + 小端长度 + payload + CRC16)。
+///   - 后台 ReadAsync 循环 + 滚动缓冲做粘包/半包拼帧。
+///   - 心跳:每 10 秒发心跳包;30 秒没收到任何对端数据判定掉线 → 自动重连。
+///   - 自动重连:SocketException 后按 1s/2s/4s/8s/16s 指数退避重试,直到成功或 Dispose。
+///
+/// 模拟模式(simulate=true):不建 socket,后台周期产生随机值,零硬件即可跑通链路。
+/// &lt;/summary&gt;
+public sealed class TcpDevice : DeviceBase, IDisposable
+{
+    /// &lt;summary&gt;点位映射:地址 → PointId(解析后用 PointId 抬事件)。&lt;/summary&gt;
+    public sealed class TcpMap(int addr, int pointId) { public int Addr { get; } = addr; public int PointId { get; } = pointId; }
+
+    private const int HeartbeatIntervalMs = 10_000;
+    private const int OfflineTimeoutMs = 30_000;
+    private static readonly int[] BackoffMs = { 1000, 2000, 4000, 8000, 16000 };
+
+    private readonly bool _simulate;
+    private readonly string _host;
+    private readonly int _port;
+    private readonly List&lt;TcpMap&gt; _maps;
+    private readonly ConcurrentDictionary&lt;int, double&gt; _last = new();
+
+    private Socket? _socket;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+    private readonly byte[] _rx = new byte[4096];
+
+    public TcpDevice(int id, string name, string host, int port, IEnumerable&lt;TcpMap&gt;? maps = null, bool simulate = false)
+        : base(id, name)
+    {
+        _simulate = simulate;
+        _host = host;
+        _port = port;
+        _maps = maps?.ToList() ?? new();
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>三个常数定下整条命的健康指标</strong>:10s 心跳(保活)、30s 静默判死(超时)、1→16s 退避(重连节奏)——<strong>TCP 可用性的全部参数就这三个数</strong>,调优现场网络就是调它们。
+- <strong><code>TcpMap</code> 用了主构造函数(C# 12)</strong>:参数直接进类体,<code>{ get; } = addr; }</code> 一行收尾——和 record 的适用场景辨析:这里是<strong>可变行为的小映射对象</strong>,record 更适合纯数据。
+- <strong><code>_last</code> 是 <code>ConcurrentDictionary</code> 而不是普通 Dictionary</strong>:收线线程写、UI 线程 Read 读——<strong>两个线程同时摸的字典必须线程安全</strong>(前面的 ModbusDevice 用普通 Dictionary 是因为只有一个轮询线程摸它)。
+- <strong><code>_rx</code> 字段声明了但 RealLoop 里用的是局部 <code>seg</code></strong>:字段版本是早期实现的遗留,保留无害;读代码时遇到"没被用到的字段"别慌,<strong>先确认没有隐藏的反射/序列化引用再下结论</strong>。</p>
+<p><strong>第 2 步 · 生命周期 + 模拟模式</strong>(构造函数之后,文件的"上半层")</p>
+<pre><code class="language-csharp">    public override void Connect()
+    {
+        if (State == DeviceState.Online) return;
+        State = DeviceState.Connecting;
+        Start();
+        if (_simulate) State = DeviceState.Online; // 真实模式由 RealLoop 在 ConnectOnce 成功后标 Online
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        State = DeviceState.Offline;
+    }
+
+    private void Start()
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(() =&gt; _simulate ? SimulateLoop(token) : RealLoop(token), token);
+    }
+
+    private void Stop()
+    {
+        try { _cts?.Cancel(); } catch { /* ignore */ }
+        try { _loop?.Wait(1000); } catch { /* ignore */ }
+        CloseSocket();
+        _cts?.Dispose();
+        _cts = null;
+        _loop = null;
+    }
+
+    // ===== 模拟模式:与 ModbusDevice.SimulateTick 同套路,零硬件跑通链路 =====
+    private async Task SimulateLoop(CancellationToken ct)
+    {
+        var rnd = new Random();
+        while (!ct.IsCancellationRequested)
+        {
+            foreach (var m in _maps)
+            {
+                double v = Math.Round(20 + rnd.NextDouble() * 70, 2);
+                _last[m.PointId] = v;
+                RaiseData(m.PointId, v);
+            }
+            try { await Task.Delay(500, ct); } catch (OperationCanceledException) { break; }
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Connect()</code> 的注释点破一个不对称</strong>:模拟模式 Connect 完立即 Online;真实模式 Start 只点火,<strong>Online 由后台 RealLoop 在真正连上后才标</strong>——"立即表示成功"和"稍后表示成功"的差别,UI 状态灯的黄灯时长就是证据。
+- <strong>Stop 的 try/catch 密度是全类最高的</strong>:停机路径上 Cancel/Wait/Dispose 每一步都可能抛,<strong>吞掉一切往上冒的异常</strong>——"关闭代码的容错标准高一档"(R2 讲过的纪律,这里第三次出现)。
+- <strong><code>Task.Run(() =&gt; _simulate ? SimulateLoop(token) : RealLoop(token), token)</code></strong>:三元选一个 async 方法,lambda 里自动包成 Task——双模式在"起线程"这一层就分流,后面两条线互不相见。</p>
+<p><strong>第 3 步 · 重连外环:RealLoop + ConnectOnce + DelayBackoff</strong>(文件中部,真实模式的心脏)</p>
+<pre><code class="language-csharp">    // ===== 真实模式:长连接 + ReadAsync 拼帧 + 心跳 + 自动重连 =====
+    private async Task RealLoop(CancellationToken ct)
+    {
+        int backoffIdx = 0;
+        // 外层循环:断了重连,直到成功连上或被取消
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                if (!ConnectOnce())
+                {
+                    await DelayBackoff(ct, backoffIdx);
+                    backoffIdx = Math.Min(backoffIdx + 1, BackoffMs.Length - 1);
+                    continue;
+                }
+                backoffIdx = 0;
+                State = DeviceState.Online;
+
+                // 心跳用 Task.Delay 并行触发;read 循环内同步判断静默时长
+                using var heartbeatCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                _ = HeartbeatLoop(heartbeatCts.Token);
+
+                await ReceiveLoop(ct);   // 正常退出=对端关闭或掉线
+                heartbeatCts.Cancel();
+            }
+            catch (OperationCanceledException) { break; }
+            catch (SocketException) { /* 走重连 */ }
+            catch (IOException) { /* 走重连 */ }
+            finally
+            {
+                CloseSocket();
+                if (State != DeviceState.Offline) State = DeviceState.Connecting;
+            }
+
+            if (ct.IsCancellationRequested) break;
+            await DelayBackoff(ct, backoffIdx);
+            backoffIdx = Math.Min(backoffIdx + 1, BackoffMs.Length - 1);
+        }
+    }
+
+    private bool ConnectOnce()
+    {
+        try
+        {
+            CloseSocket();
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+            {
+                ReceiveTimeout = OfflineTimeoutMs,
+                SendTimeout = 5000
+            };
+            _socket.Connect(_host, _port);
+            return true;
+        }
+        catch (SocketException) { return false; }
+    }
+
+    private static async Task DelayBackoff(CancellationToken ct, int idx)
+    {
+        int ms = BackoffMs[Math.Min(idx, BackoffMs.Length - 1)];
+        try { await Task.Delay(ms, ct); } catch (OperationCanceledException) { }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>外层 while = "一条命的周期"</strong>:连上(ConnectOnce)→ 活着(心跳+收线)→ 死了(异常/超时)→ 睡退避 → 再来。<strong>读长连接代码先找这个环</strong>,它就是 socket.io 的 reconnect 引擎裸奔版。
+- <strong><code>backoffIdx</code> 只升不降,连上清零</strong>:<code>Math.Min(idx+1, Length-1)</code> 封顶在 16s——失败越多次睡越久(给对端喘息),一旦成功立刻归零。<strong>指数退避的全部实现就这两行加减法</strong>,R7 会把它抽成通用 Retry。
+- <strong><code>catch (SocketException) / catch (IOException)</code> 空 catch 故意"走重连"</strong>:网络类异常是<strong>环境状态不是程序错误</strong>,吃了回到环顶重试;而 <code>OperationCanceledException</code> break——用户主动断开不叫故障。
+- <strong><code>CreateLinkedTokenSource</code> 造"联动令牌"</strong>:外层 ct 取消会自动联动到心跳令牌——<strong>子任务的生命周期挂在父任务上</strong>,Dispose 用 <code>using</code> 保证不泄漏。这是"取消树"模式,一cancel全倒。
+- <strong><code>ConnectOnce</code> 里先 <code>CloseSocket()</code> 再 new</strong>:残留的旧 socket 先埋了再建新的——<strong>重连前清理现场</strong>,否则句柄泄漏攒着攒着就 IOException。</p>
+<p><strong>第 4 步 · 收线拼帧:ReceiveLoop + DrainBuffer</strong>(RealLoop 之后)</p>
+<pre><code class="language-csharp">    private async Task ReceiveLoop(CancellationToken ct)
+    {
+        // 滚动缓冲区:堆字节 + TryParse 滑窗。生产可用 ArrayPool 进一步优化分配。
+        var buffer = new List&lt;byte&gt;(4096);
+        var seg = new byte[4096];
+        DateTime lastRecv = DateTime.UtcNow;
+
+        while (!ct.IsCancellationRequested &amp;&amp; _socket?.Connected == true)
+        {
+            int n;
+            try { n = await _socket.ReceiveAsync(new ArraySegment&lt;byte&gt;(seg), SocketFlags.None, ct); }
+            catch (SocketException) { return; }
+            if (n == 0) return; // 对端关闭
+            lastRecv = DateTime.UtcNow;
+
+            buffer.AddRange(seg.AsSpan(0, n));
+            DrainBuffer(buffer);
+
+            if ((DateTime.UtcNow - lastRecv).TotalMilliseconds &gt; OfflineTimeoutMs) return; // 心跳超时
+        }
+    }
+
+    private void DrainBuffer(List&lt;byte&gt; buffer)
+    {
+        while (buffer.Count &gt; 0)
+        {
+            var arr = buffer.ToArray();
+            if (!TcpFrameParser.TryParse(arr, out var payload, out int frameLen, out bool needResync))
+            {
+                if (needResync) buffer.RemoveAt(0);   // 头不对齐:丢 1 字节重同步
+                break;                                // 数据不够:等下次 Receive
+            }
+            HandlePayload(payload);
+            buffer.RemoveRange(0, frameLen);
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>n == 0</code> 是 TCP 的"礼貌告别"</strong>:ReceiveAsync 返回 0 字节 = 对端正常关闭——<strong>和异常不是一回事</strong>,单独判断;而不抛错的"半开连接"(拔网线)要靠下面的静默超时兜底。
+- <strong>ReceiveLoop 自己不管拼帧</strong>,只"堆字节 + 叫 DrainBuffer"——<strong>IO 和协议继续解耦</strong>,TryParse 失败的两种含义(等/弃)在 DrainBuffer 里精准处理:needResync 丢 1 字节,否则 break 等下一车。R3 无状态设计的兑现现场。
+- <strong><code>lastRecv</code> 判超时看似死代码?</strong> 不——<code>DateTime.UtcNow - lastRecv</code> 在循环里每圈都查,只是<strong>只有 ReceiveAsync 长时间阻塞不返回时才会触发</strong>(30s 没收到任何字节,ReceiveTimeout 把 ReceiveAsync 打醒抛异常,或返回后判超时 return)。<strong>死连接靠"时间"发现,不靠"报错"发现</strong>——这是心跳机制的存在理由。
+- <strong><code>buffer.ToArray()</code> 每圈复制一份</strong>:TryParse 要 ReadOnlySpan,List 不能直接给——<strong>牺牲一点分配换代码简洁</strong>,注释标了生产可用 ArrayPool 优化。学习版先直白,优化有方向。</p>
+<p><strong>第 5 步 · 业务解码 + 心跳:HandlePayload + ParseMultiPoints + HeartbeatLoop</strong>(DrainBuffer 之后)</p>
+<pre><code class="language-csharp">    /// &lt;summary&gt;
+    /// 业务侧 payload 解析:约定第一字节是功能码。
+    /// 0x01:多点上报,[0x01][N][N×(addr:2, val:4 float LE)];0x02:心跳响应,忽略。
+    /// 真实工程可把 codec 抽成单独策略类注入,这里只演示一例。
+    /// &lt;/summary&gt;
+    private void HandlePayload(byte[] payload)
+    {
+        if (payload.Length == 0) return;
+        switch (payload[0])
+        {
+            case 0x01: ParseMultiPoints(payload); break;
+            case 0x02: /* 心跳响应,无操作 */ break;
+        }
+    }
+
+    private void ParseMultiPoints(byte[] payload)
+    {
+        if (payload.Length &lt; 2) return;
+        int n = payload[1];
+        for (int i = 0; i &lt; n; i++)
+        {
+            int off = 2 + i * 6;
+            if (off + 6 &gt; payload.Length) break;
+            int pointId = payload[off] | (payload[off + 1] &lt;&lt; 8);
+            double value = BitConverter.ToSingle(payload, off + 2);
+            _last[pointId] = value;
+            RaiseData(pointId, Math.Round(value, 3));
+        }
+    }
+
+    private async Task HeartbeatLoop(CancellationToken ct)
+    {
+        // 心跳 payload = [0x02],由 BuildFrame 现算 CRC
+        var frame = TcpFrameParser.BuildFrame(new byte[] { 0x02 });
+        while (!ct.IsCancellationRequested &amp;&amp; _socket?.Connected == true)
+        {
+            try
+            {
+                await _socket!.SendAsync(new ArraySegment&lt;byte&gt;(frame), SocketFlags.None, ct);
+            }
+            catch (SocketException) { return; }
+            catch (OperationCanceledException) { return; }
+            try { await Task.Delay(HeartbeatIntervalMs, ct); } catch (OperationCanceledException) { return; }
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>载荷第一字节是功能码——TCP 版的"路由"</strong>:<code>0x01</code> 数据上报、<code>0x02</code> 心跳、<code>0x03</code> 写命令——<strong>同一条连接上跑多种消息,靠功能码分流</strong>(前端类比:WebSocket 消息里的 <code>type</code> 字段,switch 分发到不同 handler)。
+- <strong><code>ParseMultiPoints</code> 的 <code>off = 2 + i * 6</code> 定长数组布局</strong>:每点 6 字节(addr 2 + float 4),<strong>定长结构才能用乘法寻址</strong>——和 R3 线圈的 <code>i/8, i%8</code> 一个思路,变的是"定长"还是"按位"。
+- <strong>心跳是"只发不问"的保活</strong>:每 10s 发一帧 [0x02],对端回不回都行——<strong>我们的超时判据是"收到过任何字节"</strong>(ReceiveLoop 的 lastRecv),对端回的心跳响应恰好贡献活跃度。比"请求-响应配对"简单且有弹性。
+- <strong>心跳失败 <code>return</code> 而不重试</strong>:发送失败说明连接已坏,<strong>把死连接的发现交给重连环</strong>——各组件只做自己最擅长的事,不越位抢活。</p>
+<p><strong>第 6 步 · 对外读写与清理:Read + Write + Dispose + CloseSocket</strong>(文件末尾)</p>
+<pre><code class="language-csharp">    private void CloseSocket()
+    {
+        try { _socket?.Shutdown(SocketShutdown.Both); } catch { /* ignore */ }
+        try { _socket?.Close(); } catch { /* ignore */ }
+        _socket = null;
+    }
+
+    /// &lt;summary&gt;读最近一次缓存值(与 ModbusDevice.Read 同语义)。&lt;/summary&gt;
+    public override double Read(int addr)
+    {
+        var map = _maps.FirstOrDefault(m =&gt; m.Addr == addr);
+        int pid = map?.PointId ?? addr;
+        return _last.TryGetValue(pid, out var v) ? v : double.NaN;
+    }
+
+    /// &lt;summary&gt;
+    /// 写值:把 [0x03][addr:2][value:4] 打成一帧下发。
+    /// &lt;/summary&gt;
+    public override void Write(int addr, double value)
+    {
+        if (_simulate) return;
+        if (_socket?.Connected != true) return;
+        var payload = new byte[7];
+        payload[0] = 0x03;
+        payload[1] = (byte)(addr &amp; 0xFF);
+        payload[2] = (byte)((addr &gt;&gt; 8) &amp; 0xFF);
+        BitConverter.TryWriteBytes(payload.AsSpan(3), (float)value);
+        var frame = TcpFrameParser.BuildFrame(payload);
+        try { _socket.Send(frame); } catch (SocketException) { /* 重连循环会接手 */ }
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        _last.Clear();
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Write</code> 里 <code>if (_socket?.Connected != true) return;</code> 静默失败</strong>:断线时写命令直接丢——<strong>不抛异常不重试</strong>,因为重连环会恢复连接,上层下个周期再写就通了。<strong>"可用性靠自愈不靠报错"</strong>是长连接系统的写侧哲学。
+- <strong><code>BitConverter.TryWriteBytes(payload.AsSpan(3), (float)value)</code></strong>:Try 版本写进指定切片、不产生临时数组——组帧的零分配写法,和 GetBytes 返回新数组相对。
+- <strong><code>Shutdown(Both)</code> 先于 <code>Close()</code></strong>:礼貌地告诉对端"我要走了"(发 FIN),再关句柄——直接 Close 对端要等超时才发现,<strong>好聚好散也是网络礼仪</strong>。
+- <strong><code>Dispose = Stop + 清缓存</code></strong>:IDisposable 的标准收尾,调用方 <code>using var dev = new TcpDevice(...)</code> 出作用域自动挂断。</p>
+<details>
+<summary>📄 完整文件 TcpDevice.cs(先把这个贴进工程,再回头读上面 6 步)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Protocol;
 using System.Collections.Concurrent;
@@ -746,10 +1336,143 @@ public sealed class TcpDevice : DeviceBase, IDisposable
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-6">⑤ PlcDevice —— S7 模拟模式(真实路径注释保留)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/PlcDevice.cs</code> · 🔧 无 NuGet(S7NetPlus 到真接 PLC 再装)</p>
 </blockquote>
+<p><strong>第 1 步 · 骨架:PlcMap 地址映射 + 字段 + 构造</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System.Collections.Generic;
+using System.Threading;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// PLC 设备:实现 IDevice,直连西门子 S7 读 DB 块。
+/// 模拟模式(默认 simulate=true)零硬件跑通;真实模式用 S7NetPlus(dotnet add package S7NetPlus),
+/// 因本机无 PLC 且为保持工程零依赖可编译,真实路径以注释保留。
+///
+/// 重点:IsConnected 不可全信,真正&quot;通不通&quot;要看读回来的 LastErrorCode / 读值是否合理。
+/// &lt;/summary&gt;
+public sealed class PlcDevice : DeviceBase
+{
+    /// &lt;summary&gt;点位 → PLC 地址映射,如 &quot;DB1.DBW0&quot;(数据块1、字0)。&lt;/summary&gt;
+    public sealed record PlcMap(int PointId, string DbAddress);
+
+    private readonly bool _simulate;
+    private readonly List&lt;PlcMap&gt; _maps;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+    private readonly Random _rnd = new();
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    public PlcDevice(int id, string name, IEnumerable&lt;PlcMap&gt; maps, bool simulate = true)
+        : base(id, name)
+    {
+        _simulate = simulate;
+        _maps = maps.ToList();
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>simulate = true</code> 是 PLC 版的"默认模拟"</strong>:和 ModbusDevice(默认 false)相反——因为 S7 真实路径需要装 S7NetPlus 包 + 真机,<strong>默认零依赖可跑,要真机再显式关掉</strong>。参数默认值反映"这个设备最常见的使用姿势"。
+- <strong><code>PlcMap.DbAddress</code> 是字符串地址 "DB1.DBW0"</strong>:西门子的寻址语法(数据块 1、字 0)直接做成数据——<strong>协议的寻址体系映射到类型系统</strong>,手册上抄下来的地址就能用。</p>
+<p><strong>第 2 步 · 生命周期 + 轮询骨架</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        Start();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        State = DeviceState.Offline;
+    }
+
+    private void Start()
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    Tick();
+                    await Task.Delay(500, token);
+                }
+            }
+            catch (OperationCanceledException) { /* 正常退出 */ }
+        }, token);
+    }
+
+    private void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { /* 忽略 */ }
+        _cts?.Dispose();
+        _cts = null;
+        _loop = null;
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这套 Start/Stop 你已经是第三次写了</strong>(SimulatedDevice → ModbusDevice → PlcDevice)——<strong>重复三遍的模式就该抽基类</strong>,这是 R7 组装篇的伏笔;学习期手写三遍,肌肉记忆比抽象更重要。
+- <strong>轮询周期 500ms 与 ModbusDevice 一致</strong>:约定的节拍,UI 刷新率(≈2Hz)和设备压力的平衡点。</p>
+<p><strong>第 3 步 · Tick:模拟分支 + 真实 S7 注释路径</strong>(贴进类里)</p>
+<pre><code class="language-csharp">    private void Tick()
+    {
+        if (_simulate)
+        {
+            foreach (var m in _maps)
+            {
+                double v = Math.Round(20 + _rnd.NextDouble() * 70, 2);
+                _last[m.PointId] = v;
+                RaiseData(m.PointId, v);
+            }
+            return;
+        }
+
+        // —— 真实 S7.Net 写法(需 dotnet add package S7NetPlus,并填 PLC 的 IP)——
+        // using S7;
+        // var plc = new Plc(CpuType.S71200, &quot;192.168.0.1&quot;, 0, 1);
+        // plc.Open();
+        // try
+        // {
+        //     foreach (var m in _maps)
+        //     {
+        //         var raw = (short)plc.Read(m.DbAddress);
+        //         if (plc.LastErrorCode != 0) continue;     // IsConnected 不可全信,看错误码
+        //         double v = raw;
+        //         _last[m.PointId] = v;
+        //         RaiseData(m.PointId, v);
+        //     }
+        // }
+        // finally { plc.Close(); }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>真实路径整段注释保留,而不是删掉</strong>:面试官问"你真接过 PLC 吗",诚实答案 + <strong>能逐行讲出 S7NetPlus 的用法</strong>——注释是"我没硬件,但我懂路径"的证据。工作后真机到位,放开注释装包即跑。
+- <strong><code>if (plc.LastErrorCode != 0) continue;</code> 是 M3 铁律的落地</strong>:<code>IsConnected</code> 属性只反映"上次动作时的状态",<strong>真正通不通要看这次读回来的错误码</strong>——和 TcpDevice 不信 <code>Connected</code> 只信超时,同一个世界观:<strong>状态属性会撒谎,IO 结果不会</strong>。
+- <strong><code>(short)plc.Read(...)</code></strong>:S7 的 DBW(Word)读到的是 16 位有符号数——PLC 侧数值范围规划(温度×10 存 word)要在两端一致,又见标定问题。</p>
+<p><strong>第 4 步 · 读缓存 + 写占位</strong>(贴进类里,收尾)</p>
+<pre><code class="language-csharp">    public override double Read(int addr)
+        =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        if (_simulate) return;
+        // 真实模式:plc.Write(m.DbAddress, (short)value);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Write 的真实路径注释一行即可</strong>:S7 写和读对称(<code>plc.Write(addr, value)</code>),不像 Modbus 要手工组帧——<strong>用库的好处是写方向免费</strong>,代价是你没练过组帧(所以 Modbus 我们手搓、PLC 用库,两头都学到)。</p>
+<details>
+<summary>📄 完整文件 PlcDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using System.Collections.Generic;
 using System.Threading;
@@ -864,6 +1587,7 @@ public sealed class PlcDevice : DeviceBase
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-7">⑥ CAN 三件套 + USB-HID 三件套</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/ICanChannel.cs</code></p>
@@ -889,6 +1613,9 @@ public interface ICanChannel
     void Close();
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>CAN 帧和串口字节流是两种世界观</strong>:串口是"无边界字节流"(要 FrameParser 拼帧),CAN 是"帧固有边界"(硬件保证每帧 ID+0~8 字节完整到达)——所以接口直接给 <code>FrameReceived(ulong id, byte[] data)</code>,<strong>没有半包粘包问题,解析器都省了</strong>。协议性质决定接口形状。
+- <strong><code>ulong id</code></strong>:CAN 扩展帧 ID 是 29 位,ulong 一步到位——和 Modbus 的"从站地址"不同,<strong>CAN 的 ID 是"信号的名字"不是"设备的名字"</strong>(一条总线多设备广播,ID 区分的是报文类型)。</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/SimulatedCanChannel.cs</code></p>
 </blockquote>
@@ -916,10 +1643,75 @@ public sealed class SimulatedCanChannel : ICanChannel
     public void Close() =&gt; IsOpen = false;
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>假数据也有讲究</strong>:<code>[0x00, 0xFA]</code> = 250,÷10 = 25.0℃——<strong>测试断言的期望值就藏在这</strong>,CanDeviceTests 里 <code>Assert 25.0</code> 和这里遥相呼应。改一处忘另一处,测试立刻提醒你。
+- <strong>Open 即广播一帧</strong>:模拟"设备上电就把当前温度广播出来"——CAN 设备的真实行为(状态即广播,不等你问),替身连行为节拍都要像。</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/CanDevice.cs</code>
 💡 CAN vs Modbus(面试常考):Modbus 主从问答;CAN 多主广播,靠 <strong>ID</strong> 区分信号,没有地址/功能码</p>
 </blockquote>
+<p><strong>第 1 步 · 骨架:通道注入 + 缓存</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// CAN 设备:继承 DeviceBase,把 CAN 总线上&quot;按 ID 广播的帧&quot;解码成统一 DataEventArgs。
+/// 例如约定 ID=0x100 = 温度,2 字节大端 raw,÷10 得 ℃(工程量标定)。
+/// 真实硬件用 PCANChannel 等实现 ICanChannel,换链路不换本类。
+/// &lt;/summary&gt;
+public sealed class CanDevice : DeviceBase
+{
+    private readonly ICanChannel _ch;
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    public CanDevice(int id, string name, ICanChannel channel) : base(id, name)
+        =&gt; _ch = channel;
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>和 SerialDevice 骨架几乎一样,只换通道类型</strong>:注入 <code>ICanChannel</code> 而不是 <code>ISerialChannel</code>——<strong>设备类 = 生命周期 + 解码逻辑 + 通道</strong>,前两者每个设备都相似,通道决定它"说什么方言"。</p>
+<p><strong>第 2 步 · 生命周期 + 帧解码 <code>OnFrame</code></strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    public override void Connect()
+    {
+        _ch.FrameReceived += OnFrame;
+        _ch.Open();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        _ch.FrameReceived -= OnFrame;
+        _ch.Close();
+        State = DeviceState.Offline;
+    }
+
+    private void OnFrame(ulong id, byte[] data)
+    {
+        if (id != 0x100 || data.Length &lt; 2) return;   // 只认&quot;温度帧&quot;,其它 ID 忽略
+        int raw = (data[0] &lt;&lt; 8) | data[1];           // 大端:高字节在前
+        double value = raw / 10.0;                     // 工程量标定
+        _last[1] = value;
+        RaiseData(1, value);                           // 推给采集管道 → 最终到 UI
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>if (id != 0x100 ...) return</code> 是 CAN 的"订阅过滤"</strong>:总线上所有设备广播的帧都会到这,<strong>只认自己关心的 ID</strong>——CAN 没有"主从问答",过滤器就是你的订阅器(前端类比:mqtt 的 topic 过滤、事件的 type 判断)。
+- <strong><code>raw / 10.0</code> 是工程量标定</strong>:报文里装的是整数 250(0x00FA),物理量是 25.0℃——<strong>协议里的数 ≠ 物理世界的数</strong>,标定系数(÷10、×0.1、+偏移)永远来自设备手册的"工程量换算"一节。这行代码是"读手册"的落地。
+- <strong>大端拼 raw 与 Modbus 寄存器同款</strong>:<code>(data[0] &lt;&lt; 8) | data[1]</code>——CAN 数据场习惯大端,又一次"手册说了算"。</p>
+<p><strong>第 3 步 · 读缓存 + 写占位</strong>(贴进类里,收尾)</p>
+<pre><code class="language-csharp">    public override double Read(int addr)
+        =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        // CAN 是广播总线,&quot;写单个寄存器&quot;语义不存在;具体写入请由网关/子类覆盖。
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Write 空实现不是偷懒</strong>:CAN 是多主广播,没有"写某设备的某个寄存器"这回事——<strong>接口强迫你实现一个语义不存在的操作,空方法 + 注释是最诚实的答案</strong>(比抛异常好:调用方遍历设备统一 Write 时不会炸)。</p>
+<details>
+<summary>📄 完整文件 CanDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 
 namespace DaqMonitor.Core.Devices;
@@ -969,6 +1761,7 @@ public sealed class CanDevice : DeviceBase
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/IHidChannel.cs</code></p>
 </blockquote>
@@ -991,6 +1784,9 @@ public interface IHidChannel
     void Close();
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>HID 是"定长报告"模型</strong>:<code>ReportLength</code>(如 64 字节)收发都按这个长度——<strong>没有流、没有帧边界问题,每包就是一包</strong>。鼠标键盘就是 HID,操作系统原生免驱,所以很多仪器走 HID 而不是虚拟串口。
+- <strong>VID/PID 找设备 vs COM 号找设备</strong>:VID/PID 烧在固件里,<strong>换 USB 口不变</strong>;COM 号是操作系统分配的,换个口可能从 COM3 变 COM5——这就是 HID 设备"免配置"的底气,注释里专门强调。</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/SimulatedHidChannel.cs</code></p>
 </blockquote>
@@ -1018,9 +1814,82 @@ public sealed class SimulatedHidChannel : IHidChannel
     public void Close() =&gt; IsOpen = false;
 }
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>Open 回温度报告、Write 回压力报告</strong>:模拟"设备主动上报温度 + 收到命令回压力"两种交互——替身的行为剧本对齐真实仪器,测试才能覆盖两条解码路径。</p>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Core/Devices/UsbHidDevice.cs</code></p>
 </blockquote>
+<p><strong>第 1 步 · 骨架:通道注入 + 缓存</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// USB-HID 仪器设备:继承 DeviceBase,把 HID&quot;报告(Report)&quot;解码成统一 DataEventArgs。
+/// 约定(和仪器厂家的协议文档对齐):report[0] = 报告类型(0x01 温度 / 0x02 压力);
+/// report[1..2] = 2 字节大端原始值,÷10 得工程量。
+/// 真实仪器用 HidLibrary 实现 IHidChannel,本类只认接口,换仪器/换厂商库不改动业务。
+/// &lt;/summary&gt;
+public sealed class UsbHidDevice : DeviceBase
+{
+    private readonly IHidChannel _ch;
+    private readonly Dictionary&lt;int, double&gt; _last = new();
+
+    public UsbHidDevice(int id, string name, IHidChannel channel) : base(id, name)
+        =&gt; _ch = channel;
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>第五个设备类,骨架已经"模板化"</strong>:通道字段 + 缓存字典 + 注入构造——写到这里你应该能默写这个骨架了,<strong>设备类的变化点只剩"解码方法"一处</strong>,好的抽象就是让变化点收窄。</p>
+<p><strong>第 2 步 · 生命周期 + 报告解码 <code>OnReport</code></strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    public override void Connect()
+    {
+        _ch.ReportReceived += OnReport;
+        _ch.Open();
+        State = DeviceState.Online;
+    }
+
+    public override void Disconnect()
+    {
+        _ch.ReportReceived -= OnReport;
+        _ch.Close();
+        State = DeviceState.Offline;
+    }
+
+    private void OnReport(byte[] report)
+    {
+        if (report.Length &lt; 3) return;
+        if (report[0] == 0x01)                              // 温度
+        {
+            double v = ((report[1] &lt;&lt; 8) | report[2]) / 10.0;
+            _last[1] = v; RaiseData(1, v);
+        }
+        else if (report[0] == 0x02)                         // 压力
+        {
+            double v = ((report[1] &lt;&lt; 8) | report[2]) / 10.0;
+            _last[2] = v; RaiseData(2, v);
+        }
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>report[0]</code> 报告类型 = HID 版功能码</strong>:和 TcpDevice 载荷第一字节分流同构——<strong>"消息第一字节说是谁"是二进制协议的通用模式</strong>,认出它你就能读任何仪器手册的"报文格式"表。
+- <strong><code>_last[1]</code> / <code>_last[2]</code> 硬编码点位号</strong>:温度固定抬点位 1、压力固定抬点位 2——简化版映射(真实工程会做成 ctor 传映射表,像 RegisterMap 那样)。<strong>先硬编码跑通,再参数化</strong>,学习曲线的正确顺序。</p>
+<p><strong>第 3 步 · 读缓存 + 写报告</strong>(贴进类里,收尾)</p>
+<pre><code class="language-csharp">    public override double Read(int addr)
+        =&gt; _last.TryGetValue(addr, out var v) ? v : double.NaN;
+
+    public override void Write(int addr, double value)
+    {
+        var outBuf = new byte[Math.Max(3, _ch.ReportLength)];
+        outBuf[0] = 0x02;
+        outBuf[1] = (byte)value;
+        _ch.Write(outBuf);                                  // 发控制命令(如置数/启动)
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Math.Max(3, _ch.ReportLength)</code> 尊重定长协议</strong>:HID 报告必须按 ReportLength 整包发(哪怕只用 3 字节,后面补零)——<strong>协议要求的"浪费"不能省</strong>,短包设备直接不认。</p>
+<details>
+<summary>📄 完整文件 UsbHidDevice.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 
 namespace DaqMonitor.Core.Devices;
@@ -1080,11 +1949,131 @@ public sealed class UsbHidDevice : DeviceBase
     }
 }
 </code></pre>
+</details>
 <h3 id="sec-3-8">⑦ 测试(12 个新增)</h3>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/SerialDeviceTests.cs</code>(R4 版 5 个;穿管道测试 R5 有了管道再补)
 💡 用 LoopbackSerialChannel 喂字节——<strong>不碰任何真实串口,CI / 没硬件的机器也能跑绿</strong></p>
 </blockquote>
+<p>搭积木:第 1 步建骨架顺带写单帧测试,之后粘包/半包/坏 CRC/RawLog 四个场景分两批贴入。</p>
+<p><strong>第 1 步 · 骨架 + 单帧直通测试</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Protocol;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 验证&quot;加一种设备 = 只写一个小类、UI/采集层零改动&quot;:
+/// 用 LoopbackSerialChannel(内存回环,零硬件)喂字节,断言 SerialDevice 的协议解析成立。
+/// &lt;/summary&gt;
+public class SerialDeviceTests
+{
+    [Fact]
+    public void Parses_SingleFrame_AndRaisesData()
+    {
+        var ch = new LoopbackSerialChannel();
+        var dev = new SerialDevice(1, &quot;SER&quot;, ch);
+        var got = new List&lt;(int, double)&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add((e.PointId, e.Value));
+
+        dev.Connect();
+        ch.Write(FrameParser.Build(1, 123.5));
+        Thread.Sleep(200);                      // 等回环异步回调
+        dev.Disconnect();
+
+        Assert.Contains(got, x =&gt; x.Item1 == 1 &amp;&amp; Math.Abs(x.Item2 - 123.5) &lt; 1e-6);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>测试的"组装三件套"</strong>:造通道(回环)→ 造设备(注入通道)→ 订阅事件收结果——<strong>和生产代码组装一模一样,只是通道换成替身</strong>。这就是 ISerialChannel 抽象的测试红利。
+- <strong><code>Thread.Sleep(200)</code> 等"回环异步回调"</strong>:LoopbackSerialChannel 用 Task.Run 模拟异步到达,Sleep 给它时间跑——比 R2 的 ManualResetEventSlim 粗糙但够用(精确等待留给关键断言,普通场景 Sleep 简单直接)。
+- <strong><code>Assert.Contains(got, x =&gt; ...)</code> 谓词断言</strong>:收到的事件里"存在一条"满足条件即可——<strong>不断言"恰好一条"</strong>(期间可能有别的),给异步时序留容差,测试才不闪断。</p>
+<p><strong>第 2 步 · 粘包 + 半包:流式的两种残缺</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void Handles_粘包_TwoFramesInOneChunk()
+    {
+        var ch = new LoopbackSerialChannel();
+        var dev = new SerialDevice(1, &quot;SER&quot;, ch);
+        var got = new List&lt;int&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add(e.PointId);
+
+        dev.Connect();
+        var both = FrameParser.Build(1, 10).Concat(FrameParser.Build(2, 20)).ToArray();
+        ch.Write(both);                         // 两帧粘在一起一次到达
+        Thread.Sleep(200);
+        dev.Disconnect();
+
+        Assert.Contains(1, got);
+        Assert.Contains(2, got);
+    }
+
+    [Fact]
+    public void Handles_半包_SplitAcrossChunks()
+    {
+        var ch = new LoopbackSerialChannel();
+        var dev = new SerialDevice(1, &quot;SER&quot;, ch);
+        var got = new List&lt;int&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add(e.PointId);
+
+        dev.Connect();
+        var frame = FrameParser.Build(3, 30);
+        ch.Write(frame.AsSpan(0, frame.Length / 2).ToArray());   // 先来半包
+        Thread.Sleep(50);
+        ch.Write(frame.AsSpan(frame.Length / 2).ToArray());      // 补齐剩余
+        Thread.Sleep(200);
+        dev.Disconnect();
+
+        Assert.Contains(3, got);                  // 半包必须能拼回完整帧
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>粘包测试 = <code>Concat</code> 两帧一次喂</strong>:模拟"TCP/串口缓冲把两条消息一起送来"——设备层必须拆出两条,<strong>断言 Contains(1) 和 Contains(2) 双双在场</strong>。
+- <strong>半包测试掐中分</strong>:整帧从中间劈成两半、分两次 Write——中间 <code>Sleep(50)</code> 保证"第一半先到"的时序。<strong>R3 FrameParser 的蓄水池在这被端到端验证</strong>(单元测试测它自己,这测它在设备里的集成)。</p>
+<p><strong>第 3 步 · 坏 CRC 丢弃 + RawLog 联调开关</strong>(贴进类里,收尾)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void Drops_Frame_WithBadCrc()
+    {
+        var ch = new LoopbackSerialChannel();
+        var dev = new SerialDevice(1, &quot;SER&quot;, ch);
+        var got = new List&lt;int&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add(e.PointId);
+
+        dev.Connect();
+        var frame = FrameParser.Build(5, 50);
+        frame[^1] ^= 0xFF;                        // 故意破坏 CRC
+        ch.Write(frame);
+        Thread.Sleep(200);
+        dev.Disconnect();
+
+        Assert.DoesNotContain(5, got);            // 坏帧被丢弃,不污染业务
+    }
+
+    [Fact]
+    public void RawLog_Fires_OnSendAndReceive()   // 验证联调&quot;调试开关&quot;
+    {
+        var ch = new LoopbackSerialChannel();
+        var dev = new SerialDevice(1, &quot;SER&quot;, ch);
+        var logs = new List&lt;string&gt;();
+        dev.RawLog = m =&gt; logs.Add(m);
+
+        dev.Connect();
+        dev.Write(9, 1.0);                     // 触发 TX 日志(下发命令帧)
+        ch.Write(FrameParser.Build(1, 1.0));   // 触发 RX 日志(设备回数据)
+        Thread.Sleep(200);
+        dev.Disconnect();
+
+        Assert.Contains(logs, l =&gt; l.StartsWith(&quot;TX &quot;));
+        Assert.Contains(logs, l =&gt; l.StartsWith(&quot;RX &quot;));
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Assert.DoesNotContain</code> 断言"什么都没发生"</strong>:坏帧喂进去、事件一个不响——<strong>"负向断言"是防污染测试的核心</strong>,数据落库/报警误触发类 bug 全靠它兜底。
+- <strong>RawLog 测试连"联调功能"都不放过</strong>:TX/RX 日志各触发一次断言在场——<strong>调试功能也是功能,坏了现场就抓瞎</strong>,值得一个测试守护。</p>
+<details>
+<summary>📄 完整文件 SerialDeviceTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Devices;
 using DaqMonitor.Core.Protocol;
 using Xunit;
@@ -1187,9 +2176,63 @@ public class SerialDeviceTests
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/ModbusDeviceTests.cs</code>(R4 版 2 个;穿管道测试 R5 再补)</p>
 </blockquote>
+<p>搭积木:第 1 步骨架 + Modbus 模拟测试,第 2 步贴入 PLC 模拟测试。</p>
+<p><strong>第 1 步 · 骨架 + Modbus 模拟模式测试</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 验证 ModbusDevice/PlcDevice 的模拟模式(零硬件)真实落工程。
+/// &lt;/summary&gt;
+public class ModbusDeviceTests
+{
+    [Fact]
+    public void SimulateMode_RaisesData_ForMappedPoints()
+    {
+        var dev = new ModbusDevice(1, &quot;MB&quot;, slave: 1,
+            new[] { new ModbusDevice.RegisterMap(1, 0, &quot;float&quot;), new ModbusDevice.RegisterMap(2, 1, &quot;word&quot;) },
+            simulate: true);
+        var got = new List&lt;int&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add(e.PointId);
+
+        dev.Connect();
+        Thread.Sleep(700);     // 等至少一个轮询周期(500ms)
+        dev.Disconnect();
+
+        Assert.Contains(1, got);
+        Assert.Contains(2, got);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>RegisterMap 在测试里当"配置"用</strong>:点位 1 = 地址 0 的 float、点位 2 = 地址 1 的 word——映射表即测试数据,<strong>不用 mock 任何东西,模拟模式本身就是最好的替身</strong>(比 Moq 模拟一个 IDevice 更真实:走的是完整的 Connect→轮询→事件链路)。
+- <strong>Sleep 700 = 轮询 500 + 余量</strong>:至少跑完一个 tick 才有数据——<strong>等待时长永远 ≥ 周期 + 缓冲</strong>,这是异步轮询测试的时间数学。</p>
+<p><strong>第 2 步 · PLC 模拟模式测试</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void PlcDevice_SimulateMode_RaisesData()
+    {
+        var dev = new PlcDevice(2, &quot;PLC&quot;, new[] { new PlcDevice.PlcMap(3, &quot;DB1.DBW0&quot;) }, simulate: true);
+        var got = new List&lt;int&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add(e.PointId);
+
+        dev.Connect();
+        Thread.Sleep(700);
+        dev.Disconnect();
+
+        Assert.Contains(3, got);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>PlcMap 的 DbAddress "DB1.DBW0" 在模拟模式只是个字符串钥匙</strong>:真实模式它才是 S7 寻址——<strong>同一个配置对象,两种模式两种重量</strong>,模拟测试验证的是"链路活不活",不是"地址对不对"(地址对错要真机)。</p>
+<details>
+<summary>📄 完整文件 ModbusDeviceTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Devices;
 using Xunit;
 
@@ -1232,9 +2275,70 @@ public class ModbusDeviceTests
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/CanDeviceTests.cs</code></p>
 </blockquote>
+<p>搭积木:第 1 步骨架 + 温度解码测试(含内嵌的"异 ID 通道"),第 2 步贴入忽略测试。</p>
+<p><strong>第 1 步 · 骨架 + 温度帧解码测试</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 验证 CAN 设备:用 SimulatedCanChannel(内存模拟,零硬件)喂温度帧,
+/// 断言 CanDevice 把 ID=0x100 的帧解码成 point1 = 25.0℃,且不认其它 ID 的帧。
+/// &lt;/summary&gt;
+public class CanDeviceTests
+{
+    [Fact]
+    public void Decodes_TempFrame_To_25C()
+    {
+        var ch = new SimulatedCanChannel();
+        var dev = new CanDevice(1, &quot;CAN&quot;, ch);
+        var got = new List&lt;(int, double)&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add((e.PointId, e.Value));
+
+        dev.Connect();
+        Thread.Sleep(150);
+        dev.Disconnect();
+
+        Assert.Contains(got, x =&gt; x.Item1 == 1 &amp;&amp; Math.Abs(x.Item2 - 25.0) &lt; 1e-6);
+    }
+
+    /// &lt;summary&gt;非 0x100 的帧(如 0x999)应被忽略,不污染业务。&lt;/summary&gt;
+    private sealed class OtherIdChannel : ICanChannel
+    {
+        public event Action&lt;ulong, byte[]&gt;? FrameReceived;
+        public bool IsOpen { get; private set; }
+        public void Open() { IsOpen = true; FrameReceived?.Invoke(0x999, new byte[] { 0x00, 0xFA }); }
+        public void Send(ulong id, byte[] d) { }
+        public void Close() { IsOpen = false; }
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>测试里内嵌私有替身类 <code>OtherIdChannel</code></strong>:SimulatedCanChannel 只会发 0x100,想测"异 ID 被忽略"就得现造一个发 0x999 的通道——<strong>替身不一定抽成公共文件,内嵌私有类够用就好</strong>(前端类比:测试文件里写个局部 mock 组件)。
+- <strong><code>sealed</code> + <code>private</code> 双保险</strong>:替身类不许被继承不许被外部引用——它只服务于这一个测试。</p>
+<p><strong>第 2 步 · 异 ID 忽略测试</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void Ignores_NonTempId_Frames()
+    {
+        var dev = new CanDevice(1, &quot;CAN&quot;, new OtherIdChannel());
+        int count = 0;
+        dev.DataReceived += (_, e) =&gt; count++;
+        dev.Connect();
+        Thread.Sleep(100);
+        dev.Disconnect();
+        Assert.Equal(0, count);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>0x999 帧的数据 <code>00 FA</code> 和温度帧一模一样</strong>:故意的——如果解码器忘了过滤 ID、只按数据算,这条"伪温度 25.0"就会漏进来。<strong>替身的数据也要设计成陷阱</strong>,专骗没写过滤的实现。</p>
+<details>
+<summary>📄 完整文件 CanDeviceTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Devices;
 using Xunit;
 
@@ -1284,9 +2388,63 @@ public class CanDeviceTests
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/UsbHidDeviceTests.cs</code></p>
 </blockquote>
+<p>搭积木:第 1 步骨架 + 温度报告测试,第 2 步贴入压力报告测试。</p>
+<p><strong>第 1 步 · 骨架 + 温度报告解码测试</strong>(整个文件先建出来)</p>
+<pre><code class="language-csharp">using DaqMonitor.Core.Devices;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+/// &lt;summary&gt;
+/// 验证 USB-HID 设备:用 SimulatedHidChannel(内存模拟,零硬件)喂报告,
+/// 断言温度报告 0x01→25.0℃、压力报告 0x02→30.0kPa 都能正确解码。
+/// &lt;/summary&gt;
+public class UsbHidDeviceTests
+{
+    [Fact]
+    public void Decodes_TempReport_To_25C()
+    {
+        var ch = new SimulatedHidChannel();
+        var dev = new UsbHidDevice(1, &quot;HID&quot;, ch);
+        var got = new List&lt;(int, double)&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add((e.PointId, e.Value));
+
+        dev.Connect();
+        Thread.Sleep(150);
+        dev.Disconnect();
+
+        Assert.Contains(got, x =&gt; x.Item1 == 1 &amp;&amp; Math.Abs(x.Item2 - 25.0) &lt; 1e-6);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>温度报告是 Open 自推的</strong>:Connect 后 Sleep 等它到——<strong>HID 设备"上电即报"的行为在替身里复现</strong>,测试节奏和真实仪器一致。</p>
+<p><strong>第 2 步 · 压力报告解码测试(主动触发型)</strong>(贴进类里,最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    [Fact]
+    public void Decodes_PressureReport_To_30kPa()
+    {
+        var ch = new SimulatedHidChannel();
+        var dev = new UsbHidDevice(1, &quot;HID&quot;, ch);
+        var got = new List&lt;(int, double)&gt;();
+        dev.DataReceived += (_, e) =&gt; got.Add((e.PointId, e.Value));
+
+        dev.Connect();
+        dev.Write(2, 5);            // 触发模拟设备回压力包
+        Thread.Sleep(150);
+        dev.Disconnect();
+
+        Assert.Contains(got, x =&gt; x.Item1 == 2 &amp;&amp; Math.Abs(x.Item2 - 30.0) &lt; 1e-6);
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>这个测试走的是"命令 → 响应"往返</strong>:Write 触发替身回压力包——<strong>和温度测试的"自推"互补</strong>,一个测被动接收、一个测主动交互,两条解码路径各有一个测试把守。</p>
+<details>
+<summary>📄 完整文件 UsbHidDeviceTests.cs(对答案 / 整体粘贴用)</summary>
 <pre><code class="language-csharp">using DaqMonitor.Core.Devices;
 using Xunit;
 
@@ -1330,6 +2488,7 @@ public class UsbHidDeviceTests
     }
 }
 </code></pre>
+</details>
 <blockquote>
 <p>📂 <code>src/DaqMonitor.Tests/TcpFrameParserTests.cs</code> — <strong>贴进 TcpFrameParserTests 类里</strong>(最后一个 <code>}</code> 之前)追加 1 个测试;文件头同步补 <code>using DaqMonitor.Core.Devices;</code></p>
 </blockquote>
