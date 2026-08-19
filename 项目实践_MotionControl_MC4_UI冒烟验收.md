@@ -52,7 +52,9 @@ using MotionControlProject.UI;      // ← 新增:冒烟测试要 new MainForm
 using System.Diagnostics;
 ```
 
-**改动 2**:在类末尾(`断开连接_所有运动被取消` 测试之后、类的 `}` 之前)追加:
+**改动 2**:在类末尾(`断开连接_所有运动被取消` 测试之后、类的 `}` 之前)追加下面 3 步的代码 —— **三步首尾相接,按 ①→③ 顺序贴完就是一个完整方法**;贴完先看不懂没关系,每步下面的知识点把概念补齐。
+
+**第 ① 步 · 测试外壳:STA 线程 + 异常回传**(贴法:先贴这两段 —— 第二段接在第一段 `form.Show();` 之后的实际位置在 ② 贴完后,先读懂结构即可)
 
 ```csharp
     // ———— UI 全流程冒烟(MC4 再加) ————
@@ -73,6 +75,28 @@ using System.Diagnostics;
                 var form = new MainForm(card);
                 form.Show();
 
+```
+
+```csharp
+            catch (Exception ex) { error = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);   // WinForms 控件必须活在 STA 线程
+        thread.Start();
+        thread.Join(60000);                             // 等它跑完(上限 60s,防测试挂死)
+        Assert.Null(error);
+        return;
+
+```
+
+📚 **知识点**
+- **为什么开新线程 + STA**:xUnit 的测试线程不是 STA,直接 new 控件会抛 `InvalidOperationException`(剪贴板/文件对话框等 COM 组件要求单线程公寓)。`SetApartmentState(ApartmentState.STA)` 必须在 `Start()` **之前**调用 —— 这是 WinForms 控件能被创建的硬前提(MC3 的 `[STAThread]` 是同一个要求,只是那是给主线程标的)。
+- **异常怎么变成测试失败**:`Assert.Null(error)` —— 线程里抛的异常**不会**自动让 xUnit 测试失败(它在另一个线程,框架看不见),必须 catch 住存进闭包变量 `error`,带回测试线程断言。类比:Promise 里的 throw 不会自动 fail 同步的测试,要兜住再 expect。`thread.Join(60000)` 设上限,流程万一卡死,测试在 60 秒后失败而不是永远挂着。
+- **`tickMs: 10`**:又是测试快进 —— 仿真节拍 10ms,位置事件每 10ms 刷两轴,几十轮 Pump 内足以让任何跨线程访问必然发生。
+- **`return;` 不是废话**:它后面还跟着局部函数 Pump(第 ③ 步)—— C# 允许 `return` 之后声明局部函数,读到 `return` 先别急着以为方法完了。
+
+**第 ② 步 · 线程体内:操作员全流程,做一步泵一步**(贴法:插在 `form.Show();` 与 `catch` 之间)
+
+```csharp
                 // 模拟操作员全流程:连接 → 使能 → 双轴同时点动 → 定位 → 注入报警 → 清报警 → 急停 → 断开
                 card.Connect("127.0.0.1");
                 card.SetAxisEnable(0, true);
@@ -92,14 +116,17 @@ using System.Diagnostics;
                 Pump(10);
                 form.Close();
             }
-            catch (Exception ex) { error = ex; }
-        });
-        thread.SetApartmentState(ApartmentState.STA);   // WinForms 控件必须活在 STA 线程
-        thread.Start();
-        thread.Join(60000);                             // 等它跑完(上限 60s,防测试挂死)
-        Assert.Null(error);
-        return;
+```
 
+📚 **知识点**
+- **`form.Show()` 而不是 `Application.Run(form)`**:Run 会进入消息循环直到窗体关闭 —— 测试就永远停在那;`Show()` 只是把窗体显示出来立刻返回,消息循环由我们自己的 Pump 手动驱动(这是整个测试的核心取舍)。
+- **"做一步,Pump 一会儿"的节奏**:发指令是同步的,但它引发的**事件 → BeginInvoke → 控件更新**是异步的 —— `Pump(50)` = 50 轮 × 10ms,给投递出去的回调留足被分发的时间。不 Pump 就直接做下一步,事件回调可能还躺在队列里没执行,测试就漏掉了它本来要覆盖的路径。类比:await 每一步,而不是连发指令最后 Sleep 一把。
+- **流程是"操作员剧本"不是随机动作**:连接 → 使能 → **两轴并发点动**(v1 头号 bug 场景)→ 定位**打断**点动(打断语义)→ 注障 → 清警 → 急停 → 断开 —— 每一拍都是 MC2/MC3 钉过的行为,在真窗体上再过一遍。Pump 的轮数随手势递减(50→30→20→10):越往后要等的事件越少。
+- **`form.Close()` 收尾**:触发 OnFormClosing → Disconnect → 干净退出(FR-U08 顺便被测到)。
+
+**第 ③ 步 · 局部函数 Pump:手动消息泵**(贴法:接在 `return;` 之后、方法的 `}` 之前 —— 三步合体完毕)
+
+```csharp
         // 手动消息泵:Application.Run 会阻塞测试,这里用 DoEvents 循环代替,
         // 每轮处理完队列里所有消息(包括 BeginInvoke 投递和 Timer 的 WM_TIMER)
         static void Pump(int loops)
@@ -113,13 +140,10 @@ using System.Diagnostics;
     }
 ```
 
-💡 **这 60 行里的五个门道**:
-
-- **为什么开新线程 + STA**:xUnit 的测试线程不是 STA,直接 new 控件会抛 `InvalidOperationException`(剪贴板/COM 组件要求单线程公寓)。`SetApartmentState(ApartmentState.STA)` 必须在 `Start()` **之前**调用 —— 这是 WinForms 控件能被创建的硬前提;
-- **为什么不用 `Application.Run`**:它会进入消息循环直到窗体关闭,测试就永远停在那。替代方案:手动"泵"消息 —— `Application.DoEvents()` 每调一次,就把当前消息队列里的消息(按钮点击、BeginInvoke 回调、Timer 的 WM_TIMER、重绘)全部处理一遍再返回;
-- **"做一步,Pump 一会儿"的节奏**:发指令是同步的,但它引发的**事件 → BeginInvoke → 控件更新**是异步的 —— Pump(50) = 50 轮 × 10ms,给投递出去的回调留足被 DoEvents 分发的时间。不 Pump 就直接断言/做下一步,事件回调可能还躺在队列里没执行,测试就漏掉了它本来要覆盖的路径;
-- **异常怎么变成测试失败**:`Assert.Null(error)` —— 线程里抛的异常不会自动让 xUnit 测试失败(它在另一个线程),必须 catch 住存进闭包变量,带回测试线程断言。`thread.Join(60000)` 设上限,流程万一卡死,测试在 60 秒后失败而不是永远挂着;
-- **`static void Pump` 是局部函数**(C# 7+):定义在方法体内、`return;` 之后 —— 它只服务于这一个测试,不该污染类的 API。`static` 让它不能捕获外部变量,编译器顺便帮你检查没有隐式闭包。
+📚 **知识点**
+- **`Application.DoEvents()` 是什么**:每调一次,就把当前消息队列里的消息(按钮点击、BeginInvoke 回调、Timer 的 WM_TIMER、重绘)全部处理一遍再返回 —— 相当于在当前调用栈里"借"一次消息循环。**Sleep 本身不会让投递执行,必须泵** —— 测试线程睡觉时没人处理队列,回调永远躺着。
+- **`static void Pump` 是局部函数**(C# 7+):定义在方法体内、`return;` 之后 —— 它只服务于这一个测试,不该污染类的 API。`static` 让它不能捕获外部变量,编译器顺便帮你检查没有隐式闭包。类比:组件内部定义的工具函数,不 export 出去。
+- **为什么 Pump 里还要 `Thread.Sleep(10)`**:纯 DoEvents 会以 CPU 满速空转泵队列 —— Sleep 让后台事件线程有时间生产新消息进来,50 轮 × (泵 + 10ms) ≈ 0.5 秒的真实时间窗。**泵负责"处理",睡负责"等生产"**,两者缺一不可。
 
 🔧 **为什么这个测试能抓住 MC2 抓不到的 bug**:MC2 测卡时不碰任何控件。假如某天有人把 `OnPositionChanged` 里的 `InvokeRequired` 判断删了 —— 卡的行为测试全绿,但界面一跑就炸;现在这个冒烟测试里,两轴并发点动每 10ms 刷两次位置事件,几十轮 Pump 之后,那次跨线程访问必然发生,**当场抛给你看**。这正是"数据采集项目里短暂冒烟没测出的 bug,拖到联调才爆"的针对性补防。
 

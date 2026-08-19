@@ -129,6 +129,10 @@
     /// &lt;/summary&gt;
     MotionResult MoveLinear(int[] axes, double[] targets, double speed);
 </code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>接口是合同,加条款要全体签约方补签</strong>:往 <code>IMotionCard</code> 加一个方法,所有实现类必须补实现 —— 否则编译不过(CS0535)。这是接口演进的代价,也是它的保护:谁都没法"悄悄不实现"。前端类比:给公共 <code>interface Props</code> 加必填字段,所有用到它的组件立刻类型报错,被迫一起改 —— 疼一下,但绝不漏。
+- <strong>平行数组签名 <code>axes[] / targets[]</code></strong>:两个数组按下标一一对应(axes[0] 配 targets[0])—— 真卡 SDK 常用这种风格(句柄数组 + 参数数组)。另一种做法是传 <code>AxisTarget[]</code> 对象数组,类型更安全但多一个类型声明 —— 演示"简单直接"和"类型安全"的取舍,两种都常见。
+- <strong><code>speed</code> 的语义注释要写清</strong>:插补速度 = "走得最远那根轴"的速度(下面实现里 maxDist 决定)—— 接口注释先把语义钉住,调用方才不会误解成"每根轴各自的速度"。</p>
 <h3 id="sec-3-2">第 2 步:模拟卡实现(MockMotionCard.cs)</h3>
 <p>在 <code>ClearAlarm</code> 方法之后、<code>// ———— 模拟卡专用 ————</code> 之前插入整个区域:</p>
 <pre><code class="language-csharp">    // ———— 直线插补(可选篇) ————
@@ -264,6 +268,10 @@
                             &amp;&amp; string.IsNullOrEmpty(_card.GetAlarmMessage(0))
                             &amp;&amp; string.IsNullOrEmpty(_card.GetAlarmMessage(1));
 </code></pre>
+<p>📚 <strong>知识点(界面三处各讲一件事)</strong>
+- <strong>4a —— btnLinear 不进控件数组</strong>:控件数组按"每轴一个"组织(btnEnable[i]、btnJog[i]…),而插补按钮<strong>驱动两根轴</strong>,没有"自己的轴" —— 单独订阅、单独写方法。判断标准:进不进数组,看控件是否随轴增长。
+- <strong>4b —— 四拍子模板零成本复用</strong>:<code>SpeedOf → MoveLinear → Fail → AppendLog</code>,和 MC3 的单轴方法一个节奏 —— 接口层的统一让 UI 层的新指令也长得一样,这就是"模式"的价值:会读一个就会读全部。
+- <strong>4c —— 新按钮的可用性加在唯一真源里</strong>:RefreshUiState 是 MC3 立的规矩,新按钮的规则<strong>只能</strong>加在这里,不写进 click handler —— v1 式"各改各的"漏禁 bug 在结构上继续不可能。条件是两个单轴 operable 的"与":插补是绑腿跑,任何一轴不可用,按钮就得灰 —— 界面规则和卡的检查链(第 2 步的逐轴检查)语义对齐。</p>
 <h3 id="sec-3-5">第 5 步:界面按钮(MainForm.Designer.cs 四处)</h3>
 <p><strong>5a.</strong> <code>btnEstop = new Button();</code> 之后加一行:</p>
 <pre><code class="language-csharp">        btnLinear = new Button();
@@ -285,6 +293,10 @@
 <p><strong>5d.</strong> 字段区 <code>private Button btnEstop;</code> 之后加:</p>
 <pre><code class="language-csharp">    private Button btnLinear;
 </code></pre>
+<p>📚 <strong>知识点 —— WinForms"加一个按钮"的完整清单</strong>
+- <strong>四处 = 一件事</strong>:① <code>new</code> 实例化(5a)、② <code>Controls.Add</code> 挂进容器(5b)、③ 属性块 定位置/大小/文案(5c)、④ 字段声明(5d)—— 缺任何一件:漏 ① 编译不过(用了未赋值字段)、漏 ② 不显示、漏 ③ 左上角一个默认小按钮、漏 ④ 编译不过。<strong>WinForms 没有"声明式加按钮",每个控件都是这四件套</strong> —— 对比 React 加按钮只写一处 JSX,就能理解后来 WPF/前端为什么都走向声明式。
+- <strong>5c 的坐标是算出来的</strong>:<code>Location(20, 548)</code> 正好在 lblSoftLimit1(516)之下、GroupBox 高度(677)之内 —— 手工布局的代价:每个新控件都要自己找空位,放歪了压住别的控件。
+- <strong><code>TabIndex = 15</code> 顺延</strong>:轴 1 组最后一个控件是 14,新按钮排 15 —— Tab 键序和视觉顺序保持一致,操作员用键盘也能顺出合理路径(车间里戴手套点不动鼠标,键盘操作真实存在)。</p>
 <hr />
 <h2 id="sec-2-5">✅ 验证(沙盒实测输出 + 手动验收)</h2>
 <pre><code class="language-bash">dotnet build

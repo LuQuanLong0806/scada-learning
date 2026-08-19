@@ -51,6 +51,155 @@
 
 **设计思路一句**:控件自己管"数据(轨迹点)"和"渲染(OnPaint)" —— Sample() 只存点 + 标脏,所有画图只发生在 OnPaint,像前端"改 state → 触发 re-render"。
 
+> 🧩 **这篇可以"边贴边跑"**:`OnPaint` 是 override(不重写也能编译,只是空白一片)—— 先贴 ①②(字段 + 数据入口),控件已能用;再贴 ③④(渲染)。也可以直接展开文末折叠块整体粘贴,再按 4 步走读。
+
+**第 ① 步 · 字段与构造**(贴法:新建 TrajectoryPanel.cs,先贴类壳 + 这一段)
+
+```csharp
+public class TrajectoryPanel : Panel
+{
+    /// <summary>轨迹点序列(毫米坐标,机坐标系)。[^1] 永远是最新位置。</summary>
+    private readonly List<PointF> _trail = new();
+
+    /// <summary>软限位(±mm):画边界框 + 定显示范围 —— 轨迹图的可视范围跟着卡的行程走。</summary>
+    public double SoftLimit { get; set; } = 1000;
+
+    /// <summary>轨迹点数上限:到顶丢最老的(滚动日志的思路),无限长的点动也不会把内存吃穿。</summary>
+    private const int MaxPoints = 4000;
+
+    public TrajectoryPanel()
+    {
+        DoubleBuffered = true;   // 防闪烁
+        ResizeRedraw = true;     // 拉伸窗口时整块重画,不留残影
+        BackColor = Color.White;
+    }
+```
+
+📚 **知识点**
+- **`DoubleBuffered = true` = 离屏 canvas**:每帧先画进内存位图,再整帧贴屏 —— 没有它,网格、边框、轨迹逐笔画上屏幕,眼睛看得到中间态,就是闪。和前端离屏 canvas / rAF 合成层同一个思想:**观众只看成品帧,不看作画过程**。
+- **`ResizeRedraw = true`**:窗口拉伸时整块重画,不留残影 —— 不设的话,拉大后新露出的区域空白。
+- **`MaxPoints = 4000` 滚动上限**:到顶丢最老的(`RemoveAt(0)`)—— 无限长的点动也不会把内存吃穿,轨迹永远只保留"最近一段"。和 R8 曲线控件、滚动日志是同一个思路:**有界的滚动窗口**。
+- **`SoftLimit` 是公开属性 = 组件的 props**:主窗体往里塞卡的行程,面板自己不写死 —— 控件只认"可视范围",不关心它是模拟卡还是真卡。
+
+**第 ② 步 · Sample / ClearTrail:数据入口**(贴法:接在构造函数之后 —— 只存点 + 标脏,一笔都不画)
+
+```csharp
+    /// <summary>
+    /// 采样一个点(毫米)。位置没变就不记 —— 静止时定时器照常调,但轨迹不灌重复点。
+    /// 谁来调:主窗体定时器(100ms),两轴位置同一时刻一起取,坐标才是一致的快照。
+    /// </summary>
+    public void Sample(double x, double y)
+    {
+        var p = new PointF((float)x, (float)y);
+        if (_trail.Count > 0 && _trail[^1] == p) return;
+        _trail.Add(p);
+        if (_trail.Count > MaxPoints) _trail.RemoveAt(0);
+        Invalidate();   // 只标记"画面过期",真正的画发生在下一次 OnPaint
+    }
+
+    /// <summary>清空轨迹(界面"清空轨迹"按钮调用)。</summary>
+    public void ClearTrail()
+    {
+        _trail.Clear();
+        Invalidate();
+    }
+```
+
+📚 **知识点**
+- **`Invalidate()` = "setState"**:它只把区域标记为"脏"(过期),**不画一笔** —— 真正的画发生在系统下一次调 OnPaint 时。绝不在数据更新时直接拿 Graphics 画 —— 那是绕过框架直接操作 DOM:一次遮挡露出,你画的东西就没了。**数据更新只管数据,渲染交给渲染管线**。
+- **"位置没变就不记"**:静止时定时器照常每 100ms 调 Sample,但轨迹不灌重复点 —— 否则 4000 点的上限几秒钟就被静止的点吃光。去重只需比对 `_trail[^1]`(最后一个点,`^1` 是 C# 的倒数第一下标)。
+- **`Sample(x, y)` 的注释写清"谁来调"**:主窗体定时器、两轴同拍一起取 —— 这是本篇最重要的设计决策(步骤 3 详讲),在数据入口处先立此存照。
+
+**第 ③ 步 · OnPaint 上半:坐标映射 + 网格 / 边框 / 坐标轴**(贴法:接在 ClearTrail 之后)
+
+```csharp
+    // OnPaint 是自绘控件的"渲染函数":所有线条、文字只在这里画。
+    // 系统触发它的时机:Invalidate 之后的消息循环、窗口遮挡后露出、拉伸尺寸(ResizeRedraw)
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        // —— 坐标映射:mm → 像素 ——
+        // 比例取短边算、留 8px 边距:画出来是面板中央一个"正方形工作区",1mm 在 X/Y 方向等长,
+        // 轨迹不变形(比例若按长宽各算各的,圆会变椭圆、直线会变斜线,这是绘图映射最经典的坑)
+        var scale = (Math.Min(Width, Height) - 16f) / (float)(SoftLimit * 2);
+        float Px(double mm) => Width / 2f + (float)(mm * scale);    // 机械 X 正向 = 屏幕右,方向一致不翻
+        float Py(double mm) => Height / 2f - (float)(mm * scale);   // 屏幕 Y 轴向下、机械 Y 轴向上 → 取反
+
+        // 1. 网格:每 SoftLimit/4(=250mm)一条浅灰线,方便对着轨迹读大概位置
+        using (var gridPen = new Pen(Color.Gainsboro, 1f))
+        {
+            var step = SoftLimit / 4;
+            for (var mm = -SoftLimit; mm <= SoftLimit + 0.5; mm += step)
+            {
+                g.DrawLine(gridPen, Px(mm), Py(-SoftLimit), Px(mm), Py(SoftLimit));   // 竖线
+                g.DrawLine(gridPen, Px(-SoftLimit), Py(mm), Px(SoftLimit), Py(mm));   // 横线
+            }
+        }
+
+        // 2. 工作区边框 = 软限位:轴永远出不了这个方框,行程边界一眼可见
+        using (var borderPen = new Pen(Color.Silver, 1.5f))
+            g.DrawRectangle(borderPen,
+                Px(-SoftLimit), Py(SoftLimit),
+                Px(SoftLimit) - Px(-SoftLimit), Py(-SoftLimit) - Py(SoftLimit));
+
+        // 3. 坐标轴:过原点的 X/Y 十字线 —— 读轨迹的参照系
+        using (var axisPen = new Pen(Color.DimGray, 1.2f))
+        {
+            g.DrawLine(axisPen, Px(-SoftLimit), Py(0), Px(SoftLimit), Py(0));   // X 轴
+            g.DrawLine(axisPen, Px(0), Py(SoftLimit), Px(0), Py(-SoftLimit));   // Y 轴
+        }
+        using (var font = new Font("Consolas", 9f))
+        using (var brush = new SolidBrush(Color.DimGray))
+        {
+            g.DrawString("X+", font, brush, Px(SoftLimit) - 26, Py(0) + 4);
+            g.DrawString("Y+", font, brush, Px(0) + 6, Py(SoftLimit) + 2);
+            g.DrawString("(0,0)", font, brush, Px(0) + 6, Py(0) + 4);
+        }
+```
+
+📚 **知识点**
+- **坐标映射是自绘控件的地基,两个坑都在这三行里**:① 屏幕 Y 向下、机械 Y 向上,`Py` 里必须**取反** —— 忘了就是"轴往上走、轨迹往下跑";② 比例 X/Y 必须**共用一个**(按短边算)—— 各算各的,圆变椭圆、直线变斜线,绘图映射最经典的坑。前端 canvas 同款:`canvas 的 y 也是向下的`,画数学坐标系都要翻一次。
+- **比例每帧现算,不存字段**:窗口会被拉伸,存下来的 scale 必然过期 —— OnPaint 里用 `Width/Height` 现算,永远正确。类比:渲染时从 state 推导的值不缓存(除非 memo),"派生值现算"比"维护缓存"不易错。
+- **`float Px(double mm) => …` 是局部函数**:映射函数定义在 OnPaint 里、紧挨着唯一的使用处 —— 读代码不用跳。局部函数是 C# 版的"渲染函数内工具函数"。
+- **`using` 包住每一个 Pen/Font/Brush**:GDI 对象是**非托管资源**(系统句柄,GC 不自动回收)—— 不 using 释放,画几千帧句柄就泄漏,程序莫名变卡。这是 C# 的"手动管理资源"角落,前端的闭包/引用泄漏没那么快炸,这里几十秒就能炸。
+- **网格循环的 `+ 0.5` 容差**:`for (mm = -SoftLimit; mm <= SoftLimit + 0.5; mm += step)` —— 浮点步进累加有误差,不加 0.5 最后一条线可能被丢掉。浮点循环边界永远留容差,和 MC2 浮点断言带 precision 是同一课。
+
+**第 ④ 步 · OnPaint 下半:轨迹折线 + 当前位置点**(贴法:接在上面之后、OnPaint 的 `}` 和类的 `}` 收尾 —— 这两行收尾:`    }` 和 `}`)
+
+```csharp
+        // 4. 轨迹折线:点动画出走过的路,插补画出一条直线,急停后线停在原地
+        if (_trail.Count > 1)
+        {
+            var pts = new PointF[_trail.Count];
+            for (var i = 0; i < _trail.Count; i++)
+                pts[i] = new PointF(Px(_trail[i].X), Py(_trail[i].Y));
+            using var trailPen = new Pen(Color.MediumSeaGreen, 2f);
+            g.DrawLines(trailPen, pts);
+        }
+
+        // 5. 当前位置:轨迹末端一个红点(与急停同款红)—— 没动过时它就坐在原点上
+        if (_trail.Count > 0)
+        {
+            var last = _trail[^1];
+            using var dotBrush = new SolidBrush(Color.FromArgb(214, 64, 64));
+            g.FillEllipse(dotBrush, Px(last.X) - 5, Py(last.Y) - 5, 10, 10);
+        }
+    }
+}
+```
+
+📚 **知识点**
+- **`DrawLines` 一次画整条折线,而不是循环 `DrawLine`**:一次调用一个 `PointF[]` —— 批量永远是 API 的好朋友(一次调用也只有一个 using 要管)。
+- **mm → 像素转换放在画之前的那次循环里**:轨迹数据保持"毫米坐标"不变,渲染时才映射 —— **数据层不掺显示细节**,窗口尺寸怎么变,`_trail` 一个字节都不用动。
+- **当前点用急停同款红 `FromArgb(214, 64, 64)`**:和 MC3 的急停按钮一个颜色 —— "红 = 注意/危险"的语义贯穿全应用;没动过时红点就坐在原点,启动即见参照物。
+- **画序 = 层序**:OnPaint 从上到下五层(网格 → 边框 → 坐标轴 → 轨迹 → 当前点),**后画的压在前画的上面** —— 想反了(轨迹画在网格下面),线就被盖住。绘图永远从底到顶叠,和 CSS 的 z-index 由 DOM 顺序决定同理。
+
+<details markdown="1">
+<summary>📄 完整文件 TrajectoryPanel.cs(整体粘贴用 / 对答案 —— 贴完等于上面 4 步全部完成)</summary>
+
 ```csharp
 // 📂 文件:src/MotionControl/UI/TrajectoryPanel.cs(新建)
 using System.Drawing.Drawing2D;
@@ -171,7 +320,7 @@ public class TrajectoryPanel : Panel
 }
 ```
 
-💡 **OnPaint 五层画的顺序就是"后画的压在前画的上面"**:网格(底)→ 边框 → 坐标轴 → 轨迹线 → 当前点(顶)。层次想反了(比如轨迹画在网格下面),线就被网格盖住 —— 绘图永远是从底到顶一层层叠。
+</details>
 
 ### 步骤 2:布局改造(MainForm.Designer.cs,八处小改)
 
@@ -270,6 +419,11 @@ public class TrajectoryPanel : Panel
     private TrajectoryPanel trajPanel;
     private Button btnClearTrail;
 ```
+
+📚 **知识点(布局改造的三个看点)**
+- **加一列 = 三件事**:ColumnCount 3→4、ColumnStyles 补一条 24F、Controls.Add 把 gbTraj 放进第 3 列 —— TableLayoutPanel 的"网格"操作就这三种,和 CSS Grid 加一列 `grid-template-columns` 改一处相比,WinForms 的手工感体现得淋漓尽致;但**百分比布局的思想完全一致**:窗口 1200→1520,四栏按 26/26/24/24 自动分账,GroupBox 一个坐标都不用改。
+- **`trajPanel.Anchor` 四边全锚 + 330×560 初始尺寸**:和日志框同款 —— 轨迹图吃掉 GroupBox 的所有剩余空间;`ResizeRedraw`(第 ① 步)保证拉大后整块重画。两个属性配合,"拉伸窗口轨迹等比例缩放"就成了(视觉验收 9)。
+- **新建三件套(gbTraj/trajPanel/btnClearTrail)每个都走 MC5 讲过的"四件套"**:new(2b)→ Controls.Add(2e)→ 属性块(2e)→ 字段声明(2i),外加 SuspendLayout/ResumeLayout 成对(2c/2h)—— 加控件的肌肉记忆,再来十个控件也是这套节拍。
 
 ### 步骤 3:接线(MainForm.cs 两处)
 

@@ -161,6 +161,165 @@ SDK 风格工程的好处:csproj 自动把目录下所有 .cs 编进去,不用�
 
 先想清楚**返回码**:真卡 SDK(固高/雷赛/正运动)几乎都返回 int,0 成功负数失败。用枚举把"魔数"变成可读名字,同时保留负数值:
 
+**第 1 步 · MotionResult 返回码枚举**(新文件,先贴 namespace 和枚举)
+
+```csharp
+// 运动指令返回码:0 = 成功,负数 = 各种失败原因(对齐真卡 SDK 习惯)
+namespace MotionControlProject.Device;
+
+public enum MotionResult
+{
+    /// <summary>指令成功</summary>
+    Ok = 0,
+    /// <summary>卡未连接(网线没插 / Connect 没调 / 已断开)</summary>
+    NotConnected = -1,
+    /// <summary>轴号越界(只有 2 轴的卡,传了 axis=5)</summary>
+    AxisIndexError = -2,
+    /// <summary>参数非法:空 IP、速度 ≤ 0、目标位置超出软限位…</summary>
+    ParamError = -3,
+    /// <summary>轴未使能(伺服没上使能就让它动,真机上电机纹丝不动)</summary>
+    AxisDisabled = -4,
+    /// <summary>轴处于报警状态,必须先清报警才能再动</summary>
+    AlarmActive = -5,
+}
+```
+
+📚 **知识点**
+- **真卡 SDK(固高/雷赛/正运动)几乎都返回 int**:0 成功、负数失败——枚举把"魔数"变成可读名字,同时**保留负数值**:将来看到真卡返回 -1,立刻知道对应 NotConnected。
+- **为什么用返回码不用异常**:设备指令失败是**业务常态**(没使能、超限位、断线),不是异常路径。用异常强迫每个调用点 try-catch,用返回码 `if (r != MotionResult.Ok)` 强制显式处理——**前端类比**:fetch 返回 4xx 不 throw(Axios 才 throw),状态码就是返回码思维。
+
+**第 2 步 · 两个事件参数类**(贴在同一个文件里,枚举后面)
+
+```csharp
+/// <summary>位置变化事件参数:哪根轴、现在走到哪(mm)。</summary>
+public class PositionChangedEventArgs : EventArgs
+{
+    public int Axis { get; }
+    public double Position { get; }
+
+    public PositionChangedEventArgs(int axis, double position)
+    {
+        Axis = axis;
+        Position = position;
+    }
+}
+
+/// <summary>报警事件参数:哪根轴、报什么、是"发生报警"还是"报警清除"。</summary>
+public class AlarmChangedEventArgs : EventArgs
+{
+    public int Axis { get; }
+    public string Message { get; }
+    /// <summary>true = 报警发生;false = 报警被清除。</summary>
+    public bool IsActive { get; }
+
+    public AlarmChangedEventArgs(int axis, string message, bool isActive)
+    {
+        Axis = axis;
+        Message = message;
+        IsActive = isActive;
+    }
+}
+```
+
+📚 **知识点**
+- **EventArgs 子类 = 事件的标准信封**:`Axis`/`Position` 用 `{ get; }` 只读 + 构造注入——事件参数出生即定型,订阅方改不了。和 R2 的 DataEventArgs 一个模子。
+- **`IsActive` 一个字段表达两种事件**:报警发生(true)/报警清除(false)共用一个 AlarmChanged 事件——不用定义两个事件,订阅方一个 handler 里 switch。**真卡 SDK 也这么干**(报警状态字就是一组 bool)。
+
+**第 3 步 · IMotionCard 接口本体**(贴在同一个文件里,最后一段)
+
+```csharp
+/// <summary>
+/// 运动控制卡抽象 —— 整个工程的"插座"。
+/// </summary>
+public interface IMotionCard
+{
+    // ———— 状态查询(属性) ————
+
+    /// <summary>卡是否已连接。</summary>
+    bool IsConnected { get; }
+
+    /// <summary>卡控制几根轴。</summary>
+    int AxisCount { get; }
+
+    // ———— 事件:卡主动向上层"汇报" ————
+
+    /// <summary>任一轴位置变化时触发(模拟卡每个仿真节拍发一次;真卡可由轮询线程发)。</summary>
+    event EventHandler<PositionChangedEventArgs>? PositionChanged;
+
+    /// <summary>报警发生 / 报警清除时触发。</summary>
+    event EventHandler<AlarmChangedEventArgs>? AlarmChanged;
+
+    /// <summary>急停(StopAll)生效时触发一次。</summary>
+    event EventHandler? EmergencyStopped;
+
+    // ———— 连接管理 ————
+
+    /// <summary>连接卡。ipAddress 为空或全空格返回 ParamError(真卡会做 ping/握手)。</summary>
+    MotionResult Connect(string ipAddress);
+
+    /// <summary>断开连接,并取消所有进行中的运动。</summary>
+    MotionResult Disconnect();
+
+    // ———— 轴状态 ————
+
+    /// <summary>使能 / 下使能某轴。使能 = 伺服上电锁轴,未使能一切运动指令都会被拒绝。</summary>
+    MotionResult SetAxisEnable(int axis, bool enable);
+
+    /// <summary>某轴是否已使能。</summary>
+    bool IsAxisEnabled(int axis);
+
+    /// <summary>某轴是否正在运动(点动 / 定位 / 回零都算)。</summary>
+    bool IsMoving(int axis);
+
+    /// <summary>读某轴当前位置(mm)。注意:读位置永远允许,连没使能都能读。</summary>
+    double GetAxisPosition(int axis);
+
+    /// <summary>读某轴当前报警信息,空字符串 = 无报警。</summary>
+    string GetAlarmMessage(int axis);
+
+    // ———— 运动指令 ————
+
+    /// <summary>
+    /// 点动(JOG):按住按钮朝一个方向一直走,松手停。
+    /// speed 单位 mm/s;forward = true 正转 / false 反转。
+    /// </summary>
+    MotionResult JogAxis(int axis, double speed, bool forward);
+
+    /// <summary>停止某轴点动(松手时调用)。</summary>
+    MotionResult StopJog(int axis);
+
+    /// <summary>
+    /// 绝对定位:走到"绝对坐标" position(mm),速度 speed(mm/s)。
+    /// 若该轴正在运动,新指令会打断旧运动(真卡的常规语义:后到的指令赢)。
+    /// </summary>
+    MotionResult MoveAbsolute(int axis, double position, double speed);
+
+    /// <summary>回零(回原点):走到机械零点位置 0。速度固定 100mm/s(简化的"回零速度")。</summary>
+    MotionResult HomeAxis(int axis);
+
+    /// <summary>急停:所有轴立即停止,位置就地冻结。触发 EmergencyStopped 事件。</summary>
+    MotionResult StopAll();
+
+    /// <summary>清除某轴报警。清完报警轴还要重新确认使能状态才能运动(与真卡一致)。</summary>
+    MotionResult ClearAlarm(int axis);
+
+    // ———— 模拟卡专用(真卡没有) ————
+
+    /// <summary>人为注入一条报警 —— 用来在没真故障的情况下测试报警链路。</summary>
+    void SimulateAlarm(int axis, string message);
+}
+```
+
+📚 **知识点**
+- **接口分五个区,读起来像设备说明书**:状态查询(属性)→ 事件 → 连接管理 → 轴状态 → 运动指令——把"卡能做什么"(方法)和"卡会主动说什么"(事件)分开列,上层才不会把通知轮询进命令流。
+- **读和动分开**:读位置/读报警不加前置条件(现实里编码器位置任何时候都读得到);运动指令才要求"已连接 + 已使能 + 无报警"。v1 把这些搅在一起,报错信息也说不清——这是坑①的接口层根治。
+- **SimulateAlarm 放接口里是妥协**:真卡没有"人为注障"能力,为了演示/测试方便放进来,真卡实现里就是个空方法——文档诚实标注,面试讲得出这层取舍反而加分。
+
+> 两轴直线插补 `MoveLinear` 是 [MC5](项目实践_MotionControl_MC5_两轴直线插补.md) 的可选加餐,到时候往这个接口里加声明。
+
+<details markdown="1">
+<summary>📄 完整文件 IMotionCard.cs(对答案 / 整体粘贴用)</summary>
+
 ```csharp
 // 📂 文件:src/MotionControl/Device/IMotionCard.cs
 namespace MotionControlProject.Device;
@@ -300,6 +459,8 @@ public interface IMotionCard
 }
 ```
 
+</details>
+
 > 两轴直线插补 `MoveLinear` 是 [MC5](项目实践_MotionControl_MC5_两轴直线插补.md) 的可选加餐,到时候往这个接口里加声明。
 
 💡 **接口设计的三个门道**:
@@ -310,6 +471,384 @@ public interface IMotionCard
 ### 步骤 3:模拟卡 v2 —— MockMotionCard(本系列的心脏)
 
 **设计思路一句**:每段"运动"= 一个后台 `Task.Run` 循环,每节拍把位置向目标推进一步;急停/松手/新指令打断 = `CancellationToken` 取消循环,位置就地冻结(见 [📖 Task.Run/async-await](kp:taskrun)、[📖 CancellationToken](kp:cancel-token))。
+
+> ⚠️ **这一节换"导读模式"**:`MockMotionCard` 的类声明就是 `public class MockMotionCard : IMotionCard` —— 直接实现接口,成员差一个都编译不过(CS0535"未实现接口成员"能报一串),没法拆成"贴一半就能编译"的中间态。**做法:先展开本节末尾的折叠块,把完整文件一次性贴进 `MockMotionCard.cs`;再按下面 5 步切片走读。** 5 步是同一份代码的五个观察窗口,不是五次粘贴。
+
+**第 1 步 · 状态布局:字段与构造**(导读 —— 状态都躺在哪)
+
+```csharp
+/// <summary>
+/// 模拟运动控制卡 —— 没有真卡也能把整个上位机调通。
+///
+/// 仿真原理:每个"运动"不再是瞬间改坐标(v1 的做法),而是启动一个后台任务,
+/// 每 tickMs 毫秒把位置向目标推进一步,步长 = 速度 × 节拍 —— 位置随时间连续变化,
+/// 和真电机"转起来要时间"的体验一致。运动可以被随时取消(急停/松手/新指令打断)。
+///
+/// v1 → v2 的三处结构性修复:
+/// 1. v1 用一个全局 _isJogging/_jogCts 管两根轴,轴 2 一动就把轴 1 停了
+///    → v2 每轴一个 CancellationTokenSource,各动各的;
+/// 2. v1 点动/定位共用状态互相打架 → v2 点动、定位、回零统一走"取消旧的、启动新的";
+/// 3. v1 没有软限位/急停/回零 → v2 内建 ±softLimit 软限位、StopAll 急停、HomeAxis 回零。
+/// </summary>
+public class MockMotionCard : IMotionCard
+{
+    /// <summary>仿真节拍(毫秒)。默认 100ms;单元测试传 10ms 让运动快进 10 倍。</summary>
+    private readonly int _tickMs;
+
+    /// <summary>软限位(±mm)。超过就拒绝指令;点动撞上就停 + 报警 —— 保护"机械"的最后一道软件防线。</summary>
+    private readonly double _softLimit;
+
+    /// <summary>指令入口互斥锁:UI 线程发指令、后台任务改状态,都从这把锁过,防止读到半截状态。</summary>
+    private readonly object _gate = new();
+
+    // ———— 每轴一组状态:下标 0 = 轴 1,下标 1 = 轴 2 ————
+
+    /// <summary>各轴当前位置(mm)。</summary>
+    private readonly double[] _positions;
+
+    /// <summary>各轴使能状态。</summary>
+    private readonly bool[] _enabled;
+
+    /// <summary>各轴报警信息;null = 无报警。</summary>
+    private readonly string?[] _alarms;
+
+    /// <summary>
+    /// 每轴一个取消令牌 —— v2 的核心修复。
+    /// 轴 1 的运动只握轴 1 的令牌,急停/打断也只取消对应轴,两轴互不影响。
+    /// 插补时所有参与轴共用同一个令牌实例,一停俱停。
+    /// </summary>
+    private readonly CancellationTokenSource?[] _cts;
+
+    /// <summary>各轴"是否在运动"标志(StartMotion 里置 true,任务 finally 里复位)。</summary>
+    private readonly bool[] _moving;
+
+    /// <summary>回零速度固定值(mm/s)。真卡回零有单独的低速段 + 原点开关,这里简化成低速走回 0。</summary>
+    public const double HomeSpeed = 100;
+
+    private bool _connected;
+
+    public MockMotionCard(int axisCount = 2, int tickMs = 100, double softLimit = 1000)
+    {
+        if (axisCount <= 0) axisCount = 2;
+        _tickMs = Math.Max(1, tickMs);
+        _softLimit = softLimit;
+        _positions = new double[axisCount];
+        _enabled = new bool[axisCount];
+        _alarms = new string?[axisCount];
+        _cts = new CancellationTokenSource?[axisCount];
+        _moving = new bool[axisCount];
+    }
+```
+
+📚 **知识点**
+- **五个数组共用一套下标 = "每轴一组状态"落到内存布局上**:`_positions/_enabled/_alarms/_cts/_moving` 下标 0 是轴 1、下标 1 是轴 2 —— 前端类比:与其声明 `pos1/pos2/enabled1/enabled2…` 一堆散字段,不如一个 `state[]` 数组按索引取,将来 2 轴换 4 轴只改构造参数,代码一行不动。
+- **`readonly` 修饰数组只锁"引用",不锁"元素"**:`readonly` 的意思是"不能再指向新数组",数组里的值照样可改 —— 和 JS 里 `const arr = []` 之后还能 `arr.push()` 一模一样。真要元素只读得用 `ReadOnlyCollection`,这里恰恰要改元素,所以 readonly 正合适。
+- **`_gate` 一把锁管所有指令入口**:C# 的 `lock (_gate)` 是互斥锁 —— 同一时刻只有一个线程能在锁内。UI 线程发指令、后台仿真任务写位置,都从这同一道门过,才不会读到"改了一半的状态"。前端没有锁的概念,可类比成"所有状态更新都排进同一个队列串行执行,不许并发插队"。
+- **构造参数三连默认值,测试传 `tickMs: 10` 让运动"快进 10 倍"**:节拍从 100ms 压到 10ms,同样 2 秒的仿真 0.2 秒跑完 —— 和 msw/Jest 里把 timeout 调短是同一个思路:**测试要能控制时间**,不然每条用例真等 2 秒,套件就跑不动了。
+- **门口挡脏输入**:`axisCount <= 0` 兜底成 2、`Math.Max(1, tickMs)` 防手滑传 0 —— 参数校验放在构造函数里,比在每个用到处判空划算。
+
+**第 2 步 · 门面:属性 / 事件 / 连接 / 轴状态查询**(导读)
+
+```csharp
+    // ———— IMotionCard:属性与事件 ————
+
+    public bool IsConnected => _connected;
+    public int AxisCount => _positions.Length;
+
+    /// <summary>注意:这些事件都在后台仿真线程上触发,UI 订阅后必须自己 Invoke 切回 UI 线程(WinForms 规矩)。</summary>
+    public event EventHandler<PositionChangedEventArgs>? PositionChanged;
+    public event EventHandler<AlarmChangedEventArgs>? AlarmChanged;
+    public event EventHandler? EmergencyStopped;
+
+    // ———— 连接管理 ————
+
+    public MotionResult Connect(string ipAddress)
+    {
+        // v1 坑:IP 带个前导空格就直接连不上,还查不出原因。
+        // 现在统一 Trim + 判空返回明确错误码,把"会发生的脏输入"在门口挡掉。
+        if (string.IsNullOrWhiteSpace(ipAddress)) return MotionResult.ParamError;
+
+        lock (_gate)
+        {
+            _connected = true;   // 模拟卡连谁都是通的;真卡这里会做 TCP 连接/握手,失败返回相应错误码
+            return MotionResult.Ok;
+        }
+    }
+
+    public MotionResult Disconnect()
+    {
+        lock (_gate)
+        {
+            CancelAllLocked();          // 断开前先停掉所有运动,后台任务干净退出
+            _connected = false;
+            return MotionResult.Ok;
+        }
+    }
+
+    // ———— 轴状态查询 ————
+
+    public MotionResult SetAxisEnable(int axis, bool enable)
+    {
+        lock (_gate)
+        {
+            if (!CheckIndex(axis)) return MotionResult.AxisIndexError;
+            if (!_connected) return MotionResult.NotConnected;
+
+            _enabled[axis] = enable;
+            return MotionResult.Ok;
+        }
+    }
+
+    public bool IsAxisEnabled(int axis) => CheckIndex(axis) && _enabled[axis];
+
+    public bool IsMoving(int axis) => CheckIndex(axis) && _moving[axis];
+
+    /// <summary>读位置不做"已连接/已使能"限制 —— 现实里编码器位置任何时候都读得到。</summary>
+    public double GetAxisPosition(int axis)
+    {
+        lock (_gate) return CheckIndex(axis) ? _positions[axis] : 0;
+    }
+
+    public string GetAlarmMessage(int axis) => CheckIndex(axis) ? _alarms[axis] ?? "" : "";
+```
+
+📚 **知识点**
+- **事件在后台仿真线程上触发,UI 必须自己 Invoke 切回 UI 线程**(见 [📖 event/EventHandler](kp:event-delegate))—— WinForms 跨线程改控件直接抛异常,订阅方要用 `BeginInvoke`/`Invoke` 转发。前端类比:Worker 线程不能直接改 React 状态,必须 `postMessage` 回主线程 —— 线程边界两边"语言不通",都要有人负责翻译回主战场。
+- **`Connect` 的第一道防线是 `IsNullOrWhiteSpace`**:IP 带个前导空格、传个空串,直接返回 `ParamError` 而不是"连不上" —— v1 的坑(连不上还查不出原因)修在门口。给用户的报错要能定位到"用户能自己修"的层面。
+- **读和动分开(接口设计的落地)**:`GetAxisPosition` 不查连接/使能 —— 现实里编码器位置任何时候都读得到;`SetAxisEnable` 这种"会改变卡状态"的操作才查连接。查询放宽、命令从严。
+- **`CheckIndex(axis) && _enabled[axis]` 是短路求值护体**:索引不合法时 `&&` 左边已是 false,右边 `_enabled[axis]` 根本不会执行 —— 否则越界直接抛 `IndexOutOfRangeException`。和 JS 的 `a && a.b` 同款行为,但这里用它防的是崩溃而不是防 undefined。
+- **`Disconnect` 先 `CancelAllLocked()` 再断开**:顺序反了的话,后台任务还在往"已断开"的卡里写位置。前端类比:组件卸载的 cleanup 里先 `abortController.abort()` 所有在途请求再清引用 —— 不然请求回来往已卸载组件里 setState。
+
+**第 3 步 · 运动指令入口 + 五连检查链**(导读 —— 上半段是指令,下半段是它们共用的守门员)
+
+```csharp
+    // ———— 运动指令 ————
+
+    public MotionResult JogAxis(int axis, double speed, bool forward)
+    {
+        lock (_gate)
+        {
+            var r = CheckMotionLocked(axis, speed);
+            if (r != MotionResult.Ok) return r;
+
+            // 点动 = 朝软限位方向一直走:把"目标"设在限位上,
+            // 走不走得到无所谓 —— 用户松手(StopJog)就会取消,只有一直按住才会撞上限位触发保护。
+            var target = forward ? _softLimit : -_softLimit;
+            StartMotionLocked(axis, target, speed, jog: true);
+            return MotionResult.Ok;
+        }
+    }
+
+    public MotionResult StopJog(int axis)
+    {
+        lock (_gate)
+        {
+            if (!CheckIndex(axis)) return MotionResult.AxisIndexError;
+            _cts[axis]?.Cancel();      // 取消令牌 → 仿真循环在下个节拍抛 OperationCanceledException → 位置就地冻结
+            return MotionResult.Ok;
+        }
+    }
+
+    public MotionResult MoveAbsolute(int axis, double position, double speed)
+    {
+        lock (_gate)
+        {
+            var r = CheckMotionLocked(axis, speed);
+            if (r != MotionResult.Ok) return r;
+            if (Math.Abs(position) > _softLimit) return MotionResult.ParamError;   // 目标直接超软限位:拒绝,不搭理
+            if (Math.Abs(position - _positions[axis]) < 1e-9) return MotionResult.Ok; // 已在目标位:立即成功(v1 除零坑的根治)
+
+            StartMotionLocked(axis, position, speed, jog: false);
+            return MotionResult.Ok;
+        }
+    }
+
+    /// <summary>回零 = 以固定的低速走回绝对坐标 0。真卡回零走原点开关 + 反向找 Z 相,逻辑更绕但目的相同。</summary>
+    public MotionResult HomeAxis(int axis)
+    {
+        lock (_gate)
+        {
+            var r = CheckMotionLocked(axis, HomeSpeed);
+            if (r != MotionResult.Ok) return r;
+
+            StartMotionLocked(axis, 0, HomeSpeed, jog: false);
+            return MotionResult.Ok;
+        }
+    }
+```
+
+```csharp
+    // ———— 私有工具 ————
+
+    /// <summary>轴号合法性(只查索引,不查连接/使能 —— 查询类方法用)。</summary>
+    private bool CheckIndex(int axis) => axis >= 0 && axis < AxisCount;
+
+    /// <summary>
+    /// 运动前检查链,按"越靠前的越廉价"排序:轴号 → 连接 → 速度 → 使能 → 报警。
+    /// 所有运动指令(点动/定位/回零)共用 —— v1 每个方法各查各的、漏了就出怪 bug 的根治。
+    /// </summary>
+    private MotionResult CheckMotionLocked(int axis, double speed)
+    {
+        if (!CheckIndex(axis)) return MotionResult.AxisIndexError;
+        if (!_connected) return MotionResult.NotConnected;
+        if (speed <= 0) return MotionResult.ParamError;
+        if (!_enabled[axis]) return MotionResult.AxisDisabled;
+        if (_alarms[axis] is not null) return MotionResult.AlarmActive;
+        return MotionResult.Ok;
+    }
+```
+
+📚 **知识点**
+- **检查链按"越靠前的越廉价"排序:轴号 → 连接 → 速度 → 使能 → 报警** —— 前端类比:表单校验先查非空、再查格式、最后才发请求查重,廉价检查放前面,昂贵的检查能省则省。真卡上"查报警"可能要跟驱动通信,放最后是对的。
+- **五连检查、每种失败一个错误码**:调用方拿到 `AxisDisabled` 就知道该提示"先使能",拿到 `AlarmActive` 就知道该提示"先清报警" —— API 错误码设计的常识:**别一个 500 走天下**,错误码区分场景,界面才能给出用户能看懂的动作建议。
+- **点动的巧思:把"目标"设在软限位上**。点动语义是"按住一直走、松手停",但仿真引擎只会"朝目标走" —— 于是把目标设成极限远的地方,走不走得到无所谓,松手(StopJog 取消令牌)自然就停,一直按住才会真撞上限位触发保护。**用现有机制表达新语义,不加新引擎**。
+- **`MoveAbsolute` 的两道防御**:目标超软限位直接拒收(`ParamError`);已在目标位直接返回 Ok(`< 1e-9` 是浮点相等判断)—— 距离为 0 会让步数计算除零,v1"一按就瞬移"的死因,这里从入口根治。
+- **回零没有独立引擎**:`HomeAxis` = `MoveAbsolute(目标: 0, 速度: HomeSpeed)` 的特例 —— 三个指令(点动/定位/回零)最后都汇到同一个 `StartMotionLocked`,这就是类头注释说的"统一走取消旧的、启动新的"。
+
+**第 4 步 · StartMotionLocked —— 仿真心脏 40 行**(导读 —— 点动/定位/回零最终都落到这一个方法)
+
+```csharp
+    /// <summary>
+    /// 启动一段"单轴匀速运动"仿真(点动/定位/回零最终都落到这)。
+    /// 调用方必须已持 _gate 锁。
+    /// </summary>
+    private void StartMotionLocked(int axis, double target, double speed, bool jog)
+    {
+        // 新指令打断旧运动 —— 真卡语义:后到的指令赢。v1 里"运动中再按按钮"的行为是未定义的
+        _cts[axis]?.Cancel();
+        var cts = new CancellationTokenSource();
+        _cts[axis] = cts;
+        _moving[axis] = true;
+
+        var from = _positions[axis];
+        var dist = target - from;
+
+        // 步数 = 距离 ÷ 速度 ÷ 节拍:走 100mm、50mm/s、100ms 节拍 → 100/50×1000/100 = 20 步,耗时恰 2 秒。
+        // Math.Max(1, …) 兜底极短距离 —— v1 的 totalSteps = moveTime/100 在短距离时算出 0,
+        // 再除以 totalSteps 就"瞬移"或除零,这是 v1 定位一按就"卡成瞬移"的直接死因。
+        var steps = Math.Max(1, (int)Math.Ceiling(Math.Abs(dist) / speed * 1000.0 / _tickMs));
+        var step = dist / steps;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                for (var i = 1; i <= steps; i++)
+                {
+                    await Task.Delay(_tickMs, cts.Token);        // 被取消时这里抛 OperationCanceledException
+                    var p = from + step * i;
+                    lock (_gate) _positions[axis] = p;
+                    PositionChanged?.Invoke(this, new PositionChangedEventArgs(axis, p));
+
+                    // 点动专属保护:朝限位走时每步都检查,顶到软限位就夹住位置 + 报警 + 停
+                    if (jog && Math.Abs(p) >= _softLimit - 1e-9)
+                    {
+                        var clamped = Math.Clamp(p, -_softLimit, _softLimit);
+                        lock (_gate) { _positions[axis] = clamped; _alarms[axis] = $"触发{(p > 0 ? "正" : "负")}软限位 {_softLimit:F0}mm,已自动停止"; }
+                        PositionChanged?.Invoke(this, new PositionChangedEventArgs(axis, clamped));
+                        var msg = _alarms[axis]!;
+                        AlarmChanged?.Invoke(this, new AlarmChangedEventArgs(axis, msg, isActive: true));
+                        break;
+                    }
+                }
+
+                // 定位/回零走完全程后,把位置精确贴到目标(消除浮点累积误差,保证 repeatability)
+                if (!cts.Token.IsCancellationRequested && !jog)
+                {
+                    lock (_gate) _positions[axis] = target;
+                    PositionChanged?.Invoke(this, new PositionChangedEventArgs(axis, target));
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 急停 / 松手 / 被新指令打断:什么都不做,位置停在当前值 —— "就地冻结"
+            }
+            finally
+            {
+                lock (_gate)
+                {
+                    _moving[axis] = false;
+                    // 只有槽里还是"自己这个令牌"时才清空:防止把打断我的人刚放进来的新令牌误删
+                    if (ReferenceEquals(_cts[axis], cts)) _cts[axis] = null;
+                }
+            }
+        });
+    }
+```
+
+📚 **知识点**
+- **头三行 = "后到的指令赢"**:`_cts[axis]?.Cancel()` 取消旧令牌 → 旧循环在下个 `Task.Delay` 抛异常退出;再建新令牌放进槽里。**不 await 旧任务** —— 它自己会退,不需要等它。这就是打断旧运动、启动新运动的全部分,一个字节的"等待"都没有。
+- **步数公式 `Math.Max(1, Ceiling(|dist| / speed × 1000 / _tickMs))`**:分子距离、分母速度×节拍,量纲约完剩"步数"。`Ceiling` 保证有余数就多走一步;`Math.Max(1, …)` 保证至少一步 —— v1 的 `totalSteps = moveTime/100` 整数除法在短距离算出 0 步,再除以它就除零"瞬移",一行兜底根治。**算步数的除法,永远想"结果是 0 会怎样"**。
+- **`await Task.Delay(_tickMs, cts.Token)` 是取消的"检查点"**:取消不是立即中断线程,而是让 token 变红 —— 循环走到下一个 `Task.Delay` 时才抛 `OperationCanceledException`。所以急停的延迟上限 = 一个节拍(100ms),对机械系统足够快。前端类比:`AbortController` 也是 fetch 自己在下个时机检查 signal,不是强杀。
+- **"就地冻结"不是一个动作,而是"不再推进"**:`catch (OperationCanceledException)` 里什么都不做 —— 位置本来就在 `_positions[axis]` 里,不推进就是冻结。**很多"停止"语义的最优实现是"让推进的自然停止",而不是写一段"停止逻辑"**。
+- **走完全程把位置精确贴到 target**:每步 `from + step * i` 累积浮点误差(0.1 加十次不等于 1 的老问题),循环外直接赋终值,保证 100 次定位到同一坐标读数完全一致(repeatability,定位精度的行业指标)。
+- **`finally` 里的 `ReferenceEquals(_cts[axis], cts)` 是竞态细节**:任务结束时槽里可能已被"打断我的新指令"换成了新令牌 —— 只有槽里还是自己这个令牌才清空,否则会把别人的令牌误删,新运动会被"幽灵复位"。前端类比:异步回调里 setState 前先查"这次请求还是不是最新的那次"(stale 标记/ABORT 检查),一模一样的竞态,一模一样的解法。
+- **点动专属保护在循环内、定位保护在入口处**:点动目标就是限位,所以每步都要查(撞上就 Clamp + 报警 + break);定位在入口就拒收超限目标 —— 同一个"软限位",两种语义,两个位置设防。
+
+**第 5 步 · 急停与报警链路**(导读 —— StopAll / ClearAlarm / SimulateAlarm + 它们共用的 CancelAllLocked)
+
+```csharp
+    /// <summary>急停:取消所有轴的运动令牌。已在途的运动循环在下个节拍内退出,位置停在当前值。</summary>
+    public MotionResult StopAll()
+    {
+        lock (_gate) CancelAllLocked();
+        EmergencyStopped?.Invoke(this, EventArgs.Empty);   // 事件放锁外:别在持锁时回调别人的代码
+        return MotionResult.Ok;
+    }
+
+    public MotionResult ClearAlarm(int axis)
+    {
+        lock (_gate)
+        {
+            if (!CheckIndex(axis)) return MotionResult.AxisIndexError;
+            if (!_connected) return MotionResult.NotConnected;
+
+            _alarms[axis] = null;   // 只清报警,不动使能状态 —— 和真卡一致:清完报警使能是否还在要看驱动
+        }
+        AlarmChanged?.Invoke(this, new AlarmChangedEventArgs(axis, "", isActive: false));
+        return MotionResult.Ok;
+    }
+
+    // ———— 模拟卡专用 ————
+
+    /// <summary>注入报警:置报警串 + 立即取消该轴运动(真机上报警卡会自动封脉冲动不了,行为一致)。</summary>
+    public void SimulateAlarm(int axis, string message)
+    {
+        lock (_gate)
+        {
+            if (!CheckIndex(axis)) return;
+            _alarms[axis] = message;
+            _cts[axis]?.Cancel();
+        }
+        AlarmChanged?.Invoke(this, new AlarmChangedEventArgs(axis, message, isActive: true));
+    }
+```
+
+```csharp
+    private void CancelAllLocked()
+    {
+        for (var i = 0; i < AxisCount; i++) _cts[i]?.Cancel();
+    }
+```
+
+📚 **知识点**
+- **事件一律放锁外(`StopAll` 里锁内只 Cancel、锁外才 Invoke)**:持锁时触发事件 = 调用别人写的订阅代码 —— 订阅方如果恰好也来拿 `_gate`(比如在事件里查位置),当场死锁。原则:**临界区里只做自己的事,别在锁内回调外部代码**。前端类比:store 的临界区里别同步调用外部回调,先收集变更、出锁后通知。
+- **`CancelAllLocked` 只有名字带 Locked,`StopAll` 不带**:命名约定 —— 带 `Locked` 后缀的私有方法**要求调用方已持锁**(不自己 lock,否则重入死锁);公开方法自己拿锁再调它们。读工业代码库时认这个后缀能少踩一半锁坑。
+- **`ClearAlarm` 只清报警、不动使能**:真卡清完报警,使能状态要看驱动(有的自动下使能)。接口语义诚实 —— 模拟卡不假装"清完就能动",上层 UI 照样要检查使能状态,和接真卡的行为一致。
+- **`SimulateAlarm` 注入即取消运动**:真机上报警卡会自动封脉冲、电机立即停 —— 模拟卡用"置报警串 + Cancel 令牌"模拟同样的外部表现。它是**测试链路的注障开关**:没有真故障也能演练"运动中出报警→停→清报警→再动"的完整流程。
+- **急停的"全部"落在第 1 步的布局上**:`_cts[axis]` 每轴一个令牌,所以 `CancelAllLocked` 就是一行循环 —— **布局对了,急停是免费的**。v1 全局一个令牌,想"只停轴 1"反而做不出来,这就是三处结构性修复里第一条的价值。
+
+> 直线插补 `MoveLinear` 的实现也是往这个类里加方法,放在 [MC5](项目实践_MotionControl_MC5_两轴直线插补.md)。
+
+🗺️ **新手读码地图 —— MockMotionCard 怎么走读**:
+1. **先看字段**(第 1 步):`_positions/_enabled/_alarms/_cts/_moving` 五个数组,下标就是轴号 —— "每轴一组状态"这句话落到了内存布局上;
+2. **再追一条指令**(第 3 步):以 `MoveAbsolute` 为例 —— `CheckMotionLocked`(五连检查,每种失败一个错误码)→ 目标超软限位拒收 → 已在目标位直接 Ok → `StartMotionLocked` 启动仿真;
+3. **钻进 StartMotionLocked**(第 4 步,全文件最核心的 40 行):取消旧令牌 → 建新令牌 → 算步数和步长 → `Task.Run` 里 for 循环:每步 `Task.Delay(节拍, token)` → 推进位置 → 触发事件 →(点动)查软限位;循环外精确贴目标;`catch (OperationCanceledException)` = 被打断就地冻结;`finally` 里复位 `_moving`;
+4. **对照 v1 想一遍**:v1 的 `_isJogging` 全局一个 → 现在 `_cts[axis]` 每轴一个;v1 的 `totalSteps = moveTime/100` → 现在 `Math.Max(1, Ceiling(…))` + 完成贴目标;v1 点动/定位打架 → 现在都走"取消旧的启动新的",天然互斥;
+5. **前端类比**:像组件里每个 tab 一个自己的 abortController —— 谁的请求谁取消,互不连坐。
+
+<details markdown="1">
+<summary>📄 完整文件 MockMotionCard.cs(整体粘贴用 —— 先把这个贴进工程,再回头读上面 5 步)</summary>
 
 ```csharp
 // 📂 文件:src/MotionControl/Device/MockMotionCard.cs
@@ -620,14 +1159,7 @@ public class MockMotionCard : IMotionCard
 }
 ```
 
-> 直线插补 `MoveLinear` 的实现也是往这个类里加方法,放在 [MC5](项目实践_MotionControl_MC5_两轴直线插补.md)。
-
-🗺️ **新手读码地图 —— MockMotionCard 怎么走读**:
-1. **先看字段**:`_positions/_enabled/_alarms/_cts/_moving` 五个数组,下标就是轴号 —— "每轴一组状态"这句话落到了内存布局上;
-2. **再追一条指令**:以 `MoveAbsolute` 为例 —— `CheckMotionLocked`(五连检查,每种失败一个错误码)→ 目标超软限位拒收 → 已在目标位直接 Ok → `StartMotionLocked` 启动仿真;
-3. **钻进 StartMotionLocked**(全文件最核心的 40 行):取消旧令牌 → 建新令牌 → 算步数和步长 → `Task.Run` 里 for 循环:每步 `Task.Delay(节拍, token)` → 推进位置 → 触发事件 →(点动)查软限位;循环外精确贴目标;`catch (OperationCanceledException)` = 被打断就地冻结;`finally` 里复位 `_moving`;
-4. **对照 v1 想一遍**:v1 的 `_isJogging` 全局一个 → 现在 `_cts[axis]` 每轴一个;v1 的 `totalSteps = moveTime/100` → 现在 `Math.Max(1, Ceiling(…))` + 完成贴目标;v1 点动/定位打架 → 现在都走"取消旧的启动新的",天然互斥;
-5. **前端类比**:像组件里每个 tab 一个自己的 abortController —— 谁的请求谁取消,互不连坐。
+</details>
 
 ---
 

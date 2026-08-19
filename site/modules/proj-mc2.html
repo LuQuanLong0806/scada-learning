@@ -159,6 +159,256 @@
 <hr />
 <h2 id="sec-2-4">🛠️ 参考实现(卡住/写完再看)</h2>
 <p><strong>设计思路一句</strong>:一个测试文件、三个 helper(NewCard/ReadyCard/WaitUntil)+ 12 个测试;<code>tickMs: 10</code> 让仿真快进 10 倍,<code>WaitUntil</code> 轮询等异步运动完成 —— 测试既稳又不慢。</p>
+<blockquote>
+<p>🧩 <strong>这篇可以"边贴边跑"</strong>:测试方法彼此独立,每贴一组就能 <code>dotnet test</code> 看到新测试变绿 —— 贴 5 次看 5 次绿,比一口气贴完再跑的体感好得多。第 1 步贴文件骨架,第 2-5 步都是<strong>贴到类的末尾(最后一个 <code>}</code> 之前)</strong>;赶时间也可以直接展开文末折叠块整体粘贴,再回头按 5 步读。</p>
+</blockquote>
+<p><strong>第 1 步 · 文件骨架 + 三个 helper</strong>(贴法:新建 <code>MockMotionCardTests.cs</code>,以下整段贴入 —— 此时应能 build)</p>
+<pre><code class="language-csharp">using MotionControlProject.Device;
+using System.Diagnostics;
+
+namespace MotionControl.Tests;
+
+/// &lt;summary&gt;
+/// MockMotionCard 单元测试 —— 模拟卡的&quot;行为契约&quot;。
+/// tickMs 传 10(默认 100):仿真节拍快 10 倍,几秒内跑完全部运动场景。
+/// 这些测试就是升级的&quot;验收标准&quot;:两轴并发、急停、软限位、回零,全部有据可查。
+/// &lt;/summary&gt;
+public class MockMotionCardTests
+{
+    /// &lt;summary&gt;新建一张快节拍模拟卡(不动它,各测试自己决定连接/使能到哪一步)。&lt;/summary&gt;
+    private static MockMotionCard NewCard() =&gt; new(axisCount: 2, tickMs: 10, softLimit: 1000);
+
+    /// &lt;summary&gt;一步到位的卡:已连接 + 两轴都已使能,直接测运动逻辑。&lt;/summary&gt;
+    private static MockMotionCard ReadyCard()
+    {
+        var card = NewCard();
+        card.Connect(&quot;127.0.0.1&quot;);
+        card.SetAxisEnable(0, true);
+        card.SetAxisEnable(1, true);
+        return card;
+    }
+
+    /// &lt;summary&gt;轮询等待条件成立(每 10ms 查一次),超时抛异常 —— 测试异步运动的标准写法。&lt;/summary&gt;
+    private static async Task WaitUntil(Func&lt;bool&gt; condition, int timeoutMs = 3000)
+    {
+        var sw = Stopwatch.StartNew();
+        while (!condition())
+        {
+            if (sw.ElapsedMilliseconds &gt; timeoutMs)
+                throw new TimeoutException(&quot;等待条件超时,运动没有按预期发生&quot;);
+            await Task.Delay(10);
+        }
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>NewCard / ReadyCard 两层准备,各管一种起点</strong>:大多数用例要"已连接 + 已使能"才好直接测运动;少数用例(T01-T03)恰恰要测"没连接/没使能"的拒绝路径 —— 两个 helper 各管一头,测试体内只剩"动作 + 断言",一眼读完。前端类比:给 <code>renderHook</code> 再封一个 <code>renderLoggedIn</code>,把重复的登录态铺底收敛到一个函数里。
+- <strong><code>tickMs: 10</code> = 仿真时间快进 10 倍</strong>:节拍越小,同样的运动时长折算的真实毫秒越少,12 个用例 4 秒跑完。<strong>测试慢一秒,开发者就多一分借口不跑它</strong>;真卡测试做不了这件事(电机不会快进),所以能在模拟层测的行为全部在模拟层测 —— 接口化的又一红利。类比:msw 把网络延迟调成 0,测试要能控制时间。
+- <strong><code>WaitUntil</code> 轮询 + 超时,不是固定 Sleep</strong>:固定等 2 秒 = 最慢用例永远耗 2 秒,且机器慢时等够了时间却没等到结果就偶发红;轮询"条件成立立即返回"又快又稳,<code>TimeoutException</code> 兜底保证永不卡死。这就是 Jest 的 <code>waitFor()</code> / react-query 轮询的思想:<strong>对付异步的标准姿势是轮询条件 + 超时,不是死等时间</strong>。
+- <strong><code>Stopwatch</code> 而不是 <code>DateTime.Now</code></strong>:秒表是单调时钟(只往前走),系统时间会被授时/手动改 —— 测耗时一律用 Stopwatch,和前端用 <code>performance.now()</code> 而不是 <code>Date.now()</code> 同理。</p>
+<p><strong>第 2 步 · T01-T03:参数与状态检查</strong>(贴法:贴到 <code>WaitUntil</code> 方法后面、类的最后一个 <code>}</code> 之前)</p>
+<pre><code class="language-csharp">    // ———— 参数与状态检查 ————
+
+    [Fact]
+    public void Connect_空IP_应返回参数错误()
+    {
+        var card = NewCard();
+        // 空串 / 全空格都要挡住 —— v1 里 IP 文本框藏前导空格连不上的坑,现在进门就报明确错误码
+        Assert.Equal(MotionResult.ParamError, card.Connect(&quot;&quot;));
+        Assert.Equal(MotionResult.ParamError, card.Connect(&quot;   &quot;));
+        Assert.False(card.IsConnected);
+    }
+
+    [Fact]
+    public async Task 未连接就发运动指令_应全部返回未连接()
+    {
+        var card = NewCard();   // 故意不 Connect
+        Assert.Equal(MotionResult.NotConnected, card.JogAxis(0, 50, true));
+        Assert.Equal(MotionResult.NotConnected, card.MoveAbsolute(0, 100, 50));
+        Assert.Equal(MotionResult.NotConnected, card.HomeAxis(0));
+
+        card.Connect(&quot;127.0.0.1&quot;);
+        Assert.Equal(MotionResult.Ok, card.Connect(&quot;127.0.0.1&quot;));   // 重复连接幂等,不报错
+        Assert.True(card.IsConnected);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public void 连接但未使能就运动_应返回轴未使能()
+    {
+        var card = NewCard();
+        card.Connect(&quot;127.0.0.1&quot;);   // 故意不 SetAxisEnable
+        Assert.Equal(MotionResult.AxisDisabled, card.MoveAbsolute(0, 100, 50));
+        Assert.Equal(MotionResult.AxisDisabled, card.JogAxis(0, 50, true));
+        // 读位置不受使能限制 —— 编码器位置任何时候都读得到
+        Assert.Equal(0, card.GetAxisPosition(0));
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong><code>Assert.Equal(expected, actual)</code> 期望值在前</strong>:参数顺序约定,写反了报错信息会"反着念"("期望 100,实际 ParamError"变成"期望 ParamError,实际 100"),排查时自己骗自己。
+- <strong>T01 边界成对测</strong>:空串 <code>""</code> 和全空格 <code>"   "</code> 各断言一次 —— 同一类脏输入的两种形态,一个测试里测全,不用拆两个。
+- <strong>T02 顺带钉死"重复 Connect 幂等"</strong>:连两次不报错、状态仍是已连接 —— 幂等性(同样操作做 N 次效果和做 1 次一样)是接口的隐性契约,类比:提交按钮连点两次不该炸。
+- <strong><code>await Task.CompletedTask</code> 是占位</strong>:T02 其实没有异步等待,但方法签名是 <code>async Task</code> —— 保留这行,以后往里加 await 不用改签名。真正的原因:xUnit 对 <code>async void</code> 测试<strong>无法正确等待</strong>(框架拿不到 Task,测试"看似通过"其实还没跑完),<code>async Task</code> 才是正确姿势 —— 和"React 事件处理函数别写 async 直接当 onClick"是同一类"签名即承诺"问题。
+- <strong>T03 最后一行断言是精华</strong>:断了使能,<code>MoveAbsolute</code> 被拒 —— 但 <code>GetAxisPosition</code> 照样读得到 0。MC1 接口设计"读和动分开"在这里被测试<strong>锁定</strong>:以后谁给读位置加上使能前置条件,这个测试当场红。</p>
+<p><strong>第 3 步 · T04-T07:两轴并发回归 + 定位三连</strong>(贴法:接在上一步后面)</p>
+<pre><code class="language-csharp">    // ———— 两轴并发(v1 的头号 bug 的回归测试) ————
+
+    [Fact]
+    public async Task 两轴同时点动_互不干扰()
+    {
+        var card = ReadyCard();
+
+        // v1 复现:全局 _isJogging 导致按轴 2 的瞬间轴 1 被停。
+        // v2 每轴一个取消令牌,两轴应同时前进
+        Assert.Equal(MotionResult.Ok, card.JogAxis(0, 50, forward: true));
+        Assert.Equal(MotionResult.Ok, card.JogAxis(1, 50, forward: true));
+
+        await WaitUntil(() =&gt; card.GetAxisPosition(0) &gt; 1 &amp;&amp; card.GetAxisPosition(1) &gt; 1);
+
+        card.StopJog(0);
+        card.StopJog(1);
+        Assert.True(card.GetAxisPosition(0) &gt; 1, &quot;轴1 不该被轴2 的点动打断&quot;);
+        Assert.True(card.GetAxisPosition(1) &gt; 1, &quot;轴2 自己也要在动&quot;);
+    }
+
+    // ———— 绝对定位 ————
+
+    [Fact]
+    public async Task 绝对定位_短距离_应精确到达目标()
+    {
+        var card = ReadyCard();
+        // 3mm @ 5mm/s = 600ms:v1 的步数除零就死在这种短距离上
+        Assert.Equal(MotionResult.Ok, card.MoveAbsolute(0, 3, 5));
+
+        await WaitUntil(() =&gt; !card.IsMoving(0));
+        // 完成后精确贴目标(无浮点漂移),保留 3 位小数比对
+        Assert.Equal(3.0, card.GetAxisPosition(0), precision: 3);
+    }
+
+    [Fact]
+    public void 绝对定位_零距离_应立即成功且不算运动()
+    {
+        var card = ReadyCard();
+        Assert.Equal(MotionResult.Ok, card.MoveAbsolute(0, 0, 50));
+        Assert.False(card.IsMoving(0));
+    }
+
+    [Fact]
+    public void 绝对定位_目标超软限位_应返回参数错误()
+    {
+        var card = ReadyCard();
+        Assert.Equal(MotionResult.ParamError, card.MoveAbsolute(0, 2000, 50));   // 正向超
+        Assert.Equal(MotionResult.ParamError, card.MoveAbsolute(0, -1500, 50));  // 反向超
+        Assert.Equal(MotionResult.ParamError, card.MoveAbsolute(0, 100, 0));     // 速度非法
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>T04 是"回归测试"的教科书样本</strong>:v1 的头号 bug(全局 <code>_isJogging</code>,轴 2 一动轴 1 被停)修掉后,把<strong>复现步骤</strong>写成永久测试 —— 以后谁改坏"每轴一个令牌"这个设计,不用等上机,CI 当场红。前端类比:修完 bug 补一条 E2E 用例,"这个坑我只掉一次"。
+- <strong><code>WaitUntil</code> 的条件用 <code>&amp;&amp;</code> 合并两轴</strong>:两轴都 &gt;1mm 才算"同时在动",单一条件证明不了"并发"。
+- <strong>浮点断言必须带 precision</strong>:<code>Assert.Equal(3.0, pos, precision: 3)</code>。0.1 加三次不等于 0.3,<code>==</code> 级比较是 flaky 之源;取几位取决于业务上"多准算准"(定位 3 位小数 = 微米级,远超机械实际需要)—— <strong>precision 是业务决策,不是随手写的</strong>。
+- <strong>T05 专挑 3mm 短距离</strong>:v1 的步数除零就死在短距离上(步数算出 0),注释里写明"3mm @ 5mm/s = 600ms"。<strong>测边界值</strong>:0、极短、刚好超限 —— bug 的老巢全在边界。
+- <strong>T07 一测三断言可以,因为行为同类</strong>:正向超、反向超、速度非法,都是"参数非法拒收"同一行为;若断言的行为不同(一个测拒收、一个测报错文案),就该拆成两个测试。</p>
+<p><strong>第 4 步 · T08-T09:急停冻结 + 回零</strong>(贴法:接在上一步后面)</p>
+<pre><code class="language-csharp">    // ———— 急停 ————
+
+    [Fact]
+    public async Task 急停_运动中途位置就地冻结()
+    {
+        var card = ReadyCard();
+        var stopped = false;
+        card.EmergencyStopped += (s, e) =&gt; stopped = true;
+
+        Assert.Equal(MotionResult.Ok, card.MoveAbsolute(0, 500, 5));   // 全程 100s,足够中途急停
+        await WaitUntil(() =&gt; card.GetAxisPosition(0) &gt; 2);
+
+        Assert.Equal(MotionResult.Ok, card.StopAll());
+        var frozen = card.GetAxisPosition(0);
+        Assert.True(stopped, &quot;急停必须触发 EmergencyStopped 事件&quot;);
+
+        await Task.Delay(200);   // 再等两个节拍,确认没有&quot;惯性滑动&quot;
+        Assert.Equal(frozen, card.GetAxisPosition(0), precision: 6);
+        Assert.False(card.IsMoving(0));
+    }
+
+    // ———— 回零 ————
+
+    [Fact]
+    public async Task 回零_从任意位置精确回零位()
+    {
+        var card = ReadyCard();
+        Assert.Equal(MotionResult.Ok, card.MoveAbsolute(0, 120, 200));
+        await WaitUntil(() =&gt; !card.IsMoving(0));
+        Assert.Equal(120.0, card.GetAxisPosition(0), precision: 3);
+
+        Assert.Equal(MotionResult.Ok, card.HomeAxis(0));
+        await WaitUntil(() =&gt; !card.IsMoving(0));
+        Assert.Equal(0.0, card.GetAxisPosition(0), precision: 3);
+    }
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>事件断言的套路 = bool 标志位</strong>:先 <code>var stopped = false;</code>,订阅时用 lambda 翻转 <code>stopped = true</code>,动作后 <code>Assert.True(stopped)</code> —— 闭包捕获局部变量,事件一触发标志就翻。这就是手写版 <code>jest.fn()</code> 调用记录:不关心参数细节时,一个布尔就是最小的 mock。隐含前提是<strong>断言前事件已触发完</strong> —— 这里 <code>WaitUntil</code> 已保证了时间先后。
+- <strong>T08 的严谨在"二次读数"</strong>:急停后记下 <code>frozen</code>,再等 200ms(<strong>两个节拍</strong>,足以让任何"在途循环"再走一步),然后断言位置仍等于 frozen(precision 6,纳米级)—— 只读一次只能证明"停了",读两次才能证明"<strong>停住不动了</strong>",多走的 1mm 都藏不住。
+- <strong>速度参数是算出来的,不是拍脑袋</strong>:<code>MoveAbsolute(0, 500, 5)</code> 全程 100 秒 —— 故意选个慢速度,保证 <code>WaitUntil</code> 等到 &gt;2mm 时运动<strong>还在中途</strong>,急停测的才是"运动中冻结"而不是"停了以后再急停"。测试里的每个参数都要经得起"为什么是这个值"的追问。
+- <strong>T09 两段式铺真实起点</strong>:先定位到 120、等停稳,再回零断言 0.000 —— 测"从任意位置回零",就别依赖"刚好在 0 附近"的默认起点。</p>
+<p><strong>第 5 步 · T10-T12:报警链路 + 软限位 + 断开</strong>(贴法:接在上一步后面 —— 贴完 12 个测试全齐)</p>
+<pre><code class="language-csharp">    // ———— 报警链路 ————
+
+    [Fact]
+    public async Task 报警阻断运动_清报警后恢复()
+    {
+        var card = ReadyCard();
+        card.SimulateAlarm(0, &quot;模拟伺服过流&quot;);
+
+        Assert.Equal(MotionResult.AlarmActive, card.MoveAbsolute(0, 100, 50));
+        Assert.Equal(&quot;模拟伺服过流&quot;, card.GetAlarmMessage(0));
+
+        Assert.Equal(MotionResult.Ok, card.ClearAlarm(0));
+        Assert.Equal(MotionResult.Ok, card.MoveAbsolute(0, 100, 200));
+        await WaitUntil(() =&gt; !card.IsMoving(0));
+        Assert.Equal(100.0, card.GetAxisPosition(0), precision: 3);
+    }
+
+    [Fact]
+    public async Task 点动撞正软限位_应自动停止并报警()
+    {
+        var card = ReadyCard();
+        // 3000mm/s @ 10ms 节拍 = 每步 30mm,约 0.34s 撞到 +1000
+        Assert.Equal(MotionResult.Ok, card.JogAxis(0, 3000, forward: true));
+
+        await WaitUntil(() =&gt; card.GetAlarmMessage(0).Length &gt; 0);
+        Assert.Equal(1000.0, card.GetAxisPosition(0), precision: 2);   // 位置被夹在限位上,不多走一步
+        Assert.False(card.IsMoving(0));
+        Assert.Contains(&quot;软限位&quot;, card.GetAlarmMessage(0));
+    }
+
+    // ———— 生命周期 ————
+
+    [Fact]
+    public async Task 断开连接_所有运动被取消()
+    {
+        var card = ReadyCard();
+        Assert.Equal(MotionResult.Ok, card.JogAxis(0, 50, true));
+        Assert.Equal(MotionResult.Ok, card.JogAxis(1, 50, true));
+        await WaitUntil(() =&gt; card.GetAxisPosition(0) &gt; 0.5 &amp;&amp; card.GetAxisPosition(1) &gt; 0.5);
+
+        Assert.Equal(MotionResult.Ok, card.Disconnect());
+        await Task.Delay(100);
+
+        Assert.False(card.IsConnected);
+        Assert.False(card.IsMoving(0));
+        Assert.False(card.IsMoving(1));
+        // 断开后一切运动指令被拒
+        Assert.Equal(MotionResult.NotConnected, card.JogAxis(0, 50, true));
+    }
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>
+- <strong>T10 是一条因果链,不拆</strong>:注障 → 运动被拒 → 清警 → 运动恢复 —— 三段行为互为因果,拆成三个测试反而要各自重复铺状态;<strong>一条链一个测试,并列行为才分开测</strong>。
+- <strong><code>Assert.Contains("软限位", msg)</code> 连报错文案都钉死</strong>:操作员看到的报警文本必须含"软限位"三个字,否则这条报警等于没报 —— 用户可见的行为(文案)和机器行为(错误码)一样值得断言。
+- <strong>T11 的注释就是算式</strong>:3000mm/s @ 10ms 节拍 = 每步 30mm,约 0.34 秒撞到 +1000 —— 速度取多大,取决于"几步撞上、多久撞上"的期望。测试参数带算式注释,读的人才敢改。
+- <strong>T12 钉死 Disconnect 的完整语义</strong>:两轴点动途中断开 → 两个 <code>IsMoving</code> 都为 false(取消一切)+ <code>IsConnected</code> 为 false + 再发指令返回 <code>NotConnected</code> —— MC1 里"断开先 CancelAllLocked"的实现,在这里整条被测试锁定。类比:组件卸载时 abort 所有在途请求,之后任何响应回来都不许再 setState。</p>
+<details>
+<summary>📄 完整文件 MockMotionCardTests.cs(对答案 / 整体粘贴用 —— 贴完等于上面 5 步全部完成)</summary>
 <pre><code class="language-csharp">// 📂 文件:src/MotionControl.Tests/MockMotionCardTests.cs(本篇先写到&quot;生命周期&quot;为止;
 // 插补测试 MC5 再加,UI 冒烟测试 MC4 再加,都在文件末尾追加)
 using MotionControlProject.Device;
@@ -373,15 +623,7 @@ public class MockMotionCardTests
     }
 }
 </code></pre>
-<p>💡 <strong>这份测试文件的五个门道</strong>:</p>
-<ul>
-<li><strong><code>tickMs: 10</code> = 仿真时间快进 10 倍</strong>:节拍越小,同样的"运动时长"折算成的真实毫秒越少。整套 12 个用例 4 秒跑完 —— 测试慢一秒,开发者就多一分借口不跑它。真卡测试做不了这件事(电机不会快进),所以<strong>能在模拟层测的行为全部在模拟层测</strong>,这是接口化的又一红利;</li>
-<li><strong><code>WaitUntil</code> 轮询 + 超时,不是固定 Sleep</strong>:固定等 2 秒 = 最慢用例永远耗 2 秒,且机器慢时还会偶发失败(等够了时间但没等到结果);轮询"条件成立即返回"又快又稳,<code>TimeoutException</code> 兜底保证测试永远不会卡死 —— 和采集项目里"管道心跳"是同一个思想:<strong>轮询 + 超时是对付异步的标准姿势</strong>;</li>
-<li><strong>浮点断言必须带 precision</strong>:<code>Assert.Equal(3.0, pos, precision: 3)</code>。浮点累加有误差,<code>==</code> 级别的比较是自找 flaky;precision 取几位,取决于业务上"多准算准"(定位 3 位 = 微米级,远超实际需要);</li>
-<li><strong>事件断言的套路 = bool 标志位</strong>:订阅时 <code>card.EmergencyStopped += (s, e) =&gt; stopped = true;</code>,动作后 <code>Assert.True(stopped)</code>。闭包捕获局部变量,事件一触发标志就翻 —— 简单,但在多线程下有个隐含前提:断言前事件已经触发完(WaitUntil 已经保证了时间上的先后);</li>
-<li><strong><code>await Task.CompletedTask</code> 是个占位</strong>:T02 其实没有异步等待,但测试方法是 <code>async Task</code> —— 保留它,以后往里加 await 不用改签名;xUnit 对 <code>async void</code> 测试无法正确等待,<code>async Task</code> 才是正确姿势。</li>
-</ul>
-<p>🔧 <strong>为什么测试类要分 NewCard / ReadyCard 两层准备</strong>:大多数用例需要"已连接 + 已使能"的前置状态,少数用例恰恰要测"没连接/没使能"的拒绝路径 —— 两个 helper 各管一种起点,测试体内只剩"动作 + 断言",一眼读完。</p>
+</details>
 <hr />
 <h2 id="sec-2-5">✅ 验证(沙盒实测输出,你可以逐字对)</h2>
 <pre><code class="language-bash">dotnet test

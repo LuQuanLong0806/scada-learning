@@ -118,6 +118,366 @@ internal static class Program
 
 **设计思路一句**:窗体 = 纯"翻译官" —— 用户输入翻译成卡指令,卡事件翻译成界面变化;两轴逻辑写成"控件数组 + 循环",按钮状态集中一处计算。
 
+> 🧩 **贴法说明**:`MainForm.cs` 和下面步骤 4 的 `MainForm.Designer.cs` 互相引用(Designer 声明控件字段,MainForm 构造调 `InitializeComponent`),**两个文件都贴完才能 build**。可以先把两处折叠块整体贴完跑起来,再按 ①-⑦ 读懂 MainForm;也可以边贴边读 —— 7 步是按"字段 → 构造 → 各区块"的走读顺序排的。
+
+**第 ① 步 · 控件数组与"上一帧"标志**(导读 —— 全部的状态就这些)
+
+```csharp
+public partial class MainForm : Form
+{
+    private readonly IMotionCard _card;
+
+    // ———— 控件数组:下标 0 = 轴 1,下标 1 = 轴 2 ————
+    private readonly Button[] _btnEnable;
+    private readonly Button[] _btnDisable;
+    private readonly Button[] _btnJogForward;
+    private readonly Button[] _btnJogBackward;
+    private readonly Button[] _btnMoveAbs;
+    private readonly Button[] _btnHome;
+    private readonly TextBox[] _txtPos;
+    private readonly TextBox[] _txtSpeed;
+    private readonly TextBox[] _txtAbs;
+
+    /// <summary>"运动完成"检测:记录上一帧(100ms 前)是否在运动,状态从运动翻转为静止时打一条完成日志。</summary>
+    private readonly bool[] _wasMoving = new bool[2];
+
+    /// <summary>默认构造:生产环境用模拟卡。Designer 必须有无参构造才能在 VS 里打开设计器。</summary>
+    public MainForm() : this(new MockMotionCard()) { }
+```
+
+📚 **知识点**
+- **9 个控件数组,下标 = 轴号**:Designer 里是 18 个散控件(btnEnable1/btnEnable2/txtPos1/txtPos2…),这里把它们**按轴序装箱** —— 后面所有"每轴逻辑"都能写成 `for` 循环,这就是 FR-U02"加第三轴只改数组"的落点。前端类比:拿到一堆 `ref` 后第一步收进 `refs.current[]` 数组,不然每个都要写一遍。
+- **`_wasMoving` 是边沿检测的"上一帧"**:只记"上一帧在不在动"这一个布尔 —— 第 ⑥ 步的定时器靠它判断"运动刚结束",没有它就只能"查到静止就打日志"(每次轮询都刷屏)。
+- **两个构造、一条链**:`public MainForm() : this(new MockMotionCard())` —— 无参默认构造**必须保留**(VS 设计器打开窗体要靠它 new 出界面),它转手调真正的构造并把模拟卡塞进去;接真卡时换的正是 `this(...)` 里的东西。类比:组件的默认 props —— 设计时用默认值,运行时想换随时换。
+
+**第 ② 步 · 构造函数:订阅一切**(导读 —— 窗体的"装配车间")
+
+```csharp
+    /// <summary>依赖注入入口:测试或接真卡时从这里塞入任意 IMotionCard 实现。</summary>
+    public MainForm(IMotionCard card)
+    {
+        InitializeComponent();
+        _card = card;
+
+        // Designer 生成的两轴控件按轴序收进数组,后面所有"每轴逻辑"都能写成循环
+        _btnEnable      = new[] { btnEnable1, btnEnable2 };
+        _btnDisable     = new[] { btnDisable1, btnDisable2 };
+        _btnJogForward  = new[] { btnJog1Forward, btnJog2Forward };
+        _btnJogBackward = new[] { btnJog1Backward, btnJog2Backward };
+        _btnMoveAbs     = new[] { btnMoveAbs1, btnMoveAbs2 };
+        _btnHome        = new[] { btnHome1, btnHome2 };
+        _txtPos         = new[] { txtPos1, txtPos2 };
+        _txtSpeed       = new[] { txtSpeed1, txtSpeed2 };
+        _txtAbs         = new[] { txtAbs1, txtAbs2 };
+
+        // ———— 事件订阅全部集中在这里,Designer 文件只管"长相" ————
+
+        btnConnect.Click    += (s, e) => Connect();
+        btnDisconnect.Click += (s, e) => DisconnectCard();
+        btnEstop.Click      += (s, e) => EmergencyStop();
+        btnClearAlarm.Click += (s, e) => ClearAlarms();
+
+        for (var i = 0; i < 2; i++)
+        {
+            var axis = i;   // 闭包捕获副本的经典坑:for 的 i 是所有循环共享的变量,
+                            // 不复制一份,两个按钮的 lambda 里拿到的都会是循环结束后的 2
+
+            _btnEnable[i].Click      += (s, e) => SetAxisEnabled(axis, true);
+            _btnDisable[i].Click     += (s, e) => SetAxisEnabled(axis, false);
+
+            // 点动:按下启动、松开停止 —— MouseDown/MouseUp 而不是 Click(v1 的正确直觉,v2 保留)
+            _btnJogForward[i].MouseDown  += (s, e) => StartJog(axis, forward: true);
+            _btnJogForward[i].MouseUp    += (s, e) => StopJog(axis);
+            _btnJogBackward[i].MouseDown += (s, e) => StartJog(axis, forward: false);
+            _btnJogBackward[i].MouseUp   += (s, e) => StopJog(axis);
+
+            _btnMoveAbs[i].Click += (s, e) => MoveAbs(axis);
+            _btnHome[i].Click    += (s, e) => Home(axis);
+        }
+
+        // 卡 → 界面:三个事件分别在"位置变化 / 报警变化 / 急停"时被后台线程触发
+        _card.PositionChanged  += OnPositionChanged;
+        _card.AlarmChanged     += OnAlarmChanged;
+        _card.EmergencyStopped += OnEmergencyStopped;
+
+        // 100ms 界面轮询:刷新按钮状态 + 检测"运动完成"。
+        // 为什么用轮询而不是事件?模拟卡没有"运动完成"事件,真卡 SDK 也常常只有状态位 ——
+        // "定时查状态 + 边沿检测"是上位机最常用、最稳的完成检测手段(采集项目的管道心跳同理)。
+        // Tick 事件已在 Designer 里绑定,这里只设定周期并启动
+        timer1.Interval = 100;
+        timer1.Start();
+
+        RefreshUiState();
+        AppendLog($"系统就绪:模拟卡已加载,{_card.AxisCount} 轴。请先【连接】再【使能】。");
+    }
+```
+
+📚 **知识点**
+- **构造函数只有四件事**:InitializeComponent(长相)→ 控件收数组 → 订阅事件(按钮 + 卡的三个事件 + 定时器)→ RefreshUiState + 开场日志。**别的都不该出现在构造里** —— 构造是装配车间,不是干活的车床。
+- **`var axis = i;` 是全文最便宜的保险**:C# 的 `for` 变量 `i` 是整个循环**共享**的一个变量,lambda 捕获的是它的引用 —— 循环结束后 `i = 2`,所有按钮的 handler 拿到的都是 2,两个轴的按钮全去动"轴 3"(不存在)→ 报轴号越界。复制一份副本,每个 lambda 各捕获各的。**这就是 JS 从 var 改 let 的同款坑**(var 的循环变量函数级共享,let 每轮新建)—— 换语言,坑不变,解法也不变。
+- **点动用 MouseDown/MouseUp,不是 Click**:Click 是"按下再松开"才触发,而点动语义是"按下就开始动、松开停" —— 必须拆成两个事件。前端类比:`onMouseDown/onMouseUp` 做"按住拖动",而不是 `onClick`。
+- **事件订阅全在逻辑文件、Designer 只管长相**:VS 设计器双击按钮会往 Designer 里塞 `btnXxx.Click += BtnXxx_Click;` —— 本工程刻意不这么干,订阅集中在构造里(能用 lambda 写清"这个按钮调哪个方法"),**布局与行为彻底分家,抄布局不会抄错行为**。
+- **轮询 + 边沿,而不是"完成事件"**:模拟卡没有"运动完成"事件,真卡 SDK 也常常只给状态位 —— "定时查状态 + 边沿检测"是上位机最常用、最稳的手段(和采集项目的管道心跳同一个思想)。别为不存在的事件发明回调。
+
+**第 ③ 步 · 连接区四方法**(导读 —— 每个都是"调卡 → 翻译 → 日志 → 刷新"四拍子)
+
+```csharp
+    // ———— 连接区 ————
+
+    private void Connect()
+    {
+        // v1 坑:txtIp 里带了个前导空格,连接永远失败还看不出来 —— Trim + 判空在门口挡掉
+        var ip = txtIp.Text.Trim();
+        var r = _card.Connect(ip);
+        if (r != MotionResult.Ok) { Fail(r, "连接"); return; }
+        AppendLog($"已连接模拟卡 {ip}(共 {_card.AxisCount} 轴)");
+        RefreshUiState();
+    }
+
+    private void DisconnectCard()
+    {
+        var r = _card.Disconnect();
+        if (r != MotionResult.Ok) { Fail(r, "断开"); return; }
+        AppendLog("已断开连接,所有运动已停止");
+        RefreshUiState();
+    }
+
+    /// <summary>急停:唯一一个红色按钮,点击立即执行、不做任何确认弹窗 —— 急停就该一按就停。</summary>
+    private void EmergencyStop()
+    {
+        _card.StopAll();
+        AppendLog("!! 急停触发:全部轴已停止,位置冻结 !!", "ERROR");
+        RefreshUiState();
+    }
+
+    private void ClearAlarms()
+    {
+        // 两个轴都清一遍;无报警的轴清了也无副作用(幂等)
+        _card.ClearAlarm(0);
+        _card.ClearAlarm(1);
+        AppendLog("已清除全部报警(v1 的 btnClearAlarm 根本没绑 Click 事件 —— 纯摆设,这里是修复)");
+        RefreshUiState();
+    }
+```
+
+📚 **知识点**
+- **四拍子模板**:调卡 → 失败就 `Fail`(错误码翻译成人话)→ 成功打日志 → `RefreshUiState()`。整个文件的操作方法全是这个节奏 —— 读的人看懂一个,就看懂了全部。类比:Redux 时代"dispatch → reducer → 订阅更新"的固定节拍。
+- **急停不做确认弹窗**:安全设计常识 —— 确认弹窗等于给急停加延迟,事故就是这么来的。**危险动作要一键直达,普通动作才谈防误触**(这也是急停按钮做成红色的唯一原因)。
+- **清报警用"两轴都清"而不是"查了再清"**:`ClearAlarm` 对无报警的轴是幂等的(清了也没副作用)—— 两个调用比"先查哪根轴有警再清"简单且不易错。**幂等操作就大胆重复做**。
+- **`Connect` 里第一行就是 `Trim()`**:v1 的坑①(文本框藏前导空格)在卡门口挡过一道(`IsNullOrWhiteSpace`),在 UI 门口再挡一道 —— 脏输入在**每一道门**都该被清理,别指望上游替你洗干净。
+
+**第 ④ 步 · 每轴操作五方法**(导读 —— 控件数组的红利全在这)
+
+```csharp
+    // ———— 每轴操作 ————
+
+    private void SetAxisEnabled(int axis, bool enable)
+    {
+        var r = _card.SetAxisEnable(axis, enable);
+        if (r != MotionResult.Ok) { Fail(r, $"轴{axis + 1} {(enable ? "使能" : "失能")}"); return; }
+        AppendLog($"轴{axis + 1} {(enable ? "已使能" : "已下使能")}");
+        RefreshUiState();
+    }
+
+    private void StartJog(int axis, bool forward)
+    {
+        var speed = SpeedOf(_txtSpeed[axis]);
+        var r = _card.JogAxis(axis, speed, forward);
+        if (r != MotionResult.Ok) { Fail(r, $"轴{axis + 1} 点动"); return; }
+        AppendLog($"轴{axis + 1} 点动 {(forward ? "正转 ▲" : "反转 ▼")} @ {speed:F0} mm/s");
+    }
+
+    private void StopJog(int axis)
+    {
+        _card.StopJog(axis);   // 没连卡时也只是返回错误码,不值得刷屏,不打日志
+    }
+
+    private void MoveAbs(int axis)
+    {
+        // 目标位置解析失败要就地报出来,v1 是"按了没反应"式沉默失败
+        if (!double.TryParse(_txtAbs[axis].Text.Trim(), out var target))
+        {
+            AppendLog($"✗ 轴{axis + 1} 目标位置不是数字:{_txtAbs[axis].Text}", "WARN");
+            return;
+        }
+        var speed = SpeedOf(_txtSpeed[axis]);
+        var r = _card.MoveAbsolute(axis, target, speed);
+        if (r != MotionResult.Ok) { Fail(r, $"轴{axis + 1} 绝对定位"); return; }
+        AppendLog($"轴{axis + 1} 绝对定位 → {target:F2} mm @ {speed:F0} mm/s");
+    }
+
+    private void Home(int axis)
+    {
+        var r = _card.HomeAxis(axis);
+        if (r != MotionResult.Ok) { Fail(r, $"轴{axis + 1} 回零"); return; }
+        AppendLog($"轴{axis + 1} 回零启动(固定 {MockMotionCard.HomeSpeed:F0} mm/s)…");
+    }
+```
+
+📚 **知识点**
+- **方法带 `axis` 参数 = 控件数组的红利**:5 个方法管两根轴(将来 N 根),靠的是取控件用 `_txtSpeed[axis]`、日志用 `$"轴{axis + 1}"` —— v1 是每轴复制一整套 handler(坑⑨),改一处漏一处。**参数化消灭复制粘贴**,和前端"把重复 JSX 抽成带 props 的组件"是同一个动作。
+- **`MoveAbs` 的防呆是"就地报出来"**:`TryParse` 失败打一条 WARN 日志然后 return —— v1 是"按了没反应"式沉默失败,操作员以为程序死了。**失败要可见,但不打断程序**。
+- **`StopJog` 一行且不打日志**:松手停止是高频动作,没连卡时也只返回错误码 —— 打日志就是刷屏。**日志是稀缺资源:只记需要人知道的,别记机器自己能处理的**(和"别在循环里 console.log"同理)。
+- **`{speed:F0}`、`{target:F2}` 格式化**:F0 = 0 位小数、F2 = 两位 —— 日志里的数字统一格式,人眼才能对齐扫读。速度看量级(F0),位置看精度(F2/F3),格式跟着业务走。
+
+**第 ⑤ 步 · 卡事件 → 界面:三个处理器一个模式**(导读 —— 跨线程的必修课)
+
+```csharp
+    // ———— 卡事件 → 界面(全部先切回 UI 线程) ————
+
+    private void OnPositionChanged(object? sender, PositionChangedEventArgs e)
+    {
+        // 事件来自后台仿真线程。WinForms 铁律:非 UI 线程碰控件就抛 InvalidOperationException
+        if (InvokeRequired) { BeginInvoke(() => OnPositionChanged(sender, e)); return; }
+        _txtPos[e.Axis].Text = e.Position.ToString("F3");
+    }
+
+    private void OnAlarmChanged(object? sender, AlarmChangedEventArgs e)
+    {
+        if (InvokeRequired) { BeginInvoke(() => OnAlarmChanged(sender, e)); return; }
+        var stamp = DateTime.Now.ToString("HH:mm:ss");
+        if (e.IsActive)
+            txtAlarm.AppendText($"[{stamp}] 轴{e.Axis + 1} 报警:{e.Message}\r\n");
+        else
+            txtAlarm.AppendText($"[{stamp}] 轴{e.Axis + 1} 报警已清除\r\n");
+        RefreshUiState();
+    }
+
+    private void OnEmergencyStopped(object? sender, EventArgs e)
+    {
+        if (InvokeRequired) { BeginInvoke(() => OnEmergencyStopped(sender, e)); return; }
+        AppendLog("卡上报:EmergencyStop 已生效", "ERROR");
+    }
+```
+
+📚 **知识点**
+- **`if (InvokeRequired) { BeginInvoke(自己); return; }` 是一个可以背下来的模式**:先问"我在 UI 线程吗"(`InvokeRequired` = 当前线程 ≠ 创建控件的线程)—— 不在,就把自己**重新投递**回 UI 线程的消息队列然后 return;第二次执行时已在 UI 线程,走真正逻辑。三个处理器同一模式,新增事件照抄即可(见 [📖 WinForms 跨线程](kp:winforms-invoke))。**前端类比:只有主线程能碰 DOM,Worker 的结果要 `postMessage` 回主线程再操作 —— WinForms 的控件就是它的"DOM"**。
+- **`BeginInvoke` 而不是 `Invoke`**:Begin 是"投递后立刻返回"(异步),Invoke 是"投递并等它执行完"(同步)。位置变化事件每 100ms 一发,若用同步 Invoke,后台仿真线程会被 UI 拖住 —— **通知类转 发用异步,拿结果才用同步**。
+- **递归转发为什么不炸栈**:第二次进来时 `InvokeRequired` 为 false,直接走逻辑 —— 只递归一层。写法巧妙在读起来像"重入自己",实际是"排队重放"。
+- **`OnAlarmChanged` 末尾要 `RefreshUiState()`**:报警的出现/清除会改变按钮可用性(有报警时运动按钮必须灰)—— 事件处理器不只刷自己的框,还要触发全局状态重算。**单一真源的好处:谁都能喊一声"重算",不会漏**。
+- **`AppendText` 自带滚动**:RichTextBox 的 AppendText 会自动滚到底部,不用手动 `SelectionStart + ScrollToCaret`(那是 TextBox 的老套路)。
+
+**第 ⑥ 步 · 定时器边沿检测 + RefreshUiState 单一真源**(导读)
+
+```csharp
+    // ———— 定时器:状态轮询 + 运动完成边沿检测 ————
+
+    private void Timer1_Tick(object? sender, EventArgs e)
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            var moving = _card.IsMoving(i);
+            // 上一帧在动、这一帧停了 = 运动刚完成(边沿检测,只报一次)
+            if (_wasMoving[i] && !moving)
+                AppendLog($"轴{i + 1} 运动完成,停在 {_card.GetAxisPosition(i):F3} mm");
+            _wasMoving[i] = moving;
+        }
+
+        RefreshUiState();
+    }
+
+    // ———— 界面状态集中刷新 ————
+
+    /// <summary>
+    /// 所有按钮的 Enabled 状态只在这里计算。
+    /// 规则一眼可读:连接区看 IsConnected;每轴操作区 = 已连接 && 已使能 && 无报警;
+    /// 急停永远可用(急停按钮被禁掉本身就是事故)。
+    /// v1 的教训:按钮状态散落在各 handler 里各改各的 → btnMoveAbs1 禁了两次、btnMoveAbs2 忘了禁。
+    /// </summary>
+    private void RefreshUiState()
+    {
+        if (IsDisposed) return;
+
+        var connected = _card.IsConnected;
+        btnConnect.Enabled = !connected;
+        btnDisconnect.Enabled = connected;
+        txtIp.Enabled = !connected;
+        // 连接指示灯:绿 = 已连接,灰 = 未连接。颜色只用来表达状态,装饰色一概不用
+        lblConnectStatus.BackColor = connected ? Color.MediumSeaGreen : Color.DarkGray;
+
+        for (var i = 0; i < 2; i++)
+        {
+            var operable = connected
+                           && _card.IsAxisEnabled(i)
+                           && string.IsNullOrEmpty(_card.GetAlarmMessage(i));
+            _btnEnable[i].Enabled = connected;          // 使能/失能只要求"卡在线"
+            _btnDisable[i].Enabled = connected;
+            _btnJogForward[i].Enabled = operable;       // 运动类操作才要求"已使能 + 无报警"
+            _btnJogBackward[i].Enabled = operable;
+            _btnMoveAbs[i].Enabled = operable;
+            _btnHome[i].Enabled = operable;
+        }
+    }
+```
+
+📚 **知识点**
+- **边沿检测 = 记住历史**:`_wasMoving[i] && !moving` = 上一帧在动、这一帧停了 → "运动刚完成",状态翻转只发生一次,日志就只打一次。比"查到静止就打日志"聪明在**记住了上一帧** —— 这和前端"用 useRef 存上一次值,变化时才触发"是同一个技巧。采集项目报警引擎的"边沿触发"同款思想。
+- **`RefreshUiState` 是按钮状态的唯一真源**:任何状态变化最后都调它,规则集中一处 —— v1 的坑⑦(btnMoveAbs1 被禁两次、btnMoveAbs2 一次没禁)在结构上不可能再发生。类比:把散落各处的 `setState` 收敛成一个 `derivedState` 计算函数,**状态是算出来的,不是各处维护出来的**。
+- **两层可用性**:使能/失能按钮只要"卡在线"就能点;运动类按钮要"在线 + 使能 + 无报警"—— `operable` 一个变量表达完整前置条件,读代码像读需求。急停**永远可用**(不参与任何计算)—— 急停按钮被禁掉本身就是事故。
+- **`if (IsDisposed) return;`**:定时器和后台事件可能在窗体已销毁后还有"最后一帧"回调进来 —— 先问"窗体还在吗"再碰控件。类比:卸载后 setState 前判 ref 是否为 null。
+- **指示灯 = 一个 Panel 小方片**:绿/灰两色表达连接状态 —— 状态可视化不需要引入控件库,一个 18×18 的 Panel + BackColor 就够了。
+
+**第 ⑦ 步 · 小工具四件 + 关窗善后**(导读)
+
+```csharp
+    // ———— 小工具 ————
+
+    /// <summary>
+    /// 解析速度输入:非法(空/非数字/越界)就回退默认 50 并把文本框纠正过来 —— 永远给调用方一个可用值。
+    /// 上位机处理手工输入的黄金法则:防呆 + 自愈,而不是抛异常崩给用户看。
+    /// </summary>
+    private static double SpeedOf(TextBox box)
+    {
+        if (double.TryParse(box.Text.Trim(), out var v) && v > 0 && v <= 5000) return v;
+        box.Text = "50";
+        return 50;
+    }
+
+    /// <summary>返回码 → 人话。真卡 SDK 给你的只有 int,把它翻译成操作员能看懂的句子是上位机的本职。</summary>
+    private void Fail(MotionResult r, string what)
+    {
+        var msg = r switch
+        {
+            MotionResult.NotConnected   => "卡未连接",
+            MotionResult.AxisIndexError => "轴号越界",
+            MotionResult.ParamError     => "参数不合法(速度/目标位置超软限位)",
+            MotionResult.AxisDisabled   => "轴未使能",
+            MotionResult.AlarmActive    => "轴有报警,请先清报警",
+            _ => r.ToString(),
+        };
+        AppendLog($"✗ {what}失败:{msg}(错误码 {(int)r})", "WARN");
+    }
+
+    /// <summary>
+    /// 界面日志:黑底等宽字,一行一条;同时经 LogHelper 落盘。
+    /// 线程安全:后台事件线程也会调它,InvokeRequired 判断后 BeginInvoke 投递回 UI 线程。
+    /// </summary>
+    private void AppendLog(string message, string level = "INFO")
+    {
+        if (IsDisposed || Disposing) return;
+        if (InvokeRequired) { BeginInvoke(() => AppendLog(message, level)); return; }
+        txtLog.AppendText($"[{DateTime.Now:HH:mm:ss.fff}] {message}\r\n");
+        LogHelper.Log(message, level);
+    }
+
+    /// <summary>关窗前断开卡:取消所有后台运动任务,进程才能干净退出,不会留僵尸线程占用日志文件。</summary>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        _card.Disconnect();
+        base.OnFormClosing(e);
+    }
+}
+```
+
+📚 **知识点**
+- **`SpeedOf` 的"防呆 + 自愈"**:非法输入(空/非数字/≤0/>5000)不弹窗、不崩溃 —— 回退默认 50 并**把文本框纠正过来**,操作员下次看到的就是合法值。工业软件对手工输入的态度:**永远给调用方一个能用的值**。对比 `MoveAbs` 目标非法是"就地 WARN 不动" —— 速度是"持续适用的参数"值得自愈,目标是"本次指令"只能拒绝,两种策略按语义选。
+- **`Fail` = 返回码 → 人话的翻译表**:`switch` 表达式(表达式形式的 switch,可直接赋值)把 6 种错误码映射成操作员能看懂的句子,末尾 `(错误码 {(int)r})` 保留原始码给工程师 —— **操作员看人话,工程师看码,一句日志两头兼顾**。真卡 SDK 给你的只有 int,翻译是上位机的本职。
+- **`AppendLog` 也是"InvokeRequired 模式"**:后台事件线程调它时同样投递回 UI 线程 —— 三个事件处理器不用单独处理线程问题,因为它们最终都汇到 AppendLog/直接控件操作,而这两处已经安全。**把跨线程处理下沉到公共出口,调用方就不用人人操心**。`IsDisposed || Disposing` 双保险:关窗中的最后一刻也可能有日志进来。
+- **`OnFormClosing` 关窗断卡**:Disconnect 会取消所有后台运动任务(卡的行为),进程才能干净退出,不留僵尸线程占着日志文件 —— 这是 FR-U08,也是"组件卸载时清副作用"的 WinForms 版。`base.OnFormClosing(e)` 别忘调,父类还有一堆收尾要做。
+
+<details markdown="1">
+<summary>📄 完整文件 MainForm.cs(整体粘贴用 —— 先贴这个和步骤 4 的 Designer,再回头读上面 7 步)</summary>
+
 ```csharp
 // 📂 文件:src/MotionControl/UI/MainForm.cs
 using MotionControlProject.Common;
@@ -420,17 +780,176 @@ public partial class MainForm : Form
 }
 ```
 
-🗺️ **读码地图 —— MainForm 怎么走读**:
-1. **构造函数只有四件事**:InitializeComponent(长相)→ 控件收数组 → 订阅事件(按钮的 Click/MouseDown + 卡的三个事件 + 定时器)→ RefreshUiState + 开场日志。别的都不该出现在构造里;
-2. **`var axis = i;` 那一行是全文最便宜的保险**:不复制,所有 lambda 捕获的是同一个 i,循环结束后 = 2,两个轴的按钮全去动"轴 3"(不存在)→ 报轴号越错。这是 C# 闭包捕获的经典坑,v1 的"轴 2 按钮日志打轴 1"(坑⑨)本质就是同一类复制粘贴错位;
-3. **三个事件处理器一个模式**:`if (InvokeRequired) { BeginInvoke(自己); return; }` —— 先问"我在 UI 线程吗",不在就把自己重新投递回 UI 线程再执行真正的逻辑(见 [📖 WinForms 跨线程](kp:winforms-invoke))。BeginInvoke 是"投递后立刻返回",不阻塞后台仿真线程;
-4. **Timer1_Tick 的边沿检测**:`_wasMoving[i] && !moving` = 上一帧在动、这一帧停了 → 报"运动完成"。状态翻转只发生一次,日志就只打一次 —— 比"查询到静止就打日志"聪明在**记住了历史**;
-5. **RefreshUiState 是按钮状态的唯一真源**:任何状态变化(连接/使能/报警/急停)最后都调它,规则集中在一处,改规则改一处。v1 的坑⑦(有的按钮禁两次、有的忘禁)在结构上不可能再发生;
-6. **SpeedOf 的"防呆 + 自愈"**:非法输入不弹窗、不崩溃,回退默认值并**把文本框纠正过来** —— 操作员下次看到的就是合法值。工业软件对手工输入的态度:永远给调用方一个能用的值。
+</details>
 
 ### 步骤 4:界面布局 MainForm.Designer.cs
 
 **设计思路一句**:Designer 文件只描述"长相"(控件、位置、颜色),事件订阅一行不放(全在 MainForm.cs 构造里)—— 布局与行为彻底分家,抄布局不会抄错行为。
+
+> ⚠️ **这一节用"导读模式"**:整个文件 680 行是一台"代码化的界面",没有可拆的中间态 —— **先展开文末折叠块把完整文件贴进工程**,再按 4 步读懂它的结构。大量重复(轴 2 抄轴 1)只讲一遍。
+
+**第 ① 步 · 文件壳:partial 类 + 控件实例化清单**(导读)
+
+```csharp
+partial class MainForm
+{
+    /// <summary>必需的设计器变量。</summary>
+    private System.ComponentModel.IContainer components = null;
+
+    /// <summary>清理所有正在使用的资源。</summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && (components != null))
+        {
+            components.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
+    #region Windows 窗体设计器生成的代码
+
+    /// <summary>设计器支持所需的方法 —— 不要修改。</summary>
+    private void InitializeComponent()
+    {
+        components = new System.ComponentModel.Container();
+        panelTop = new Panel();
+        gbConnect = new GroupBox();
+```
+
+📚 **知识点**
+- **`partial class` = 一个类拆两个文件**:MainForm.cs(行为半)+ MainForm.Designer.cs(长相半),编译器拼成一个类 —— 所以 Designer 文件末尾声明的 `btnConnect` 等字段,MainForm.cs 里直接用。前端类比:一个组件的 template 和 script 分家,合起来才是一个组件。
+- **接下来 ~50 行全是 `new`**:WinForms 没有"声明式模板",每个控件都是 `new` 出来再一个个塞属性(Location/Size/Text…) —— 你在 VS 里拖的每一个控件、改的每一个属性,保存后就变成这一段代码。前端类比:`React.createElement` 手写展开版。
+- **`SuspendLayout()` / `ResumeLayout(false)` 包住整个设置过程**:布局期间挂起重绘,全部属性设完再恢复、一次画完 —— 不然每 Add 一个控件就重排一次,闪烁且慢。**和浏览器 layout thrashing 一个道理:批量读写,别逐个触发重排**(React 把多次 setState 合成一次渲染也是同一个思想)。
+- **`#region` + "不要修改"**:这段是设计器生成的,你在 VS 设计器里改,保存时它会**重写**这里 —— 手工改的注释/格式下次打开设计器就被覆盖。这也是为什么我们把事件订阅全搬去 MainForm.cs:订阅写在这里,设计器一重写就丢。
+
+**第 ② 步 · 顶栏:连接组 + 急停按钮**(导读 —— Dock 与 Anchor 的分工现场)
+
+```csharp
+        gbConnect.Controls.Add(lblIp);
+        gbConnect.Controls.Add(txtIp);
+        gbConnect.Controls.Add(btnConnect);
+        gbConnect.Controls.Add(btnDisconnect);
+        gbConnect.Controls.Add(lblConnectStatus);
+        gbConnect.Location = new Point(12, 8);
+        gbConnect.Name = "gbConnect";
+        gbConnect.Size = new Size(500, 64);
+        gbConnect.TabIndex = 0;
+        gbConnect.TabStop = false;
+        gbConnect.Text = "连接控制";
+```
+
+```csharp
+        btnEstop.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        btnEstop.BackColor = Color.FromArgb(214, 64, 64);
+        btnEstop.FlatAppearance.BorderSize = 0;
+        btnEstop.FlatStyle = FlatStyle.Flat;
+        btnEstop.Font = new Font("微软雅黑", 12F, FontStyle.Bold);
+        btnEstop.ForeColor = Color.White;
+        btnEstop.Location = new Point(1050, 14);
+        btnEstop.Name = "btnEstop";
+        btnEstop.Size = new Size(136, 50);
+        btnEstop.TabIndex = 1;
+        btnEstop.Text = "急停 STOP";
+        btnEstop.UseVisualStyleBackColor = false;
+```
+
+📚 **知识点**
+- **Dock 与 Anchor 分工**(布局第一门道):`Dock = Top/Fill` 负责"占满某条边或剩余空间"(顶栏占满顶边、主体占满剩余);`Anchor = Top | Right` 负责"钉住某条边"(急停钉住右上,窗口怎么拉都贴角)。口诀:**结构用 Dock,贴边用 Anchor**。前端类比:Dock ≈ flex 撑满容器,Anchor ≈ `position: absolute; right: 0; top: 0`。
+- **红色只给急停**:`FromArgb(214, 64, 64)` 是全窗体**唯一**的彩色按钮,136×50 的大块头 + 白字加粗 —— 模拟车间设备的物理急停蘑菇头。颜色语义铁律:**颜色只表达状态和危险等级,永远不做装饰**(车间里谁有空欣赏渐变)。
+- **`FlatStyle.Flat + BorderSize = 0`**:压平边框,让红色块更像"实体按钮"而不是默认的 Windows 立体样式;此时必须 `UseVisualStyleBackColor = false`,否则系统样式会把底色盖回去。
+- **连接指示灯是 `lblConnectStatus` —— 一个 Panel**:18×18 的小方片,代码里改 `BackColor`(绿=已连接,灰=未连接)—— 状态可视化不需要控件库,一个 Panel 足够。
+
+**第 ③ 步 · 主体三栏:TableLayoutPanel 按百分比切 + 轴 1 的代表控件**(导读)
+
+```csharp
+        tableLayoutPanel1.ColumnCount = 3;
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+        tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
+        tableLayoutPanel1.Controls.Add(gbAxis1, 0, 0);
+        tableLayoutPanel1.Controls.Add(gbAxis2, 1, 0);
+        tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 2, 0);
+        tableLayoutPanel1.Dock = DockStyle.Fill;
+        tableLayoutPanel1.Location = new Point(0, 80);
+        tableLayoutPanel1.Name = "tableLayoutPanel1";
+        tableLayoutPanel1.Padding = new Padding(10, 8, 10, 10);
+        tableLayoutPanel1.RowCount = 1;
+        tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        tableLayoutPanel1.Size = new Size(1200, 700);
+        tableLayoutPanel1.TabIndex = 1;
+```
+
+```csharp
+        txtPos1.BackColor = Color.White;
+        txtPos1.Font = new Font("Consolas", 14.25F);
+        txtPos1.Location = new Point(20, 256);
+        txtPos1.Name = "txtPos1";
+        txtPos1.ReadOnly = true;
+        txtPos1.Size = new Size(190, 30);
+        txtPos1.TabIndex = 7;
+        txtPos1.Text = "0.000";
+        txtPos1.TextAlign = HorizontalAlignment.Center;
+```
+
+📚 **知识点**
+- **TableLayoutPanel 按百分比切格**(布局第二门道):三栏 34/34/32,`Controls.Add(控件, 列, 行)` 指定落格 —— 窗口拉大,每栏按比例长,**"窗口怎么拉都不乱"的关键**。前端类比:CSS Grid 的 `grid-template-columns: 34fr 34fr 32fr`,一模一样的思想。
+- **大结构交给百分比,小坐标只管 GroupBox 内部**:轴 1 组内部是 `Point(20, 66)` 这种绝对坐标 —— 小范围(399×677)内手工排足够可控;外层全部弹性。**外层弹性、内层固定**,是桌面端布局最省心的组合。
+- **等宽字体只给数字和日志**(布局第三门道):`Consolas` 的 0 和 O、1 和 l 一眼可分;位置读数每 100ms 跳一次,等宽字**数字跳动列宽不抖**。工业界面凡是数字都用等宽字 —— 界面日志区同理。
+- **`ReadOnly = true` + 白底 + 居中**:txtPos 是"只显示不输入"的框 —— 在控件属性层面就表达语义,用户根本敲不进去(而不是敲进去再校验)。类比:展示型数据用 `<span>`,别用能编辑的 input 再禁用事件。
+- **`lblSoftLimit` 灰字提示**:"软限位 ±1000 mm · 流程:连接 → 使能 → 运动" —— 把隐藏规则写在界面上,操作员不用翻文档(见折叠块轴 1 组末尾)。
+
+**第 ④ 步 · 轴 2 = 轴 1 复制改后缀 + 第三栏报警/日志**(导读 —— 重复部分只讲一遍)
+
+```csharp
+        btnEnable2.Location = new Point(20, 66);
+        btnEnable2.Name = "btnEnable2";
+        btnEnable2.Size = new Size(110, 38);
+        btnEnable2.TabIndex = 1;
+        btnEnable2.Text = "使能";
+        btnEnable2.UseVisualStyleBackColor = true;
+```
+
+```csharp
+        txtAlarm.BackColor = SystemColors.Info;
+        txtAlarm.DetectUrls = false;
+        txtAlarm.Font = new Font("Consolas", 9.75F);
+        txtAlarm.ForeColor = Color.Firebrick;
+        txtAlarm.Location = new Point(16, 40);
+        txtAlarm.Name = "txtAlarm";
+        txtAlarm.ReadOnly = true;
+        txtAlarm.Size = new Size(336, 250);
+        txtAlarm.TabIndex = 0;
+        txtAlarm.Text = "";
+```
+
+```csharp
+        txtLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        txtLog.BackColor = Color.Black;
+        txtLog.DetectUrls = false;
+        txtLog.Font = new Font("Consolas", 9.75F);
+        txtLog.ForeColor = Color.LightGreen;
+        txtLog.Location = new Point(16, 40);
+        txtLog.Name = "txtLog";
+        txtLog.ReadOnly = true;
+        txtLog.ScrollBars = RichTextBoxScrollBars.Vertical;
+        txtLog.Size = new Size(336, 263);
+        txtLog.TabIndex = 0;
+        txtLog.Text = "";
+```
+
+```csharp
+        timer1.Tick += Timer1_Tick;
+```
+
+📚 **知识点**
+- **轴 2 组与轴 1 组"复制级一致"**(布局第五门道):坐标一模一样,只差控件名后缀 1→2(上面的 btnEnable2 对比轴 1 的 btnEnable1,连 Location 都相同)—— 抄完轴 1,把 1 全局替换成 2 就是轴 2。这种一致不是偷懒:**把"加第三轴 = 再抄一遍改后缀"变成机械操作**,配合 MainForm.cs 的控件数组,真正加轴只改两处。
+- **报警框淡黄底 + 深红字,日志黑底浅绿**(布局第四门道):`SystemColors.Info`(系统告警黄)配 `Firebrick`(砖红)一眼锁定告警;`Black` 配 `LightGreen` 是终端风 —— 两个框**视觉上彻底区分**,扫一眼就知道哪里出事了。颜色只表达状态与危险等级。
+- **txtLog 四边全 Anchor**:随窗口拉伸长大 —— 日志永远是稀缺空间,窗口有多大它就吃多大。
+- **`timer1.Tick += Timer1_Tick;` 是全文件唯一的事件订阅**:设计器绑事件只能用**方法名**(不能写 lambda)—— 所以 MainForm.cs 里 `Timer1_Tick` 的签名是固定的、不能改名;而 `Interval = 100` 和 `Start()` 在逻辑文件里。**定时器的"绑定"在 Designer、"节奏"在逻辑文件 —— 读代码要两头看**(这是 VS 设计器的默认行为,知道即可)。
+- **文件末尾 ~50 行全是控件字段声明**:`private Button btnConnect;`… —— MainForm.cs 里直接用这些名字,靠的就是 partial 类合并。`timer1` 的类型全名 `System.Windows.Forms.Timer` 也在这(避免和 `System.Threading.Timer` 混淆,这个是**UI 线程定时器**,Tick 在 UI 线程触发,可以直接碰控件)。
+
+<details markdown="1">
+<summary>📄 完整文件 MainForm.Designer.cs(整体粘贴用 —— 先贴这个,再回头读上面 4 步)</summary>
 
 ```csharp
 // 📂 文件:src/MotionControl/UI/MainForm.Designer.cs
@@ -1118,13 +1637,7 @@ partial class MainForm
 }
 ```
 
-💡 **布局文件里的五个门道**(抄之前先看懂,抄起来才不慌):
-
-- **Dock 与 Anchor 分工**:`Dock = Top/Fill` 负责"占满某条边或剩余空间"(顶栏、三栏布局);`Anchor = Right` 负责"钉住某条边"(急停贴右上、txtLog 四边锚定随窗口拉伸)。一句口诀:**结构用 Dock,贴边用 Anchor**;
-- **TableLayoutPanel 按百分比切格**:三栏 34/34/32,窗口拉大每一栏按比例长 —— 数字坐标只管 GroupBox **内部**的小控件,大结构全部交给百分比,这是"窗口怎么拉都不乱"的关键;
-- **等宽字体只给数字和日志**:Consolas 的 0 和 O、1 和 l 一眼可分,位置读数跳动时列宽不抖 —— 工业界面凡是数字都用等宽字;
-- **颜色语义铁律**:红色只给急停(全窗体唯一彩色按钮);报警框淡黄底深红字;日志黑底浅绿。**颜色只表达状态和危险等级,永远不做装饰** —— 车间里谁有空欣赏你的渐变;
-- **两轴 GroupBox 内部布局完全一致**:坐标一模一样、只差控件名后缀 —— 对照轴 1 抄轴 2,抄完把 1 全换成 2。这种"复制级一致"不是偷懒,是把"加第三轴 = 再抄一遍改后缀"变成机械操作(配合 MainForm 里的控件数组,真正加轴只改两处)。
+</details>
 
 ---
 
