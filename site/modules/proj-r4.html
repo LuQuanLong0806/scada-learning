@@ -48,6 +48,15 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-7">🎤 面试怎么讲这一篇</a><ul>
 </ul></li>
+<li class="l2"><a href="#sec-2-8">🧩 附录:调库版 R4 —— ModbusDevice(FluentModbus,一晚通关)</a><ul>
+<li class="l3"><a href="#sec-3-9">⓪ 装包</a></li>
+<li class="l3"><a href="#sec-3-10">先想清楚:库替你干了什么、没替你干什么</a></li>
+<li class="l3"><a href="#sec-3-11">完整代码(贴入即用)</a></li>
+<li class="l3"><a href="#sec-3-12">测试(3 个,进程内主从,零硬件)</a></li>
+<li class="l3"><a href="#sec-3-13">✅ 验证(附录路线)</a></li>
+<li class="l3"><a href="#sec-3-14">走调库路线时,本篇其余部分怎么处理</a></li>
+<li class="l3"><a href="#sec-3-15">🎤 调库路线面试一句话</a></li>
+</ul></li>
 </ul></aside>
   <main class="content">
 <h1 id="sec-1-1">R4 · 真实设备接入(串口 / Modbus / TCP / PLC / CAN / USB-HID)</h1>
@@ -461,7 +470,7 @@ public sealed class SerialDevice : DeviceBase
 <p><strong>不这样会怎样</strong>:现场设备返回异常码 0x02(非法地址),用库的只能看到"读取失败";手搓的能把响应帧十六进制打出来,对着手册查到"寄存器偏移没减 40001"——10 分钟定位 vs 半天猜。</p>
 <p><strong>🎤 面试一句话</strong>:"Modbus 我手搓没用库:只用 03/06/16 三个功能码,百行代码换来全链路白盒——字节序、CRC、异常码都能逐字节调试。什么时候该换库我也清楚:要用全功能码或从站仿真时,控制力的收益就不抵维护成本了。"</p>
 <blockquote>
-<p>🧰 <strong>另一条腿——调库路线</strong>:生产里"直接用库怎么用"(FluentModbus/NModbus4/S7netplus/HSL 选型与代码,沙盒验证过)见<a href="lib-guide.html">《速查 · 工业通讯调库指南》</a>。手搓保底盘,调库保效率,两套都要会说。</p>
+<p>🧰 <strong>另一条腿——调库路线</strong>:生产里"直接用库怎么用"(FluentModbus/NModbus4/S7netplus/HSL 选型与代码,沙盒验证过)见<a href="lib-guide.html">《速查 · 工业通讯调库指南》</a>。<strong>想直接走企业路线?本篇末尾有「调库版附录」——ModbusDevice 换 FluentModbus 实现(同名同接口,沙盒测试 3/3 绿,含断线自愈),①②⑤⑥跳过,一晚通关。</strong></p>
 </blockquote>
 <p><strong>第 1 步 · 骨架:RegisterMap 映射表 + 字段 + 构造</strong>(整个文件先建出来)</p>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
@@ -2615,6 +2624,337 @@ dotnet test
 <p>"设备接入层我做了六种:串口 AA55、Modbus RTU、TCP 长连接、S7 PLC、CAN、USB-HID,全部实现同一个 IDevice 接口,采集管道和 UI 零改动。关键设计是把'链路'和'协议'再解耦一层:SerialDevice 不直接摸 SerialPort,而是依赖 ISerialChannel,所以单测用内存回环通道就能覆盖单帧、粘包、半包、坏 CRC 四种场景,CI 不需要任何硬件。Modbus 我手搓 RTU 帧不依赖 NModbus——组帧、CRC、异常码、浮点字节序都自己写过一遍,现场抓包能直接看懂。TCP 设备带心跳保活、30 秒静默判掉线和指数退避重连。这套通道抽象在 CAN 和 HID 上复用了同样的套路:模拟通道喂标准帧,设备类的解码逻辑全部可单测。"</p>
 </blockquote>
 <p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('proj-r4',1)"> 打卡</label></strong></p>
+<hr />
+<h2 id="sec-2-8">🧩 附录:调库版 R4 —— ModbusDevice(FluentModbus,一晚通关)</h2>
+<blockquote>
+<p><strong>定位</strong>:大部分企业做 R4 这层<strong>直接调库</strong>——本附录就是那条路线:把手搓 ModbusDevice 换成 FluentModbus 实现,<strong>同名、同接口(IDevice)、同测试思路,上层零改动</strong>。走这条路线时,③ 手搓帧降为"通读",①②⑤⑥跳过(见文末"怎么处理本篇其余部分")。
+<strong>验证声明</strong>:以下代码+测试在 .NET 8 沙盒真跑通(3/3 绿,含"设备晚上电自愈"),不是伪代码。
+选型依据见<a href="lib-guide.html">《速查 · 工业通讯调库指南》</a>:Modbus 首选 FluentModbus(net8 原生,MIT)。</p>
+</blockquote>
+<h3 id="sec-3-9">⓪ 装包</h3>
+<pre><code class="language-bash">cd src/DaqMonitor.Core
+dotnet add package FluentModbus
+</code></pre>
+<ul>
+<li>只装 Core,Tests 项目<strong>经项目引用自动可见</strong>(PackageReference 默认传递),不用再装</li>
+<li>TCP 版不需要 System.IO.Ports(那是 RTU 串口才要的)</li>
+</ul>
+<h3 id="sec-3-10">先想清楚:库替你干了什么、没替你干什么</h3>
+<table>
+<thead>
+<tr>
+<th>手搓版(③ 的几十行)</th>
+<th>调库版</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BuildReadHoldingRequest 组 8 字节请求帧</td>
+<td><code>client.ReadHoldingRegisters(unitId, addr, count)</code> 一行</td>
+</tr>
+<tr>
+<td>Crc16.Modbus 移位异或算校验</td>
+<td>库内部算,不可见</td>
+</tr>
+<tr>
+<td>解析响应/异常码分流</td>
+<td>直接给你 <code>short[]</code></td>
+</tr>
+<tr>
+<td><strong>连接生命周期(Connect/状态机三态)</strong></td>
+<td><strong>还是你写</strong></td>
+</tr>
+<tr>
+<td><strong>轮询节奏(Start/Stop/Task.Run 循环)</strong></td>
+<td><strong>还是你写</strong></td>
+</tr>
+<tr>
+<td><strong>断线重连(catch → 新客户端 → 重试)</strong></td>
+<td><strong>还是你写</strong></td>
+</tr>
+<tr>
+<td><strong>点表映射(寄存器→PointId)+ RaiseData 广播</strong></td>
+<td><strong>还是你写</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话:库外包的只有字节层;设备层四件套(连接/轮询/重连/广播)一寸不少</strong>——这张表就是面试答"调了库你自己写了什么"的清单。</p>
+<h3 id="sec-3-11">完整代码(贴入即用)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Core/Devices/ModbusDevice.cs</code>(新文件;你工程里没有手搓版,直接用这个名字)· namespace <code>DaqMonitor.Core.Devices</code>
+🔧 FluentModbus(⓪ 已装) · 💡 骨架完全照抄 R2 的 SimulatedDevice——同步门面 + Task.Run 后台循环 + 停机三步舞,一个模式不换</p>
+</blockquote>
+<pre><code class="language-csharp">using DaqMonitor.Core.Models;
+using System.Net;
+using System.Threading;
+using FluentModbus;
+
+namespace DaqMonitor.Core.Devices;
+
+/// &lt;summary&gt;
+/// Modbus TCP 设备(调库版:FluentModbus)。
+/// 与手搓版同接口——上层(管道/UI/报警)零改动;区别只在内部:
+/// 组帧/CRC/解析由库代劳,自己只管连接生命周期、轮询、断线重连、事件广播。
+/// &lt;/summary&gt;
+public class ModbusDevice : DeviceBase
+{
+    private readonly IPEndPoint _endPoint;
+    private readonly byte _unitId;
+    private readonly ushort _startAddress;
+    private readonly int[] _pointIds;          // 点表:寄存器 startAddress+i → PointId
+    private ModbusTcpClient? _client;
+    private CancellationTokenSource? _cts;
+    private Task? _loop;
+
+    public ModbusDevice(int id, string name, string ip, int port, byte unitId,
+                        ushort startAddress, params int[] pointIds)
+        : base(id, name)
+    {
+        _endPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+        _unitId = unitId;
+        _startAddress = startAddress;
+        _pointIds = pointIds.Length &gt; 0 ? pointIds : new[] { 1 };
+    }
+
+    /// &lt;summary&gt;当前客户端(未连接先 Connect)&lt;/summary&gt;
+    private ModbusTcpClient Client
+        =&gt; _client ?? throw new InvalidOperationException(&quot;先调用 Connect()&quot;);
+
+    public override void Connect()
+    {
+        State = DeviceState.Connecting;
+        try
+        {
+            _client = new ModbusTcpClient();
+            _client.Connect(_endPoint);
+            State = DeviceState.Online;
+        }
+        catch
+        {
+            // 现场常态:设备还没上电。连接失败不向上抛,状态回 Offline,
+            // 由 Start() 的重连循环继续试——软件不能因为一台设备没开就崩。
+            State = DeviceState.Offline;
+        }
+    }
+
+    public override void Disconnect()
+    {
+        Stop();
+        _client?.Dispose();
+        _client = null;
+        State = DeviceState.Offline;
+    }
+
+    public override double Read(int addr)
+        =&gt; Client.ReadHoldingRegisters&lt;short&gt;(_unitId, (ushort)addr, 1)[0];
+
+    public override void Write(int addr, double value)
+        // (ushort) 显式转型:WriteSingleRegister 的 short/ushort 重载会让整数字面量二义性
+        =&gt; Client.WriteSingleRegister(_unitId, (ushort)addr, (ushort)value);
+
+    /// &lt;summary&gt;
+    /// 开始轮询:每 interval 读一批保持寄存器(startAddress 起,共 pointIds.Length 个),
+    /// 按点表逐个 RaiseData 广播;读失败(断线/设备掉电)自动重连。
+    /// &lt;/summary&gt;
+    public void Start(TimeSpan interval)
+    {
+        if (_loop is not null) return;
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+        _loop = Task.Run(async () =&gt;
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var regs = ReadBlock();
+                        for (int i = 0; i &lt; _pointIds.Length; i++)
+                            RaiseData(_pointIds[i], regs[i]);
+                        State = DeviceState.Online;
+                    }
+                    catch
+                    {
+                        // 断线重连:换新客户端重试。指数退避版见 ④ TcpDevice,
+                        // 这里用轮询间隔本身节流(50ms~1s 一试,足够温和)。
+                        State = DeviceState.Connecting;
+                        try
+                        {
+                            _client?.Dispose();
+                            _client = new ModbusTcpClient();
+                            _client.Connect(_endPoint);   // 失败会抛,下一轮再试
+                            State = DeviceState.Online;
+                        }
+                        catch { /* 这轮连不上,留着 Connecting,下一轮再试 */ }
+                    }
+                    await Task.Delay(interval, token);
+                }
+            }
+            catch (OperationCanceledException) { /* 正常退出 */ }
+        }, token);
+    }
+
+    /// &lt;summary&gt;停止轮询并释放后台任务&lt;/summary&gt;
+    public void Stop()
+    {
+        _cts?.Cancel();
+        try { _loop?.Wait(500); } catch { /* 忽略 */ }
+        _cts?.Dispose();
+        _cts = null;
+        _loop = null;
+    }
+
+    /// &lt;summary&gt;
+    /// Span 不能跨 await(编译器禁止 ref struct 进异步方法局部),
+    /// 所以用一个小的同步方法把寄存器块读出来、就地 .ToArray() 留存。
+    /// &lt;/summary&gt;
+    private short[] ReadBlock()
+        =&gt; Client.ReadHoldingRegisters&lt;short&gt;(_unitId, _startAddress, (ushort)_pointIds.Length).ToArray();
+}
+</code></pre>
+<p>📚 <strong>知识点</strong>(4 个,全是调库实踩)</p>
+<ul>
+<li><strong>Connect 不抛异常</strong>:设备没上电是现场常态——状态回 Offline、交给重连循环,比抛异常崩给用户看更"工业"。前端类比:请求失败进 error 态而不是白屏。</li>
+<li><strong>ReadBlock 为什么是个小同步方法</strong>:FluentModbus 返回 <code>Span&lt;short&gt;</code>(ref struct),<strong>不能当 async 方法的局部变量</strong>——包一层同步方法、就地 <code>.ToArray()</code>,编译器就闭嘴了。库的现代化 API 和"同步门面"架构在这里碰了一下,这样接住。</li>
+<li><strong><code>(ushort)value</code> 显式转型</strong>:<code>WriteSingleRegister</code> 有 short/ushort 两个重载,整数字面量直接传会二义性编译错。</li>
+<li><strong>点表</strong>:<code>params int[] pointIds</code>,寄存器 <code>startAddress+i</code> → <code>pointIds[i]</code>,= 前端接 API 时写的字段映射表。真项目点表来自配置文件/数据库,不在代码里写死。</li>
+</ul>
+<h3 id="sec-3-12">测试(3 个,进程内主从,零硬件)</h3>
+<blockquote>
+<p>📂 <code>src/DaqMonitor.Tests/ModbusDeviceTests.cs</code> · 🔧 无需装包(经 Core 传递可见)
+💡 妙点:测试里起一个 <strong>ModbusTcpServer 当"真设备"</strong>——比 ⑦ 的 Loopback 假字节更真实:你是真的在跑 Modbus 主从协议,断言的是协议往返</p>
+</blockquote>
+<pre><code class="language-csharp">using System.Net;
+using DaqMonitor.Core.Devices;
+using DaqMonitor.Core.Models;
+using FluentModbus;
+using Xunit;
+
+namespace DaqMonitor.Tests;
+
+// 调库版 ModbusDevice 的验收测试:进程内起 ModbusTcpServer 当&quot;真设备&quot;,零硬件
+public class ModbusDeviceTests
+{
+    /// &lt;summary&gt;起一个进程内 Modbus TCP 从站,预置地址 0/1 两个寄存器&lt;/summary&gt;
+    private static ModbusTcpServer StartServer(int port, short v0, short v1)
+    {
+        var server = new ModbusTcpServer();
+        server.AddUnit(1);                                   // 先注册从站号,再取缓冲(顺序反了抛 KeyNotFound)
+        server.Start(new IPEndPoint(IPAddress.Loopback, port));
+        server.GetHoldingRegisterBuffer&lt;short&gt;(1)[0] = v0;
+        server.GetHoldingRegisterBuffer&lt;short&gt;(1)[1] = v1;
+        return server;
+    }
+
+    private static bool WaitUntil(Func&lt;bool&gt; cond, int timeoutMs)
+    {
+        var deadline = Environment.TickCount64 + timeoutMs;
+        while (Environment.TickCount64 &lt; deadline)
+        {
+            if (cond()) return true;
+            Thread.Sleep(50);
+        }
+        return cond();
+    }
+
+    [Fact]
+    public void ModbusDevice_Poll_ReadsPresetRegisters()
+    {
+        using var server = StartServer(15030, 0x1234, 0x5678);
+        var dev = new ModbusDevice(1, &quot;Mod-01&quot;, &quot;127.0.0.1&quot;, 15030, 1, 0, 101, 102);
+
+        var arrived = new AutoResetEvent(false);
+        DataEventArgs? first = null;
+        dev.DataReceived += (_, e) =&gt; { if (first is null) { first = e; arrived.Set(); } };
+
+        dev.Connect();
+        Assert.Equal(DeviceState.Online, dev.State);
+
+        dev.Start(TimeSpan.FromMilliseconds(50));
+        Assert.True(arrived.WaitOne(3000), &quot;3 秒内应收到至少一次数据事件&quot;);
+        Assert.Equal(101, first!.PointId);
+        Assert.Equal(0x1234, (int)first.Value);
+        dev.Stop();
+    }
+
+    [Fact]
+    public void ModbusDevice_Write_ReadsBack()
+    {
+        using var server = StartServer(15031, 0, 0);
+        var dev = new ModbusDevice(2, &quot;Mod-02&quot;, &quot;127.0.0.1&quot;, 15031, 1, 0, 201);
+
+        dev.Connect();
+        dev.Write(5, 1234);
+        Assert.Equal(1234, (int)dev.Read(5));
+        dev.Disconnect();
+    }
+
+    [Fact]
+    public void ModbusDevice_ServerLateOnline_Recovers()
+    {
+        // 场景:软件先启动,设备(服务器)还没上电——设备应进入重连态不崩;设备上电后自愈
+        var dev = new ModbusDevice(3, &quot;Mod-03&quot;, &quot;127.0.0.1&quot;, 15032, 1, 0, 301);
+
+        dev.Connect();                                       // 端口没人听 → 容忍,状态回 Offline
+        Assert.Equal(DeviceState.Offline, dev.State);
+
+        dev.Start(TimeSpan.FromMilliseconds(50));            // 轮询循环开始重试
+        Assert.True(WaitUntil(() =&gt; dev.State == DeviceState.Connecting, 3000),
+            &quot;连不上时应处于 Connecting(重连中)而不是崩掉&quot;);
+
+        using var server = StartServer(15032, 7, 8);         // &quot;设备上电&quot;
+        var arrived = new AutoResetEvent(false);
+        DataEventArgs? first = null;
+        dev.DataReceived += (_, e) =&gt; { if (first is null) { first = e; arrived.Set(); } };
+
+        Assert.True(arrived.WaitOne(5000), &quot;设备上线后 5 秒内应恢复出数&quot;);
+        Assert.Equal(301, first!.PointId);
+        Assert.Equal(7, (int)first.Value);
+        Assert.Equal(DeviceState.Online, dev.State);
+        dev.Stop();
+    }
+}
+</code></pre>
+<h3 id="sec-3-13">✅ 验证(附录路线)</h3>
+<pre><code class="language-bash">dotnet build
+dotnet test
+</code></pre>
+<p><strong>期望输出(关键行)</strong>——沙盒实测(.NET 8 + FluentModbus 5.3.2,0 错 0 警):</p>
+<pre><code>已通过! - 失败:     0，通过:     3，已跳过:     0，总计:     3，持续时间: 1 s - DaqMonitor.Tests.dll (net8.0)
+</code></pre>
+<p>调库路线下总测试数 = R2 的 2 + 本附录 3 = <strong>5 个绿</strong>(③⑦ 的手搓帧测试不敲)。</p>
+<h3 id="sec-3-14">走调库路线时,本篇其余部分怎么处理</h3>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①② 串口通道三件套 / SerialDevice</td>
+<td><strong>跳过不敲</strong>——那是手搓字节层;读懂"链路抽象是为了可测试"这个动机即可</td>
+</tr>
+<tr>
+<td>③ 手搓 ModbusDevice</td>
+<td>降为<strong>通读一遍</strong>——面试要讲得出组帧/CRC 在干嘛(E04 弹药)</td>
+</tr>
+<tr>
+<td>④ TcpDevice</td>
+<td><strong>精读</strong>——心跳/30 秒静默判掉线/指数退避,调库版没细做,面试常问</td>
+</tr>
+<tr>
+<td>⑤⑥ PlcDevice / CAN / USB-HID</td>
+<td>跳过,知道存在即可</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-15">🎤 调库路线面试一句话</h3>
+<blockquote>
+<p>"生产里我用 FluentModbus:设备类实现同一个 IDevice,连接生命周期、轮询、断线重连是我写的,字节层(组帧/CRC/解析)交给库。手搓实现我也逐行拆过——CRC、帧格式、粘包半包,所以库出问题时我知道往哪查。"</p>
+</blockquote>
 <div class="pager">
   <a class="prev" href="proj-r3.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R3 · 协议解析层</div></a>
   <a class="next" href="proj-r5.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">R5 · 采集管道 + 报警引擎</div></a>
