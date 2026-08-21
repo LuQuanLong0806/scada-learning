@@ -154,6 +154,9 @@ PAGES = [
     dict(slug="links", kind="support", file="外部链接索引.md",
          title="附录 · 外部链接索引", sub="难点官方文档汇总",
          what="每模块「📚 延伸阅读」指向的权威链接，卡点直接点开", src="🟦 外链"),
+    dict(slug="lib-guide", kind="support", file="速查_工业通讯调库指南.md",
+         title="🧰 速查 · 工业通讯调库指南", sub="手搓之外，生产怎么干",
+         what="FluentModbus/NModbus4/S7netplus/HSL 选型与用法 + 沙盒验证代码 + 手搓 vs 调库决策", src="🧰 调库"),
     dict(slug="job", kind="support", file="真实岗位调研_13-15K技能对照.md",
          title="真实岗位调研 · 13-15K 技能对照", sub="对标 BOSS 等招聘要求",
          what="真实企业 13-15K 技能要求与本路线的对应关系", src="🟦 调研"),
@@ -270,7 +273,7 @@ SECTION_OF = {
     "career":    ["jd-research", "resume", "interview30", "design-qa40", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
     "reference": ["traps", "csharp-syntax", "predefined-types", "wpf", "hardware",
-                  "links", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3"],
+                  "links", "lib-guide", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3"],
 }
 _slug_to_section = {}
 for _sec, _slugs in SECTION_OF.items():

@@ -460,6 +460,9 @@ public sealed class SerialDevice : DeviceBase
 <p><strong>为什么选它</strong>:本项目只用 Modbus 的<strong>一小角</strong>(03 读保持寄存器 + 06/16 写),手搓的成本是百行级,收益是<strong>全链路白盒</strong>——寄存器地址、字节序、CRC、异常码每一环都自己走过,现场抓包能对着字节逐个解释。这不是"永远别用库":如果明天要支持 Modbus 全部功能码 + 从站仿真,我会立刻换 NModbus。<strong>决策依据是"用的深度",不是"手搓瘾"</strong>。真实工作里的判断也是这样:核心链路留控制力,边角功能用库。</p>
 <p><strong>不这样会怎样</strong>:现场设备返回异常码 0x02(非法地址),用库的只能看到"读取失败";手搓的能把响应帧十六进制打出来,对着手册查到"寄存器偏移没减 40001"——10 分钟定位 vs 半天猜。</p>
 <p><strong>🎤 面试一句话</strong>:"Modbus 我手搓没用库:只用 03/06/16 三个功能码,百行代码换来全链路白盒——字节序、CRC、异常码都能逐字节调试。什么时候该换库我也清楚:要用全功能码或从站仿真时,控制力的收益就不抵维护成本了。"</p>
+<blockquote>
+<p>🧰 <strong>另一条腿——调库路线</strong>:生产里"直接用库怎么用"(FluentModbus/NModbus4/S7netplus/HSL 选型与代码,沙盒验证过)见<a href="lib-guide.html">《速查 · 工业通讯调库指南》</a>。手搓保底盘,调库保效率,两套都要会说。</p>
+</blockquote>
 <p><strong>第 1 步 · 骨架:RegisterMap 映射表 + 字段 + 构造</strong>(整个文件先建出来)</p>
 <pre><code class="language-csharp">using DaqMonitor.Core.Models;
 using DaqMonitor.Core.Protocol;

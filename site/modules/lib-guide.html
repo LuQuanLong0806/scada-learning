@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🧰 速查 · 工业通讯调库指南 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="lib-guide">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、全景:连什么设备,用什么库</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、调库之前先想清楚:库在替你干什么</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、FluentModbus(Modbus,新项目首选)</a><ul>
+<li class="l3"><a href="#sec-3-1">装包</a></li>
+<li class="l3"><a href="#sec-3-2">TCP 主站(设备是 Modbus TCP Server,最常见)</a></li>
+<li class="l3"><a href="#sec-3-3">RTU 主站(串口,9600-8-N-1)</a></li>
+<li class="l3"><a href="#sec-3-4">TCP 从站(测试神器:没设备也能自测)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、NModbus4(接手老项目必识)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、S7netplus(西门子 PLC)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、HslCommunication(日系/杂牌设备,国内中小公司常用)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">七、手搓 vs 调库:怎么选(面试怎么答)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">八、沙盒工程怎么搭的(可复现)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">🧰 速查 · 工业通讯调库指南(手搓之外,生产怎么干)</h1>
+<blockquote>
+<p><strong>定位</strong>:R3/R4 手搓协议是"知其所以然",这一篇是"知其然"——真实公司里大部分项目<strong>直接调库</strong>。两套都会,面试才立得住。
+<strong>验证声明</strong>:本页 FluentModbus/NModbus4 的 TCP 代码在 .NET 8 沙盒<strong>主从真跑通</strong>(输出原样贴出),RTU/S7netplus 编译验证,HSL 未进沙盒(授权类库,已标注)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、全景:连什么设备,用什么库</h2>
+<table>
+<thead>
+<tr>
+<th>你要连的</th>
+<th>协议</th>
+<th>首选</th>
+<th>NuGet 包名</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>温控仪/变频器/电能表/国产 PLC</td>
+<td>Modbus RTU/TCP</td>
+<td><strong>FluentModbus</strong></td>
+<td><code>FluentModbus</code></td>
+<td>net8 原生、异步、MIT;新项目首选</td>
+</tr>
+<tr>
+<td>(同上,接手老项目)</td>
+<td>Modbus</td>
+<td>NModbus4</td>
+<td><code>NModbus4</code></td>
+<td>教程/老项目出镜率最高;只发到 net40</td>
+</tr>
+<tr>
+<td>西门子 PLC</td>
+<td>S7</td>
+<td><strong>S7netplus</strong></td>
+<td><code>S7netplus</code></td>
+<td>事实标准,MIT;命名空间是 <code>S7.Net</code></td>
+</tr>
+<tr>
+<td>三菱/欧姆龙/基恩士/松下…</td>
+<td>各家私有</td>
+<td>HslCommunication</td>
+<td><code>HslCommunication</code></td>
+<td>国产全能王,一个包打所有日系;<strong>商用需付费授权</strong></td>
+</tr>
+<tr>
+<td>设备带 OPC UA Server</td>
+<td>OPC UA</td>
+<td>官方栈</td>
+<td><code>OPCFoundation.NetStandard.Opc.Ua</code></td>
+<td>偏重;轻量可用 OpcUaHelper</td>
+</tr>
+<tr>
+<td>云对接/消息订阅</td>
+<td>MQTT</td>
+<td>MQTTnet</td>
+<td><code>MQTTnet</code></td>
+<td>客户端+服务端都有</td>
+</tr>
+<tr>
+<td>CAN 卡</td>
+<td>CANopen</td>
+<td>厂商 SDK</td>
+<td>—</td>
+<td>周立功/PCAN/Kvaser 自带 .NET SDK,无统一库</td>
+</tr>
+<tr>
+<td>USB-HID 设备</td>
+<td>HID</td>
+<td>HidLibrary</td>
+<td><code>HidLibrary</code></td>
+<td>R4 的 IHidChannel 对应物</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选型一句话:Modbus 用 FluentModbus,西门子用 S7netplus,日系杂牌用 HSL(问授权),接手老项目大概率撞见 NModbus4。</strong></p>
+<hr />
+<h2 id="sec-2-2">二、调库之前先想清楚:库在替你干什么</h2>
+<p>你手搓过 R3/R4,这是你比"只会调库的人"强的地方——每个库调用背后都是你写过的代码:</p>
+<table>
+<thead>
+<tr>
+<th>你手写过(R3/R4)</th>
+<th>调库后对应物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Crc16.Modbus</code>(15 行移位异或)</td>
+<td>库内部算,不可见</td>
+</tr>
+<tr>
+<td><code>BuildReadHoldingRequest</code> 组 8 字节帧</td>
+<td><code>client.ReadHoldingRegisters(...)</code> 一个调用</td>
+</tr>
+<tr>
+<td><code>ParseReadRegisters</code> 拆响应</td>
+<td>同上,直接给你 <code>short[]/Span&lt;short&gt;</code></td>
+</tr>
+<tr>
+<td><code>IsExceptionResponse</code> 异常码分流</td>
+<td>抛 <code>ModbusException</code>(FluentModbus)</td>
+</tr>
+<tr>
+<td>串口参数 + 半双工等响应</td>
+<td>库 Transport 层管超时/重试</td>
+</tr>
+<tr>
+<td><strong>PollOnce 轮询循环</strong></td>
+<td><strong>库不管,还是你自己写</strong></td>
+</tr>
+<tr>
+<td>断线重连/心跳(R4 TcpDevice)</td>
+<td><strong>库不管,还是你自己写</strong></td>
+</tr>
+<tr>
+<td>粘包半包蓄水池</td>
+<td>TCP 库内部处理;串口库按帧处理</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键结论:调库省的是"字节层"(组帧/CRC/解析),省不掉的是"业务层"(轮询节奏、断线重连、数据进管道、报警)。</strong> R5 的管道、R4 的重连,不管调不调库都得自己写——你已经写过一遍了。</p>
+<hr />
+<h2 id="sec-2-3">三、FluentModbus(Modbus,新项目首选)</h2>
+<h3 id="sec-3-1">装包</h3>
+<pre><code class="language-bash">dotnet add package FluentModbus
+dotnet add package System.IO.Ports    # 串口 RTU 才需要(R4 装过同一个包)
+</code></pre>
+<h3 id="sec-3-2">TCP 主站(设备是 Modbus TCP Server,最常见)</h3>
+<pre><code class="language-csharp">using System.Net;
+using FluentModbus;
+
+using var client = new ModbusTcpClient();
+client.Connect(new IPEndPoint(IPAddress.Parse(&quot;192.168.0.10&quot;), 502)); // 设备 IP + 默认 502
+
+var regs = client.ReadHoldingRegisters&lt;short&gt;(1, 0, 2);   // (从站号, 起始地址, 数量)→ Span&lt;short&gt;
+client.WriteSingleRegister(1, 4, (ushort)1234);            // 写单寄存器(功能码 06)
+client.WriteMultipleRegisters&lt;short&gt;(1, 10,               // 批量写(功能码 10)
+    new short[] { 100, 200, 300 });
+</code></pre>
+<ul>
+<li>地址直接写<strong>协议地址(0 起)</strong>——手册的 40001 照样要你自己减一,库不管这个(E04 的坑不因调库消失)</li>
+<li><code>ReadHoldingRegisters&lt;T&gt;</code> 返回 <code>Span&lt;T&gt;</code>(ref struct):<strong>不能存字段、不能跨 await</strong>,要留存先 <code>.ToArray()</code></li>
+<li><code>WriteSingleRegister</code> 非泛型且有 short/ushort 两个重载——写 <code>1234</code> 字面量会二义性,显式 <code>(ushort)1234</code></li>
+</ul>
+<h3 id="sec-3-3">RTU 主站(串口,9600-8-N-1)</h3>
+<pre><code class="language-csharp">using System.IO.Ports;
+using FluentModbus;
+
+var port = new SerialPort(&quot;COM3&quot;, 9600, Parity.None, 8, StopBits.One);
+port.ReadTimeout = 1000; port.WriteTimeout = 1000;
+port.Open();                                               // 串口参数还是自己配(E03 不白学)
+
+using var client = new ModbusRtuClient();
+client.Initialize(new ModbusRtuSerialPort(port), ModbusEndianness.BigEndian); // 串口交给库
+var regs = client.ReadHoldingRegisters&lt;ushort&gt;(1, 0, 2);   // 读 1 号从站,地址 0 起 2 个
+client.WriteSingleRegister(1, 0, (ushort)42);              // 写单寄存器
+</code></pre>
+<h3 id="sec-3-4">TCP 从站(测试神器:没设备也能自测)</h3>
+<pre><code class="language-csharp">using var server = new ModbusTcpServer();
+server.AddUnit(1);                                        // 先注册从站号,再访问缓冲(顺序反了抛 KeyNotFound)
+server.Start(new IPEndPoint(IPAddress.Loopback, 15020));
+server.GetHoldingRegisterBuffer&lt;short&gt;(1)[0] = 0x1234;    // 预置数据:地址 0 = 0x1234
+// 主站 Connect 到 127.0.0.1:15020 即可读写 —— 全进程内,零硬件
+</code></pre>
+<p>✅ <strong>沙盒实测</strong>(.NET 8 + FluentModbus 5.3.2,主从同进程):</p>
+<pre><code>[FluentModbus TCP 读] 地址0=0x1234, 地址1=0x5678
+[FluentModbus TCP 写] 地址4 &lt;- 1234, 读回=1234
+[FluentModbus TCP 批量写] 地址10起3个, 读回=[100,200,300]
+</code></pre>
+<hr />
+<h2 id="sec-2-4">四、NModbus4(接手老项目必识)</h2>
+<pre><code class="language-bash">dotnet add package NModbus4
+</code></pre>
+<pre><code class="language-csharp">using System.Net.Sockets;
+using Modbus.Device;                    // ⚠ 命名空间是 Modbus.*,没有 NModbus 前缀
+
+using var tcp = new TcpClient(&quot;192.168.0.10&quot;, 502);
+var master = ModbusIpMaster.CreateIp(tcp);
+master.Transport.Retries = 0;           // 默认重试 3 次,超时表现怪就先看这
+
+ushort[] regs = master.ReadHoldingRegisters(slaveAddress: 1, startAddress: 0, numberOfPoints: 2);
+master.WriteSingleRegister(slaveAddress: 1, registerAddress: 4, value: 1234);
+</code></pre>
+<p><strong>坑(全部沙盒实踩)</strong>:</p>
+<ol>
+<li>包只发到 <strong>net40</strong> 程序集,net8 里还原报 <strong>NU1701 警告</strong>——能编译能跑,但新项目别选它</li>
+<li>命名空间是老 NModbus 的 <code>Modbus.Device</code> / <code>Modbus.IO</code></li>
+<li>串口适配器 <code>SerialPortAdapter</code> 访问级别受限,.NET 8 上接串口 RTU 不顺——<strong>要串口直接上 FluentModbus</strong></li>
+<li>做从站模拟时 <code>DataStore.HoldingRegisters[1]</code> 才是地址 0(<strong>下标 0 是占位</strong>)</li>
+<li>从站 <code>Listen()</code> 是阻塞方法,要 <code>Task.Run(() =&gt; slave.Listen())</code> 包</li>
+</ol>
+<p>✅ <strong>沙盒实测</strong>(.NET 8 + NModbus4 2.1.0,主从同进程):</p>
+<pre><code>[NModbus4 TCP 读] 地址0=0x1234, 地址1=0x5678
+[NModbus4 TCP 写] 地址4 &lt;- 1234, 读回=1234
+</code></pre>
+<hr />
+<h2 id="sec-2-5">五、S7netplus(西门子 PLC)</h2>
+<pre><code class="language-bash">dotnet add package S7netplus
+</code></pre>
+<pre><code class="language-csharp">using S7.Net;    // ⚠ 包名 S7netplus,命名空间是 S7.Net
+
+using var plc = new Plc(CpuType.S71200, &quot;192.168.0.1&quot;, 0, 1); // (CPU 型号, IP, 机架号, 槽位号)
+plc.Open();
+
+ushort dbw0 = (ushort)plc.Read(&quot;DB1.DBW0&quot;)!;         // 读 DB1 块第 0 个字;返回 object 自己转型
+plc.Write(&quot;DB1.DBW2&quot;, (ushort)42);                   // 写 DB1 块第 2 个字
+var bytes = plc.ReadBytes(DataType.DataBlock, 1, 0, 16); // 原始字节:DB1 从 0 起连续 16 字节
+</code></pre>
+<ul>
+<li>S7 地址直接写 <code>"DB1.DBW0"</code> 字符串(DB 块.字节),比 Modbus 寄存器模型直观——<strong>没有 40001 那套偏移</strong></li>
+<li><code>Read(string)</code> 返回 <code>object</code>,类型自己负责转(0.20 版没有泛型 Read)</li>
+<li>与 R4 的关系:<code>PlcDevice</code> 的 simulate=true 模拟模式就是给它占的位——真实项目把这个类接上真调用</li>
+<li>编译验证于 S7netplus 0.20.0(运行需要真 PLC)</li>
+</ul>
+<hr />
+<h2 id="sec-2-6">六、HslCommunication(日系/杂牌设备,国内中小公司常用)</h2>
+<ul>
+<li>一个包覆盖三菱 MC、欧姆龙 Fins、基恩士、松下、罗克韦尔、西门子、Modbus 全家——<strong>国内公司用它极多,JD 里"熟悉 HSL"就是它</strong></li>
+<li><strong>商用需付费授权</strong>(个人学习免费)。进公司问一句"HSL 授权买了没"——这个问题本身就是加分项</li>
+<li>风格示意(Modbus TCP,⚠ 未沙盒验证,以官方 Demo 为准):</li>
+</ul>
+<pre><code class="language-csharp">var client = new HslCommunication.ModBus.ModbusTcpNet(&quot;192.168.0.10&quot;, 502, 0x01);
+await client.ConnectServer();
+
+OperateResult&lt;short&gt; read = client.ReadInt16(&quot;100&quot;);   // 地址写十进制字符串
+if (read.IsSuccess) Console.WriteLine(read.Content);
+
+await client.WriteAsync(&quot;100&quot;, (short)42);
+</code></pre>
+<hr />
+<h2 id="sec-2-7">七、手搓 vs 调库:怎么选(面试怎么答)</h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>选择</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>公司项目,交付要快</td>
+<td><strong>调库</strong></td>
+<td>生产力;成熟库的边界情况处理更全</td>
+</tr>
+<tr>
+<td>协议冷门/厂商只给协议手册</td>
+<td><strong>手搓</strong></td>
+<td>没库可调——非标行业常态(两轴插补、私有 AA55 帧都属这类)</td>
+</tr>
+<tr>
+<td>库出问题/现场疑难(偶发坏帧、丢数据)</td>
+<td><strong>手搓功底下到字节层</strong></td>
+<td>只会调库的人在这里就瘫了</td>
+</tr>
+<tr>
+<td>学习期/面试期</td>
+<td><strong>手搓</strong></td>
+<td>讲得出 CRC、半包、字节序的人才值 13-15K</td>
+</tr>
+</tbody>
+</table>
+<p><strong>🎤 面试一句话</strong>:"项目里协议层我是手搓的,因为要吃透字节流;生产里我清楚主流是调库——Modbus 用 FluentModbus、西门子用 S7netplus、日系用 HSL。调库是为了效率,手搓是为了底盘——库出问题时我能下到字节层排查,这是我手搓过的原因。"</p>
+<hr />
+<h2 id="sec-2-8">八、沙盒工程怎么搭的(可复现)</h2>
+<pre><code class="language-bash">mkdir LibDemo &amp;&amp; cd LibDemo
+dotnet new console          # SDK 10 模板只给 net10.0,建完把 csproj 改回 net8.0
+dotnet add package FluentModbus
+dotnet add package NModbus4
+dotnet add package S7netplus
+dotnet add package System.IO.Ports
+dotnet run
+</code></pre>
+<p>csproj 两个非默认项(和参考工程同款经验):</p>
+<pre><code class="language-xml">&lt;LangVersion&gt;latest&lt;/LangVersion&gt;   &lt;!-- FluentModbus 5.x 的 Span 返回值需要新语言版本 --&gt;
+&lt;RollForward&gt;Major&lt;/RollForward&gt;    &lt;!-- 本机只装了 .NET 10 运行时,net8.0 工程滚动向前跑 --&gt;
+</code></pre>
+<p>验证结论:TCP 两库主从<strong>运行通过</strong>(输出见上),FluentModbus RTU/S7netplus <strong>编译通过</strong>(运行需真串口/真 PLC)。</p>
+<div class="pager">
+  <a class="prev" href="links.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">附录 · 外部链接索引</div></a>
+  <a class="next" href="job.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">真实岗位调研 · 13-15K 技能对照</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>
