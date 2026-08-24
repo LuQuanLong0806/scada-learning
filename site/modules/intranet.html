@@ -427,18 +427,18 @@
 D:\offline\sdk\dotnet.exe --info
 
 # 3️⃣ 关键一步:给工程配&quot;只走本地&quot;的包源
-#    在 DAQMonitor 目录新建 NuGet.config,内容:
-#    &lt;configuration&gt;&lt;packageSources&gt;
-#      &lt;clear/&gt;
-#      &lt;add key=&quot;offline&quot; value=&quot;D:\offline\nuget-packages&quot;/&gt;
-#    &lt;/packageSources&gt;&lt;/configuration&gt;
+#    包根目录已备好 NuGet.config.template(相对路径版):
+#    把它拷进 DAQMonitor 文件夹,改名为 NuGet.config 即可(保留离线学习包目录结构时零修改)。
+#    目录结构不同才需要改里面的 value 路径。
 
 # 4️⃣ 验证:断网状态下
 D:\offline\sdk\dotnet.exe restore DaqMonitor.sln     # 应全部成功
-D:\offline\sdk\dotnet.exe test                        # 56/56 绿
+D:\offline\sdk\dotnet.exe build                      # 0 错误
+D:\offline\sdk\dotnet.exe test                       # 85/85 绿
 </code></pre>
 <blockquote>
-<p><code>NuGet.config</code> 的 <code>&lt;clear/&gt;</code> 是灵魂:清空 nuget.org,restore/add 全部只认本地文件夹——<strong>这就是"内网搞到包"的完整答案</strong>。以后 <code>dotnet add package FluentModbus</code> 也会从本地解析。</p>
+<p><code>NuGet.config</code> 的 <code>&lt;clear/&gt;</code> 是灵魂:清空 nuget.org,restore/add 全部只认本地文件夹——<strong>这就是"内网搞到包"的完整答案</strong>。以后 <code>dotnet add package FluentModbus</code> 也会从本地解析。
+✅ <strong>已在 2026-08-24 金标准验证</strong>:空全局缓存 + 仅离线源,net8.0 解决方案 restore/构建全部成功(163 个包实际从离线文件夹解析),全部包按 .NET 8 兼容拉取。</p>
 </blockquote>
 <h2 id="sec-2-7">六、内网每日学习 SOP(对应教练计划三档吃法)</h2>
 <pre><code>① 打开 site\index.html → 教练计划 → 看今天该学哪课
