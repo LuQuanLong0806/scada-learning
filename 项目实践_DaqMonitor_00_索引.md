@@ -39,7 +39,7 @@
 
 ```bash
 dotnet build   # 0 错误,代码 0 警告(R8 起 LiveCharts2 会带几条 NU1701 包兼容提示,预期内)
-dotnet test    # 56/56 全绿
+dotnet test    # 全绿:R8 里程碑 56 个;仓库含 R9+ 高级篇(Auth/配方/运控/报表)共 85 个
 dotnet run --project src/DaqMonitor.UI   # 主界面跑起来:数据滚动/曲线动/报警亮
 ```
 

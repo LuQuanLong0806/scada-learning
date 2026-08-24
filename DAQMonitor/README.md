@@ -1,7 +1,7 @@
 # DAQ Monitor ⚡ 工业数据采集监控系统
 
 > **上位机转行 13-15K 项目驱动实战**:一个项目覆盖 C# / WPF / EF Core / 串口 / Modbus / PLC / TCP / MQTT / 工业协议,JD 全部硬通货。
-> **当前状态**:W1+W2+W3 必做完成,56 测试通过,简历可投 13K。
+> **当前状态**:W1+W2+W3 必做完成,**85 测试全绿**(2026-08-24 实测:失败 0/通过 85),简历可投 13K。
 
 ---
 
@@ -70,7 +70,7 @@
                ↑ (测试)
 ┌──────────────┴─────────────────────────────┐
 │  DaqMonitor.Tests (xUnit)                  │  ← 测试层
-│  └─ 56 测试通过                             │
+│  └─ 85 测试通过(R8 里程碑 56 + R9+ 高级篇 29) │
 └────────────────────────────────────────────┘
 ```
 
@@ -93,7 +93,7 @@
 git clone https://github.com/LuQuanLong0806/scada-learning.git
 cd scada-learning/DAQMonitor
 dotnet build DaqMonitor.sln                # 编译,0 错误
-dotnet test                                 # 56/56 测试通过
+dotnet test                                 # 85/85 测试通过
 dotnet run --project src/DaqMonitor.UI      # 启动 WPF,点"启动采集"
 ```
 
@@ -124,10 +124,10 @@ dotnet run --project src/DaqMonitor.UI      # 启动 WPF,点"启动采集"
 
 ---
 
-## 🧪 测试覆盖(56 个,全绿)
+## 🧪 测试覆盖(85 个,全绿)
 
 ```
- dotnet test → 已通过! - 失败: 0,通过: 56,已跳过: 0,总计: 56
+ dotnet test → 已通过! - 失败: 0,通过: 85,已跳过: 0,总计: 85
 ```
 
 覆盖:PointStore 持久化 / AlarmEngine 回滞 / Crc16 / FrameParser / ModbusFrameParser / TcpFrameParser 粘包 / Retry / EngineeringConverter / AcquisitionPipeline / 心跳监测 / CAN / USB-HID / 串口粘包半包坏 CRC。

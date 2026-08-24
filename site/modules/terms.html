@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📖 术语翻译表 · 前端→工业 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="terms">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、通讯类(最大的一座"假山")</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、架构/工程类</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、运控类(MC 系列)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、报警/采集类</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、真正的新概念清单(前端完全没有,需要真学)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">六、使用协议</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">📖 术语翻译表 · 前端 → 工业(读文档卡词就查这张表)</h1>
+<blockquote>
+<p><strong>用法</strong>:读讲义/R 篇/MC 篇遇到任何黑词 → 先查这张表 → 查不到直接问 Cline「X 是什么」,永远先用前端语言解释。
+<strong>心法</strong>:左列吓人,右列全是老朋友。真正前端完全没有的新概念,整个领域不到 10 个。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、通讯类(最大的一座"假山")</h2>
+<table>
+<thead>
+<tr>
+<th>工业黑话</th>
+<th>人话(一句话)</th>
+<th>你的前端等价物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>回环 Loopback</td>
+<td>字节写进去,原样"假装是设备回的"弹回来</td>
+<td>msw / axios-mock-adapter 拦截请求返回假响应</td>
+</tr>
+<tr>
+<td>模拟通道 SimulatedChannel</td>
+<td>接口的假实现,专供测试</td>
+<td>mock 实现 / fake service</td>
+</tr>
+<tr>
+<td>主站 Master</td>
+<td>主动发问的一方(=你的上位机)</td>
+<td>发请求的浏览器/client</td>
+</tr>
+<tr>
+<td>从站 Slave</td>
+<td>被问话的设备端(一问一答)</td>
+<td>被调用的 server</td>
+</tr>
+<tr>
+<td>进程内从站</td>
+<td>测试里在内存起一个假设备服务器</td>
+<td>Vitest mock fetch / in-memory server</td>
+</tr>
+<tr>
+<td>真串口 RealSerialChannel</td>
+<td>包一层真实硬件的实现</td>
+<td>生产环境的真 axios(生产实现)</td>
+</tr>
+<tr>
+<td>轮询 polling</td>
+<td>每 N ms 主动读一次设备</td>
+<td>setInterval + fetch / SWR refreshInterval</td>
+</tr>
+<tr>
+<td>订阅推送</td>
+<td>设备有数据主动上报</td>
+<td>WebSocket / SSE 推送</td>
+</tr>
+<tr>
+<td>粘包</td>
+<td>两条消息的字节连在一起到达</td>
+<td>WebSocket 攒 buffer 切消息</td>
+</tr>
+<tr>
+<td>半包</td>
+<td>一条消息只到了一半</td>
+<td>流式 chunk 读取,没攒够不处理</td>
+</tr>
+<tr>
+<td>拆帧/组帧</td>
+<td>从字节流切出一条完整消息 / 拼出一条消息</td>
+<td>message framing / 解析 buffer 协议</td>
+</tr>
+<tr>
+<td>帧 Frame</td>
+<td>一条消息的固定格式(头+长度+数据+校验)</td>
+<td>自定义消息协议 schema</td>
+</tr>
+<tr>
+<td>帧头 AA55</td>
+<td>每条消息开头的暗号字节</td>
+<td>消息 magic number / 协议标识</td>
+</tr>
+<tr>
+<td>心跳 heartbeat</td>
+<td>定期互发"还活着吗"</td>
+<td>WebSocket ping/pong</td>
+</tr>
+<tr>
+<td>静默判掉线</td>
+<td>N 秒没消息就认为断了</td>
+<td>WebSocket onclose / timeout</td>
+</tr>
+<tr>
+<td>指数退避</td>
+<td>失败后 1s/2s/4s/8s 重试</td>
+<td>axios-retry / react-query retry</td>
+</tr>
+<tr>
+<td>抖动 jitter</td>
+<td>退避时间加随机量,防同时重试</td>
+<td>同左,业界通用套路</td>
+</tr>
+<tr>
+<td>重同步 resync</td>
+<td>流错位后丢垃圾字节重新找帧头</td>
+<td>流解析器 reset / 重新对齐</td>
+</tr>
+<tr>
+<td>RTU / TCP</td>
+<td>Modbus 的串口版 / 网口版</td>
+<td>同一 API 的两种 transport</td>
+</tr>
+<tr>
+<td>功能码</td>
+<td>"读寄存器/写线圈"等操作编号</td>
+<td>REST 的 method+path</td>
+</tr>
+<tr>
+<td>寄存器 Register</td>
+<td>设备里按地址读写的 16 位格子</td>
+<td>远程对象按 key 读属性</td>
+</tr>
+<tr>
+<td>线圈 Coil</td>
+<td>1 个开关量(1 bit)</td>
+<td>远程 boolean</td>
+</tr>
+<tr>
+<td>地址偏移 ±1</td>
+<td>文档写 40001、实际要读 0 的坑</td>
+<td>API 文档和实际路径差一位</td>
+</tr>
+<tr>
+<td>异常码</td>
+<td>设备拒绝你时的错误编号</td>
+<td>HTTP 4xx 状态码</td>
+</tr>
+<tr>
+<td>字节序 大端/小端</td>
+<td>字节排列顺序(42C80000 vs 0000C8 42)</td>
+<td>DataView 的 BE/LE 参数 / Buffer.readUInt16BE</td>
+</tr>
+<tr>
+<td>字交换 CDAB</td>
+<td>2 个寄存器谁当高字的顺序问题</td>
+<td>(两层字节序的第二层,见 ByteOrderLab)</td>
+</tr>
+<tr>
+<td>CRC 校验</td>
+<td>数据的防伪指纹,任何一位变了就对不上</td>
+<td>≈一个 hash 校验值(1 个新概念)</td>
+</tr>
+<tr>
+<td>位运算 | &amp; ^ &lt;&lt; &gt;&gt;</td>
+<td>在 bit 层面拼/拆字节</td>
+<td>(JS 也有,只是很少用;见陷阱讲义)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-2">二、架构/工程类</h2>
+<table>
+<thead>
+<tr>
+<th>工业黑话</th>
+<th>人话</th>
+<th>前端等价物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上位机</td>
+<td>跑在电脑上、控制/监视设备的软件</td>
+<td>你开发的那整个 web app</td>
+</tr>
+<tr>
+<td>下位机</td>
+<td>设备侧(PLC/单片机/控制卡)</td>
+<td>后端 / 嵌入式</td>
+</tr>
+<tr>
+<td>组态软件</td>
+<td>配置式搭监控画面的成品软件</td>
+<td>低代码平台</td>
+</tr>
+<tr>
+<td>双写</td>
+<td>内存一份(实时)+数据库一份(历史)</td>
+<td>state + redux-persist/storage</td>
+</tr>
+<tr>
+<td>组合根 CompositionRoot</td>
+<td>DI 统一装配的入口文件</td>
+<td>main.tsx 里的 Provider 栈</td>
+</tr>
+<tr>
+<td>可测试性设计</td>
+<td>依赖接口不依赖实现,才好 mock</td>
+<td>依赖注入/控制反转</td>
+</tr>
+<tr>
+<td>行为测试</td>
+<td>按验收标准组织测试,不按方法</td>
+<td>Cypress 按用户故事写用例</td>
+</tr>
+<tr>
+<td>冒烟测试</td>
+<td>主流程走一遍不崩就行</td>
+<td>Playwright 冒烟链路</td>
+</tr>
+<tr>
+<td>回归测试</td>
+<td>改完代码重跑,确认没改坏</td>
+<td>CI 里重跑全量测试</td>
+</tr>
+<tr>
+<td>黑盒测试</td>
+<td>只调公共 API,不窥内部</td>
+<td>组件测试只看渲染输出</td>
+</tr>
+<tr>
+<td>仿真节拍 tickMs</td>
+<td>模拟器"每帧步长",测试可快进</td>
+<td>rAF 的 dt / cy.clock() 时间快进</td>
+</tr>
+<tr>
+<td>7×24 长跑</td>
+<td>连续运行数周不崩不漏</td>
+<td>没有刷新按钮的 SPA(内存泄漏无处可逃)</td>
+</tr>
+<tr>
+<td>内存泄漏排查</td>
+<td>长跑吃内存的定位</td>
+<td>Chrome Memory 面板同款技能</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-3">三、运控类(MC 系列)</h2>
+<table>
+<thead>
+<tr>
+<th>工业黑话</th>
+<th>人话</th>
+<th>前端等价物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>使能 Enable</td>
+<td>给电机上电解锁,没使能动不了</td>
+<td>先拿权限才能操作</td>
+</tr>
+<tr>
+<td>点动 Jog</td>
+<td>按住动、松开停</td>
+<td>长按按钮 drag</td>
+</tr>
+<tr>
+<td>绝对定位</td>
+<td>走到坐标 X mm</td>
+<td>目标值动画</td>
+</tr>
+<tr>
+<td>回零 Home</td>
+<td>回到坐标 0 点</td>
+<td>reset state</td>
+</tr>
+<tr>
+<td>软限位</td>
+<td>软件层的行程边界 ±1000mm</td>
+<td>表单 min/max 校验</td>
+</tr>
+<tr>
+<td>硬限位</td>
+<td>行程开关(物理挡块)</td>
+<td>物理约束,软件拦不住的</td>
+</tr>
+<tr>
+<td>急停 E-Stop</td>
+<td>立刻冻结一切运动</td>
+<td>AbortController + 全局熔断</td>
+</tr>
+<tr>
+<td>令牌/取消令牌</td>
+<td>每个运动一把 CancellationToken,新指令取消旧的</td>
+<td>AbortController 的 signal</td>
+</tr>
+<tr>
+<td>报警锁轴 AlarmActive</td>
+<td>有报警该轴拒绝一切运动</td>
+<td>错误态禁用按钮</td>
+</tr>
+<tr>
+<td>插补 Interpolation</td>
+<td>多轴按比例同步走,轨迹是直线</td>
+<td>transform 动画多属性同步</td>
+</tr>
+<tr>
+<td>节拍</td>
+<td>仿真循环每次推进的时间片</td>
+<td>动画帧 dt</td>
+</tr>
+<tr>
+<td>G01</td>
+<td>真卡的直线插补指令</td>
+<td>(行业词汇,知道即可)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-4">四、报警/采集类</h2>
+<table>
+<thead>
+<tr>
+<th>工业黑话</th>
+<th>人话</th>
+<th>前端等价物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>报警回滞 Hysteresis</td>
+<td>阈值附近抖动不反复报警(80 触发,75 才恢复)</td>
+<td>debounce / 施密特触发器</td>
+</tr>
+<tr>
+<td>边沿触发</td>
+<td>只在"未报警→报警"那一刻报</td>
+<td>事件只在状态翻转时 emit</td>
+</tr>
+<tr>
+<td>上升沿/下降沿</td>
+<td>状态从 0→1 / 1→0 的瞬间</td>
+<td>onChange 里 prev!==next</td>
+</tr>
+<tr>
+<td>点位 Point</td>
+<td>一个被采集的传感器值</td>
+<td>一条订阅的数据流</td>
+</tr>
+<tr>
+<td>点表</td>
+<td>点位清单(地址↔物理量映射)</td>
+<td>字段映射配置表</td>
+</tr>
+<tr>
+<td>工程量转换</td>
+<td>原始值→物理量(250→25.0℃)</td>
+<td>单位换算/线性映射 y=kx+b</td>
+</tr>
+<tr>
+<td>标定</td>
+<td>定 k 和 b 的过程</td>
+<td>建立换算公式</td>
+</tr>
+<tr>
+<td>双写一致性</td>
+<td>内存和库最终一致</td>
+<td>state 与 storage 同步策略</td>
+</tr>
+<tr>
+<td>Channel 缓冲</td>
+<td>生产者/消费者的缓冲队列</td>
+<td>RxJS buffer / 异步批处理队列</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-5">五、真正的新概念清单(前端完全没有,需要真学)</h2>
+<blockquote>
+<p>只有这些是真·新知识,总共 8 个,每个都不难:</p>
+</blockquote>
+<ol>
+<li><strong>CRC</strong> —— 防伪指纹,15 行代码,记住"低字节在前"即可</li>
+<li><strong>字节序两层结构</strong> —— 寄存器内大端 + 跨寄存器字序(ByteOrderLab 已亲手玩过)</li>
+<li><strong>主从问答协议</strong> —— 一问一答的时序(比 REST 还简单,没有回调)</li>
+<li><strong>报警回滞</strong> —— 施密特触发器思想(理解后 1 分钟讲清)</li>
+<li><strong>PLC / DB 块</strong> —— 设备侧的数据存储概念(知道是什么即可)</li>
+<li><strong>现场抗干扰</strong> —— 接地/屏蔽/隔离,硬件话题(面试口头了解)</li>
+<li><strong>RS232/485/4-20mA</strong> —— 物理层硬件知识(科普级了解)</li>
+<li><strong>使能/软限位/急停</strong> —— 运控安全语义(概念简单,行业约定)</li>
+</ol>
+<hr />
+<h2 id="sec-2-6">六、使用协议</h2>
+<ol>
+<li>读任何文档卡词 → 先查本表</li>
+<li>查不到 → 问 Cline「X 是什么」→ 永远先给前端类比</li>
+<li>每弄懂一个新词 → 自己在表里补一行"我自己的话"</li>
+<li>面试前 → 把第五节 8 个新概念过一遍</li>
+</ol>
+<p><strong>记住:你 6 年前也听不懂 CORS 和 Hydration。术语密度 ≠ 难度,只是暴露时长问题。</strong></p>
+<div class="pager">
+  <a class="prev" href="csharp-syntax.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">📚 C# 语法速查 · 前端视角</div></a>
+  <a class="next" href="predefined-types.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📦 前置类型定义 · 学员粘贴版</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>

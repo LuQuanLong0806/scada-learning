@@ -134,7 +134,7 @@
 
 **端到端跑通**:`SimulatedDevice` → `AcquisitionPipeline` (Channel 缓冲 + 200ms 定时批量) → `PointStore` 双写(内存+异步 SQLite) + `AlarmEngine` 回滞 → WPF `MainWindow` 实时点位表 + 报警日志。
 - ✅ `dotnet build` 0 错误 0 警告
-- ✅ `dotnet test` 28+ 测试全绿
+- ✅ `dotnet test` 85 测试全绿(2026-08-24 实测;R8 里程碑时为 56)
 - ✅ `dotnet run --project src/DaqMonitor.UI` 弹窗,点"启动采集"看到点位跳动 + 偶发报警
 
 ## 每天该做什么(主轴)

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📴 内网学习完全手册 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="intranet">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/start.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+<div class="localbar"><div class="barwrap"><div id="bar"></div></div><div id="ptext">本页打卡 0 / 1 （0%）</div></div>
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">〇、离线包使用时间线:什么时候用、怎么用(先看这节)</a><ul>
+<li class="l3"><a href="#sec-3-1">生命周期三阶段</a></li>
+<li class="l3"><a href="#sec-3-2">组件速查:每个东西什么时候用</a></li>
+<li class="l3"><a href="#sec-3-3">三条铁律(防坑)</a></li>
+<li class="l3"><a href="#sec-3-4">决策树:「我现在想做 X → 去哪」</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">一、内网能做什么/不能做什么(诚实清单)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">二、环境三档(按内网机器权限选,先看你能到哪档)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">三、离线包全家福(讲义 × 包对照表)</a><ul>
+<li class="l3"><a href="#sec-3-5">A. 工程实际引用(csproj 已锁版本,跟工程走)</a></li>
+<li class="l3"><a href="#sec-3-6">B. 讲义练习用到、家里缓存还没有(必须在家预拉!)</a></li>
+<li class="l3"><a href="#sec-3-7">C. 工具软件(可选,非必需)</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">四、在家准备流程(一次性,15 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">五、内网机器初始化(第一次,10 分钟)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">六、内网每日学习 SOP(对应教练计划三档吃法)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">七、练习在内网怎么做(零妥协方案)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-9">八、回家同步(3 分钟仪式)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-10">九、合规提醒</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">📴 内网学习完全手册 · 量身定做版</h1>
+<blockquote>
+<p><strong>写给谁</strong>:白天在公司内网、无外网、想完整完成「学习+练习+理解」闭环的你。
+<strong>核心结论先行</strong>:这套资料的讲义全部自包含(代码经沙盒验证、无 CDN 依赖),项目自带零硬件测试(回环/模拟/进程内从站)——<strong>内网不是降级环境,而是恰好匹配这套资料设计哲学的环境</strong>。缺的只是 NuGet 包和 SDK,本文教你一次备齐。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">〇、离线包使用时间线:什么时候用、怎么用(先看这节)</h2>
+<blockquote>
+<p><strong>一句话定义</strong>:离线学习包 = 家里电脑的一次「快照 + 预装弹药」。<strong>在家学习永远直接用 <code>scada-learning</code> 仓库,不碰离线包;离线包只在两个时刻登场——带去内网之前(准备)、在内网机器上(使用)。</strong></p>
+</blockquote>
+<h3 id="sec-3-1">生命周期三阶段</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>什么时候做</th>
+<th>做什么</th>
+<th>用时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 首次准备</td>
+<td>开始内网学习前,在家做<strong>一次</strong></td>
+<td>跑 <code>在家准备离线包.ps1</code>(拉齐 NuGet)+ 可选下载 SDK zip → 整个文件夹拷进 U 盘</td>
+<td>15-30 分钟</td>
+</tr>
+<tr>
+<td>② 内网初始化</td>
+<td>内网机器<strong>第一天</strong></td>
+<td>U 盘拷到内网机 →(🥇档)解压 SDK + 放 NuGet.config → 验证 restore/test 全绿</td>
+<td>10 分钟</td>
+</tr>
+<tr>
+<td>③ 日常循环</td>
+<td><strong>每个工作日</strong></td>
+<td>白天:内网用 site 学习 + 改代码;晚上:回家 3 分钟同步(代码合并 + 问题清单批改)</td>
+<td>每晚 3 分钟</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">组件速查:每个东西什么时候用</h3>
+<table>
+<thead>
+<tr>
+<th>包里的东西</th>
+<th>什么时候用</th>
+<th>怎么用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>起步说明.md</code></td>
+<td>内网第一次打开包</td>
+<td>读一遍,知道有什么</td>
+</tr>
+<tr>
+<td><code>内网学习完全手册.md</code></td>
+<td>随时,有疑问先翻它</td>
+<td>本文,完整方案</td>
+</tr>
+<tr>
+<td><code>site\</code></td>
+<td><strong>每天学习主入口</strong></td>
+<td>双击 <code>site\index.html</code></td>
+</tr>
+<tr>
+<td><code>DAQMonitor\</code></td>
+<td>教练计划🅑读档断点 / 🅐敲码</td>
+<td>🥈档:直接跑 bin 下 exe;🥇档:VS 打开 sln,F5</td>
+</tr>
+<tr>
+<td><code>ByteOrderLab\</code></td>
+<td>L0 课 / 字节序忘了</td>
+<td>双击 bin 下 exe 重放实验</td>
+</tr>
+<tr>
+<td><code>白天问题清单.txt</code></td>
+<td>内网卡壳超 30 分钟时</td>
+<td>按格式记一条;晚上回家逐条问 Cline</td>
+</tr>
+<tr>
+<td><code>在家准备离线包.ps1</code></td>
+<td><strong>只在家里跑,内网永远不用</strong></td>
+<td>家机执行,拉齐并拷贝 NuGet 缓存</td>
+</tr>
+<tr>
+<td><code>nuget-packages\</code></td>
+<td><strong>只有🥇全开发档用</strong>(restore/build/test 前)</td>
+<td>内网机:工程根目录放 NuGet.config 指向它</td>
+</tr>
+<tr>
+<td><code>tools\sdk\</code>(自备)</td>
+<td>只有🥇档且内网没装 SDK 时</td>
+<td>解压 zip,用 <code>&lt;sdk路径&gt;\dotnet.exe</code> 跑命令</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">三条铁律(防坑)</h3>
+<ol>
+<li><strong>家 = 仓库,内网 = 离线包,不要交叉改</strong>:家里改代码永远改 <code>scada-learning\DAQMonitor</code>;内网改的是包里的副本——回家用 git/文件拷贝合并,别两边各自长出没同步的版本。</li>
+<li><strong>site 以家为准,里程碑后重拷</strong>:内网完成教练计划某课 / 家里站点有更新 → 回家 <code>python build_site.py</code> → 重拷 <code>site\</code> 进 U 盘 → 内网覆盖。</li>
+<li><strong>离线包不是备份</strong>:它不含 git 历史。内网写的代码怕丢,当天就拷回 U 盘(或推到内网 git)。</li>
+</ol>
+<h3 id="sec-3-4">决策树:「我现在想做 X → 去哪」</h3>
+<pre><code>我想看讲义/背面试题   → site\index.html
+我想跑项目看数据流    → DAQMonitor\...\DaqMonitor.UI.exe(或 VS F5)
+我想改代码/跑测试     → 🥇档:SDK + NuGet.config + dotnet build/test
+我卡住了            → 术语表 → 知识点弹窗 → 记白天问题清单(晚上问)
+我要下班了          → 拷当天改动 + 问题清单 → 回家合并 + 问问题
+家里站点更新了       → 重拷 site\ 到 U 盘 → 内网覆盖
+</code></pre>
+<hr />
+<h2 id="sec-2-2">一、内网能做什么/不能做什么(诚实清单)</h2>
+<table>
+<thead>
+<tr>
+<th>能(✅完全无网)</th>
+<th>不能(❌需要外网)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读全部 77 页讲义/项目实践/面试题</td>
+<td>点开讲义里的外部链接(延伸阅读)</td>
+</tr>
+<tr>
+<td>打卡、知识点弹窗、术语表</td>
+<td><code>dotnet add package</code> 默认从 nuget.org 拉包</td>
+</tr>
+<tr>
+<td>跑已编译的 DaqMonitor.UI.exe / ByteOrderLab</td>
+<td>安装 VS 在线组件</td>
+</tr>
+<tr>
+<td>改代码、编译、跑 56 个测试(配好本地包源后)</td>
+<td>问 Cline(用"问题清单"替代)</td>
+</tr>
+<tr>
+<td>白纸手写代码肌肉题、对答案</td>
+<td>WebView2 大屏的 npm install(可在家预装)</td>
+</tr>
+<tr>
+<td>断点调试走数据流(教练计划 🅑 档核心动作)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话</strong>:唯一的真障碍是"包怎么进来"——下面第三节解决。</p>
+<h2 id="sec-2-3">二、环境三档(按内网机器权限选,先看你能到哪档)</h2>
+<table>
+<thead>
+<tr>
+<th>档</th>
+<th>前提</th>
+<th>你获得的能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🥉 纯阅读</td>
+<td>无要求</td>
+<td>双击 <code>site\index.html</code> 学完全部理论+背诵</td>
+</tr>
+<tr>
+<td>🥈 跑程序</td>
+<td>装了 .NET 桌面运行时 8/9/10 任一(RollForward 兜底)</td>
+<td>+ 运行 UI 看数据流 + 断点调试</td>
+</tr>
+<tr>
+<td>🥇 全开发</td>
+<td>.NET SDK(便携 zip 版免安装) + 本地包源(第五节)</td>
+<td>+ 敲调库版/改功能/跑全部测试 = 完整闭环</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>SDK 便携版获取:在家从 <code>https://dotnet.microsoft.com/download</code> 下载 <strong>.NET SDK x64 Binaries(zip)</strong>,解压即用,不需要管理员权限。U 盘约 300MB。</p>
+</blockquote>
+<h2 id="sec-2-4">三、离线包全家福(讲义 × 包对照表)</h2>
+<h3 id="sec-3-5">A. 工程实际引用(csproj 已锁版本,跟工程走)</h3>
+<table>
+<thead>
+<tr>
+<th>包</th>
+<th>用在哪</th>
+<th>家里缓存</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Microsoft.EntityFrameworkCore.Sqlite 8.0.10</td>
+<td>M4/R6 双写</td>
+<td>✅</td>
+<td>含 sqlite 原生库</td>
+</tr>
+<tr>
+<td>MQTTnet 4.3.7</td>
+<td>M7 上云</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>System.IO.Ports 8.0</td>
+<td>M1/R4 真串口</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>BCrypt.Net-Next 4.0.3</td>
+<td>M17 认证</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>Microsoft.Extensions.DependencyInjection 8.0.1</td>
+<td>R7 组合根</td>
+<td>✅</td>
+<td></td>
+</tr>
+<tr>
+<td>ClosedXML 0.102.3</td>
+<td>M10 Excel</td>
+<td>✅</td>
+<td>UI 侧</td>
+</tr>
+<tr>
+<td>LiveChartsCore.SkiaSharpView.WPF 2.0-rc4.5</td>
+<td>M5/R8 曲线</td>
+<td>✅</td>
+<td>含 SkiaSharp 全家</td>
+</tr>
+<tr>
+<td>xunit 2.9.2 / Moq 4.20.72 / TestSdk 17.11.1</td>
+<td>全部测试</td>
+<td>✅</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-6">B. 讲义练习用到、家里缓存还没有(必须在家预拉!)</h3>
+<table>
+<thead>
+<tr>
+<th>包</th>
+<th>哪篇讲义</th>
+<th>用途</th>
+<th>内网必要性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FluentModbus</strong></td>
+<td><strong>R4 调库版(你的主路线)</strong></td>
+<td>Modbus TCP 主从</td>
+<td>🔴 必拉</td>
+</tr>
+<tr>
+<td>NModbus4</td>
+<td>M2 调库路线</td>
+<td>Modbus 老牌库</td>
+<td>🟡 选拉(走手搓+FluentModbus 可不拉)</td>
+</tr>
+<tr>
+<td>S7netplus</td>
+<td>M3 PLC</td>
+<td>S7 直连</td>
+<td>🟡 M3 练习用</td>
+</tr>
+<tr>
+<td>Serilog + Sinks.File</td>
+<td>M6 日志</td>
+<td>结构化日志</td>
+<td>🟡 M6 练习用</td>
+</tr>
+<tr>
+<td>Microsoft.EntityFrameworkCore.SqlServer / Pomelo...MySql / Dapper / Microsoft.Data.SqlClient</td>
+<td>M12 多数据库</td>
+<td>企业库</td>
+<td>🟢 选做 M12 才要</td>
+</tr>
+<tr>
+<td>HslCommunication</td>
+<td>M13 国产库</td>
+<td>多品牌 PLC</td>
+<td>🟢 选做 M13 才要</td>
+</tr>
+<tr>
+<td>Microsoft.Extensions.Http.Polly + Polly.Extensions.Http</td>
+<td>M17 MES 对接</td>
+<td>重试熔断</td>
+<td>🟢 选做 M17 才要</td>
+</tr>
+<tr>
+<td>HidLibrary</td>
+<td>M16 USB-HID</td>
+<td>HID 真实库</td>
+<td>⚪ 可跳过(M16 用模拟通道)</td>
+</tr>
+<tr>
+<td>Prism.DryIoc</td>
+<td>M8.5</td>
+<td>企业 MVVM</td>
+<td>⚪ M8.5 未进主线</td>
+</tr>
+<tr>
+<td>BenchmarkDotNet</td>
+<td>M9.5</td>
+<td>性能压测</td>
+<td>⚪ 选做</td>
+</tr>
+<tr>
+<td>QuestPDF</td>
+<td>M10 PDF</td>
+<td>PDF 导出</td>
+<td>⚪ 选做</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-7">C. 工具软件(可选,非必需)</h3>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>讲义哪里用</th>
+<th>内网必要吗</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modbus Poll / Modbus Slave</td>
+<td>M2/调库指南抓帧验证</td>
+<td>❌ 讲义用<strong>进程内 ModbusTcpServer</strong> 测试,零硬件零工具</td>
+</tr>
+<tr>
+<td>Mosquitto + MQTTX</td>
+<td>M7 本地 broker</td>
+<td>🟡 M7 练习想真连 broker 才要(可在家装完整个目录拷走,Mosquitto 绿色版)</td>
+</tr>
+<tr>
+<td>com0com 虚拟串口</td>
+<td>M1/硬件替代</td>
+<td>❌ R4 用 LoopbackSerialChannel,不需要</td>
+</tr>
+<tr>
+<td>Wireshark</td>
+<td>M19 抓包</td>
+<td>⚪ 选做</td>
+</tr>
+<tr>
+<td>Python + markdown 库</td>
+<td>重建 site</td>
+<td>❌ site 已是成品;确要改 md 重建,在家重建再拷 site</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>设计哲学点破</strong>:这套资料的"零硬件"不只是教学妥协——回环通道、进程内从站、模拟卡,就是工业界正经的可测试性设计。内网学它,恰好是原汁原味。</p>
+</blockquote>
+<h2 id="sec-2-5">四、在家准备流程(一次性,15 分钟)</h2>
+<ol>
+<li>在家电脑跑 <strong><code>在家准备离线包.ps1</code></strong>(U 盘/移动硬盘接到家机):它会 ①还原两个工程拉准 A 表所有包 → ②建临时工程把 B 表全部包拉进缓存 → ③把 NuGet 缓存(~1.5GB)拷进离线学习包;</li>
+<li>手动下载(可选):.NET SDK 便携 zip(MSDN 官网)→ 放进 <code>离线学习包\tools\</code>;</li>
+<li>整个 <code>离线学习包</code> 文件夹拷进 U 盘 → 完成。</li>
+</ol>
+<h2 id="sec-2-6">五、内网机器初始化(第一次,10 分钟)</h2>
+<pre><code class="language-powershell"># 1️⃣ 把 U 盘内容拷到内网机任意盘,如 D:\offline\
+# 2️⃣ (🥇档)解压 SDK zip 到 D:\offline\sdk,然后用它跑命令:
+D:\offline\sdk\dotnet.exe --info
+
+# 3️⃣ 关键一步:给工程配&quot;只走本地&quot;的包源
+#    在 DAQMonitor 目录新建 NuGet.config,内容:
+#    &lt;configuration&gt;&lt;packageSources&gt;
+#      &lt;clear/&gt;
+#      &lt;add key=&quot;offline&quot; value=&quot;D:\offline\nuget-packages&quot;/&gt;
+#    &lt;/packageSources&gt;&lt;/configuration&gt;
+
+# 4️⃣ 验证:断网状态下
+D:\offline\sdk\dotnet.exe restore DaqMonitor.sln     # 应全部成功
+D:\offline\sdk\dotnet.exe test                        # 56/56 绿
+</code></pre>
+<blockquote>
+<p><code>NuGet.config</code> 的 <code>&lt;clear/&gt;</code> 是灵魂:清空 nuget.org,restore/add 全部只认本地文件夹——<strong>这就是"内网搞到包"的完整答案</strong>。以后 <code>dotnet add package FluentModbus</code> 也会从本地解析。</p>
+</blockquote>
+<h2 id="sec-2-7">六、内网每日学习 SOP(对应教练计划三档吃法)</h2>
+<pre><code>① 打开 site\index.html → 教练计划 → 看今天该学哪课
+② 🅑读档:VS/vscode 打开 DAQMonitor → 断点 → F5 走数据流 → 合上文档自己讲一遍(出声)
+③ 🅐敲码:调库版/改功能 → dotnet build/test 全绿 → git commit(内网仓库或本地提交,回家 push)
+④ 卡词 → 术语表;卡概念 → 📖 知识点弹窗;卡壳超 30 分钟 → 记「白天问题清单.txt」→ 降级🅒跳过
+⑤ 白纸手写 1 道代码肌肉题(手册有答案,写完自己对)
+⑥ 下班拷贝:当天改的代码 + 问题清单.txt 回家
+</code></pre>
+<p><strong>没有教练的自助三层</strong>:术语表(60 词)→ KPOINTS 弹窗(30+ 概念)→ 问题清单(晚上批改)。90% 的卡点在前两层就能解——<strong>讲义本来就把"为什么"写在正文里,内网读和联网读没有区别</strong>。</p>
+<h2 id="sec-2-8">七、练习在内网怎么做(零妥协方案)</h2>
+<table>
+<thead>
+<tr>
+<th>练习类型</th>
+<th>内网做法</th>
+<th>完整度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>讲义 L1/L2/L3 练习</td>
+<td>照做(纯代码,无网依赖)</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>代码肌肉白板题</td>
+<td>白纸写 → 手册对答案 → 错题记清单</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>项目测试</td>
+<td>dotnet test(进程内从站/回环,零硬件)</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Modbus 抓帧实验</td>
+<td>用测试里的 ModbusTcpServer 当"设备"</td>
+<td>95%(等价替代)</td>
+</tr>
+<tr>
+<td>WebView2 大屏</td>
+<td><strong>在家</strong> npm install 完整个 node_modules 拷进 U 盘</td>
+<td>100%(目录拷贝即用)</td>
+</tr>
+<tr>
+<td>间隔重复自测</td>
+<td>讲义内嵌题目+白纸默写</td>
+<td>100%</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-9">八、回家同步(3 分钟仪式)</h2>
+<ol>
+<li><code>git bundle</code> 或直接拷文件:内网改动 → 家里仓库 commit;</li>
+<li>问题清单 → 逐条问 Cline → 高频问题升级成站点新页;</li>
+<li>site 有更新 → 重拷 <code>site\</code> 目录进 U 盘 → 明天内网就是新版。</li>
+</ol>
+<h2 id="sec-2-10">九、合规提醒</h2>
+<p>带个人学习资料入内网前,确认公司制度允许(自学材料一般无碍;<strong>涉密内网严禁私带存储介质</strong>,先问 IT/主管一句话,别踩红线)。</p>
+<hr />
+<p><strong>✅ <label class="cb"><input type="checkbox" class="daycb" data-day="1" onchange="toggleDay('intranet',1)"> 打卡</label></strong></p>
+<div class="pager">
+  <a class="prev" href="coach-plan.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🎓 1对1教练 · 项目吃透计划</div></a>
+  <a class="next" href="muscle.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">💪 代码肌肉训练手册 · 30 天刷题版</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>

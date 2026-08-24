@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚖️ 手搓 vs 调库 · 防过度学习清单 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="make-or-use">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、🟧 企业直接调库(会用即可,坚决不手搓)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、🟦 必须自己写(库不替你做 = 企业招你进来干的活)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、🟨 面试要能讲、但不用会写(嘴上功夫)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、🔴 明确不学(过度学习警告,入职后再补)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、与教练计划的对应关系(总览)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">⚖️ 手搓 vs 调库 · 防过度学习清单</h1>
+<blockquote>
+<p><strong>写给谁</strong>:目标是「面试 → 拿 offer → 入职后再深造」的你。核心原则:<strong>企业怎么干,你就怎么学;企业不手搓的,你就不手搓</strong>。
+<strong>一句话总纲</strong>:工业开发 = 现成库管"字节和协议" + 你写"业务和架构"。库永远不替你做连接管理/轮询/重连/报警/界面——<strong>所以你真正要练的恰好就是项目里让你写的那部分</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、🟧 企业直接调库(会用即可,坚决不手搓)</h2>
+<table>
+<thead>
+<tr>
+<th>领域</th>
+<th>企业用库</th>
+<th>学习深度要求</th>
+<th>项目对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Modbus RTU/TCP</td>
+<td><strong>FluentModbus</strong>(新)/ NModbus4 / HslCommunication</td>
+<td>会连接+读写寄存器+异常处理</td>
+<td>R4 调库版</td>
+</tr>
+<tr>
+<td>西门子 S7 PLC</td>
+<td><strong>S7netplus</strong> / HslCommunication</td>
+<td>会 Open/Read/Write/错误码</td>
+<td>M3(模拟模式够用)</td>
+</tr>
+<tr>
+<td>三菱/欧姆龙/国产 PLC</td>
+<td><strong>HslCommunication</strong> 一个通吃</td>
+<td>知道"换品牌=换类名"</td>
+<td>M13 选读</td>
+</tr>
+<tr>
+<td>串口</td>
+<td><strong>System.IO.Ports</strong>(微软官方 BCL)</td>
+<td>会 Open/事件收发</td>
+<td>R4 已覆盖</td>
+</tr>
+<tr>
+<td>MQTT</td>
+<td><strong>MQTTnet 4</strong></td>
+<td>会连 broker+发布订阅</td>
+<td>M7</td>
+</tr>
+<tr>
+<td>OPC UA</td>
+<td>OPC 基金会官方库</td>
+<td>知道是什么(面试一句话)</td>
+<td>M7 选读</td>
+</tr>
+<tr>
+<td>数据库</td>
+<td><strong>EF Core</strong> / Dapper / SqlClient</td>
+<td>会建表+CRUD+查询</td>
+<td>R6/M12</td>
+</tr>
+<tr>
+<td>Excel 报表</td>
+<td><strong>ClosedXML</strong></td>
+<td>会导出 DataTable</td>
+<td>M10</td>
+</tr>
+<tr>
+<td>日志</td>
+<td><strong>Serilog</strong></td>
+<td>会配置+落盘</td>
+<td>M6</td>
+</tr>
+<tr>
+<td>HTTP 重试熔断</td>
+<td><strong>Polly</strong></td>
+<td>会配策略(≈axios-retry)</td>
+<td>M17 选做</td>
+</tr>
+<tr>
+<td>运动控制卡</td>
+<td><strong>雷赛/固高/正运动官方 SDK</strong></td>
+<td>会调 API(项目用模拟卡同构)</td>
+<td>MC 系列</td>
+</tr>
+<tr>
+<td>机器视觉</td>
+<td>Halcon/VisionPro(付费,公司提供)</td>
+<td>面试一句话即可,不用自学</td>
+<td>无</td>
+</tr>
+<tr>
+<td>USB-HID</td>
+<td>HidLibrary</td>
+<td>M16 选读,可跳</td>
+<td>模拟通道够用</td>
+</tr>
+<tr>
+<td>MVVM 框架</td>
+<td><strong>Prism / CommunityToolkit.Mvvm</strong></td>
+<td>用现成,不自己造</td>
+<td>M8.5 选读</td>
+</tr>
+<tr>
+<td>DI 容器</td>
+<td><strong>Microsoft.Extensions.DI</strong></td>
+<td>容器现成;<strong>组装代码你写</strong></td>
+<td>R7</td>
+</tr>
+<tr>
+<td>图表曲线</td>
+<td><strong>LiveCharts2</strong></td>
+<td>会用</td>
+<td>R8/MC6</td>
+</tr>
+<tr>
+<td>密码哈希</td>
+<td>BCrypt.Net</td>
+<td>会调</td>
+<td>M17</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>面试标准话术:"生产里我用 XXX 库,连接生命周期、轮询、断线重连是我写的,字节层交给库。"——这句就是及格线。</p>
+</blockquote>
+<h2 id="sec-2-2">二、🟦 必须自己写(库不替你做 = 企业招你进来干的活)</h2>
+<table>
+<thead>
+<tr>
+<th>要写的东西</th>
+<th>为什么库不替你</th>
+<th>项目对应</th>
+<th>面试频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>设备抽象层(IDevice/IMotionCard)</strong></td>
+<td>每家设备不同,架构决策</td>
+<td>R2(你已敲✅)/MC1</td>
+<td>★★★</td>
+</tr>
+<tr>
+<td><strong>连接生命周期</strong>(状态机/掉线判定)</td>
+<td>业务策略</td>
+<td>R4 调库版里有</td>
+<td>★★★</td>
+</tr>
+<tr>
+<td><strong>轮询节奏</strong>(多久读哪些寄存器)</td>
+<td>点表是你的</td>
+<td>R4 调库版里有</td>
+<td>★★★</td>
+</tr>
+<tr>
+<td><strong>断线重连</strong>(指数退避+抖动)</td>
+<td>策略问题</td>
+<td>R4 TcpDevice</td>
+<td>★★★(必考)</td>
+</tr>
+<tr>
+<td><strong>采集管道/批量刷新</strong>(Channel)</td>
+<td>性能架构</td>
+<td>R5</td>
+<td>★★★(必考)</td>
+</tr>
+<tr>
+<td><strong>报警规则</strong>(回滞/边沿)</td>
+<td>业务规则</td>
+<td>R5</td>
+<td>★★</td>
+</tr>
+<tr>
+<td><strong>UI + MVVM 绑定 + 跨线程</strong></td>
+<td>界面是你的</td>
+<td>R8/MC3(你的主场)</td>
+<td>★★★</td>
+</tr>
+<tr>
+<td><strong>数据库表设计+查询</strong></td>
+<td>业务模型</td>
+<td>R6</td>
+<td>★★</td>
+</tr>
+<tr>
+<td><strong>配置/点表/配方管理</strong></td>
+<td>业务逻辑</td>
+<td>M18 选做</td>
+<td>★</td>
+</tr>
+<tr>
+<td><strong>单元测试</strong></td>
+<td>质量保障</td>
+<td>全程</td>
+<td>★★</td>
+</tr>
+</tbody>
+</table>
+<p><strong>发现了吗:这 10 项全部在教练计划的 🅐/🅑 档里——你已经排好了,不用多学。</strong></p>
+<h2 id="sec-2-3">三、🟨 面试要能讲、但不用会写(嘴上功夫)</h2>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>会讲到什么程度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CRC</td>
+<td>"防伪指纹,任何一位翻转结果就变;Modbus 低字节在前"——不考手算</td>
+</tr>
+<tr>
+<td>字节序/字交换</td>
+<td>"读出 1e-41 鬼值=CDAB,抓帧定序别猜"(你做过 ByteOrderLab✅)</td>
+</tr>
+<tr>
+<td>粘包/半包</td>
+<td>"TCP 是水管,解析器要攒够一帧才拆+垃圾头重同步"</td>
+</tr>
+<tr>
+<td>心跳</td>
+<td>"30s 静默判掉线,Socket.Connected 不可信"</td>
+</tr>
+<tr>
+<td>PLC IsConnected</td>
+<td>"不可信,看读回错误码+重试"(M3 导师原话)</td>
+</tr>
+<tr>
+<td>插补</td>
+<td>"卡上硬件做,上位机只发一条指令"(MC5 一句话)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-4">四、🔴 明确不学(过度学习警告,入职后再补)</h2>
+<ol>
+<li>❌ CRC 查表法/性能优化 —— 没人问</li>
+<li>❌ 手写 Modbus 全功能码/从站实现 —— 调库版已替代</li>
+<li>❌ 自研 MVVM 框架/自写 DI 容器 —— 用 Prism/官方 DI</li>
+<li>❌ OPC UA 二进制协议栈内部 —— 会用库+一句话</li>
+<li>❌ BADC/DCBA 罕见字节序 —— 知道名字即可</li>
+<li>❌ TIA Portal/PLC 组态深度 —— 那是电气工程师的活</li>
+<li>❌ 自绘图表库(造 LiveCharts 轮子) —— MC6 自绘轨迹图是特例(canvas 主场才做)</li>
+<li>❌ 性能压测工具链(BenchmarkDotNet/dotMemory) —— M9.5 入职后再学</li>
+<li>❌ 机器视觉(Halcon) —— 公司有 License 才学,岗位需要再说</li>
+<li>❌ R9+ 高级篇代码(Auth/配方/运控细节) —— 面试口头提"项目还做了 X"即可</li>
+</ol>
+<h2 id="sec-2-5">五、与教练计划的对应关系(总览)</h2>
+<pre><code>🅐敲(R4调库版/R8改功能/MC6)  = 二类&quot;必须写&quot;的实战
+🅑读(R5/R6/R7/重连/MC1/MC3) = 二类核心 + 三类&quot;讲得出&quot;
+🅒扫(R3手搓/MC2/MC4/MC5)    = 三类&quot;嘴上功夫&quot;
+不碰                        = 四类&quot;明确不学&quot;
+</code></pre>
+<p><strong>自检一句话:你在写代码前先问"这是企业调库的还是自己写的?"——调库的抄 API 文档,自己写的才值得花时间理解。</strong></p>
+<div class="pager">
+  <a class="prev" href="lib-guide.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🧰 速查 · 工业通讯调库指南</div></a>
+  <a class="next" href="job.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">真实岗位调研 · 13-15K 技能对照</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>
