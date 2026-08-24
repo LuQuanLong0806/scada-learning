@@ -29,17 +29,18 @@
 <li class="l2"><a href="#sec-2-1">〇、离线包使用时间线:什么时候用、怎么用(先看这节)</a><ul>
 <li class="l3"><a href="#sec-3-1">生命周期三阶段</a></li>
 <li class="l3"><a href="#sec-3-2">组件速查:每个东西什么时候用</a></li>
-<li class="l3"><a href="#sec-3-3">三条铁律(防坑)</a></li>
-<li class="l3"><a href="#sec-3-4">决策树:「我现在想做 X → 去哪」</a></li>
+<li class="l3"><a href="#sec-3-3">📦 nuget-packages 三问三答(它到底是什么、什么时候才需要)</a></li>
+<li class="l3"><a href="#sec-3-4">三条铁律(防坑)</a></li>
+<li class="l3"><a href="#sec-3-5">决策树:「我现在想做 X → 去哪」</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-2">一、内网能做什么/不能做什么(诚实清单)</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">二、环境三档(按内网机器权限选,先看你能到哪档)</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-4">三、离线包全家福(讲义 × 包对照表)</a><ul>
-<li class="l3"><a href="#sec-3-5">A. 工程实际引用(csproj 已锁版本,跟工程走)</a></li>
-<li class="l3"><a href="#sec-3-6">B. 讲义练习用到、家里缓存还没有(必须在家预拉!)</a></li>
-<li class="l3"><a href="#sec-3-7">C. 工具软件(可选,非必需)</a></li>
+<li class="l3"><a href="#sec-3-6">A. 工程实际引用(csproj 已锁版本,跟工程走)</a></li>
+<li class="l3"><a href="#sec-3-7">B. 讲义练习用到、家里缓存还没有(必须在家预拉!)</a></li>
+<li class="l3"><a href="#sec-3-8">C. 工具软件(可选,非必需)</a></li>
 </ul></li>
 <li class="l2"><a href="#sec-2-5">四、在家准备流程(一次性,15 分钟)</a><ul>
 </ul></li>
@@ -142,9 +143,14 @@
 <td>家机执行,拉齐并拷贝 NuGet 缓存</td>
 </tr>
 <tr>
+<td><code>NuGet.config.template</code></td>
+<td>🥇档第一次在内网 build/test 前</td>
+<td><strong>拷进 <code>DAQMonitor\</code> 文件夹,改名为 <code>NuGet.config</code></strong>,内容零修改</td>
+</tr>
+<tr>
 <td><code>nuget-packages\</code></td>
-<td><strong>只有🥇全开发档用</strong>(restore/build/test 前)</td>
-<td>内网机:工程根目录放 NuGet.config 指向它</td>
+<td><strong>只有🥇全开发档用</strong>(见下方三问三答)</td>
+<td>不直接打开它——被 NuGet.config 引用,见下方三问三答</td>
 </tr>
 <tr>
 <td><code>tools\sdk\</code>(自备)</td>
@@ -153,13 +159,42 @@
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-3">三条铁律(防坑)</h3>
+<h3 id="sec-3-3">📦 nuget-packages 三问三答(它到底是什么、什么时候才需要)</h3>
+<p><strong>它是什么</strong>:225 个 NuGet 包的本地仓库(1.75GB)。作用 = 把 nuget.org 网站"装进 U 盘"。
+你<strong>永远不会直接打开或运行它</strong>——它只在 <code>dotnet restore/build/add package</code> 时被自动读取。</p>
+<p><strong>① 什么时候用?</strong>——只有 🥇 全开发档的这 3 种时刻:
+- 在内网机<strong>第一次</strong>跑 <code>dotnet restore</code> / <code>dotnet build</code> / <code>dotnet test</code> 之前(配一次,永久生效)
+- 在内网机想 <code>dotnet add package 某新包</code> 时(从本地解析,如 R4 调库版装 FluentModbus)
+- 换了台内网机器 / 全局缓存被清空时(重新配一次)</p>
+<p><strong>什么时候不用?</strong>——🥉纯看讲义(用法A)、🥈跑现成 exe(用法B)完全不需要它;
+<strong>在家里永远不用</strong>(家里有网,dotnet 直接走 nuget.org,速度更快)。</p>
+<p><strong>② 在哪用?</strong>——位置固定两处,别挪:</p>
+<pre><code>离线学习包\nuget-packages\          ← 包仓库本体(只读,别动)
+离线学习包\DAQMonitor\NuGet.config  ← 引用文件(从模板拷来,指向上面的路径)
+</code></pre>
+<p><strong>③ 怎么用?</strong>——内网机上一共 3 步,配完就不用再管:</p>
+<pre><code class="language-powershell"># 1. 把包根目录的 NuGet.config.template 拷进 DAQMonitor\ 并改名:
+Copy-Item &quot;D:\offline\NuGet.config.template&quot; &quot;D:\offline\DAQMonitor\NuGet.config&quot;
+#    (保留离线学习包目录结构 → 相对路径 ..\nuget-packages 自动对上,内容零修改)
+
+# 2. 进工程目录,验证(应见 &quot;已还原&quot;/restore 成功,全程无联网请求):
+cd D:\offline\DAQMonitor
+dotnet restore DaqMonitor.sln
+
+# 3. 之后一切照常:build / test / add package 全部自动走本地包
+dotnet test    # 85/85 绿 = 配置成功
+</code></pre>
+<blockquote>
+<p>原理一句话:模板里 <code>&lt;clear/&gt;</code> 清空了 nuget.org 等所有在线源 → dotnet 只认 <code>..\nuget-packages</code> 这个本地文件夹。
+✅ 已金标准验证:空全局缓存+仅此离线源,net8.0 解决方案 restore/build 全通过(163 包实际从本地解析)。</p>
+</blockquote>
+<h3 id="sec-3-4">三条铁律(防坑)</h3>
 <ol>
 <li><strong>家 = 仓库,内网 = 离线包,不要交叉改</strong>:家里改代码永远改 <code>scada-learning\DAQMonitor</code>;内网改的是包里的副本——回家用 git/文件拷贝合并,别两边各自长出没同步的版本。</li>
 <li><strong>site 以家为准,里程碑后重拷</strong>:内网完成教练计划某课 / 家里站点有更新 → 回家 <code>python build_site.py</code> → 重拷 <code>site\</code> 进 U 盘 → 内网覆盖。</li>
 <li><strong>离线包不是备份</strong>:它不含 git 历史。内网写的代码怕丢,当天就拷回 U 盘(或推到内网 git)。</li>
 </ol>
-<h3 id="sec-3-4">决策树:「我现在想做 X → 去哪」</h3>
+<h3 id="sec-3-5">决策树:「我现在想做 X → 去哪」</h3>
 <pre><code>我想看讲义/背面试题   → site\index.html
 我想跑项目看数据流    → DAQMonitor\...\DaqMonitor.UI.exe(或 VS F5)
 我想改代码/跑测试     → 🥇档:SDK + NuGet.config + dotnet build/test
@@ -235,7 +270,7 @@
 <p>SDK 便携版获取:在家从 <code>https://dotnet.microsoft.com/download</code> 下载 <strong>.NET SDK x64 Binaries(zip)</strong>,解压即用,不需要管理员权限。U 盘约 300MB。</p>
 </blockquote>
 <h2 id="sec-2-4">三、离线包全家福(讲义 × 包对照表)</h2>
-<h3 id="sec-3-5">A. 工程实际引用(csproj 已锁版本,跟工程走)</h3>
+<h3 id="sec-3-6">A. 工程实际引用(csproj 已锁版本,跟工程走)</h3>
 <table>
 <thead>
 <tr>
@@ -296,7 +331,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-6">B. 讲义练习用到、家里缓存还没有(必须在家预拉!)</h3>
+<h3 id="sec-3-7">B. 讲义练习用到、家里缓存还没有(必须在家预拉!)</h3>
 <table>
 <thead>
 <tr>
@@ -375,7 +410,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="sec-3-7">C. 工具软件(可选,非必需)</h3>
+<h3 id="sec-3-8">C. 工具软件(可选,非必需)</h3>
 <table>
 <thead>
 <tr>
