@@ -170,6 +170,9 @@ PAGES = [
     dict(slug="sim-lab", kind="support", file="协议仿真实验室_免费模拟器实战指南.md",
          title="🧪 协议仿真实验室 · 免费模拟器指南", sub="串口/Modbus/S7/CAN/OPCUA/MQTT 怎么试",
          what="每协议:免费工具选型(com0com/diagslave/QModMaster/OpenPLC/UaExpert/CanKing)+装法坑+对接 DaqMonitor 实验+代码;附面试三级深度分级表(必会/会说/了解即可)与内网离线装箱清单", src="🧪 仿真实操"),
+    dict(slug="db-interview", kind="support", file="数据库面试速攻_上位机版.md",
+         title="🗄️ 数据库面试速攻 · 上位机版", sub="JD 出现率 100% 的必会项",
+         what="高并发焦虑拆解(工业版高频写话术)+SQL 手写 12 题(项目真实表可跑)+大数据量四板斧+Node 背景映射表+连环追问 5 连;优先级高于大屏(100% vs 10-15%)", src="🗄️ 数据库"),
     dict(slug="links", kind="support", file="外部链接索引.md",
          title="附录 · 外部链接索引", sub="难点官方文档汇总",
          what="每模块「📚 延伸阅读」指向的权威链接，卡点直接点开", src="🟦 外链"),
@@ -299,8 +302,8 @@ SECTION_OF = {
     "career":    ["jd-research", "resume", "interview30", "design-qa40", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
     "reference": ["traps", "csharp-syntax", "terms", "make-or-use", "predefined-types", "wpf", "hardware", "sim-lab",
-                  "links", "lib-guide", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3",
-                  "audit-align"],
+                  "db-interview", "links", "lib-guide", "docs", "license", "audit", "audit-quality", "audit-v2",
+                  "audit-v3", "audit-align"],
 }
 _slug_to_section = {}
 for _sec, _slugs in SECTION_OF.items():

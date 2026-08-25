@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🗄️ 数据库面试速攻 · 上位机版 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="db-interview">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">〇、先拆焦虑:你怕的"高并发"不是上位机考的</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">一、三级分级表(数据库版,先看考多深)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">二、SQL 手写 12 题(🔴 必会,2 小时;表就是你项目里的表)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">三、大数据量优化:会说版话术(JD"大数据量存储优化经验"对应题)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">四、事务/连接池:Node 背景一秒映射表</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">五、连环追问预埋(5 连,每题 15 秒)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">六、冲刺周怎么排(总计 2.5 小时)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">🗄️ 数据库面试速攻 · 上位机版(2026-08-25)</h1>
+<blockquote>
+<p><strong>为什么有这份</strong>:JD 调研实测——<strong>「数据库 SQL Server/MySQL 至少一种 + EF/Dapper」出现率 100%</strong>(全部必会项里排第一,比可视化 70% 还高)。JD 原文样本:"熟悉 SQL Server/MySQL,有 EF/Dapper 经验""熟悉 SQL Server,有大数据量存储优化经验"。
+<strong>你的现状</strong>:Node 后端出身,CRUD 都了解但不深入,没碰过高并发——<strong>这份文档先拆掉一个焦虑,再补三块真缺口</strong>。
+<strong>优先级声明</strong>:数据库(100%)&gt; 大屏(10-15%)。冲刺周时间只够加一个,加这个。
+配套:<a href="M4.html">M4</a>(EF/双写)+<a href="M12.html">M12 Day2</a>(换库零改/Dapper)+<a href="proj-read.html">导读第 6 站</a>(索引逐行讲)。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">〇、先拆焦虑:你怕的"高并发"不是上位机考的</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>互联网后端(Node 世界)</th>
+<th>上位机/工业(你要面试的)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>压力来源</td>
+<td>万级用户同时读写</td>
+<td><strong>1 台设备 100Hz × N 点位 ≈ 几百次写/秒</strong></td>
+</tr>
+<tr>
+<td>真命题</td>
+<td>缓存穿透/分库分表/主从/熔断</td>
+<td><strong>高频写不丢不卡 + 历史表越来越大怎么办</strong></td>
+</tr>
+<tr>
+<td>面试考不考</td>
+<td>后端岗考</td>
+<td><strong>基本不考</strong>(13-15K 上位机 JD 没人问读写分离)</td>
+</tr>
+<tr>
+<td>标准答案</td>
+<td>一整套中间件</td>
+<td><strong>你项目里就有</strong>:Channel 串行写泵 + 攒批 + 索引 + 分表归档</td>
+</tr>
+</tbody>
+</table>
+<p>🎤 <strong>你的"高并发"面试话术(背下来,这就是工业版高并发答案)</strong>:</p>
+<blockquote>
+<p>"我的项目采集频率 100Hz 多点位,直接逐条写库会拖垮采集线程还触发 SQLite 单写者锁。我的方案是<strong>三层</strong>:①EF Core 不直接写,写请求进 <code>Channel</code> 队列(SingleReader 串行化,天然满足单写者);②攒批:攒满 N 条或 200ms 整批落库,把每秒几百次写压缩成每秒 5 次批量写;③查询路径建 (point_id, time) 复合索引,历史查询毫秒级。真要上海量,再换 SQL Server + Dapper 批量插入或 SqlBulkCopy。"</p>
+</blockquote>
+<p>——<strong>没有高并发经历没关系,你有一套完整的工业版高频写方案,这是等效资历。</strong></p>
+<hr />
+<h2 id="sec-2-2">一、三级分级表(数据库版,先看考多深)</h2>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>🔴 必会(笔试/白板)</th>
+<th>🟡 会说(1分钟)</th>
+<th>⚪ 了解即可(一句话)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SQL 手写</strong></td>
+<td>WHERE/聚合/GROUP BY/JOIN/时间窗/分页(第二节 12 题)</td>
+<td>子查询</td>
+<td>窗口函数</td>
+</tr>
+<tr>
+<td><strong>索引</strong></td>
+<td>为什么快(书的目录)/复合索引最左前缀/写多读少别滥建</td>
+<td>索引拖慢写入的量级</td>
+<td>碎片重建</td>
+</tr>
+<tr>
+<td><strong>EF/ORM</strong></td>
+<td>换库=换连接串+包(业务零改)/Add+SaveChanges 两段/AsNoTracking</td>
+<td>EF vs Dapper 取舍</td>
+<td>迁移脚手架细节</td>
+</tr>
+<tr>
+<td><strong>高频写</strong></td>
+<td>攒批+串行队列(上文话术)</td>
+<td>SqlBulkCopy 海量最快</td>
+<td>WAL 模式</td>
+</tr>
+<tr>
+<td><strong>大数据量</strong></td>
+<td>—</td>
+<td>按月分表/定期归档/冷热分离(第三节)</td>
+<td>分区表</td>
+</tr>
+<tr>
+<td><strong>事务/连接</strong></td>
+<td>—</td>
+<td>事务 ACID 一句/DbContext 短命=线程不安全</td>
+<td>连接池参数</td>
+</tr>
+<tr>
+<td><strong>互联网那套</strong></td>
+<td>—</td>
+<td>—</td>
+<td>主从/读写分离/分库分表(<strong>上位机不考,别浪费时间</strong>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-3">二、SQL 手写 12 题(🔴 必会,2 小时;表就是你项目里的表)</h2>
+<blockquote>
+<p>练习表 = 你项目的真实表,<strong>打开 <code>%LocalAppData%\DaqMonitor\daq.db</code>(VSCode SQLite 插件)边写边验</strong>:
+<code>sensor_record(id, point_id, value, time)</code> + 假想配置表 <code>point_def(point_id, name, unit)</code>
+方言:答案给 SQLite,括号注 SQL Server 差异。<strong>先自己写,再看答案。</strong></p>
+</blockquote>
+<p><strong>① 查点位 1 今天的全部记录</strong></p>
+<pre><code class="language-sql">SELECT * FROM sensor_record
+WHERE point_id = 1 AND time &gt;= date('now','start of day');
+-- SQL Server: WHERE point_id=1 AND time &gt;= CAST(GETDATE() AS DATE)
+</code></pre>
+<p><strong>② 点位 1 今天的最大/最小/平均</strong></p>
+<pre><code class="language-sql">SELECT MAX(value), MIN(value), AVG(value) FROM sensor_record
+WHERE point_id = 1 AND time &gt;= date('now','start of day');
+</code></pre>
+<p><strong>③ 每个点位今天的平均值</strong>(GROUP BY 必考)</p>
+<pre><code class="language-sql">SELECT point_id, AVG(value) FROM sensor_record
+WHERE time &gt;= date('now','start of day')
+GROUP BY point_id;
+</code></pre>
+<p><strong>④ 每小时平均温度</strong>(时间截断聚合——<strong>班报/日报的核心 SQL</strong>,面试最爱)</p>
+<pre><code class="language-sql">SELECT strftime('%Y-%m-%d %H:00', time) AS 小时, AVG(value)
+FROM sensor_record WHERE point_id = 1
+GROUP BY strftime('%Y-%m-%d %H:00', time);
+-- SQL Server: GROUP BY DATEADD(HOUR, DATEDIFF(HOUR,0,time), 0) 或 FORMAT(time,'yyyy-MM-dd HH:00')
+</code></pre>
+<p><strong>⑤ 最新的 100 条</strong></p>
+<pre><code class="language-sql">SELECT * FROM sensor_record ORDER BY time DESC LIMIT 100;
+-- SQL Server: SELECT TOP 100 ... ORDER BY time DESC
+</code></pre>
+<p><strong>⑥ 今天值超过 100 的次数</strong></p>
+<pre><code class="language-sql">SELECT COUNT(*) FROM sensor_record
+WHERE value &gt; 100 AND time &gt;= date('now','start of day');
+</code></pre>
+<p><strong>⑦ JOIN:查出"温度传感器"这个点位的名字+单位+最新值</strong>(配置表联历史表)</p>
+<pre><code class="language-sql">SELECT d.name, d.unit, r.value, r.time
+FROM sensor_record r JOIN point_def d ON r.point_id = d.point_id
+WHERE d.name = '温度传感器'
+ORDER BY r.time DESC LIMIT 1;
+</code></pre>
+<p><strong>⑧ 每个点位今天的报警次数</strong>(条件计数 SUM CASE——比子查询优雅,说出来加分)</p>
+<pre><code class="language-sql">SELECT point_id,
+       SUM(CASE WHEN value &gt; 100 THEN 1 ELSE 0 END) AS 报警次数
+FROM sensor_record
+WHERE time &gt;= date('now','start of day')
+GROUP BY point_id;
+</code></pre>
+<p><strong>⑨ 删除 30 天前的旧数据</strong>(归档场景,工业真实需求)</p>
+<pre><code class="language-sql">DELETE FROM sensor_record WHERE time &lt; date('now','-30 day');
+-- 面试追问&quot;亿级表这么删会锁死怎么办&quot; → 答:分批删(LIMIT 循环)或按月分表直接 DROP 整月
+</code></pre>
+<p><strong>⑩ 分页:第 3 页,每页 50 条</strong></p>
+<pre><code class="language-sql">SELECT * FROM sensor_record ORDER BY time DESC LIMIT 50 OFFSET 100;
+-- SQL Server: OFFSET 100 ROWS FETCH NEXT 50 ROWS ONLY(2012+)
+</code></pre>
+<p><strong>⑪ 按天统计数据量</strong>(工业真实用途:<strong>对账——每天应采 N 条,少了对不上就是丢点</strong>)</p>
+<pre><code class="language-sql">SELECT date(time) AS 天, COUNT(*) FROM sensor_record
+GROUP BY date(time) ORDER BY 天 DESC;
+</code></pre>
+<p><strong>⑫ 概念题:<code>(point_id, time)</code> 复合索引,下面哪条查询用得上?</strong></p>
+<pre><code>A. WHERE point_id=1 AND time&gt;今天     → ✅ 完美命中(最左前缀 point_id + time 范围)
+B. WHERE time&gt;今天                    → ❌ 用不上(跳过最左列 point_id,索引白建;单建 time 索引才救它)
+C. WHERE point_id=1                   → ✅ 部分命中(最左前缀)
+</code></pre>
+<blockquote>
+<p><strong>最左前缀法则</strong>:复合索引像电话簿(姓,名)——知道"姓张"能翻目录,只知道"名伟"只能全本扫。<strong>这就是你项目建 (point_id,time) 而不是 (time,point_id) 的原因</strong>——最高频查询是"某点位某时段"。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-4">三、大数据量优化:会说版话术(JD"大数据量存储优化经验"对应题)</h2>
+<p>面试官问"<strong>跑了一年后,历史表几亿行,查询变慢怎么办?</strong>"——四板斧按顺序答:</p>
+<ol>
+<li><strong>索引先说</strong>:确认查询路径有覆盖索引(你的 (point_id,time)),先看是不是索引缺了而不是数据多了;</li>
+<li><strong>按月分表</strong>:sensor_record_202608 / sensor_record_202609…查询跨表 UNION,删除=直接 DROP 整张月表(比 DELETE 快一万倍);</li>
+<li><strong>冷热分离</strong>:热数据(近 3 个月)留主库,冷数据归档到归档库/文件(导 CSV/Parquet),界面查"历史"默认只查热区;</li>
+<li><strong>写入侧减量</strong>:不是每个原始点都要存——<strong>只存变化点和聚合值</strong>(每分钟存 min/avg/max 三个值,存储降 99%),这叫<strong>死区/压缩记录</strong>,组态软件(SCADA)的标配功能。</li>
+</ol>
+<blockquote>
+<p>能把 2/3/4 讲出来,你就覆盖了 JD 那句"大数据量存储优化经验"。</p>
+</blockquote>
+<h2 id="sec-2-5">四、事务/连接池:Node 背景一秒映射表</h2>
+<table>
+<thead>
+<tr>
+<th>你会的(Node)</th>
+<th>C#/.NET 对应</th>
+<th>面试一句话</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>prisma.$transaction</code></td>
+<td><code>dbTransaction</code> / EF <code>SaveChanges</code> 默认包一个事务</td>
+<td>"EF 一次 SaveChanges 里的多条变更要么全成要么全滚"</td>
+</tr>
+<tr>
+<td>pg pool / 连接复用</td>
+<td>ADO.NET <strong>连接池</strong>(默认开)</td>
+<td>"DbContext 短命不是浪费——底层连接池在复用,开/关连接是逻辑的不是物理的"</td>
+</tr>
+<tr>
+<td><code>prisma migrate</code></td>
+<td>EF <strong>Migrations</strong>(版本化改表)</td>
+<td>"开发 EnsureCreated 快速起,生产 Migrations 管演进"</td>
+</tr>
+<tr>
+<td>Knex/Sequelize 查询构建器</td>
+<td><strong>LINQ</strong>(被 EF 翻译成 SQL)</td>
+<td>"LINQ 是强类型的 SQL 构建器,翻译发生在数据库端"</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sec-2-6">五、连环追问预埋(5 连,每题 15 秒)</h2>
+<ol>
+<li><strong>"高频采集怎么入库不丢不卡?"</strong> → 第〇节话术(队列+攒批+索引)</li>
+<li><strong>"一年后表 10 亿行?"</strong> → 第三节四板斧</li>
+<li><strong>"为什么开发用 SQLite、上线换什么?"</strong> → "SQLite 单文件零部署适合单机版客户;网络版/多客户端换 SQL Server——EF 面向提供程序,换连接串业务零改,我项目实测过(Bootstrapper 一行)"</li>
+<li><strong>"EF 和 Dapper 怎么选?"</strong> → "业务 CRUD 用 EF(开发效率+迁移),高频写/复杂报表 SQL 用 Dapper(可控+快),混合用不冲突"</li>
+<li><strong>"两条写入必须同时成功?"</strong> → "包事务:Begin→两次写→Commit,任何一步失败整体回滚;EF 里多个 Add 一次 SaveChanges 天然如此"</li>
+</ol>
+<h2 id="sec-2-7">六、冲刺周怎么排(总计 2.5 小时)</h2>
+<table>
+<thead>
+<tr>
+<th>时段</th>
+<th>动作</th>
+<th>产出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D5 白天 1h</td>
+<td>12 题<strong>手写</strong>(白纸,别看答案)→ 对答案,错的进错题本</td>
+<td>SQL 笔试不慌</td>
+</tr>
+<tr>
+<td>D5 白天 30min</td>
+<td>打开 daq.db 把 12 题真跑一遍(①-⑪)</td>
+<td>手感+真数据</td>
+</tr>
+<tr>
+<td>D5 晚上</td>
+<td>第〇节话术 + 第三节四板斧 + 5 连追问,各背 2 遍出声</td>
+<td>面试口径成型</td>
+</tr>
+<tr>
+<td>选做(D6 有余力)</td>
+<td>M12 基础题:项目切 SQL Server LocalDB 跑通(一行 UseSqlServer)</td>
+<td>简历加"支持 SQLite/SQL Server 双库切换"</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>大屏(10-15% 出现率)让位给这份(100% 出现率)——<strong>数据说了算</strong>。</p>
+</blockquote>
+<hr />
+<p><em>本文档是面试导向速攻,系统学习仍走 <a href="M4.html">M4</a> → <a href="M12.html">M12</a>;索引原理逐行版见<a href="proj-read.html">导读第 6 站</a>。</em></p>
+<div class="pager">
+  <a class="prev" href="sim-lab.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🧪 协议仿真实验室 · 免费模拟器指南</div></a>
+  <a class="next" href="links.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">附录 · 外部链接索引</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>
