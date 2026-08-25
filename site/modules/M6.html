@@ -58,6 +58,11 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-9">模块交付清单（M6）</a><ul>
 </ul></li>
+<li class="l2"><a href="#sec-2-10">🔧 工程对齐补丁(2026-08-25 审计后补)</a><ul>
+<li class="l3"><a href="#sec-3-15">补丁① 工程版 Evaluate 全文(背下这 53 行,报警题全通)</a></li>
+<li class="l3"><a href="#sec-3-16">补丁② 四个精华逐个点名(面试考点)</a></li>
+<li class="l3"><a href="#sec-3-17">补丁③ Serilog 与工程的真实关系(别说漏)</a></li>
+</ul></li>
 </ul></aside>
   <main class="content">
 <h1 id="sec-1-1">M6 — 报警引擎 + 日志（Serilog）</h1>
@@ -347,6 +352,79 @@ public class AlarmEngine
 <li>[ ] Serilog 分级 + 滚动文件日志</li>
 <li>[ ] 全局异常捕获写日志</li>
 </ul>
+<hr />
+<h2 id="sec-2-10">🔧 工程对齐补丁(2026-08-25 审计后补)</h2>
+<blockquote>
+<p>讲义正文的教学版 <code>AlarmEngine</code> 留了 <code>/* 回滞+边沿逻辑见工程源码 */</code> 的口子;工程真实版(<code>Alarms/AlarmEngine.cs</code>,53 行)的四个精华补在这里。逐行版见 <a href="proj-read.html">逐行导读 · 第 7 站</a>。</p>
+</blockquote>
+<h3 id="sec-3-15">补丁① 工程版 Evaluate 全文(背下这 53 行,报警题全通)</h3>
+<pre><code class="language-csharp">public void Evaluate(SensorPoint p)
+{
+    List&lt;AlarmRule&gt; snapshot;
+    lock (_gate) snapshot = _rules.ToList();               // ← 精华3:拍快照,防遍历中被增删
+
+    foreach (var r in snapshot)
+    {
+        if (r.PointId != p.Id) continue;
+        bool breach = r.IsHigh ? p.Value &gt; r.Threshold : p.Value &lt; r.Threshold;
+        bool inBand = r.Hysteresis &gt; 0 &amp;&amp; Math.Abs(p.Value - r.Threshold) &lt;= r.Hysteresis;
+
+        if (breach &amp;&amp; !inBand)                             // 真越界 = 越界 &amp;&amp; 不在回滞带内
+        {
+            bool wasActive;
+            lock (_gate) wasActive = !_active.Add(p.Id);   // ← 精华2:Add 顺手返回&quot;之前在不在&quot;
+            if (!wasActive)                                // ← 精华1:只在上升沿(第一次变坏)广播
+                AlarmTriggered?.Invoke(this, new AlarmEvent { PointId = p.Id, Level = r.Level, Value = p.Value });
+        }
+        else if (!breach &amp;&amp; r.Hysteresis &gt; 0)
+        {
+            bool wasActive;
+            lock (_gate) wasActive = _active.Remove(p.Id);
+            if (wasActive)                                 // ← 精华4:下降沿才广播恢复
+                AlarmCleared?.Invoke(this, new AlarmEvent { PointId = p.Id, Level = r.Level, Value = p.Value });
+        }
+    }
+}
+</code></pre>
+<h3 id="sec-3-16">补丁② 四个精华逐个点名(面试考点)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>精华</th>
+<th>一句话</th>
+<th>面试怎么问</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>边沿触发</strong></td>
+<td><code>HashSet&lt;int&gt; _active</code> 记着"谁还在报警中"——持续越界的第 2、3、4…条全部静默,只广播状态翻转的瞬间</td>
+<td>"怎么防报警刷屏?"</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Add/Remove 返回值</strong></td>
+<td><code>_active.Add(id)</code> 返回"之前在不在"——一行原子完成"查+改",锁内只干纳秒级的事</td>
+<td>"为什么不用先 Contains 再 Add?"</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>ToList 快照</strong></td>
+<td>遍历前复制规则表——遍历中别的线程 Add 规则不会炸</td>
+<td>"遍历中改集合会怎样?"</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>AlarmCleared 双事件</strong></td>
+<td>恢复也是事件(UI 表盘红→蓝),与触发对称</td>
+<td>"UI 怎么知道报警好了?"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-17">补丁③ Serilog 与工程的真实关系(别说漏)</h3>
+<p>本讲义教的 Serilog 配置是<strong>外延技能</strong>(面试要会);<strong>工程当前没接 Serilog</strong>,日志走自研 <code>DiagnosticsService</code>(环形缓冲 200 条,诊断面板直接绑)。面试话术:"项目用轻量自研诊断服务;Serilog 我会配,生产级滚动文件+分级我清楚差别在哪。"——比假装接了更稳。</p>
 <div class="pager">
   <a class="prev" href="M5.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M5 · 实时可视化</div></a>
   <a class="next" href="M7.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M7 · OPC UA / MQTT 上云</div></a>

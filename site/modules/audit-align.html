@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🔍 逐行导读 × 模块讲义对齐审计 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="audit-align">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、修复总账(已落进讲义,直接生效)</a><ul>
+<li class="l3"><a href="#sec-3-1">M0(4 处硬伤)</a></li>
+<li class="l3"><a href="#sec-3-2">M4 / M6 / M8 / M9(各补一节「🔧 工程对齐补丁」)</a></li>
+<li class="l3"><a href="#sec-3-3">M0 也补了一节</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、抽查结论(没改的,给你交底)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、遗留偏浅清单(不阻塞学习,后续迭代)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、对学习路径的影响(一句话)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">🔍 审计 · 逐行导读 × 模块讲义对齐(2026-08-25)</h1>
+<blockquote>
+<p><strong>背景</strong>:《<a href="proj-read.html">项目逐行导读 · DaqMonitor 从零到吃透</a>》每站贴了「📚 对应讲义」链接。链接成立的前提 = 讲义真能撑起"回讲义重学"。本次以<strong>导读各站的知识点清单为标尺</strong>,并行深读 M0/M4/M6/M8/M9 五份主线讲义,查三件事:<strong>知识点漏没漏 / 讲得透不透 / 练习和答案对不对得上</strong>。
+<strong>结论</strong>:整体支撑度约 70%;发现 <strong>13 处硬伤已当场修复</strong>(讲义已改),<strong>5 节「工程对齐补丁」已补进讲义</strong>,其余偏浅项列入下方清单供后续迭代。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、修复总账(已落进讲义,直接生效)</h2>
+<h3 id="sec-3-1">M0(4 处硬伤)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>问题</th>
+<th>修复</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>「类型依赖总览」表 7 处与工程不符:SensorPoint 误标 <code>readonly struct</code>;DeviceState/AlarmLevel 标成独立文件(实际与 SensorPoint 同文件);DeviceBase 标 <code>DeviceBase.cs</code>(实际与 IDevice 同文件);Pipeline 文件夹误标 <code>Pipeline/</code>(实际 <code>Acquisition/</code>);SensorRecord 误标 <code>Persistence/</code>(实际 <code>Store/</code>);AlarmEvent 误标 <code>Models/</code>(实际 <code>Alarms/</code>)</td>
+<td>全部改正,并加"同文件"提示</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Day 7 挑战题<strong>题目自相矛盾</strong>:前句要求 DispatcherTimer、末句要求"必须用 Dispatcher.Invoke",答案(DispatcherTimer 版)答非所问</td>
+<td>题目改为与答案一致的 DispatcherTimer 路线,并新增「DispatcherTimer vs Dispatcher.Invoke 是两回事」辨析框 + 想练 Invoke 的改造指引</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Day 6 答案用 <code>DataEventArgs</code> 未提示 using;Day 5/Day 6 两份答案都定义 <code>Thermometer</code>,先后粘贴会重名冲突</td>
+<td>补「两个防撞墙提示」</td>
+</tr>
+<tr>
+<td>4</td>
+<td>「完整代码组装」节残留旧机器绝对路径 <code>F:\00_project\...</code>;DeviceBase 又标独立文件;"28 测试"过时</td>
+<td>改为相对路径 + 同文件说明 + 85 测试</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-2">M4 / M6 / M8 / M9(各补一节「🔧 工程对齐补丁」)</h3>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>审计发现的缺口(❌=讲义零覆盖)</th>
+<th>补丁内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M4</strong></td>
+<td>❌Fluent API 全套(工程用 Fluent API,讲义只教特性版) ❌Channel 串行写泵(工程 PointStore 灵魂)</td>
+<td>补丁① Fluent API 全套+复合索引为什么;补丁② 写泵三件套+database is locked;补丁③ EnsureCreated/Migrations/断电取舍/构造差异四个一句话</td>
+</tr>
+<tr>
+<td><strong>M6</strong></td>
+<td>❌AlarmCleared 双事件 ❌HashSet.Add/Remove 返回值语义 ❌ToList 快照 ⚠️边沿触发只有一句话</td>
+<td>补丁① 工程版 Evaluate 全文(53 行核心);补丁② 四个精华逐个点名+面试问法;补丁③ Serilog 与工程真实关系(工程未接,别装接了)</td>
+</tr>
+<tr>
+<td><strong>M8</strong></td>
+<td>❌手写 RelayCommand(讲义只教 Toolkit 源生成器,工程是手写) ❌ObservableCollection 局限/PointView ❌struct 不能绑 UI ❌IValueConverter/TemplateColumn/双条件</td>
+<td>补丁① 手写 RelayCommand 29 行+CanExecuteChanged 转接原理;补丁② INPC 模板+PointView 存在意义+OC 局限;补丁③ Converter/TemplateColumn/双条件速记;开头点明"Toolkit 帮你生成了手写那套"</td>
+</tr>
+<tr>
+<td><strong>M9</strong></td>
+<td>❌GetServices 多实例 ❌Func 工厂注入 ❌容器 Dispose 级联 ⚠️GetRequiredService vs GetService 无对比</td>
+<td>补丁①②③④:多实例/工厂注入(工程 TcpDevice 真例)/单复数解析死法对比/Dispose 总闸(挂在主窗 Closed)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-3">M0 也补了一节</h3>
+<table>
+<thead>
+<tr>
+<th>缺口</th>
+<th>补丁</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>❌登录拦截(ShowDialog/bool?/Shutdown+return) ❌async void 全包 try-catch ❌Start 幂等守卫/Stop Wait(500) ❌SingleReader 选项 ❌10% 越界剧本</td>
+<td>「工程对齐补丁」三小节:启动三件套/Start-Stop 对称防御/SingleReader+剧本设计</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sec-2-2">二、抽查结论(没改的,给你交底)</h2>
+<ul>
+<li><strong>M5 ✅ / M14 ✅</strong>:LiveCharts2 接入、自定义控件自绘与工程 ChartView/GaugeControl 完全对得上,支撑充分。</li>
+<li><strong>练习答案抽查</strong>(M0×4、M4×2、M6×2、M8/M9×3):除已修复的 M0 Day7/Day6 两处,其余答案与题面匹配、类型签名与工程/前置类型定义一致,照敲可编译。</li>
+<li><strong>M6 进阶题(回滞序列)⚠️ 留观</strong>:教学版 Evaluate 本身不含回滞实现,答案只有注释级判定——现已由「补丁① 工程版全文」补齐,做该题时直接对照工程版。</li>
+</ul>
+<h2 id="sec-2-3">三、遗留偏浅清单(不阻塞学习,后续迭代)</h2>
+<table>
+<thead>
+<tr>
+<th>讲义</th>
+<th>点</th>
+<th>现状</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M0</td>
+<td>IEC 60073 报警分色含义</td>
+<td>导读第 2 站已讲,讲义一句话带过</td>
+</tr>
+<tr>
+<td>M0</td>
+<td>params/<code>: base()</code> 构造链示例</td>
+<td>速查有,讲义正文无完整示例</td>
+</tr>
+<tr>
+<td>M0</td>
+<td>攒批"锁内换引用"手法</td>
+<td>导读第 5 站逐行讲了,讲义正文一句带过</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>双写内存索引(List+Dictionary)展开</td>
+<td>导读第 6 站逐行讲了</td>
+</tr>
+<tr>
+<td>M9</td>
+<td>魔数集中组合根的管理思想</td>
+<td>导读第 9 站讲了</td>
+</tr>
+<tr>
+<td>M8</td>
+<td>Dispatcher"包整批"原理</td>
+<td>在 M9 Day3(已存在),非缺失,只是跨模块</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>偏浅项的共同解法 = 导读对应站(这正是导读存在的意义:讲义管教学动线,导读管工程逐行)。</p>
+</blockquote>
+<h2 id="sec-2-4">四、对学习路径的影响(一句话)</h2>
+<p><strong>现在"导读卡壳 → 点 📚 讲义 → 回来继续"这条链路是通的</strong>:硬伤已修,缺口已补,链接指向的每一处都有真货。剩余偏浅项不影响主线,遇到再深挖。</p>
+<div class="pager">
+  <a class="prev" href="audit-v3.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">🔍 30 天路线第二轮审计 v3 · 连贯性/正确性/深度</div></a>
+  <a class="next" href="jd-research.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">📊 JD 调研 · 13-15K 上位机岗位对照</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>

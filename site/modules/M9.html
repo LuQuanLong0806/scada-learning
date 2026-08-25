@@ -74,6 +74,12 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-10">📚 延伸阅读（卡点时点开）</a><ul>
 </ul></li>
+<li class="l2"><a href="#sec-2-11">🔧 工程对齐补丁:容器进阶四件(2026-08-25 审计后补)</a><ul>
+<li class="l3"><a href="#sec-3-29">① 同接口多实例 + GetServices(复数)</a></li>
+<li class="l3"><a href="#sec-3-30">② Func 工厂注入(参数要运行时才有的服务)</a></li>
+<li class="l3"><a href="#sec-3-31">③ GetRequiredService vs GetService(一行之差,死法不同)</a></li>
+<li class="l3"><a href="#sec-3-32">④ 容器 Dispose 级联(程序的"总闸")</a></li>
+</ul></li>
 </ul></aside>
   <main class="content">
 <h1 id="sec-1-1">M9 — 工程素养：单元测试 / DI 容器 / 统一采集 / 生产容错 🛡️</h1>
@@ -760,6 +766,36 @@ public static ServiceProvider Build()
 <li>异步/取消令牌：<code>CancellationToken</code> https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken</li>
 <li>全部模块外链汇总见 <code>外部链接索引.md</code></li>
 </ul>
+<hr />
+<h2 id="sec-2-11">🔧 工程对齐补丁:容器进阶四件(2026-08-25 审计后补)</h2>
+<blockquote>
+<p>工程 <code>Bootstrapper.cs</code> 用到的四个容器进阶用法,正文未展开。逐行版见 <a href="proj-read.html">逐行导读 · 第 9 站</a>。</p>
+</blockquote>
+<h3 id="sec-3-29">① 同接口多实例 + GetServices(复数)</h3>
+<pre><code class="language-csharp">// 注册:X 轴、Y 轴都是 IAxisController,注册两次
+services.AddSingleton&lt;IAxisController&gt;(_ =&gt; new SimulatedAxisController(xConfig));
+services.AddSingleton&lt;IAxisController&gt;(_ =&gt; new SimulatedAxisController(yConfig));
+
+// 解析:单数 GetService 只给&quot;最后一个&quot;;复数 GetServices 给全部
+var axes = provider.GetServices&lt;IAxisController&gt;();   // [X轴, Y轴]
+</code></pre>
+<p>💡 前端类比:provide 一个 key 多次,inject 拿到的是数组——同款逻辑。</p>
+<h3 id="sec-3-30">② Func 工厂注入(参数要运行时才有的服务)</h3>
+<p>TcpDevice 的 host/port 要用户输入才知道,没法开机注册死 → <strong>注册"造它的函数"本身</strong>:</p>
+<pre><code class="language-csharp">services.AddSingleton&lt;Func&lt;string, int, TcpDevice&gt;&gt;(
+    _ =&gt; (host, port) =&gt; new TcpDevice(host, port, ...));
+
+// 用的时候:先取工厂,再&quot;现点现做&quot;
+var factory = provider.GetRequiredService&lt;Func&lt;string, int, TcpDevice&gt;&gt;();
+var tcp = factory(&quot;192.168.1.10&quot;, 502);
+</code></pre>
+<h3 id="sec-3-31">③ GetRequiredService vs GetService(一行之差,死法不同)</h3>
+<pre><code class="language-csharp">var a = provider.GetService&lt;PointStore&gt;();        // 没注册 → 返回 null → 下游 NullReferenceException,错在离案发现场很远的地方
+var b = provider.GetRequiredService&lt;PointStore&gt;(); // 没注册 → 立刻抛 InvalidOperationException,**死在装配现场,一眼看到漏注册了谁**
+</code></pre>
+<p>💡 口诀:<strong>生产代码用 Required,让问题死在出生地</strong>。</p>
+<h3 id="sec-3-32">④ 容器 Dispose 级联(程序的"总闸")</h3>
+<p><code>Services.Dispose()</code> 一刀下去,容器管理的所有单例只要实现 IDisposable 就<strong>被连坐释放</strong>——数据库工厂、写泵、管道定时器全在这一刻收摊。工程把这个动作挂在主窗口 <code>Closed</code> 事件里(App.xaml.cs 53 行):窗口一关,全应用善后,进程干干净净退出。💼 面试:"长跑程序怎么保证不泄漏?"——订阅成对 + 资源 Dispose + 容器总闸,三层。</p>
 <div class="pager">
   <a class="prev" href="M8.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M8 · 工程化收尾</div></a>
   <a class="next" href="M10.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">M10 · 报表</div></a>

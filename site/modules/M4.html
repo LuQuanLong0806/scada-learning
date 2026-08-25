@@ -62,6 +62,11 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-9">模块交付清单（M4）</a><ul>
 </ul></li>
+<li class="l2"><a href="#sec-2-10">🔧 工程对齐补丁(2026-08-25 审计后补)</a><ul>
+<li class="l3"><a href="#sec-3-19">补丁① Fluent API 全套(工程 AppDbContext 用的就是它,不是特性版)</a></li>
+<li class="l3"><a href="#sec-3-20">补丁② Channel 串行写泵(工程 PointStore 的灵魂,讲义正文零覆盖)</a></li>
+<li class="l3"><a href="#sec-3-21">补丁③ 三个一句话对照</a></li>
+</ul></li>
 </ul></aside>
   <main class="content">
 <h1 id="sec-1-1">M4 — 数据持久化（EF Core + SQLite）</h1>
@@ -509,6 +514,55 @@ public class HistoryRepository
 <li>[ ] CSV 导出</li>
 <li>[ ] 仓储模式解耦</li>
 <li>[ ] 迁移 Migration（企业级必会）</li>
+</ul>
+<hr />
+<h2 id="sec-2-10">🔧 工程对齐补丁(2026-08-25 审计后补)</h2>
+<blockquote>
+<p>讲义正文教的是<strong>特性版([Index]) + 基础双写</strong>;真实工程 <code>AppDbContext.cs</code>/<code>PointStore.cs</code> 用了<strong>Fluent API 全套 + Channel 写泵</strong>——两个核心差异补在这里。逐行版见 <a href="proj-read.html">逐行导读 · 第 6 站</a>。</p>
+</blockquote>
+<h3 id="sec-3-19">补丁① Fluent API 全套(工程 AppDbContext 用的就是它,不是特性版)</h3>
+<p>特性版贴 <code>[Index]</code> 简洁,但<strong>列名映射、枚举转字符串、复合索引</strong>它干不了;Fluent API 全能。工程写法(节选,可直接抄):</p>
+<pre><code class="language-csharp">protected override void OnModelCreating(ModelBuilder mb)
+{
+    var e = mb.Entity&lt;SensorRecord&gt;();
+    e.ToTable(&quot;sensor_record&quot;);                                    // 表名(蛇形,数据库端惯例)
+    e.HasKey(x =&gt; x.Id);                                           // 主键
+    e.Property(x =&gt; x.Id).ValueGeneratedOnAdd();                  // 自增
+    e.Property(x =&gt; x.PointId).HasColumnName(&quot;point_id&quot;).IsRequired();   // C#属性→列名映射
+    e.Property(x =&gt; x.State).HasConversion&lt;string&gt;().IsRequired();      // 枚举存字符串(&quot;Online&quot;),查库能看懂
+    e.HasIndex(x =&gt; new { x.PointId, x.Time })                     // 复合索引:按查询路径建
+     .HasDatabaseName(&quot;ix_record_point_time&quot;);
+}
+</code></pre>
+<p>💡 <strong>为什么建 (PointId, Time) 复合索引</strong>:历史查询最高频的是"某点位某时段曲线",没索引=全表翻,有索引=翻目录直达。<strong>按查询路径建索引,不是越多越好</strong>(每个索引都拖慢写入)。</p>
+<h3 id="sec-3-20">补丁② Channel 串行写泵(工程 PointStore 的灵魂,讲义正文零覆盖)</h3>
+<p><strong>病</strong>:多线程同时 <code>SaveChangesAsync</code> → SQLite 报 <code>database is locked</code>(它是<strong>文件级单写者</strong>数据库)。
+<strong>药</strong>(工程 PointStore 全套):</p>
+<pre><code class="language-csharp">// 1) 建一个&quot;单消费者&quot;队列(SingleReader=true:告诉 Channel 只有一个读者,内部省锁更快)
+private readonly Channel&lt;SensorRecord&gt; _writeQueue =
+    Channel.CreateUnbounded&lt;SensorRecord&gt;(
+        new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+
+// 2) AddOrUpdate 里:内存同步更新完,只把记录&quot;取号&quot;进队就返回(不等待落盘 → 采集线程零阻塞)
+_writeQueue.Writer.TryWrite(SensorRecord.FromPoint(p));
+
+// 3) 专职写泵:按 FIFO 顺序一条条写 → 天然错不开,满足单写者
+private async Task PumpWritesAsync()
+{
+    await foreach (var rec in _writeQueue.Reader.ReadAllAsync())
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        db.Records.Add(rec);
+        await db.SaveChangesAsync();
+    }
+}
+</code></pre>
+<p>大白话:银行叫号机——客户(写请求)随便取号,窗口(写泵)只有一个按号办,谁也撞不上。💼 面试:"SQLite 并发写怎么办?"先说约束(单写者),再说方案(写队列串行化),这个答题顺序就赢了。</p>
+<h3 id="sec-3-21">补丁③ 三个一句话对照</h3>
+<ul>
+<li><strong>EnsureCreated vs Migrations</strong>:EnsureCreated=没库建库(改了实体不会更新表结构);Migrations=版本化改表(生产必用)。工程当前用前者并注释了升级路径。</li>
+<li><strong>断电取舍口径</strong>:fire-and-forget 落盘,断电丢最后几十毫秒样本——丢的是历史不是状态,下一秒设备还会再报,工业口径可接受(实时性 &gt; 个别样本完整性)。</li>
+<li><strong>构造差异</strong>:本讲义的 <code>AppDb</code> 是无参构造 + <code>OnConfiguring</code>(教学简版);工程是 <code>AppDb(options)</code> 构造注入(配合 IDbContextFactory)。两种都要看得懂。</li>
 </ul>
 <div class="pager">
   <a class="prev" href="M3.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">M3 · PLC 通信(西门子 S7)</div></a>

@@ -123,9 +123,14 @@
 </ul></li>
 <li class="l2"><a href="#sec-2-13">🧩 完整代码组装（M0 全模块串联）</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-14">🔗 明日预告</a><ul>
+<li class="l2"><a href="#sec-2-14">🔧 工程对齐补丁(2026-08-25 审计后补)</a><ul>
+<li class="l3"><a href="#sec-3-72">① App 启动的"登录拦截"三件套(工程 App.xaml.cs)</a></li>
+<li class="l3"><a href="#sec-3-73">② Start/Stop 的对称防御(工程 SimulatedDevice)</a></li>
+<li class="l3"><a href="#sec-3-74">③ Channel 的 SingleReader 选项 + 10% 越界剧本</a></li>
 </ul></li>
-<li class="l2"><a href="#sec-2-15">📚 延伸阅读（卡点时点开）</a><ul>
+<li class="l2"><a href="#sec-2-15">🔗 明日预告</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-16">📚 延伸阅读（卡点时点开）</a><ul>
 </ul></li>
 </ul></aside>
   <main class="content">
@@ -177,7 +182,7 @@
 <tbody>
 <tr>
 <td><code>SensorPoint</code></td>
-<td>readonly struct</td>
+<td>struct(可变字段版,不是 readonly)</td>
 <td><code>DaqMonitor.Core/Models/SensorPoint.cs</code></td>
 <td>无</td>
 <td>Day 2</td>
@@ -185,14 +190,14 @@
 <tr>
 <td><code>DeviceState</code></td>
 <td>enum</td>
-<td><code>DaqMonitor.Core/Models/DeviceState.cs</code></td>
+<td>与 <code>SensorPoint</code> 同文件(<code>Models/SensorPoint.cs</code>)</td>
 <td>无</td>
 <td>Day 2</td>
 </tr>
 <tr>
 <td><code>AlarmLevel</code></td>
 <td>enum</td>
-<td><code>DaqMonitor.Core/Models/AlarmLevel.cs</code></td>
+<td>与 <code>SensorPoint</code> 同文件(<code>Models/SensorPoint.cs</code>)</td>
 <td>无</td>
 <td>Day 2</td>
 </tr>
@@ -227,7 +232,7 @@
 <tr>
 <td><code>DeviceBase</code></td>
 <td>abstract class</td>
-<td><code>DaqMonitor.Core/Devices/DeviceBase.cs</code></td>
+<td>与 <code>IDevice</code> 同文件(<code>Devices/IDevice.cs</code>)</td>
 <td><code>IDevice</code>,<code>SensorPoint</code></td>
 <td>Day 5</td>
 </tr>
@@ -255,7 +260,7 @@
 <tr>
 <td><code>AcquisitionPipeline</code></td>
 <td>class</td>
-<td><code>DaqMonitor.Core/Pipeline/AcquisitionPipeline.cs</code></td>
+<td><code>DaqMonitor.Core/Acquisition/AcquisitionPipeline.cs</code>(注意:是 <code>Acquisition/</code> 文件夹)</td>
 <td><code>SensorPoint</code>,<code>IDevice</code></td>
 <td>Day 7</td>
 </tr>
@@ -269,14 +274,14 @@
 <tr>
 <td><code>SensorRecord</code></td>
 <td>class(EF 实体)</td>
-<td><code>DaqMonitor.Core/Persistence/SensorRecord.cs</code></td>
+<td><code>DaqMonitor.Core/Store/SensorRecord.cs</code></td>
 <td>无</td>
 <td>M4</td>
 </tr>
 <tr>
 <td><code>AlarmEvent</code></td>
 <td>class</td>
-<td><code>DaqMonitor.Core/Models/AlarmEvent.cs</code></td>
+<td><code>DaqMonitor.Core/Alarms/AlarmEvent.cs</code></td>
 <td><code>AlarmLevel</code></td>
 <td>M6</td>
 </tr>
@@ -2916,6 +2921,7 @@ button.Click += async (_, _) =&gt; {
 }
 </code></pre>
 <blockquote>
+<p>⚠️ <strong>两个防撞墙提示</strong>:①<code>DataEventArgs</code> 定义在 <code>DaqMonitor.Core.Devices</code> 命名空间——非同命名空间文件要补 <code>using DaqMonitor.Core.Devices;</code>,否则报"找不到类型"。②Day 5 答案里也定义过一个 <code>Thermometer</code>(实现 IReadable 的那个)——<strong>同一个项目里粘贴两份会重名冲突</strong>,做 Day 6 前先把 Day 5 那份删掉或改名 <code>ThermometerV1</code>。</p>
 <p>📦 <strong>前置准备</strong>:需要 <code>IDevice</code> 接口 + <code>DeviceBase</code> 类已存在(Day 5 项目任务)。<strong>还没建 Core 工程?</strong> 跳到 <a href="#-立项目骨架本-day-项目任务的前提必做">Day 2 开头「📦 立项目骨架」</a>。</p>
 </blockquote>
 <p><strong>🏗️ 项目任务</strong>：在 Core 的 <code>IDevice</code>/<code>DeviceBase</code> 加 <code>event EventHandler&lt;DataEventArgs&gt; DataReceived</code> + <code>RaiseData</code>（工程里已真实存在）。让"采集→通知 UI"的架构闭环，这是 Day 7 + 后续实时刷新的地基。</p>
@@ -3519,7 +3525,13 @@ public async Task ProcessAsync(IProgress&lt;int&gt; progress, CancellationToken 
 <h3 id="sec-3-63">🟡 进阶题</h3>
 <p>用 <code>lock</code> 保护一个计数器，1000 个并行 <code>++</code> 后验证结果等于 1000。</p>
 <h3 id="sec-3-64">🔴 挑战题</h3>
-<p>写一个<strong>数据采集模拟器</strong>（WPF）：后台线程每 100ms 生成一条（温度+压力+时间戳）→ <code>ConcurrentQueue</code> 缓冲 → <code>DispatcherTimer</code> 每 500ms 取数显示到 <code>DataGrid</code> → 数据超 200 条自动删最旧 → 实时显示队列积压条数。要求必须用 <code>Task.Run</code> + <code>ConcurrentQueue</code> + <code>Dispatcher.Invoke</code> 更新 UI。</p>
+<p>写一个<strong>数据采集模拟器</strong>（WPF）：后台线程每 100ms 生成一条（温度+压力+时间戳）→ <code>ConcurrentQueue</code> 缓冲 → <code>DispatcherTimer</code> 每 500ms 取数显示到 <code>DataGrid</code> → 数据超 200 条自动删最旧 → 实时显示队列积压条数。要求必须用 <code>Task.Run</code> + <code>ConcurrentQueue</code> + <code>DispatcherTimer</code> 定时批量刷 UI。</p>
+<blockquote>
+<p>⚠️ <strong>DispatcherTimer 和 Dispatcher.Invoke 是两回事,别混</strong>(高频混淆):
+- <code>DispatcherTimer.Tick</code> <strong>本来就运行在 UI 线程</strong>——Tick 里直接改界面,合法,不需要再 Invoke(本答案走的就是这条路线,也是 DaqMonitor 工程的原型)。
+- <code>Dispatcher.Invoke</code> 是给<strong>后台线程回调</strong>用的——设备 <code>DataReceived</code> 事件、<code>Task.Run</code> 内部的代码想刷 UI,不包就抛 <code>InvalidOperationException: 调用线程无法访问此对象</code>。
+<strong>想练 Invoke?</strong> 把答案里的 <code>DispatcherTimer</code> 删掉,改在 <code>Task.Run</code> 循环内 <code>Application.Current.Dispatcher.Invoke(() =&gt; DataGrid.Items.Add(r))</code>——对比两种"跨到 UI 线程"的方式各适合什么场景(事件驱动用 Invoke,定时批量用 Timer)。</p>
+</blockquote>
 <p><strong>✅ 答案（挑战题核心骨架）</strong></p>
 <blockquote>
 <p>📂 <code>DaqMonitor.UI/MainWindow.xaml.cs</code> · namespace <code>DaqMonitor.UI</code>(默认)
@@ -3761,18 +3773,50 @@ var consumer = Task.Run(() =&gt; ConsumeAsync(cts.Token));
 <h2 id="sec-2-13">🧩 完整代码组装（M0 全模块串联）</h2>
 <p>学完 M0，你家 <code>DaqMonitor.Core</code> 里应有这些真实文件（与工程对齐）：</p>
 <pre><code>DaqMonitor.Core/
-├── Models/SensorPoint.cs        （Day2 struct + DeviceState 枚举）
-├── Devices/IDevice.cs            （Day5 接口）
-├── Devices/DeviceBase.cs        （Day4/5/6 基类：属性 + 事件 + RaiseData）
+├── Models/SensorPoint.cs        （Day2 struct + DeviceState/AlarmLevel 两个枚举,同文件）
+├── Devices/IDevice.cs            （Day5 接口 + Day4/5/6 基类 DeviceBase:属性 + 事件 + RaiseData,同文件）
 ├── Store/PointStore.cs          （Day3 双索引存储 + LINQ 报警筛选）
 └── Acquisition/AcquisitionPipeline.cs  （Day7 并发采集生产版）
 </code></pre>
 <blockquote>
-<p>这些在 <code>F:\00_project\上位机学习\DAQMonitor\src</code> 真实存在、可编译、28 测试守护。M0 不是"看完"，是"跑起一个会动的项目"。</p>
+<p>这些在你仓库的 <code>DAQMonitor/src</code> 下真实存在、可编译、85 测试守护。M0 不是"看完"，是"跑起一个会动的项目"。</p>
 </blockquote>
-<h2 id="sec-2-14">🔗 明日预告</h2>
+<h2 id="sec-2-14">🔧 工程对齐补丁(2026-08-25 审计后补)</h2>
+<blockquote>
+<p>三个工程真实写法,正文没来得及展开,补在这里。逐行版见 <a href="proj-read.html">逐行导读 · 第 1/4/5 站</a>。</p>
+</blockquote>
+<h3 id="sec-3-72">① App 启动的"登录拦截"三件套(工程 App.xaml.cs)</h3>
+<pre><code class="language-csharp">var loginWin = new LoginWindow(loginVm);
+var ok = loginWin.ShowDialog();          // 模态弹窗:代码停在这行等用户,返回 bool?(true=确认)
+if (ok != true)
+{
+    Shutdown();                          // 先关程序
+    return;                              // 再立刻退出方法——不 return 会继续往下开主窗!
+}
+</code></pre>
+<p>大白话:<strong>先验票再进厂</strong>。工业软件不能让未登录的人看到工艺参数,所以主窗口必须等登录结果。注意 <code>async void OnStartup</code> 里若要 await(如写审计日志),<strong>事件回调是 async void 唯一合法场景,且内部必须自己 try-catch 全包</strong>——异常漏出去进程直接崩。</p>
+<h3 id="sec-3-73">② Start/Stop 的对称防御(工程 SimulatedDevice)</h3>
+<pre><code class="language-csharp">public void Start(TimeSpan interval)
+{
+    if (_loop is not null) return;       // 幂等守卫:连点两次&quot;启动&quot;不会开两个循环(开了=数据翻倍+泄漏)
+    ...
+}
+public void Stop()
+{
+    _cts?.Cancel();                          // 按红色按钮
+    try { _loop?.Wait(500); } catch { }      // 给 500ms 体面收尾——但绝不死等(循环卡死不能拖死 UI)
+    _cts?.Dispose(); _cts = null; _loop = null;   // 清空 → 下次 Start 能重新启动(Start/Stop 必须对称)
+}
+</code></pre>
+<h3 id="sec-3-74">③ Channel 的 SingleReader 选项 + 10% 越界剧本</h3>
+<pre><code class="language-csharp">// 单消费者队列:告诉 Channel&quot;只有一个读者&quot;,内部能省掉并发协调,更快
+Channel.CreateUnbounded&lt;SensorRecord&gt;(
+    new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+</code></pre>
+<p>工程里两处用到(管道消费循环、PointStore 写泵),都满足"单读者"前提。另外工程模拟数据有个<strong>剧本设计</strong>:90% 概率产 20~90(正常),<strong>10% 概率故意产 95~120</strong>(越过报警阈值 100)——随机但不失控,想演示报警就让它每隔十几秒发生一次。测试数据也要设计,这是"能演示的项目"和"跑起来没动静的项目"的差别。</p>
+<h2 id="sec-2-15">🔗 明日预告</h2>
 <p><strong>M1 串口通信</strong>：用上面立好的 <code>IDevice</code>/<code>DeviceBase</code>，实现 <code>SerialDevice</code>，让设备从"模拟"变"真实串口收发"，并彻底搞懂 CRC 校验（M2 会手算）。</p>
-<h2 id="sec-2-15">📚 延伸阅读（卡点时点开）</h2>
+<h2 id="sec-2-16">📚 延伸阅读（卡点时点开）</h2>
 <ul>
 <li>C# 官方文档总入口：https://learn.microsoft.com/dotnet/csharp/</li>
 <li>异步编程 async/await 官方指南：https://learn.microsoft.com/dotnet/csharp/async —— <strong>必看</strong></li>

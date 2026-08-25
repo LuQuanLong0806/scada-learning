@@ -132,6 +132,9 @@ PAGES = [
     dict(slug="audit-v3", kind="support", file="审计_30天路线_v3_2026-08-10.md",
          title="🔍 30 天路线第二轮审计 v3 · 连贯性/正确性/深度", sub="4 维并行审计报告",
          what="P0 闭环断裂修复(4 处) + P1 路径修正 + MQTT/EF Core 概念补强 + P2 讲义缺口清单(M2/M3/M4 多线程)", src="🟦 审计"),
+    dict(slug="audit-align", kind="support", file="审计_讲义对齐_2026-08-25.md",
+         title="🔍 逐行导读 × 模块讲义对齐审计", sub="导读链接的讲义撑不撑得住?",
+         what="以导读知识点清单为标尺深读 M0/M4/M6/M8/M9:13 处硬伤当场修(类型表 7 处错/Day7 题目自相矛盾/旧机器路径)+ 5 节工程对齐补丁(Fluent API/写泵/工程版报警引擎/手写 MVVM/容器进阶四件)", src="🟦 审计"),
     dict(slug="jd-research", kind="support", file="JD调研_13-15K上位机岗位对照.md",
          title="📊 JD 调研 · 13-15K 上位机岗位对照", sub="必会/高频/加分/罕见 4 档",
          what="薪资地图 + 4 档技能矩阵 + 3 个典型 JD 样本 + 缺口 Top 10 + 投递策略", src="🟦 调研"),
@@ -240,6 +243,10 @@ PAGES = [
          title="R8 · WPF 主界面", sub="MVVM 主屏(主屏先行)",
          what="App DI 启动、MainViewModel+RelayCommand、GaugeControl/StatusDot 自定义控件、LiveCharts2 曲线、诊断面板+手动验收清单",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-read", kind="module", file="项目逐行导读_DaqMonitor_从零到吃透.md",
+         title="逐行导读 · DaqMonitor 从零到吃透", sub="主线代码 100% 逐行 · 九站沿数据流",
+         what="入口→模型→IDevice→设备→管道→双写→报警→MVVM→组合根逐行讲透:🔧固定写法 vs 🧠核心逻辑双标记、前端类比、面试一句话、每站动手实验,附 40 词术语表/面试串联/自测 30 问",
+         src="🔎 读码地图", kicker="🏗️ 项目实践"),
     dict(slug="proj-mc1", kind="module", file="项目实践_MotionControl_MC1_工程骨架与模拟卡.md",
          title="MC1 · 骨架与模拟卡", sub="net8 迁移/IMotionCard/两轴并发仿真",
          what="net8 工程三件套 + IMotionCard 接口(对齐真卡 SDK 返回码)+ MockMotionCard:每轴 CancellationToken、急停就地冻结、回零、软限位、报警链路",
@@ -278,14 +285,15 @@ SECTION_OF = {
                   "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
                   "M15", "M16", "M17", "M18", "M19"],
     "projects":  ["proj-daq", "proj-r0", "proj-r1", "proj-r2", "proj-r3", "proj-r4",
-                  "proj-r5", "proj-r6", "proj-r7", "proj-r8",
+                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj-read",
                   "proj-mc1", "proj-mc2", "proj-mc3", "proj-mc4", "proj-mc5", "proj-mc6",
                   "mistakes", "proj2"],
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "design-qa40", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
     "reference": ["traps", "csharp-syntax", "terms", "make-or-use", "predefined-types", "wpf", "hardware",
-                  "links", "lib-guide", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3"],
+                  "links", "lib-guide", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3",
+                  "audit-align"],
 }
 _slug_to_section = {}
 for _sec, _slugs in SECTION_OF.items():
@@ -310,8 +318,8 @@ for p in PAGES:
         s = p["slug"]
         if s == "proj-daq":
             p["group"] = "从这里开始 · 怎么做项目"
-        elif s in _DAQ_RS:
-            p["group"] = "项目一 · DaqMonitor 数据采集（R0 → R8，跟着需求单开发）"
+        elif s in _DAQ_RS or s == "proj-read":
+            p["group"] = "项目一 · DaqMonitor 数据采集（R0 → R8，跟着需求单开发 + 逐行吃透）"
         elif s in {f"proj-mc{i}" for i in range(1, 7)}:
             p["group"] = "项目二 · 模拟运动控制（WinForms · MC1 → MC6）"
         else:

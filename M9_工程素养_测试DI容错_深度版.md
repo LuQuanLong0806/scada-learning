@@ -574,3 +574,46 @@ public static ServiceProvider Build()
 - `System.Threading.Channels` 参考：https://learn.microsoft.com/dotnet/api/system.threading.channels —— 统一缓冲原理
 - 异步/取消令牌：`CancellationToken` https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken
 - 全部模块外链汇总见 `外部链接索引.md`
+
+---
+
+## 🔧 工程对齐补丁:容器进阶四件(2026-08-25 审计后补)
+
+> 工程 `Bootstrapper.cs` 用到的四个容器进阶用法,正文未展开。逐行版见 [逐行导读 · 第 9 站](项目逐行导读_DaqMonitor_从零到吃透.md)。
+
+### ① 同接口多实例 + GetServices(复数)
+
+```csharp
+// 注册:X 轴、Y 轴都是 IAxisController,注册两次
+services.AddSingleton<IAxisController>(_ => new SimulatedAxisController(xConfig));
+services.AddSingleton<IAxisController>(_ => new SimulatedAxisController(yConfig));
+
+// 解析:单数 GetService 只给"最后一个";复数 GetServices 给全部
+var axes = provider.GetServices<IAxisController>();   // [X轴, Y轴]
+```
+💡 前端类比:provide 一个 key 多次,inject 拿到的是数组——同款逻辑。
+
+### ② Func 工厂注入(参数要运行时才有的服务)
+
+TcpDevice 的 host/port 要用户输入才知道,没法开机注册死 → **注册"造它的函数"本身**:
+
+```csharp
+services.AddSingleton<Func<string, int, TcpDevice>>(
+    _ => (host, port) => new TcpDevice(host, port, ...));
+
+// 用的时候:先取工厂,再"现点现做"
+var factory = provider.GetRequiredService<Func<string, int, TcpDevice>>();
+var tcp = factory("192.168.1.10", 502);
+```
+
+### ③ GetRequiredService vs GetService(一行之差,死法不同)
+
+```csharp
+var a = provider.GetService<PointStore>();        // 没注册 → 返回 null → 下游 NullReferenceException,错在离案发现场很远的地方
+var b = provider.GetRequiredService<PointStore>(); // 没注册 → 立刻抛 InvalidOperationException,**死在装配现场,一眼看到漏注册了谁**
+```
+💡 口诀:**生产代码用 Required,让问题死在出生地**。
+
+### ④ 容器 Dispose 级联(程序的"总闸")
+
+`Services.Dispose()` 一刀下去,容器管理的所有单例只要实现 IDisposable 就**被连坐释放**——数据库工厂、写泵、管道定时器全在这一刻收摊。工程把这个动作挂在主窗口 `Closed` 事件里(App.xaml.cs 53 行):窗口一关,全应用善后,进程干干净净退出。💼 面试:"长跑程序怎么保证不泄漏?"——订阅成对 + 资源 Dispose + 容器总闸,三层。
