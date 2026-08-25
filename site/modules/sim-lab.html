@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🧪 协议仿真实验室 · 免费模拟器指南 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="sim-lab">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/reference.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">〇、先领地图:面试深度三级分级表(赶时间者的保命表)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">一、串口 RS232/485(M1)—— 两套方案,按权限选</a><ul>
+<li class="l3"><a href="#sec-3-1">🎯 协议 30 秒</a></li>
+<li class="l3"><a href="#sec-3-2">🧰 方案 A:com0com 虚拟串口对(家里推荐)</a></li>
+<li class="l3"><a href="#sec-3-3">🧰 方案 B:零安装回环(内网/懒得装驱动)</a></li>
+<li class="l3"><a href="#sec-3-4">🎤 本协议面试深度</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">二、Modbus RTU/TCP(M2 + R4 调库版)—— 实验室的核心,工具最多</a><ul>
+<li class="l3"><a href="#sec-3-5">🎯 协议 30 秒</a></li>
+<li class="l3"><a href="#sec-3-6">🧰 工具选型表(全免费,按推荐度排)</a></li>
+<li class="l3"><a href="#sec-3-7">实验①:5 分钟起一个真 Modbus TCP 从站(diagslave)</a></li>
+<li class="l3"><a href="#sec-3-8">实验②:DaqMonitor 调库版直连 diagslave(R4 主路线)</a></li>
+<li class="l3"><a href="#sec-3-9">实验③:零安装兜底(进程内从站,内网/CI 用)</a></li>
+<li class="l3"><a href="#sec-3-10">🎤 本协议面试深度</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">三、西门子 S7(M3)—— 概念必会,仿真按档位来</a><ul>
+<li class="l3"><a href="#sec-3-11">🎯 协议 30 秒</a></li>
+<li class="l3"><a href="#sec-3-12">🧰 仿真档位(诚实版:免费的都不完美)</a></li>
+<li class="l3"><a href="#sec-3-13">实验:概念跑通(零安装)</a></li>
+<li class="l3"><a href="#sec-3-14">🎤 本协议面试深度</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">四、CAN 总线(M16)—— 了解即可级,一个免费工具备查</a><ul>
+<li class="l3"><a href="#sec-3-15">🎯 协议 30 秒</a></li>
+<li class="l3"><a href="#sec-3-16">🧰 工具</a></li>
+<li class="l3"><a href="#sec-3-17">🎤 本协议面试深度</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-6">五、OPC UA / MQTT(M7 上云)—— 附赠两个</a><ul>
+<li class="l3"><a href="#sec-3-18">OPC UA</a></li>
+<li class="l3"><a href="#sec-3-19">MQTT</a></li>
+</ul></li>
+<li class="l2"><a href="#sec-2-7">六、内网离线装箱清单(在家一次备齐,U 盘带走)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-8">七、和 30 天计划怎么排(时间预算)</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">🧪 协议仿真实验室 · 免费模拟器实战指南</h1>
+<blockquote>
+<p><strong>这份文档解决什么</strong>:串口 / Modbus / 西门子 S7 / CAN / OPC UA / MQTT——每个协议给你「选什么免费工具 → 怎么装 → 怎么试(对接 DaqMonitor 的具体实验)→ 怎么写(代码)→ 面试考多深」。
+<strong>定位</strong>:模拟器 = 纯理论和真硬件之间的中间档——免接线免买设备,但报文是真的、字节序是真的、坑是真的。<strong>学协议不动手,等于学游泳看视频。</strong>
+<strong>内网适配</strong>:第六节给"离线装箱清单",哪些工具是绿色单 exe 可整目录拷进内网、哪些要装驱动(内网没戏)。
+所有工具信息 2026-08-25 搜索核实;链接失效就搜工具名。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">〇、先领地图:面试深度三级分级表(赶时间者的保命表)</h2>
+<blockquote>
+<p>你时间紧,不可能每个协议都啃到同样深度。这张表是总纲:<strong>🔴 必会</strong>(白板能写/连环追问能接)、<strong>🟡 会说</strong>(1 分钟讲清概念+用途,不求细节)、<strong>⚪ 了解即可</strong>(知道名词+一句话,面试官深问就诚实说"这块我了解概念")。
+与 <a href="jd-research.html">JD 调研</a> 的 4 档互为印证;和 <a href="make-or-use.html">手搓 vs 调库清单</a> 配套使用。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>协议/主题</th>
+<th>🔴 必会(白板级)</th>
+<th>🟡 会说(1分钟级)</th>
+<th>⚪ 了解即可(一句话级)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>串口</strong></td>
+<td>9600-8-N-1 四参数;RS232 vs RS485;DataReceived 后台线程;粘包半包</td>
+<td>流控是什么;GBK 乱码</td>
+<td>电气层(电平/差分)原理</td>
+</tr>
+<tr>
+<td><strong>Modbus</strong></td>
+<td>4 种寄存器;功能码 03/06/10;CRC16 手算;字节序 ABCD/CDAB;RTU vs TCP 帧差</td>
+<td>异常码 01-04;广播地址 0</td>
+<td>Modbus ASCII(基本绝迹)</td>
+</tr>
+<tr>
+<td><strong>西门子 S7</strong></td>
+<td>S7.Net 连接读写流程;DB 块概念;插槽/机架概念会说</td>
+<td>PLCSIM 是什么;S7-1200 vs 300 差异</td>
+<td>TIA 组态细节;PROFINET 实时性</td>
+</tr>
+<tr>
+<td><strong>CAN</strong></td>
+<td>CAN 是什么、和 485 最大区别(仲裁/多主)</td>
+<td>CAN ID 优先级;典型应用(汽车)</td>
+<td>帧格式位级细节;CAN FD</td>
+</tr>
+<tr>
+<td><strong>OPC UA</strong></td>
+<td>—(本项目层面没有必会级)</td>
+<td>节点/地址空间概念;订阅 vs 轮询;和 Modbus 分工</td>
+<td>安全模式/证书细节</td>
+</tr>
+<tr>
+<td><strong>MQTT</strong></td>
+<td>QoS 0/1/2 一句话区分;主题概念</td>
+<td>遗嘱/保留消息;为什么适合工业上云</td>
+<td>MQTT 5 新特性</td>
+</tr>
+<tr>
+<td><strong>报文通用</strong></td>
+<td>十六进制看报文;大小端;抓帧定位问题</td>
+<td>Wireshark 过滤</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>用法</strong>:每学一个协议,先回这张表——🔴 的去本实验室做实验,🟡 的读讲义摘要即可,⚪ 的读一句话就翻篇。<strong>把 80% 的时间给 🔴。</strong></p>
+</blockquote>
+<hr />
+<h2 id="sec-2-2">一、串口 RS232/485(M1)—— 两套方案,按权限选</h2>
+<h3 id="sec-3-1">🎯 协议 30 秒</h3>
+<p>串口 = 一条按字节排队的双向数据线。双方约定"语速"(波特率)和"帧格式"(数据位/校验/停止位),9600-8-N-1 是最常见出厂默认。RS232 一对一(老设备),RS485 一对多总线(工业主流,差分抗干扰)。</p>
+<h3 id="sec-3-2">🧰 方案 A:com0com 虚拟串口对(家里推荐)</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>是什么</td>
+<td>开源免费的 Windows 虚拟串口驱动,虚拟出 COM3↔COM4 一对,两个程序各开一头,数据互通</td>
+</tr>
+<tr>
+<td>下载</td>
+<td><a href="https://sourceforge.net/projects/com0com/">SourceForge 官方项目页</a>(GPL 开源)</td>
+</tr>
+<tr>
+<td>装法坑</td>
+<td>①要<strong>管理员权限</strong>装驱动 ②Win11 可能报驱动签名问题 → 用"禁用驱动强制签名"或测试模式装(教程搜"com0com Win11 签名")。<strong>所以它适合家里,内网机器基本没戏</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>怎么试(3 步)</strong>:
+1. 装好后打开 com0com 的 setup 程序,确认有 COM3↔COM4 对(默认就有);
+2. 两边各开一个串口助手(如"串口调试助手"任意一款,或 VSCode 插件),COM3 发 <code>hello</code>,COM4 收到 = 物理链路通;
+3. 对接 DaqMonitor:把 Bootstrapper 里设备注册换成 <code>new SerialDevice(1, "COM3", new RealSerialChannel("COM3", 9600))</code>,另一个串口助手开 COM4 手发十六进制帧(AA 55 头 + 数据 + CRC),看工程能不能解析出点位。</p>
+<h3 id="sec-3-3">🧰 方案 B:零安装回环(内网/懒得装驱动)</h3>
+<p>工程自带 <code>LoopbackSerialChannel</code>:自己发什么就收回什么,纯代码闭环,M1/R4 的测试全用它,<strong>一行驱动都不用装</strong>。缺点:没有"另一端"的手感——所以它是<strong>功能验证</strong>工具,不是<strong>协议感觉</strong>工具;协议感觉用方案 A。</p>
+<h3 id="sec-3-4">🎤 本协议面试深度</h3>
+<p>🔴 全部:四参数/232 vs 485/后台线程/粘包。串口是 JD 出现率最高的词,<strong>这里没有了解即可</strong>。</p>
+<hr />
+<h2 id="sec-2-3">二、Modbus RTU/TCP(M2 + R4 调库版)—— 实验室的核心,工具最多</h2>
+<h3 id="sec-3-5">🎯 协议 30 秒</h3>
+<p>工业事实标准。设备数据排成 4 张表(线圈/离散输入/输入寄存器/保持寄存器),上位机用功能码当指令读写;RTU 走串口(帧尾 CRC16),TCP 走网口 502 端口(MBAP 头替代从站地址+CRC)。</p>
+<h3 id="sec-3-6">🧰 工具选型表(全免费,按推荐度排)</h3>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>角色</th>
+<th>免费性</th>
+<th>内网绿色性</th>
+<th>下载</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FluentModbus 进程内服务器</strong></td>
+<td>从站(零安装)</td>
+<td>✅ MIT 开源</td>
+<td>✅ 就是个 NuGet</td>
+<td>本仓库 R4 附录(沙盒验证版)</td>
+</tr>
+<tr>
+<td><strong>diagslave</strong></td>
+<td>从站(命令行)</td>
+<td>✅ 免费</td>
+<td>✅ <strong>单 exe,完全绿色,内网首选</strong></td>
+<td><a href="https://www.modbusdriver.com/diagslave.html">modbusdriver.com/diagslave</a></td>
+</tr>
+<tr>
+<td><strong>QModMaster</strong></td>
+<td>主站(GUI)</td>
+<td>✅ 开源</td>
+<td>🟡 zip 解压即用</td>
+<td><a href="https://sourceforge.net/projects/qmodmaster/">SourceForge</a></td>
+</tr>
+<tr>
+<td><strong>Modbus Poll / Slave</strong></td>
+<td>主站/从站(GUI)</td>
+<td>🟡 评估版(功能全,有重启提示)</td>
+<td>🟡</td>
+<td><a href="https://www.modbustools.com/modbus_poll.html">modbustools.com</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-7">实验①:5 分钟起一个真 Modbus TCP 从站(diagslave)</h3>
+<pre><code># 家里或内网,解压 diagslave 后:
+diagslave -m tcp -a 1 -p 5020        # TCP 从站,站号 1,端口 5020
+# 它会打印监听状态;此时任何 Modbus 主站连 127.0.0.1:5020 都能读写它的寄存器
+# 全部参数:diagslave -h
+</code></pre>
+<p>用 QModMaster(选 Modbus TCP,填 127.0.0.1:5020,功能码 03,地址 0 起 10 个)读一轮——<strong>你现在看到的就是真报文交互</strong>。再用 Wireshark 抓 5020 端口,亲眼看 MBAP 头 + 功能码 + 数据,比背十遍帧结构都牢。</p>
+<h3 id="sec-3-8">实验②:DaqMonitor 调库版直连 diagslave(R4 主路线)</h3>
+<p>把 R4 调库版 <code>ModbusDevice</code> 的注册改成 <code>simulate: false</code>,host=127.0.0.1、port=5020——工程读到的就是 diagslave 里的真寄存器。然后:
+1. QModMaster 往地址 0 写 <code>1234</code>,看工程界面点位跳到 1234;
+2. <strong>字节序实验</strong>(🔴 必会):让从站给一个 float(占两个寄存器),故意用错的 ByteOrder 解析,看到 0.00003 这种离谱值 → 换对字节序 → 值正常。<strong>这一上一下,字节序就从知识变成经历。</strong>
+3. 配套玩具:仓库自带的 ByteOrderLab(L0 你做过)+ 在线寄存器计算器(搜 "Scadacore Modbus calculator",官网 Tools 区)。</p>
+<h3 id="sec-3-9">实验③:零安装兜底(进程内从站,内网/CI 用)</h3>
+<pre><code class="language-csharp">// 本仓库《速查·工业通讯调库指南》沙盒验证版(.NET 8 + FluentModbus 5.3.2):
+using FluentModbus;
+using var server = new ModbusTcpServer();
+server.AddUnit(1);                                     // 先注册从站号,再访问缓冲(顺序反了抛 KeyNotFound)
+server.Start(new IPEndPoint(IPAddress.Loopback, 15020));
+server.GetHoldingRegisterBuffer&lt;short&gt;(1)[0] = 0x1234; // 预置数据:地址 0 = 0x1234
+// 主站 Connect 到 127.0.0.1:15020 即可读写 —— 全进程内,零硬件零安装
+</code></pre>
+<p>适合写进单元测试/家里没网时自娱;<strong>但日常练手优先 diagslave</strong>——它是"外部独立进程",更接近真实设备(你的程序崩了从站还活着,和真实世界一致)。</p>
+<h3 id="sec-3-10">🎤 本协议面试深度</h3>
+<p>🔴 全部(4 表/功能码/CRC 手算/字节序/粘包)。Modbus 是 13-15K 面试出现率 100% 的协议,实验室的 3 个实验<strong>全部值得做</strong>。</p>
+<hr />
+<h2 id="sec-2-4">三、西门子 S7(M3)—— 概念必会,仿真按档位来</h2>
+<h3 id="sec-3-11">🎯 协议 30 秒</h3>
+<p>西门子私有协议(ethernet 上走 ISO-on-TCP / S7comm)。上位机不读写"寄存器"而是读写 <strong>DB 数据块</strong>(PLC 工程师在 TIA 里定义的内存区,如 DB1.DBW0)。C# 侧标准库 S7.Net Plus:<code>new Plc(CpuType.S71200, ip, 0, 1)</code> → <code>Open()</code> → <code>Read("DB1.DBW0")</code>。</p>
+<h3 id="sec-3-12">🧰 仿真档位(诚实版:免费的都不完美)</h3>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>方案</th>
+<th>花费</th>
+<th>适合</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🥇 零依赖概念档</td>
+<td><strong>不仿真,直接学 S7.Net 用法 + 概念</strong>(M3 讲义/R4 附录)</td>
+<td>0</td>
+<td><strong>赶时间的你,主路线</strong></td>
+</tr>
+<tr>
+<td>🥈 软 PLC 档</td>
+<td><strong>OpenPLC</strong>(开源 PLC runtime,梯形图编程,对上暴露 Modbus TCP 502)</td>
+<td>免费</td>
+<td>想体验"PLC 那端"怎么编程 → <a href="https://openplcproject.com/">openplcproject.com</a></td>
+</tr>
+<tr>
+<td>🥉 官方仿真档</td>
+<td><strong>TIA Portal 试用版 + PLCSIM</strong>(西门子官方仿真器)</td>
+<td>试用免费,下载几 GB</td>
+<td>时间充裕再说;<strong>面试口径"用过 PLCSIM"只需概念级</strong></td>
+</tr>
+<tr>
+<td>💡 折腾档</td>
+<td>snap7 的 Server 模式(Python <code>python-snap7</code> 起进程内 S7 服务,S7.Net 直连)</td>
+<td>免费</td>
+<td><a href="https://sourceforge.net/projects/snap7/">snap7 SourceForge</a>;要装 Python,内网不友好</td>
+</tr>
+<tr>
+<td>💡 平替档</td>
+<td>CODESYS 免费版(自带软 PLC 演示,重启限制)</td>
+<td>免费</td>
+<td>学 IEC 61131-3 标准 PLC 概念</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>现实建议</strong>:你目标是 13-15K 上位机,面试问 S7 主要问<strong>"怎么连、怎么读 DB 块、断线怎么办"</strong>(概念+S7.Net 代码),极少让你现场组态 TIA。所以 <strong>🥇 档为主 + 把 M3 讲义的 S7.Net 代码敲熟</strong>,PLCSIM 知道是什么就够了(⚪ 了解即可)。真到现场再用厂里的 PLC。</p>
+</blockquote>
+<h3 id="sec-3-13">实验:概念跑通(零安装)</h3>
+<p>M3 讲义/R4 附录里 <code>PlcDevice(simulate: true)</code> 模式:工程用模拟数据走完 IDevice 全链路——<strong>练的是"接入后上层怎么用"</strong>;真 PLC 交互逻辑(连接参数/DB 地址映射)背 S7.Net 三行:<code>new Plc(CpuType.S71200, ip, 0, 1)</code> / <code>plc.Open()</code> / <code>plc.Read("DB1.DBW0")</code>。</p>
+<h3 id="sec-3-14">🎤 本协议面试深度</h3>
+<p>🔴:S7.Net 连接读写流程、DB 块概念。🟡:PLCSIM、1200 vs 300。⚪:TIA 组态、PROFINET 实时性。</p>
+<hr />
+<h2 id="sec-2-5">四、CAN 总线(M16)—— 了解即可级,一个免费工具备查</h2>
+<h3 id="sec-3-15">🎯 协议 30 秒</h3>
+<p>汽车/重工领域的广播总线:无主从、按 ID 优先级仲裁(小 ID 先说话)、差分传输。和 485 最大区别:485 一主多从轮询,<strong>CAN 谁都可以发,冲突靠仲裁自动让路</strong>。</p>
+<h3 id="sec-3-16">🧰 工具</h3>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>说明</th>
+<th>内网</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工程自带 <code>SimulatedCanChannel</code></td>
+<td>零安装,M16 测试全靠它</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Kvaser CanKing 7</strong></td>
+<td>免费分析软件,可开<strong>虚拟 CAN 通道</strong>(免硬件)</td>
+<td>🟡 要装 Kvaser 驱动,家里用</td>
+</tr>
+<tr>
+<td>PCAN-View</td>
+<td>PEAK 免费查看器,但实用功能要 PCAN 硬件</td>
+<td>⚪</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sec-3-17">🎤 本协议面试深度</h3>
+<p>🟡 会说(是什么/仲裁/和 485 区别/用在哪)。⚪ 帧格式位级细节。<strong>不建议在这里花实验时间</strong>——JD 里 CAN 出现率低且都写着"优先"。把时间还给 Modbus。</p>
+<hr />
+<h2 id="sec-2-6">五、OPC UA / MQTT(M7 上云)—— 附赠两个</h2>
+<h3 id="sec-3-18">OPC UA</h3>
+<ul>
+<li><strong>客户端 UaExpert</strong>:免费但要在 <a href="https://www.unified-automation.com/downloads/opc-ua-clients.html">Unified Automation 官网</a><strong>注册账号才能下</strong>(所以在家下好再拷);能连任何 OPC UA 服务器,看地址空间/订阅数据/看报警。</li>
+<li><strong>Demo Server</strong>:同站 <a href="https://www.unified-automation.com/downloads/opc-ua-servers.html">下载页</a>有免费的 ANSI C Demo Server(Windows 版,带模拟数据)——家里下好,双击起服务,UaExpert 连 <code>opc.tcp://localhost:4840</code> 玩。</li>
+<li>🎤 深度:🟡 会说(节点概念/订阅 vs 轮询/和 Modbus 的分工:Modbus=设备层,OPC UA=系统层统一接口)。</li>
+</ul>
+<h3 id="sec-3-19">MQTT</h3>
+<ul>
+<li><strong>Mosquitto broker</strong>(<a href="https://mosquitto.org/">mosquitto.org</a>,Windows 版绿色可用)+ <strong>MQTTX 客户端</strong>(<a href="https://mqttx.app/">mqttx.app</a>,免费)——本地起 broker、两个窗口互发消息,10 分钟理解主题/QoS。</li>
+<li>工程彩蛋:<code>MqttPublisher</code> 默认就配的公共 broker <code>broker.emqx.io:1883</code>——<strong>在家里直接能跑真上云</strong>(内网不通,内网用 Mosquitto 本地起一个)。</li>
+<li>🎤 深度:🔴 QoS 三级一句话区分 + 主题概念;🟡 遗嘱/保留消息。</li>
+</ul>
+<hr />
+<h2 id="sec-2-7">六、内网离线装箱清单(在家一次备齐,U 盘带走)</h2>
+<blockquote>
+<p>原则:<strong>绿色单 exe/整目录可用 → 直接装箱;要装驱动/要注册下载 → 家里下好安装包一起装;要外网 → 标注"家里专用"。</strong> 与<a href="intranet.html">内网学习完全手册</a>的 NuGet 离线包平行,建议在 U 盘建 <code>tools\sim\</code> 文件夹。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>装箱形态</th>
+<th>内网可用性</th>
+<th>必要性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>diagslave</strong></td>
+<td>单 exe + 说明,拷进 <code>tools\sim\diagslave\</code></td>
+<td>✅ 完全离线</td>
+<td>🔴 <strong>强烈建议</strong>(Modbus 实验主力)</td>
+</tr>
+<tr>
+<td><strong>QModMaster</strong></td>
+<td>zip 解压版</td>
+<td>✅</td>
+<td>🟡 配合 diagslave 当 GUI 主站</td>
+</tr>
+<tr>
+<td><strong>Mosquitto + MQTTX</strong></td>
+<td>整目录绿色拷(内网手册已有此方案)</td>
+<td>✅</td>
+<td>🟡 M7 想真连 broker 才要</td>
+</tr>
+<tr>
+<td><strong>UaExpert + Demo Server 安装包</strong></td>
+<td>家里<strong>注册下载</strong>好 MSI,拷安装包</td>
+<td>✅(装时免网)</td>
+<td>⚪ 选做</td>
+</tr>
+<tr>
+<td><strong>OpenPLC runtime</strong></td>
+<td>家里装好整目录拷</td>
+<td>🟡</td>
+<td>⚪ 选做</td>
+</tr>
+<tr>
+<td>com0com</td>
+<td>驱动安装包</td>
+<td>❌ 内网没管理员装不了</td>
+<td>家里专用</td>
+</tr>
+<tr>
+<td>Modbus Poll/Slave</td>
+<td>评估版安装包</td>
+<td>✅</td>
+<td>⚪ diagslave 够用</td>
+</tr>
+<tr>
+<td>CanKing</td>
+<td>要 Kvaser 驱动</td>
+<td>❌ 同 com0com</td>
+<td>家里专用</td>
+</tr>
+<tr>
+<td>Wireshark</td>
+<td>安装包(免网安装)</td>
+<td>✅</td>
+<td>🟡 M19 抓包选做</td>
+</tr>
+</tbody>
+</table>
+<p><strong>回家准备动作(15 分钟)</strong>:按上表"家里专用/在家下好"列,把文件收进 U 盘 <code>tools\sim\</code> → 明天在内网就能 <code>diagslave -m tcp -a 1 -p 5020</code> 开工。</p>
+<hr />
+<h2 id="sec-2-8">七、和 30 天计划怎么排(时间预算)</h2>
+<table>
+<thead>
+<tr>
+<th>时段</th>
+<th>实验</th>
+<th>耗时</th>
+<th>对应模块</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M2 学完后当晚</td>
+<td>实验①diagslave+QModMaster 互通 + Wireshark 抓帧</td>
+<td>40min</td>
+<td>M2</td>
+</tr>
+<tr>
+<td>R4 调库版当晚</td>
+<td>实验②工程直连 diagslave + 字节序一错一对</td>
+<td>60min</td>
+<td>R4/M2</td>
+</tr>
+<tr>
+<td>M1 学完后(家里)</td>
+<td>方案 A com0com 串口对 + 手发帧</td>
+<td>40min</td>
+<td>M1</td>
+</tr>
+<tr>
+<td>M7 学完后</td>
+<td>Mosquitto 本地 broker / 家里连 broker.emqx.io</td>
+<td>30min</td>
+<td>M7</td>
+</tr>
+<tr>
+<td>不排</td>
+<td>CAN/TIA/OPC UA 仿真</td>
+<td>0</td>
+<td>⚪ 按分级表翻篇</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>一句话总结</strong>:这张表里只有 Modbus 两个实验是"必须做"(🔴×高频),其余按分级表自由取舍——<strong>时间花在刀刃上,刀刃就是字节序和 CRC。</strong></p>
+</blockquote>
+<hr />
+<p><em>工具信息核实于 2026-08-25;链接若失效,按工具名搜索。本指南与<a href="hardware.html">硬件替代方案</a>(硬件科普)/<a href="lib-guide.html">调库指南</a>(生产写法)构成三件套:仿真练感觉,调库学干活,硬件课补常识。</em></p>
+<div class="pager">
+  <a class="prev" href="hardware.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">附录 · 硬件替代方案与讲解</div></a>
+  <a class="next" href="links.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">附录 · 外部链接索引</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>

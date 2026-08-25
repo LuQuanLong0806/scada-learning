@@ -411,6 +411,9 @@ dotnet test    # 85/85 绿 = 配置成功
 </tbody>
 </table>
 <h3 id="sec-3-8">C. 工具软件(可选,非必需)</h3>
+<blockquote>
+<p>🆕 <strong>仿真工具全家桶</strong>(2026-08-25 新增):想在内网"真协议真报文"练手(Modbus 从站/串口对/MQTT broker 等),看 <strong><a href="sim-lab.html">协议仿真实验室</a></strong>——每个协议给免费工具+装法+内网装箱清单。<strong>diagslave(单 exe 的 Modbus 从站)强烈建议装进 U 盘 <code>tools\sim\</code></strong>,内网离线可用。</p>
+</blockquote>
 <table>
 <thead>
 <tr>
@@ -421,9 +424,19 @@ dotnet test    # 85/85 绿 = 配置成功
 </thead>
 <tbody>
 <tr>
+<td><strong>diagslave(Modbus 从站,单 exe)</strong></td>
+<td>仿真实验室/Modbus 实操</td>
+<td>🔴 建议装箱(完全绿色离线)</td>
+</tr>
+<tr>
+<td>QModMaster(Modbus 主站 GUI)</td>
+<td>仿真实验室</td>
+<td>🟡 配合 diagslave 用</td>
+</tr>
+<tr>
 <td>Modbus Poll / Modbus Slave</td>
 <td>M2/调库指南抓帧验证</td>
-<td>❌ 讲义用<strong>进程内 ModbusTcpServer</strong> 测试,零硬件零工具</td>
+<td>⚪ 讲义用<strong>进程内 ModbusTcpServer</strong> 测试;要 GUI 感用 diagslave+QModMaster</td>
 </tr>
 <tr>
 <td>Mosquitto + MQTTX</td>
@@ -433,12 +446,12 @@ dotnet test    # 85/85 绿 = 配置成功
 <tr>
 <td>com0com 虚拟串口</td>
 <td>M1/硬件替代</td>
-<td>❌ R4 用 LoopbackSerialChannel,不需要</td>
+<td>❌ R4 用 LoopbackSerialChannel;com0com 要装驱动+签名,内网没戏,<strong>家里专用</strong></td>
 </tr>
 <tr>
 <td>Wireshark</td>
 <td>M19 抓包</td>
-<td>⚪ 选做</td>
+<td>⚪ 选做(安装包免网安装,可装箱)</td>
 </tr>
 <tr>
 <td>Python + markdown 库</td>

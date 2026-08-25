@@ -163,6 +163,9 @@ PAGES = [
     dict(slug="hardware", kind="support", file="硬件替代方案与讲解_深度版.md",
          title="附录 · 硬件替代方案与讲解", sub="没硬件怎么练 + 硬件科普",
          what="RS232/485、4-20mA、PLC/DB块、抗干扰 + 四层替代方案", src="🟧 硬件"),
+    dict(slug="sim-lab", kind="support", file="协议仿真实验室_免费模拟器实战指南.md",
+         title="🧪 协议仿真实验室 · 免费模拟器指南", sub="串口/Modbus/S7/CAN/OPCUA/MQTT 怎么试",
+         what="每协议:免费工具选型(com0com/diagslave/QModMaster/OpenPLC/UaExpert/CanKing)+装法坑+对接 DaqMonitor 实验+代码;附面试三级深度分级表(必会/会说/了解即可)与内网离线装箱清单", src="🧪 仿真实操"),
     dict(slug="links", kind="support", file="外部链接索引.md",
          title="附录 · 外部链接索引", sub="难点官方文档汇总",
          what="每模块「📚 延伸阅读」指向的权威链接，卡点直接点开", src="🟦 外链"),
@@ -291,7 +294,7 @@ SECTION_OF = {
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "design-qa40", "job", "jobmap",
                   "interview", "webview2-vue-dashboard"],
-    "reference": ["traps", "csharp-syntax", "terms", "make-or-use", "predefined-types", "wpf", "hardware",
+    "reference": ["traps", "csharp-syntax", "terms", "make-or-use", "predefined-types", "wpf", "hardware", "sim-lab",
                   "links", "lib-guide", "docs", "license", "audit", "audit-quality", "audit-v2", "audit-v3",
                   "audit-align"],
 }
