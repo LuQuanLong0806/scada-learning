@@ -32,6 +32,10 @@ os.makedirs(MODDIR, exist_ok=True)
 # kind: "module" 主线模块(参与 M0->M10 顺序) / "support" 工具箱文档
 # ---------------------------------------------------------------------------
 PAGES = [
+    dict(slug="sprint7", kind="support", file="一周冲刺版_逐行导读主线.md",
+         title="⏰ 一周冲刺版 · 逐行导读主线", sub="只剩约 7 天的紧急压缩排期",
+         what="七天排期(内网/晚上分工):逐行导读当主课本+教练计划关卡题+2个Modbus仿真实验+D2就投简历;附导读↔L课映射表/不做清单/保底止损",
+         src="⏰ 冲刺主轴"),
     dict(slug="prep", kind="prep", file="零基础前置_教练带练版.md",
          title="零基础前置 · 教练带练（先看这篇）", sub="看不懂文档？从这里开始",
          what="上位机是啥/C#为什么/串口Modbus黑话破冰/字节换算/第一个程序/设备数据怎么变数字", src="🟦 带练入门"),
@@ -283,7 +287,7 @@ PAGES = [
 # 分区：首页只做导航枢纽，具体内容进各分区页 site/sections/<id>.html
 # ---------------------------------------------------------------------------
 SECTION_OF = {
-    "start":     ["prep", "getting-started", "roadmap30", "coach-plan", "intranet", "roadmap-dev"],
+    "start":     ["sprint7", "prep", "getting-started", "roadmap30", "coach-plan", "intranet", "roadmap-dev"],
     "modules":   ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8",
                   "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
                   "M15", "M16", "M17", "M18", "M19"],
@@ -330,7 +334,7 @@ for p in PAGES:
 
 SECTIONS = [
     dict(id="start", emoji="🚀", title="入口 · 路线",
-         desc="第一次来从这里进：零基础带练 → 实操入门 → 30 天作战路线 → 项目开发全景。"),
+         desc="⏰ 只剩一周 → 一周冲刺版；零基础 → 教练带练；从容学 → 30 天作战路线；项目吃透 → 1v1 教练计划；内网 → 离线手册。"),
     dict(id="modules", emoji="📚", title="模块讲义",
          desc="M0 → M19 共 22 个深度讲义：核心必学 9 个（基础/串口/Modbus/PLC/落库/可视化/报警/上云/收尾）+ 进阶扩展 13 个。"),
     dict(id="projects", emoji="🏗️", title="项目实践",
@@ -860,24 +864,31 @@ INDEX_TPL = """<!DOCTYPE html>
 <div class="hero">
   <h1>📘 DAQ Monitor · 上位机学习站</h1>
   <p><b>北极星目标</b>：学完 = 上位机 <b>13~15K</b> 水平 + 简历上能放得出手的企业级项目「DAQ Monitor 工业数据采集监控系统」。</p>
-  <p><b>路线</b>：先在「模块讲义」按序学基础 → 到「项目实践」像入职一样拿需求单开发项目；讲义与项目共用同一套类型，知识点可互相跳转。</p>
+  <p><b>两条主线</b>：⏰ <b>只剩一周</b> → 按「一周冲刺版」排期走(下方冲刺直通区,4 个入口就够)；📅 <b>时间从容</b> → 「模块讲义」按序学基础 → 「项目实践」入职式开发。</p>
 </div>
 %(legend)s
 
 <div class="wrap">
 
-  <h2 class="section-title">🧭 内容入口（按需进，别在首页迷路）</h2>
+  <h2 class="section-title">⏰ 冲刺直通（只剩一周走这条,4 个入口就够）</h2>
+  <div class="entries">
+    <a class="entrycard" href="modules/sprint7.html"><div class="ico">⏰</div><h3>一周冲刺版 · 排期表</h3><div class="desc">七天每天做什么(内网/晚上分工) + 不做清单 + 保底止损线</div><div class="cnt">Day 1 从这开始 →</div></a>
+    <a class="entrycard" href="modules/proj-read.html"><div class="ico">🔬</div><h3>逐行导读 · 主课本</h3><div class="desc">九站吃透 DaqMonitor = 同时理解项目和知识点,每站带 📚 讲义链接</div><div class="cnt">D1 今晚开工 →</div></a>
+    <a class="entrycard" href="modules/sim-lab.html"><div class="ico">🧪</div><h3>协议仿真实验室</h3><div class="desc">Modbus 字节序/CRC 实验,把背诵变经历 + 面试三级深度分级表</div><div class="cnt">D3 晚 60min →</div></a>
+    <a class="entrycard" href="sections/career.html"><div class="ico">💼</div><h3>面试冲刺包</h3><div class="desc">简历模板 + 逐字稿 30 题 + 设计决策 40 问 + 速记卡</div><div class="cnt">D1 改简历 / D5 背诵 →</div></a>
+  </div>
+
+  <h2 class="section-title">🧭 全部内容（字典区 · 按需进,别在首页迷路）</h2>
   <div class="entries">
 %(section_cards)s
   </div>
 
   <h2 class="section-title">🚀 怎么用</h2>
   <div class="steps">
-    <div class="step"><span class="n">1</span><b>零基础起步</b>「入口·路线」里先看教练带练和实操入门，学会 dotnet CLI 建工程、跑 build/run/test。</div>
-    <div class="step"><span class="n">2</span><b>按序学讲义</b>「模块讲义」M0 → M8 核心必学；学完想直接做项目，跳到「项目实践」。</div>
-    <div class="step"><span class="n">3</span><b>入职式开发</b>「项目实践」拿需求单自己写 → 卡了看参考实现 → 点知识点亮牌回讲义重学。</div>
-    <div class="step"><span class="n">4</span><b>练习+打卡</b>配合「练习·复习」每天 1h 代码肌肉 + 间隔重复，每节勾「打卡」自动存进度。</div>
-    <div class="step"><span class="n">5</span><b>边做边投</b>「求职冲刺」对照 JD 路线图，过完 M11+M12 就能投，面中补漏。</div>
+    <div class="step"><span class="n">1</span><b>冲刺模式(≤1周)</b>按「一周冲刺版」排期:逐行导读当主课本,讲义只当字典,<b>D2 就开始投简历</b>。</div>
+    <div class="step"><span class="n">2</span><b>从容模式(≥3周)</b>「模块讲义」M0→M8 核心必学 →「项目实践」拿需求单入职式开发。</div>
+    <div class="step"><span class="n">3</span><b>卡壳速查</b>语法查速查 · 术语查翻译表 · 报错查导读附录D · 协议上手查仿真实验室 · 类型报错查前置定义。</div>
+    <div class="step"><span class="n">4</span><b>记忆防漏</b>通勤刷速记卡 + 每天 1h 代码肌肉 + 每节勾「打卡」(自动存进度)。</div>
   </div>
 
   <div class="foot">本站由 <code>build_site.py</code> 从各 Markdown 源文件生成；Markdown 是单一事实来源，改完重跑脚本即重建。</div>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⏰ 一周冲刺版 · 逐行导读主线 · DAQ Monitor 学习站</title>
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-slug="sprint7">
+<div class="topbar">
+  <a class="brand" href="../index.html"><span class="em">DAQ Monitor</span> · 学习站</a>
+  <span class="spacer"></span>
+  <button class="tocbtn" onclick="toggleToc()">☰ 目录</button>
+  <a class="navlink" href="../sections/start.html">← 分类</a>
+  <a class="navlink" href="../index.html">← 返回首页</a>
+</div>
+
+<div class="legend">
+  <b>📖 3 类技术来源（必认，不然云里雾里）：</b>
+  <span class="badge b-syntax">🟦 C# 语法</span> 语言自带，装好 .NET 就有，<b>不装包</b>
+  <span class="badge b-bcl">🟩 .NET 类库/BCL</span> 微软标准库，<code>using</code> 即用，<b>默认不装包</b>
+  <span class="badge b-nuget">🟧 第三方 NuGet</span> 必须 <code>dotnet add package 包名</code>
+  <span class="mnem">口诀：语法天生物 · BCL 随 .NET · 第三方要装包</span>
+</div>
+
+<div class="toc-mask" onclick="toggleToc()"></div>
+<div class="layout">
+  <aside class="toc"><p class="tt">本页目录</p><ul>
+<li class="l2"><a href="#sec-2-1">一、三条铁律(比排期表重要)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-2">二、七天排期(白天内网 + 晚上回家,各 1.5~2h)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-3">三、导读九站 ↔ 教练计划 L1-L7 映射(关卡题照做)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-4">四、明确不做清单(省下的都是赚到的)</a><ul>
+</ul></li>
+<li class="l2"><a href="#sec-2-5">五、保底与止损</a><ul>
+</ul></li>
+</ul></aside>
+  <main class="content">
+<h1 id="sec-1-1">⏰ 一周冲刺版 · 逐行导读主线(给"只剩约 7 天"的你)</h1>
+<blockquote>
+<p><strong>这份文档是什么</strong>:30 天作战路线的紧急压缩版。当你离投简历只剩一周,不再"学体系",改"备考"——一切动作围绕<strong>面试那 45 分钟</strong>组织。
+<strong>主课本</strong>:<a href="proj-read.html">项目逐行导读 · DaqMonitor 从零到吃透</a>——读它 = 同时理解项目和理解知识点;它每站贴了「📚 对应讲义」,卡壳点过去查那<strong>一节</strong>(只查那一节,不通读)。
+<strong>教练计划 L1-L7 与导读九站的映射</strong>在第三节,关卡题照做。
+<strong>什么时候作废</strong>:投出简历进入面试滚动期后,本文档退位给错题本和模拟面试。</p>
+</blockquote>
+<hr />
+<h2 id="sec-2-1">一、三条铁律(比排期表重要)</h2>
+<ol>
+<li><strong>投简历是并行流程,不是毕业典礼。</strong> 投递→约面有 2-5 天延迟,等"准备好"再投 = 白烧日历。<strong>D1 晚改完简历,D2 晚必须投出前 3-5 份</strong>(练手感的不挑公司)。</li>
+<li><strong>只认输出,不认阅读量。</strong> 衡量标准只有两个:能不能<strong>脱稿讲 2 分钟项目</strong>、能不能<strong>接住连环第二问</strong>。每晚睡前一问:今天离这两件事更近了吗?没有 = 排错了。</li>
+<li><strong>新知识本周归零。</strong> 22 模块讲义降级为字典——只在导读某站看不懂时,点 📚 链接查那一节。任何"顺便把 Mxx 也学了"的念头都砍掉。</li>
+</ol>
+<h2 id="sec-2-2">二、七天排期(白天内网 + 晚上回家,各 1.5~2h)</h2>
+<blockquote>
+<p>内网白天能做的:读站点导读页(逐行导读已上线)、🥈 档跑 exe 断点、速记卡、术语表。
+必须回家的:投简历、AI 批改问题清单、Modbus 仿真实验(工具在 U 盘/家里)、git commit。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>天</th>
+<th>白天(内网)</th>
+<th>晚上(回家)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>D1</strong></td>
+<td>通勤刷速记卡</td>
+<td>① 简历初版 1.5h(用<a href="resume.html">简历模板</a>:85 测试、双写/回滞/Channel 三张牌、STAR 讲法)② 读导读 <strong>〇章 + 第 1/2/3 站</strong>(入口/数据模型/IDevice,≈90min)</td>
+</tr>
+<tr>
+<td><strong>D2</strong></td>
+<td>读 <strong>第 4/5 站</strong>(模拟设备/管道★)断点走数据流;L2 关卡题 3 道</td>
+<td>读 <strong>第 7 站</strong>(报警/回滞)+ L3 实验(79/81/83/79/77/76 序列);<strong>投出 3-5 份简历</strong></td>
+</tr>
+<tr>
+<td><strong>D3</strong></td>
+<td>读 <strong>第 6 站</strong>(存储三件套/双写★);L4 关卡题</td>
+<td><strong>Modbus 仿真实验</strong>(<a href="sim-lab.html">仿真实验室</a>实验①+②:diagslave 起从站、字节序一错一对,60min);继续投</td>
+</tr>
+<tr>
+<td><strong>D4</strong></td>
+<td>读 <strong>第 8 站</strong>(UI/MVVM,你的主场快读)+ 🅐 敲简历锚点功能(L6 三选一:报警筛选/搜索框/启动确认)</td>
+<td>读 <strong>第 9 站</strong>(Bootstrapper)+ L7 毕业实验(换设备一行注册)+ <code>dotnet test</code> 全绿 + git commit</td>
+</tr>
+<tr>
+<td><strong>D5</strong></td>
+<td><strong>附录 C 自测 30 问</strong>(合卷白纸)→ 错题登记<a href="mistakes.html">错题本</a></td>
+<td><a href="interview30.html">逐字稿 30 题</a> + <a href="design-qa40.html">设计决策 40 问</a> 背诵第 1 轮(只背 🎤 面试一句话 + 连环追问)</td>
+</tr>
+<tr>
+<td><strong>D6</strong></td>
+<td>错题复盘 + 附录 D(易错点急救手册)按错题回读</td>
+<td><strong>AI 模拟面试</strong>:让 AI 扮演面试官专攻"第二问"(为什么 Channel/为什么回滞/断电丢数据怎么办);附录 A 的 2 分钟版讲 3 遍出声</td>
+</tr>
+<tr>
+<td><strong>D7</strong></td>
+<td>速记卡刷完 + 40 词术语表过一遍</td>
+<td>附录 A 30 秒版复温;按投递反馈微调简历;<strong>下周 = 面试滚动 + 错题本天天更新</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>每天固定动作</strong>:通勤 10min 速记卡;睡前问题清单批改(白天内网卡壳记下的)。</p>
+<h2 id="sec-2-3">三、导读九站 ↔ 教练计划 L1-L7 映射(关卡题照做)</h2>
+<table>
+<thead>
+<tr>
+<th>导读站</th>
+<th>内容</th>
+<th>教练课</th>
+<th>关卡题位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>〇 + 1 站</td>
+<td>怎么用/总图/App 入口</td>
+<td>L1 热身</td>
+<td><a href="coach-plan.html">1v1教练计划</a></td>
+</tr>
+<tr>
+<td>2 站</td>
+<td>SensorPoint 数据模型</td>
+<td>L1</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>3 站</td>
+<td>IDevice 合同 + 翻译官</td>
+<td>L1(含"接口约束谁"掰开揉碎)</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>4 站</td>
+<td>SimulatedDevice 数据源头</td>
+<td>L1/L2 之间</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>5 站 ★</td>
+<td>AcquisitionPipeline 大动脉</td>
+<td>L2</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>6 站 ★</td>
+<td>存储三件套/双写</td>
+<td>L4</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>7 站</td>
+<td>报警/回滞/边沿</td>
+<td>L3</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>8 站</td>
+<td>UI/MVVM/Dispatcher</td>
+<td>L6</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>9 站</td>
+<td>Bootstrapper 组合根</td>
+<td>L7(含 10 连问)</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>导读每站末尾的「✂️ 自己改一处」= 教练计划的动手环节,时间够就做,不够至少做第 5/9 站两个(改批量间隔/换设备注册)。</p>
+</blockquote>
+<h2 id="sec-2-4">四、明确不做清单(省下的都是赚到的)</h2>
+<ul>
+<li>❌ 22 模块顺序学(讲义只当字典)</li>
+<li>❌ M8.5 Prism / M9.5 压测 / M12 多数据库 / M13 多品牌 / M15 / M17 MES / M18 配方深入 —— <a href="sim-lab.html">三级分级表</a>里全是 ⚪🟡 级,被问到再查</li>
+<li>❌ CAN / com0com / OPC UA 仿真实验;MC 运控系列 🅒 扫概念即可</li>
+<li>❌ 30 天路线逐日打卡(给还有 30 天的人,已过保质期)</li>
+<li>❌ 一切"完善资料"动作(重建站点、写新文档、审计)</li>
+</ul>
+<h2 id="sec-2-5">五、保底与止损</h2>
+<ul>
+<li><strong>本周及格线</strong> = 导读九站读完 + L1-L7 关卡题过 + 2 个 Modbus 实验 + 简历投出 ≥10 份。其他全可弃。</li>
+<li><strong>卡壳 15 分钟就跳</strong>(比平时的 30 分钟规矩更狠),记问题清单,晚上问。</li>
+<li><strong>心态条款</strong>:时间紧的最大风险不是学不完,是<strong>用读讲义的踏实感代替练面试的恐慌感</strong>。感觉焦虑时,去背一段逐字稿或做一道关卡题——输出会给你确定性,阅读不会。</li>
+</ul>
+<hr />
+<p><em>本文档与<a href="roadmap30.html">30 天作战路线</a>的关系:它是最后一周的紧急压缩版;若时间回到充裕状态,回到 30 天版主轴。</em></p>
+<div class="pager">
+  <a style="visibility:hidden"></a>
+  <a class="next" href="prep.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">零基础前置 · 教练带练（先看这篇）</div></a>
+</div>
+  <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
+  </main>
+</div>
+<script src="../assets/site.js"></script>
+
+</body>
+</html>
