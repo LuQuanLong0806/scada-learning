@@ -255,8 +255,12 @@ PAGES = [
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
     dict(slug="proj-read", kind="module", file="项目逐行导读_DaqMonitor_从零到吃透.md",
          title="逐行导读 · DaqMonitor 从零到吃透", sub="主线代码 100% 逐行 · 九站沿数据流",
-         what="入口→模型→IDevice→设备→管道→双写→报警→MVVM→组合根逐行讲透:🔧固定写法 vs 🧠核心逻辑双标记、前端类比、面试一句话、每站动手实验,附 40 词术语表/面试串联/自测 30 问",
+         what="需求逼出架构开篇+入口→模型→IDevice→设备→管道→双写→报警→MVVM→组合根逐行讲透:🔧/🧠双标记+前端类比+面试一句话;附录 A 面试串联/B 术语表/C 自测 30 问/D 易错点急救/D 防尴尬操作速查",
          src="🔎 读码地图", kicker="🏗️ 项目实践"),
+    dict(slug="worksheet-daq", kind="module", file="亲手造发动机_注释工作纸_DaqMonitor.md",
+         title="亲手造发动机 · 注释工作纸(DaqMonitor)", sub="只给中文注释,自己写出代码",
+         what="5 个核心文件(SimulatedDevice/管道/报警三件套)的注释-only 工作纸:每行一句中文注释让你自己写实现,写完替换原文件跑 dotnet test,85 全绿=这个文件属于你;内网白天就能做(🥇档可验收)",
+         src="⚙️ 手造验证", kicker="🏗️ 项目实践"),
     dict(slug="proj-mc1", kind="module", file="项目实践_MotionControl_MC1_工程骨架与模拟卡.md",
          title="MC1 · 骨架与模拟卡", sub="net8 迁移/IMotionCard/两轴并发仿真",
          what="net8 工程三件套 + IMotionCard 接口(对齐真卡 SDK 返回码)+ MockMotionCard:每轴 CancellationToken、急停就地冻结、回零、软限位、报警链路",
@@ -281,6 +285,14 @@ PAGES = [
          title="MC6 · 轨迹可视化(可选)", sub="自绘控件/坐标轴/轨迹图",
          what="自定义 TrajectoryPanel:数据绘制分离、双缓冲、mm→像素等比例映射(Y 轴翻转)、定时器两轴同拍采样防锯齿 —— 插补画出笔直斜线,急停红点冻结",
          src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
+    dict(slug="proj-mc-read", kind="module", file="项目逐行导读_MotionControl_从零到吃透.md",
+         title="逐行导读 · MotionControl 从零到吃透", sub="主线代码逐行 · 六站沿控制流",
+         what="需求逼出架构开篇 + 入口/IMotionCard/模拟卡状态机/WinForms 界面/两轴插补/轨迹自绘六站逐行(🔧/🧠双标记+前端类比);附 14 测试验收表/双项目串讲/20 术语/自测 20 问/易错点四段式",
+         src="🔎 读码地图", kicker="🏗️ 项目实践"),
+    dict(slug="worksheet-mc", kind="module", file="亲手造发动机_注释工作纸_MotionControl.md",
+         title="亲手造发动机 · 注释工作纸(MotionControl)", sub="只给中文注释,自己写出代码",
+         what="模拟卡单轴运动核心段 + MoveLinear 插补段的注释-only 工作纸:每行一句中文注释自己写实现,替换原文件跑 dotnet test 14/14 全绿 = 这个文件属于你",
+         src="⚙️ 手造验证", kicker="🏗️ 项目实践"),
     dict(slug="mistakes", kind="support", file="错题本_查漏补缺.md",
          title="📕 错题本 · 查漏补缺", sub="不熟的/易错的,登记+详解+自测",
          what="活页错题册:报出不懂的点 → 固定格式详解(总纲/项目实物/前端类比/易错点/自测) → 分区登记,复习节奏与状态标记", src="🏗️ 需求实践", kicker="🏗️ 项目实践"),
@@ -295,8 +307,9 @@ SECTION_OF = {
                   "M8.5", "M9", "M9.5", "M10", "M11", "M12", "M13", "M14",
                   "M15", "M16", "M17", "M18", "M19"],
     "projects":  ["proj-daq", "proj-r0", "proj-r1", "proj-r2", "proj-r3", "proj-r4",
-                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj-read",
+                  "proj-r5", "proj-r6", "proj-r7", "proj-r8", "proj-read", "worksheet-daq",
                   "proj-mc1", "proj-mc2", "proj-mc3", "proj-mc4", "proj-mc5", "proj-mc6",
+                  "proj-mc-read", "worksheet-mc",
                   "mistakes", "proj2"],
     "practice":  ["practice-ladder", "muscle", "spaced-repetition"],
     "career":    ["jd-research", "resume", "interview30", "design-qa40", "job", "jobmap",
@@ -328,10 +341,10 @@ for p in PAGES:
         s = p["slug"]
         if s == "proj-daq":
             p["group"] = "从这里开始 · 怎么做项目"
-        elif s in _DAQ_RS or s == "proj-read":
-            p["group"] = "项目一 · DaqMonitor 数据采集（R0 → R8，跟着需求单开发 + 逐行吃透）"
-        elif s in {f"proj-mc{i}" for i in range(1, 7)}:
-            p["group"] = "项目二 · 模拟运动控制（WinForms · MC1 → MC6）"
+        elif s in _DAQ_RS or s in ("proj-read", "worksheet-daq"):
+            p["group"] = "项目一 · DaqMonitor 数据采集（R0 → R8，跟着需求单开发 + 逐行吃透 + 手造发动机）"
+        elif s in {f"proj-mc{i}" for i in range(1, 7)} or s in ("proj-mc-read", "worksheet-mc"):
+            p["group"] = "项目二 · 模拟运动控制（WinForms · MC1 → MC6 + 逐行吃透 + 手造发动机）"
         else:
             p["group"] = "储备 · 下一份简历作品（规划）"
 

@@ -28,7 +28,7 @@
   <aside class="toc"><p class="tt">本页目录</p><ul>
 <li class="l2"><a href="#sec-2-1">一、三条铁律(比排期表重要)</a><ul>
 </ul></li>
-<li class="l2"><a href="#sec-2-2">二、七天排期(白天内网 + 晚上回家,各 1.5~2h)</a><ul>
+<li class="l2"><a href="#sec-2-2">二、七天排期(按 4~6 小时/天:白天半天约 3h + 晚上约 1.5h)</a><ul>
 </ul></li>
 <li class="l2"><a href="#sec-2-3">三、导读九站 ↔ 教练计划 L1-L7 映射(关卡题照做)</a><ul>
 </ul></li>
@@ -52,54 +52,54 @@
 <li><strong>只认输出,不认阅读量。</strong> 衡量标准只有两个:能不能<strong>脱稿讲 2 分钟项目</strong>、能不能<strong>接住连环第二问</strong>。每晚睡前一问:今天离这两件事更近了吗?没有 = 排错了。</li>
 <li><strong>新知识本周归零。</strong> 22 模块讲义降级为字典——只在导读某站看不懂时,点 📚 链接查那一节。任何"顺便把 Mxx 也学了"的念头都砍掉。</li>
 </ol>
-<h2 id="sec-2-2">二、七天排期(白天内网 + 晚上回家,各 1.5~2h)</h2>
+<h2 id="sec-2-2">二、七天排期(按 4~6 小时/天:白天半天约 3h + 晚上约 1.5h)</h2>
 <blockquote>
-<p>内网白天能做的:读站点导读页(逐行导读已上线)、🥈 档跑 exe 断点、速记卡、术语表。
-必须回家的:投简历、AI 批改问题清单、Modbus 仿真实验(工具在 U 盘/家里)、git commit。</p>
+<p><strong>环境分工</strong>:内网白天(🥇档 SDK+NuGet.config 已备)= <strong>读导读 + 断点 + 亲手造发动机工作纸(可 build/test 当验收官)</strong> + 速记卡;回家晚上 = 投简历、AI 批改/模拟面试、Modbus 实验、背诵。
+<strong>标记</strong>:无标 = 核心(4h 的天也必保);🟡 = 机动(6h 的天才做)。发动机工作纸见<a href="worksheet-daq.html">亲手造发动机 · 注释工作纸</a>(运控卷随运控项目发布)。</p>
 </blockquote>
 <table>
 <thead>
 <tr>
 <th>天</th>
-<th>白天(内网)</th>
-<th>晚上(回家)</th>
+<th>白天半天(内网,≈3h)</th>
+<th>晚上(回家,≈1.5h)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><strong>D1</strong></td>
-<td>通勤刷速记卡</td>
-<td>① 简历初版 1.5h(用<a href="resume.html">简历模板</a>:85 测试、双写/回滞/Channel 三张牌、STAR 讲法)② 读导读 <strong>〇章 + 第 1/2/3 站</strong>(入口/数据模型/IDevice,≈90min)</td>
+<td>读导读:开篇「需求逼出架构」+ 〇章 + 第 1/2/3 站(3h)</td>
+<td><strong>简历初版</strong>(用<a href="resume.html">简历模板</a>:85 测试/双写/回滞/Channel 三张牌,STAR 讲法)</td>
 </tr>
 <tr>
 <td><strong>D2</strong></td>
-<td>读 <strong>第 4/5 站</strong>(模拟设备/管道★)断点走数据流;L2 关卡题 3 道</td>
-<td>读 <strong>第 7 站</strong>(报警/回滞)+ L3 实验(79/81/83/79/77/76 序列);<strong>投出 3-5 份简历</strong></td>
+<td>第 4/5 站精读 + ⚙️<strong>工作纸 1</strong>(SimulatedDevice 手敲+测试全绿,3.5h)</td>
+<td>⚙️<strong>工作纸 2</strong>(Pipeline★,大动脉手造)+ <strong>投出 3-5 份简历</strong></td>
 </tr>
 <tr>
 <td><strong>D3</strong></td>
-<td>读 <strong>第 6 站</strong>(存储三件套/双写★);L4 关卡题</td>
-<td><strong>Modbus 仿真实验</strong>(<a href="sim-lab.html">仿真实验室</a>实验①+②:diagslave 起从站、字节序一错一对,60min);继续投</td>
+<td>第 7 站精读 + ⚙️<strong>工作纸 3</strong>(报警三件套)+ 第 6 站读(3.5h)</td>
+<td><strong>Modbus 仿真实验</strong>(diagslave+字节序一错一对)+ 🟡 R4 调库版跟敲 + 继续投</td>
 </tr>
 <tr>
 <td><strong>D4</strong></td>
-<td>读 <strong>第 8 站</strong>(UI/MVVM,你的主场快读)+ 🅐 敲简历锚点功能(L6 三选一:报警筛选/搜索框/启动确认)</td>
-<td>读 <strong>第 9 站</strong>(Bootstrapper)+ L7 毕业实验(换设备一行注册)+ <code>dotnet test</code> 全绿 + git commit</td>
+<td>第 8/9 站读 + <strong>运控导读</strong>:需求开篇+模拟卡+测试站(3h)</td>
+<td><strong>运控导读</strong>:界面/插补/轨迹站 + 🟡 L6 锚点功能(报警筛选/搜索框/启动确认)</td>
 </tr>
 <tr>
 <td><strong>D5</strong></td>
-<td><strong>附录 C 自测 30 问</strong>(合卷白纸)→ 错题登记<a href="mistakes.html">错题本</a>→ <a href="db-interview.html">数据库速攻</a> SQL 12 题手写 1h</td>
-<td><a href="interview30.html">逐字稿 30 题</a> + <a href="design-qa40.html">设计决策 40 问</a> 背诵第 1 轮 + 数据库话术(高并发拆解/四板斧)</td>
+<td>🟡 ⚙️运控工作纸(模拟卡)+ <strong>附录 C 自测 30 问</strong>(合卷)+ 错题登记<a href="mistakes.html">错题本</a></td>
+<td><a href="db-interview.html">数据库速攻</a> SQL 12 题手写 + <a href="interview30.html">逐字稿 30 题</a>/<a href="design-qa40.html">设计决策 40 问</a> 背诵第 1 轮 + 数据库话术</td>
 </tr>
 <tr>
 <td><strong>D6</strong></td>
-<td>错题复盘 + 附录 D(易错点急救手册)按错题回读</td>
-<td><strong>AI 模拟面试</strong>:让 AI 扮演面试官专攻"第二问"(为什么 Channel/为什么回滞/断电丢数据怎么办);附录 A 的 2 分钟版讲 3 遍出声</td>
+<td>错题复盘 + 附录 D 按错题回读 + 🟡 ⚙️运控工作纸 2(插补)</td>
+<td><strong>AI 模拟面试</strong>(专攻"第二问":为什么 Channel/为什么回滞/断电丢数据)+ 附录 A 2 分钟版讲 3 遍出声</td>
 </tr>
 <tr>
 <td><strong>D7</strong></td>
-<td>速记卡刷完 + 40 词术语表过一遍 + <strong>导读附录 E「10 连问」秒答自测</strong>(启动/入口/账号/db 路径——操作层事实答不上当场露馅)</td>
-<td>附录 A 30 秒版复温;按投递反馈微调简历;<strong>下周 = 面试滚动 + 错题本天天更新</strong></td>
+<td><strong>附录 E「10 连问」秒答自测</strong>(启动/入口/账号/db 路径)+ 速记卡 + 40 词术语表</td>
+<td>附录 A 30 秒版复温 + 简历按投递反馈微调;<strong>下周 = 面试滚动 + 错题本天天更新</strong></td>
 </tr>
 </tbody>
 </table>

@@ -128,6 +128,11 @@
 <td>🥈档:直接跑 bin 下 exe;🥇档:VS 打开 sln,F5</td>
 </tr>
 <tr>
+<td><code>MotionControl\</code></td>
+<td>运控项目读码 / ⚙️手造发动机工作纸</td>
+<td>🥈档:直接跑 bin 下 exe;🥇档:VS 打开 sln,F5;<code>dotnet test</code> 14/14 绿(零新增包,离线直接用)</td>
+</tr>
+<tr>
 <td><code>ByteOrderLab\</code></td>
 <td>L0 课 / 字节序忘了</td>
 <td>双击 bin 下 exe 重放实验</td>
@@ -328,6 +333,12 @@ dotnet test    # 85/85 绿 = 配置成功
 <td>全部测试</td>
 <td>✅</td>
 <td></td>
+</tr>
+<tr>
+<td><strong>MotionControl 工程</strong></td>
+<td>运动控制模拟</td>
+<td>✅ <strong>零新增</strong></td>
+<td>主程序零第三方包;测试包版本与上表 DAQMonitor 完全对齐(TestSdk 17.11.1/xunit 2.9.2/runner 2.8.2),DAQMonitor 能离线 restore 的机器它直接可用;NuGet.config 同款拷进 <code>MotionControl\</code> 即可,详见其 README「内网使用」</td>
 </tr>
 </tbody>
 </table>

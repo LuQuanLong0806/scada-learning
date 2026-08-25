@@ -733,6 +733,8 @@ public class PlcDevice : IDevice { }   // ❌ 编译失败:缺 Connect/Read/Writ
 
 61 行 `20 + _rnd.NextDouble() * 70`(正常值上限 90)改成 `* 95` ——正常值就能摸到 95+,报警会更频繁。跑起来直观感受"阈值与数据分布的关系"。
 
+> ⚙️ **亲手造发动机 · 工作纸 1**:本文件有注释-only 版——每行只给中文注释,自己写代码,写完替换原文件跑测试,85 全绿 = 这 80 行属于你。见[亲手造发动机 · 注释工作纸](亲手造发动机_注释工作纸_DaqMonitor.md) 工作纸 1。
+
 ---
 
 ## 第五站 · 大动脉:AcquisitionPipeline.cs(80 行,★全项目心脏)
@@ -900,6 +902,8 @@ public class PlcDevice : IDevice { }   // ❌ 编译失败:缺 Connect/Read/Writ
 ### ✂️ 自己改一处(教练计划 L2 的实验)
 
 Bootstrapper 里 `new AcquisitionPipeline(TimeSpan.FromMilliseconds(200))` 改成 `FromMilliseconds(2000)` → 跑起来:点位表 2 秒才跳一次,但**一次跳一大截**——直观理解"批量=延迟换吞吐"。
+
+> ⚙️ **亲手造发动机 · 工作纸 2(★最优先)**:大动脉 80 行的注释-only 版,见[亲手造发动机 · 注释工作纸](亲手造发动机_注释工作纸_DaqMonitor.md) 工作纸 2。写完这个,项目的心脏就是你手造的。
 
 ---
 
@@ -1290,6 +1294,8 @@ Bootstrapper 里 `new AcquisitionPipeline(TimeSpan.FromMilliseconds(200))` 改�
 ### ✂️ 自己改一处(教练计划 L3 的实验)
 
 写个 10 行控制台:阈值 80、回滞 5,依次 Evaluate 喂 79/81/83/79/77/76,在 AlarmTriggered/Cleared 里打印。数一数:触发 1 次(83)、恢复 1 次(76)。再把回滞改 0 重喂,看报警次数爆炸——**亲手摸到回滞的价值**。
+
+> ⚙️ **亲手造发动机 · 工作纸 3**:报警三件套(14+11+53 行)的注释-only 版,见[亲手造发动机 · 注释工作纸](亲手造发动机_注释工作纸_DaqMonitor.md) 工作纸 3。AlarmEngineTests 直接当你的验收官。
 
 ---
 

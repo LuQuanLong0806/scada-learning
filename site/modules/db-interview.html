@@ -148,12 +148,109 @@
 <blockquote>
 <p>练习表 = 你项目的真实表,<strong>打开 <code>%LocalAppData%\DaqMonitor\daq.db</code>(VSCode SQLite 插件)边写边验</strong>:
 <code>sensor_record(id, point_id, value, time)</code> + 假想配置表 <code>point_def(point_id, name, unit)</code>
-方言:答案给 SQLite,括号注 SQL Server 差异。<strong>先自己写,再看答案。</strong></p>
+方言:答案主体给 SQLite,差异处双注「SQL Server / MySQL」。<strong>先自己写,再看答案。</strong></p>
+</blockquote>
+<h4>先看这张:三库方言对照表(SQLite / SQL Server / MySQL)——差异全在这,笔试换库不慌</h4>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>SQLite(本项目用)</th>
+<th>SQL Server(上位机标配)</th>
+<th><strong>MySQL(你熟,拿它练手)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>取前 N 条</td>
+<td><code>LIMIT 100</code></td>
+<td><code>TOP 100</code></td>
+<td><code>LIMIT 100</code>(同 SQLite)</td>
+</tr>
+<tr>
+<td>今天零点</td>
+<td><code>date('now','start of day')</code></td>
+<td><code>CAST(GETDATE() AS DATE)</code></td>
+<td><strong><code>CURDATE()</code></strong></td>
+</tr>
+<tr>
+<td>当前时间</td>
+<td><code>datetime('now')</code></td>
+<td><code>GETDATE()</code></td>
+<td><strong><code>NOW()</code></strong></td>
+</tr>
+<tr>
+<td>截断到小时</td>
+<td><code>strftime('%Y-%m-%d %H:00', t)</code></td>
+<td><code>FORMAT(t,'yyyy-MM-dd HH:00')</code></td>
+<td><strong><code>DATE_FORMAT(t,'%Y-%m-%d %H:00')</code></strong></td>
+</tr>
+<tr>
+<td>取日期部分</td>
+<td><code>date(t)</code></td>
+<td><code>CAST(t AS DATE)</code></td>
+<td><code>DATE(t)</code></td>
+</tr>
+<tr>
+<td>分页</td>
+<td><code>LIMIT 50 OFFSET 100</code></td>
+<td><code>OFFSET 100 ROWS FETCH NEXT 50 ROWS ONLY</code></td>
+<td><strong><code>LIMIT 100, 50</code></strong>(偏移在前,条数在后!)</td>
+</tr>
+<tr>
+<td>判空替换</td>
+<td><code>IFNULL(x,0)</code></td>
+<td><code>ISNULL(x,0)</code></td>
+<td><code>IFNULL(x,0)</code></td>
+</tr>
+<tr>
+<td>自增主键</td>
+<td><code>AUTOINCREMENT</code></td>
+<td><code>IDENTITY(1,1)</code></td>
+<td><code>AUTO_INCREMENT</code></td>
+</tr>
+<tr>
+<td>批量插入</td>
+<td><code>VALUES(...),(...)</code></td>
+<td>同</td>
+<td>同</td>
+</tr>
+<tr>
+<td>有则更新</td>
+<td><code>INSERT OR REPLACE</code></td>
+<td><code>MERGE</code></td>
+<td><strong><code>ON DUPLICATE KEY UPDATE</code></strong></td>
+</tr>
+<tr>
+<td>EF 包</td>
+<td><code>...EntityFrameworkCore.Sqlite</code></td>
+<td><code>...EntityFrameworkCore.SqlServer</code></td>
+<td><strong><code>Pomelo.EntityFrameworkCore.MySql</code></strong></td>
+</tr>
+<tr>
+<td>连接串</td>
+<td><code>Data Source=daq.db</code></td>
+<td><code>Server=.;Database=DAQ;Trusted_Connection=true;</code></td>
+<td><strong><code>Server=localhost;Port=3306;Database=daq;Uid=root;Pwd=***;</code></strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>MySQL 本机练兵环境(挑一种,10 分钟)</strong>:</p>
+<pre><code class="language-bash"># A. Docker(有 Docker 最快)
+docker run -d --name mysql-lab -p 3306:3306 \
+  -e MYSQL_ROOT_PASSWORD=lab123456 -e MYSQL_DATABASE=daq mysql:8
+# 客户端(Navicat/DBeaver/VSCode 插件)连 localhost:3306,root / lab123456
+
+# B. 无 Docker:MySQL 官网 Community Server 的 ZIP(noinstall)版,解压 --initialize 后 mysqld 起服务(绿色,可进 U 盘)
+</code></pre>
+<blockquote>
+<p><strong>练哪库?</strong> 你熟的 <strong>MySQL 全程练 12 题</strong>,SQL Server 靠对照表"会说"——JD 写"至少一种",深度给熟的,广度给表。被问 SQL Server 差异就答:"主要在 TOP/LIMIT、日期函数、分页三处,我对照着写就行"——这句本身就是加分项(证明你跨过库,不是只会一种)。</p>
 </blockquote>
 <p><strong>① 查点位 1 今天的全部记录</strong></p>
 <pre><code class="language-sql">SELECT * FROM sensor_record
 WHERE point_id = 1 AND time &gt;= date('now','start of day');
 -- SQL Server: WHERE point_id=1 AND time &gt;= CAST(GETDATE() AS DATE)
+-- MySQL:     WHERE point_id=1 AND time &gt;= CURDATE()
 </code></pre>
 <p><strong>② 点位 1 今天的最大/最小/平均</strong></p>
 <pre><code class="language-sql">SELECT MAX(value), MIN(value), AVG(value) FROM sensor_record
@@ -169,6 +266,7 @@ GROUP BY point_id;
 FROM sensor_record WHERE point_id = 1
 GROUP BY strftime('%Y-%m-%d %H:00', time);
 -- SQL Server: GROUP BY DATEADD(HOUR, DATEDIFF(HOUR,0,time), 0) 或 FORMAT(time,'yyyy-MM-dd HH:00')
+-- MySQL:     GROUP BY DATE_FORMAT(time, '%Y-%m-%d %H:00')
 </code></pre>
 <p><strong>⑤ 最新的 100 条</strong></p>
 <pre><code class="language-sql">SELECT * FROM sensor_record ORDER BY time DESC LIMIT 100;
@@ -198,6 +296,7 @@ GROUP BY point_id;
 <p><strong>⑩ 分页:第 3 页,每页 50 条</strong></p>
 <pre><code class="language-sql">SELECT * FROM sensor_record ORDER BY time DESC LIMIT 50 OFFSET 100;
 -- SQL Server: OFFSET 100 ROWS FETCH NEXT 50 ROWS ONLY(2012+)
+-- MySQL: LIMIT 100, 50  ⚠️偏移在前条数在后,和 SQLite 写法顺序相反,笔试易错点
 </code></pre>
 <p><strong>⑪ 按天统计数据量</strong>(工业真实用途:<strong>对账——每天应采 N 条,少了对不上就是丢点</strong>)</p>
 <pre><code class="language-sql">SELECT date(time) AS 天, COUNT(*) FROM sensor_record
@@ -275,7 +374,7 @@ C. WHERE point_id=1                   → ✅ 部分命中(最左前缀)
 <tbody>
 <tr>
 <td>D5 白天 1h</td>
-<td>12 题<strong>手写</strong>(白纸,别看答案)→ 对答案,错的进错题本</td>
+<td>12 题<strong>手写</strong>(白纸,别看答案)→ 对答案,错的进错题本;有余力在 MySQL(Docker 一条命令,见第二节)真跑一遍</td>
 <td>SQL 笔试不慌</td>
 </tr>
 <tr>

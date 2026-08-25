@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- 沿用原工程的命名空间,一行代码都不用改命名空间就能迁移 -->
+    <RootNamespace>MotionControlProject</RootNamespace>
+    <!-- 允许用新版 SDK 编译 net8 目标 -->
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+</Project>

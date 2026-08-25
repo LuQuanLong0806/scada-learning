@@ -231,3 +231,74 @@ public class GaugeControl : Control
 
 ## 📎 关联
 - 可视化主章节：**M5**；UI 工程化：**M8**。
+
+---
+
+## 🔧 工程对齐补丁:WinForms 双件套(2026-08-25 审计后补)
+
+> 本讲义 Day 1 是 WinForms 速成、Day 2 走的是 **WPF** 控件路线(DefaultStyleKey/XAML 模板);而姊妹工程 **MotionControl(WinForms)** 需要的是另两条 WinForms 路线:**①界面怎么组织(WinForms 版"MVVM")②自定义控件怎么做(GDI+ 自绘)**。补在这里。深挖去 [项目实践 MC3](项目实践_MotionControl_MC3_WinForms主界面.md) / [MC6](项目实践_MotionControl_MC6_轨迹可视化.md) 与运控逐行导读。
+
+### 补丁① WinForms 的"MVVM":集中刷新单一真源(WinForms 界面组织正解)
+
+**先说清一件事**:WinForms **没有** WPF 那套 DataContext/Binding 生态(有 BindingSource/INPC 绑定但弱、老项目少用)。**业界主流做法 = code-behind + 集中刷新**:
+
+```csharp
+// MotionControl MainForm 的模式(工程真实代码,可直接抄):
+private void RefreshUiState()          // ← 单一真源:界面长什么样只由这一个方法说了算
+{
+    foreach (var (i, grp) in _axisGroups.Select((g, i) => (i, g)))
+    {
+        var st = _card.GetAxisState(i);          // 读卡的真实状态
+        grp.BtnEnable.Enabled = !st.IsEnabled;   // 按钮灰亮 = 状态推导,不是散落各处手改
+        grp.BtnStop.Enabled = st.IsMoving;
+        grp.LblState.Text = st.State.ToString();
+    }
+    btnConnect.Enabled = !_card.IsConnected;
+    btnEstop.Enabled = _card.IsConnected;
+}
+// 任何事件回调/状态变化 → 改完数据 → 一句 RefreshUiState() 全量刷
+```
+
+| | WPF(你项目 DaqMonitor) | WinForms(你项目 MotionControl) |
+|---|---|---|
+| 心智 | 响应式:改数据,界面自己刷新(Vue) | 命令式:改完数据,**喊一嗓子全量重画**(老 jQuery 时代的 render()) |
+| 刷新 | 属性 setter → INPC → 精准刷那一格 | `RefreshUiState()` 集中重算所有按钮/文本 |
+| 优 | 精细、绑定声明式 | **土但可控**——界面状态只看一个方法就知道全貌 |
+| 劣 | 忘 OnChanged 不刷新(坑多) | 忘调 RefreshUiState 不刷新(坑集中一处) |
+
+**配套三件**(MC3 都有实战):
+1. **控件数组 + 循环订阅**——两轴界面长得一样,把每轴的按钮/文本框打包成组,循环订阅:**闭包坑**`foreach (var i in ...) { btn.Click += (s,e) => Do(i); }` 老版本 C# 的 i 是共享变量,循环完全是最后一个值——现代 C# foreach 已修复,for 循环仍要 `int local = i;` 拦一道;
+2. **InvokeRequired + BeginInvoke**(WinForms 版 Dispatcher):后台事件改 UI 前先问"我在 UI 线程吗"(`if (InvokeRequired) BeginInvoke(...)`),不是就把自己快递回 UI 线程——**和 WPF 的 Dispatcher.Invoke 同一思想,两套 API**;
+3. **定时器边沿检测**——Timer 每 100ms 查轴状态,要自己记"上一拍是运动中"才能发现"刚刚停了"(上升沿/下降沿),WinForms 不会替你记。
+
+### 补丁② WinForms 自定义控件 = GDI+ 自绘(TrajectoryPanel 路线)
+
+Day 2 的 GaugeControl 是 **WPF 路线**;WinForms 的自定义控件走 **OnPaint 自绘**(工程 `UI/TrajectoryPanel.cs`,画 X-Y 运动轨迹):
+
+```csharp
+public class TrajectoryPanel : Control
+{
+    private readonly List<(float x, float y)> _pts = new();   // ① 数据与绘制分离:只存点
+    public void Sample(float x, float y) { _pts.Add((x, y)); Invalidate(); }  // ② 采样→标记重绘
+
+    protected override void OnPaint(PaintEventArgs e)          // ③ 系统要画时回调你
+    {
+        // ④ 双缓冲防闪烁(this.DoubleBuffered = true 或构造里开 OptimizedDoubleBuffer)
+        // ⑤ mm→像素等比映射:x/y 用同一个缩放系数(取 min!),否则画的线变形
+        // ⑥ Y 轴翻转:屏幕 Y 向下,数学 Y 向上 → py = Height - y*scale
+        // ⑦ e.Graphics.DrawLine/DrawEllipse 把点连成轨迹
+    }
+}
+```
+
+**两路线对照表**(面试被问"自定义控件怎么做"先问清哪家):
+
+| | WPF 控件(Day2 GaugeControl) | WinForms 自绘(TrajectoryPanel) |
+|---|---|---|
+| 核心机制 | `Control` + XAML 模板(Generic.xaml) | `Control` + `override OnPaint` + GDI+ |
+| 值怎么进 | DependencyProperty(参与绑定系统) | 普通属性 + 手动 `Invalidate()` |
+| 刷新 | 绑定/属性系统自动 | **自己调 Invalidate 触发重绘** |
+| 外观 | XAML 声明,样式可换皮肤 | 全靠 Graphics 手画(线条/填充/抗锯齿) |
+| 防闪烁 | WPF 合成系统天然双缓冲 | **要自己开双缓冲**(经典追问点) |
+
+💼 **连环追问预埋**:"轨迹图闪烁怎么办?"→双缓冲(先画到内存位图再一次上屏);"画出来的直线是斜的/变形?"→等比映射必须 x/y 共用一个缩放系数;"为什么 WinForms 要手动 Invalidate?"→它没有属性→UI 的自动通知管道,一切手搓——这正是 WPF 诞生要解决的痛。

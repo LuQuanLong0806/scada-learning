@@ -1265,6 +1265,9 @@ public override void Connect() { _plc = new Plc(CpuType.S71200, &quot;192.168.1.
 </blockquote>
 <h3 id="sec-3-27">✂️ 自己改一处</h3>
 <p>61 行 <code>20 + _rnd.NextDouble() * 70</code>(正常值上限 90)改成 <code>* 95</code> ——正常值就能摸到 95+,报警会更频繁。跑起来直观感受"阈值与数据分布的关系"。</p>
+<blockquote>
+<p>⚙️ <strong>亲手造发动机 · 工作纸 1</strong>:本文件有注释-only 版——每行只给中文注释,自己写代码,写完替换原文件跑测试,85 全绿 = 这 80 行属于你。见<a href="worksheet-daq.html">亲手造发动机 · 注释工作纸</a> 工作纸 1。</p>
+</blockquote>
 <hr />
 <h2 id="sec-2-6">第五站 · 大动脉:AcquisitionPipeline.cs(80 行,★全项目心脏)</h2>
 <blockquote>
@@ -1522,6 +1525,9 @@ public override void Connect() { _plc = new Plc(CpuType.S71200, &quot;192.168.1.
 </blockquote>
 <h3 id="sec-3-32">✂️ 自己改一处(教练计划 L2 的实验)</h3>
 <p>Bootstrapper 里 <code>new AcquisitionPipeline(TimeSpan.FromMilliseconds(200))</code> 改成 <code>FromMilliseconds(2000)</code> → 跑起来:点位表 2 秒才跳一次,但<strong>一次跳一大截</strong>——直观理解"批量=延迟换吞吐"。</p>
+<blockquote>
+<p>⚙️ <strong>亲手造发动机 · 工作纸 2(★最优先)</strong>:大动脉 80 行的注释-only 版,见<a href="worksheet-daq.html">亲手造发动机 · 注释工作纸</a> 工作纸 2。写完这个,项目的心脏就是你手造的。</p>
+</blockquote>
 <hr />
 <h2 id="sec-2-7">第六站 · 数据落库三件套(_SENSOR-record → AppDb → PointStore)</h2>
 <blockquote>
@@ -2059,6 +2065,9 @@ public override void Connect() { _plc = new Plc(CpuType.S71200, &quot;192.168.1.
 </blockquote>
 <h3 id="sec-3-47">✂️ 自己改一处(教练计划 L3 的实验)</h3>
 <p>写个 10 行控制台:阈值 80、回滞 5,依次 Evaluate 喂 79/81/83/79/77/76,在 AlarmTriggered/Cleared 里打印。数一数:触发 1 次(83)、恢复 1 次(76)。再把回滞改 0 重喂,看报警次数爆炸——<strong>亲手摸到回滞的价值</strong>。</p>
+<blockquote>
+<p>⚙️ <strong>亲手造发动机 · 工作纸 3</strong>:报警三件套(14+11+53 行)的注释-only 版,见<a href="worksheet-daq.html">亲手造发动机 · 注释工作纸</a> 工作纸 3。AlarmEngineTests 直接当你的验收官。</p>
+</blockquote>
 <hr />
 <h2 id="sec-2-9">第八站 · 界面呈现:UI 三件套(376 行合计,前端人的主场)</h2>
 <blockquote>
@@ -3469,7 +3478,7 @@ dotnet run --project src/DaqMonitor.UI         # 启动(最常用)
 <p><em>本文基于 2026-08-25 版本代码(85 测试全绿基线)逐行核对写成。若工程后续演进(如 Prism 重构、TcpDevice 落地),以代码为准,术语与套路不变。</em></p>
 <div class="pager">
   <a class="prev" href="proj-r8.html"><div class="pg-sub">← 上一篇</div><div class="pg-t">R8 · WPF 主界面</div></a>
-  <a class="next" href="proj-mc1.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">MC1 · 骨架与模拟卡</div></a>
+  <a class="next" href="worksheet-daq.html"><div class="pg-sub">下一篇 →</div><div class="pg-t">亲手造发动机 · 注释工作纸(DaqMonitor)</div></a>
 </div>
   <div class="foot">打卡状态自动保存在浏览器本地（localStorage），按页独立。</div>
   </main>
